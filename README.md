@@ -1,8 +1,7 @@
-Terraform G-Core Labs Provider
+Terraform EdgeCenter Provider
 ------------------------------
-- Terraform provider page: https://registry.terraform.io/providers/G-Core/gcorelabs 
 
-<img src="https://gcorelabs.com/img/logo.svg" data-src="https://gcorelabs.com/img/logo.svg" alt="G-Core Labs" width="500px" width="500px"> 
+<img src="https://edgecenter.ru/img/logo.svg" data-src="https://edgecenter.ru/img/logo.svg" alt="EdgeCenter" width="500px" width="500px"> 
 ====================================================================================
 
 - [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
@@ -19,8 +18,8 @@ Building the provider
 ```sh
 $ mkdir -p $GOPATH/src/github.com/terraform-providers
 $ cd $GOPATH/src/github.com/terraform-providers
-$ git clone https://github.com/G-Core/terraform-provider-gcorelabs.git
-$ cd $GOPATH/src/github.com/terraform-providers/terraform-provider-gcorelabs
+$ git clone https://github.com/Edge-Center/terraform-provider-edgecenter.git
+$ cd $GOPATH/src/github.com/terraform-providers/terraform-provider-edgecenter
 $ make build
 ```
 
