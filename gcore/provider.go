@@ -8,12 +8,12 @@ import (
 	"net/url"
 	"os"
 
-	dnssdk "github.com/G-Core/gcore-dns-sdk-go"
-	storageSDK "github.com/G-Core/gcore-storage-sdk-go"
-	gcdn "github.com/G-Core/gcorelabscdn-go"
-	gcdnProvider "github.com/G-Core/gcorelabscdn-go/gcore/provider"
-	gcorecloud "github.com/G-Core/gcorelabscloud-go"
-	gc "github.com/G-Core/gcorelabscloud-go/gcore"
+	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
+	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
+	gcdn "github.com/Edge-Center/edgecentercdn-go"
+	gcdnProvider "github.com/Edge-Center/edgecentercdn-go/gcore/provider"
+	gcorecloud "github.com/Edge-Center/edgecentercloud-go"
+	gc "github.com/Edge-Center/edgecentercloud-go/gcore"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform/version"
@@ -53,14 +53,14 @@ func Provider() *schema.Provider {
 				// commented because it's broke all tests
 				//AtLeastOneOf: []string{ProviderOptPermanentToken, "user_name"},
 				Sensitive:   true,
-				Description: "A permanent [API-token](https://support.gcorelabs.com/hc/en-us/articles/360018625617-API-tokens)",
+				Description: "A permanent [API-token](https://support.edgecenter.ru/knowledge_base/item/257788)",
 				DefaultFunc: schema.EnvDefaultFunc("GCORE_PERMANENT_TOKEN", nil),
 			},
 			ProviderOptSingleApiEndpoint: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A single API endpoint for all products. Will be used when specific product API url is not defined.",
-				DefaultFunc: schema.EnvDefaultFunc("GCORE_API_ENDPOINT", "https://api.gcorelabs.com"),
+				DefaultFunc: schema.EnvDefaultFunc("GCORE_API_ENDPOINT", "https://api.edgecenter.ru"),
 			},
 			ProviderOptSkipCredsAuthErr: {
 				Type:        schema.TypeBool,
