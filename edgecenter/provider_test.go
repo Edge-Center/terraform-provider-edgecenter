@@ -12,7 +12,7 @@ import (
 	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
 	cdn "github.com/Edge-Center/edgecentercdn-go"
-	cdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
+	eccdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -224,7 +224,7 @@ func createTestConfig() (*Config, error) {
 		return nil, err
 	}
 
-	cdnProvider := cdnProvider.NewClient(EC_CDN_URL, cdnProvider.WithSignerFunc(func(req *http.Request) error {
+	cdnProvider := eccdnProvider.NewClient(EC_CDN_URL, eccdnProvider.WithSignerFunc(func(req *http.Request) error {
 		req.Header.Set("Authorization", "Bearer "+provider.AccessToken())
 		return nil
 	}))

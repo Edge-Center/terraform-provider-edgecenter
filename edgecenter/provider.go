@@ -11,7 +11,7 @@ import (
 	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
 	cdn "github.com/Edge-Center/edgecentercdn-go"
-	cdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
+	eccdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -217,7 +217,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		platform = d.Get("edgecenter_platform").(string)
 	}
 	if platform == "" {
-		platform = apiEndpoint
+		platform = apiEndpoint + "/iam"
 	}
 
 	clientID := d.Get("edgecenter_client_id").(string)
@@ -246,7 +246,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		log.Printf("[WARN] init auth client: %s\n", err)
 	}
 
-	cdnProvider := cdnProvider.NewClient(cdnAPI, cdnProvider.WithSignerFunc(func(req *http.Request) error {
+	cdnProvider := eccdnProvider.NewClient(cdnAPI, eccdnProvider.WithSignerFunc(func(req *http.Request) error {
 		for k, v := range provider.AuthenticatedHeaders() {
 			req.Header.Set(k, v)
 		}
