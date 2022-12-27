@@ -17,14 +17,16 @@ terraform {
   required_version = ">= 0.13.0"
   required_providers {
     edgecenter = {
-      source  = "Edge-Center/edgecenter"
-      version = "0.3.18"
+      source = "local.edgecenter.ru/repo/edgecenter"
+      version = "0.1.0"
     }
   }
 }
 
 provider edgecenter {
   permanent_api_token = "251$d3361.............1b35f26d8"
+  edgecenter_platform_api = "https://api.edgecenter.ru/iam"
+  edgecenter_cloud_api = "https://api.edgecenter.ru/cloud"
 }
 
 resource "edgecenter_keypair" "kp" {
