@@ -13,8 +13,8 @@ get_cred:
   script:
     - VAULT_TOKEN=$(vault write -address=${VAULT_ADDR} -field=token auth/jwt/login role=${VAULT_ROLE} jwt=${CI_JOB_JWT})
     - export VAULT_TOKEN
-    - echo "GCORE_USERNAME=$(vault kv get -field=GCORE_USERNAME ${USER_PATH})" > cred.env
-    - echo "GCORE_PASSWORD=$(vault kv get -field=GCORE_PASSWORD ${PASS_PATH})" >> cred.env
+    - echo "EC_USERNAME=$(vault kv get -field=EC_USERNAME ${USER_PATH})" > cred.env
+    - echo "EC_PASSWORD=$(vault kv get -field=EC_PASSWORD ${PASS_PATH})" >> cred.env
   artifacts:
     reports:
       dotenv: cred.env
@@ -24,7 +24,7 @@ get_cred:
 get_project_id:
   stage: prepare_project_id
   script:
-    - BEARER_TOKEN=$(curl -s --location --show-error --request POST $API_C --header Content-Type:application/json --data-raw "{\"username\":\"${GCORE_USERNAME}\",\"password\":\"${GCORE_PASSWORD}\"}" | jq -r .access)
+    - BEARER_TOKEN=$(curl -s --location --show-error --request POST $API_C --header Content-Type:application/json --data-raw "{\"username\":\"${EC_USERNAME}\",\"password\":\"${EC_PASSWORD}\"}" | jq -r .access)
     - echo "TEST_PROJECT_ID=$(curl -s --location --show-error  --request GET $API_P --header "Accept:application/json" --header "Authorization:Bearer ${BEARER_TOKEN}" | jq .results[].id)" > project_id.env
   artifacts:
     reports:
@@ -33,6 +33,6 @@ get_project_id:
 
 terraform_test:
   stage: test
-  image: golang:1.17
+  image: golang:1.19
   script:
     - go test -v -count=1 -tags=cloud ./... -timeout=120m -short

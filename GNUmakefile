@@ -1,15 +1,18 @@
 TEST?=$$(go list ./... |grep -v 'vendor')
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
-BINARY_NAME=terraform-provider-gcore
-PKG_NAME=gcorelabs
+BINARY_NAME=terraform-provider-edgecenter
+PKG_NAME=edgecenter
 
 TAG_PREFIX="v"
 TAG=$(shell git describe --tags)
 VERSION=$(shell  git describe --tags $(LAST_TAG_COMMIT) | sed "s/^$(TAG_PREFIX)//")
 OS=$$(go env GOOS)
 ARCH=$$(go env GOARCH)
-PLUGIN_PATH=~/.terraform.d/plugins/local.gcorelabs.com/repo/gcore/$(VERSION)/$(OS)_$(ARCH)
+PLUGIN_PATH=~/.terraform.d/plugins/local.edgecenter.ru/repo/edgecenter/$(VERSION)/$(OS)_$(ARCH)
+
+GOBIN_DEFAULT := $(PWD)/bin
+export GOBIN ?= $(GOBIN_DEFAULT)
 
 default: build
 
@@ -37,7 +40,7 @@ vet:
 
 doc-generate:
 	go install -mod=mod github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-	tfplugindocs
+	$(GOBIN)/tfplugindocs
 
 fmt:
 	gofmt -w $(GOFMT_FILES)

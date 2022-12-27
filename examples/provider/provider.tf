@@ -1,24 +1,24 @@
 terraform {
   required_version = ">= 0.13.0"
   required_providers {
-    gcore = {
-      source  = "G-Core/gcorelabs"
-      version = "0.3.18"
+    edgecenter = {
+      source  = "Edge-Center/edgecenter"
+      version = "0.1.0"
     }
   }
 }
 
-provider gcore {
+provider edgecenter {
   permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
-resource "gcore_keypair" "kp" {
+resource "edgecenter_keypair" "kp" {
   project_id = 1
   public_key = "your oub key"
   sshkey_name = "testkey"
 }
 
-resource "gcore_network" "network" {
+resource "edgecenter_network" "network" {
   name = "network_example"
   mtu = 1450
   type = "vxlan"
@@ -26,10 +26,10 @@ resource "gcore_network" "network" {
   project_id = 1
 }
 
-resource "gcore_subnet" "subnet" {
+resource "edgecenter_subnet" "subnet" {
   name = "subnet_example"
   cidr = "192.168.10.0/24"
-  network_id = gcore_network.network.id
+  network_id = edgecenter_network.network.id
   dns_nameservers = ["8.8.4.4", "1.1.1.1"]
 
   host_routes {
@@ -42,10 +42,10 @@ resource "gcore_subnet" "subnet" {
   project_id = 1
 }
 
-resource "gcore_subnet" "subnet2" {
+resource "edgecenter_subnet" "subnet2" {
   name = "subnet2_example"
   cidr = "192.168.20.0/24"
-  network_id = gcore_network.network.id
+  network_id = edgecenter_network.network.id
   dns_nameservers = ["8.8.4.4", "1.1.1.1"]
 
   host_routes {
@@ -58,7 +58,7 @@ resource "gcore_subnet" "subnet2" {
   project_id = 1
 }
 
-resource "gcore_volume" "first_volume" {
+resource "edgecenter_volume" "first_volume" {
   name = "boot volume"
   type_name = "ssd_hiiops"
   size = 6
@@ -67,7 +67,7 @@ resource "gcore_volume" "first_volume" {
   project_id = 1
 }
 
-resource "gcore_volume" "second_volume" {
+resource "edgecenter_volume" "second_volume" {
   name = "second volume"
   type_name = "ssd_hiiops"
   image_id = "f4ce3d30-e29c-4cfd-811f-46f383b6081f"
@@ -76,7 +76,7 @@ resource "gcore_volume" "second_volume" {
   project_id = 1
 }
 
-resource "gcore_volume" "third_volume" {
+resource "edgecenter_volume" "third_volume" {
   name = "third volume"
   type_name = "ssd_hiiops"
   size = 6
@@ -84,27 +84,27 @@ resource "gcore_volume" "third_volume" {
   project_id = 1
 }
 
-resource "gcore_instance" "instance" {
+resource "edgecenter_instance" "instance" {
   flavor_id = "g1-standard-2-4"
   name = "test"
-  keypair_name = gcore_keypair.kp.sshkey_name
+  keypair_name = edgecenter_keypair.kp.sshkey_name
 
   volume {
     source = "existing-volume"
-    volume_id = gcore_volume.first_volume.id
+    volume_id = edgecenter_volume.first_volume.id
     boot_index = 0
   }
 
   interface {
     type = "subnet"
-    network_id = gcore_network.network.id
-    subnet_id = gcore_subnet.subnet.id
+    network_id = edgecenter_network.network.id
+    subnet_id = edgecenter_subnet.subnet.id
   }
 
   interface {
     type = "subnet"
-     network_id = gcore_network.network.id
-     subnet_id = gcore_subnet.subnet2.id
+     network_id = edgecenter_network.network.id
+     subnet_id = edgecenter_subnet.subnet2.id
   }
 
   security_group {
@@ -126,7 +126,7 @@ resource "gcore_instance" "instance" {
   project_id = 1
 }
 
-resource "gcore_loadbalancer" "lb" {
+resource "edgecenter_loadbalancer" "lb" {
   project_id = 1
   region_id = 1
   name = "test1"
@@ -138,14 +138,14 @@ resource "gcore_loadbalancer" "lb" {
   }
 }
 
-resource "gcore_lbpool" "pl" {
+resource "edgecenter_lbpool" "pl" {
   project_id = 1
   region_id = 1
   name = "test_pool1"
   protocol = "HTTP"
   lb_algorithm = "LEAST_CONNECTIONS"
-  loadbalancer_id = gcore_loadbalancer.lb.id
-  listener_id = gcore_loadbalancer.lb.listener.0.id
+  loadbalancer_id = edgecenter_loadbalancer.lb.id
+  listener_id = edgecenter_loadbalancer.lb.listener.0.id
   health_monitor {
     type = "PING"
     delay = 60
@@ -158,37 +158,37 @@ resource "gcore_lbpool" "pl" {
   }
 }
 
-resource "gcore_lbmember" "lbm" {
+resource "edgecenter_lbmember" "lbm" {
   project_id = 1
   region_id = 1
-  pool_id = gcore_lbpool.pl.id
-  instance_id = gcore_instance.instance.id
-  address = tolist(gcore_instance.instance.interface).0.ip_address
+  pool_id = edgecenter_lbpool.pl.id
+  instance_id = edgecenter_instance.instance.id
+  address = tolist(edgecenter_instance.instance.interface).0.ip_address
   protocol_port = 8081
   weight = 5
 }
 
-resource "gcore_instance" "instance2" {
+resource "edgecenter_instance" "instance2" {
   flavor_id = "g1-standard-2-4"
   name = "test2"
-  keypair_name = gcore_keypair.kp.sshkey_name
+  keypair_name = edgecenter_keypair.kp.sshkey_name
 
   volume {
     source = "existing-volume"
-    volume_id = gcore_volume.second_volume.id
+    volume_id = edgecenter_volume.second_volume.id
     boot_index = 0
   }
 
   volume {
   	source = "existing-volume"
-  	volume_id = gcore_volume.third_volume.id
+  	volume_id = edgecenter_volume.third_volume.id
   	boot_index = 1
   }
 
   interface {
     type = "subnet"
-    network_id = gcore_network.network.id
-    subnet_id = gcore_subnet.subnet.id
+    network_id = edgecenter_network.network.id
+    subnet_id = edgecenter_subnet.subnet.id
   }
 
   security_group {
@@ -210,12 +210,12 @@ resource "gcore_instance" "instance2" {
   project_id = 1
 }
 
-resource "gcore_lbmember" "lbm2" {
+resource "edgecenter_lbmember" "lbm2" {
   project_id = 1
   region_id = 1
-  pool_id = gcore_lbpool.pl.id
-  instance_id = gcore_instance.instance2.id
-  address = tolist(gcore_instance.instance2.interface).0.ip_address
+  pool_id = edgecenter_lbpool.pl.id
+  instance_id = edgecenter_instance.instance2.id
+  address = tolist(edgecenter_instance.instance2.interface).0.ip_address
   protocol_port = 8081
   weight = 5
 }
