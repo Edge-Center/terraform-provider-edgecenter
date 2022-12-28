@@ -3,12 +3,12 @@
 page_title: "edgecenter_storage_sftp Data Source - terraform-provider-edgecenter"
 subcategory: ""
 description: |-
-  Represent sftp storage resource. https://storage.gcorelabs.com/storage/list
+  Represent sftp storage resource. https://storage.edgecenter.ru/storage/list
 ---
 
 # edgecenter_storage_sftp (Data Source)
 
-Represent sftp storage resource. https://storage.gcorelabs.com/storage/list
+Represent sftp storage resource. https://storage.edgecenter.ru/storage/list
 
 
 
@@ -29,6 +29,6 @@ Represent sftp storage resource. https://storage.gcorelabs.com/storage/list
 - `http_servername_alias` (String) An alias of storage resource.
 - `id` (String) The ID of this resource.
 - `location` (String) A location of new storage resource. One of (ams, sin, fra, mia)
-- `ssh_key_id` (List of Number) An ssh keys IDs to link with new sftp storage resource only. https://storage.gcorelabs.com/ssh-key/list
+- `ssh_key_id` (List of Number) An ssh keys IDs to link with new sftp storage resource only. https://storage.edgecenter.ru/ssh-key/list
 
 

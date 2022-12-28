@@ -3,12 +3,12 @@
 page_title: "edgecenter_storage_sftp_key Resource - terraform-provider-edgecenter"
 subcategory: ""
 description: |-
-  Represent storage key resource. https://storage.gcorelabs.com/ssh-key/list
+  Represent storage key resource. https://storage.edgecenter.ru/ssh-key/list
 ---
 
 # edgecenter_storage_sftp_key (Resource)
 
-Represent storage key resource. https://storage.gcorelabs.com/ssh-key/list
+Represent storage key resource. https://storage.edgecenter.ru/ssh-key/list
 
 
 

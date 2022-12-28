@@ -3,12 +3,12 @@
 page_title: "edgecenter_storage_s3 Data Source - terraform-provider-edgecenter"
 subcategory: ""
 description: |-
-  Represent s3 storage resource. https://storage.gcorelabs.com/storage/list
+  Represent s3 storage resource. https://storage.edgecenter.ru/storage/list
 ---
 
 # edgecenter_storage_s3 (Data Source)
 
-Represent s3 storage resource. https://storage.gcorelabs.com/storage/list
+Represent s3 storage resource. https://storage.edgecenter.ru/storage/list
 
 
 

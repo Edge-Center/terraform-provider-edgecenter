@@ -3,12 +3,12 @@
 page_title: "edgecenter_storage_s3_bucket Resource - terraform-provider-edgecenter"
 subcategory: ""
 description: |-
-  Represent s3 storage bucket resource. https://storage.gcorelabs.com/storage/list
+  Represent s3 storage bucket resource. https://storage.edgecenter.ru/storage/list
 ---
 
 # edgecenter_storage_s3_bucket (Resource)
 
-Represent s3 storage bucket resource. https://storage.gcorelabs.com/storage/list
+Represent s3 storage bucket resource. https://storage.edgecenter.ru/storage/list
 
 
 

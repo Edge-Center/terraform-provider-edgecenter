@@ -3,12 +3,12 @@
 page_title: "edgecenter_dns_zone Resource - terraform-provider-edgecenter"
 subcategory: ""
 description: |-
-  Represent DNS zone resource. https://dns.gcorelabs.com/zones
+  Represent DNS zone resource. https://dns.edgecenter.ru/zones
 ---
 
 # edgecenter_dns_zone (Resource)
 
-Represent DNS zone resource. https://dns.gcorelabs.com/zones
+Represent DNS zone resource. https://dns.edgecenter.ru/zones
 
 
 

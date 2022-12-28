@@ -3,12 +3,12 @@
 page_title: "edgecenter_storage_sftp Resource - terraform-provider-edgecenter"
 subcategory: ""
 description: |-
-  Represent sftp storage resource. https://storage.gcorelabs.com/storage/list
+  Represent sftp storage resource. https://storage.edgecenter.ru/storage/list
 ---
 
 # edgecenter_storage_sftp (Resource)
 
-Represent sftp storage resource. https://storage.gcorelabs.com/storage/list
+Represent sftp storage resource. https://storage.edgecenter.ru/storage/list
 
 
 
@@ -29,7 +29,7 @@ Represent sftp storage resource. https://storage.gcorelabs.com/storage/list
 - `http_expires_header_value` (String) A expires date of storage resource.
 - `http_servername_alias` (String) An alias of storage resource.
 - `password` (String) A sftp password for new storage resource.
-- `ssh_key_id` (List of Number) An ssh keys IDs to link with new sftp storage resource only. https://storage.gcorelabs.com/ssh-key/list
+- `ssh_key_id` (List of Number) An ssh keys IDs to link with new sftp storage resource only. https://storage.edgecenter.ru/ssh-key/list
 - `storage_id` (Number) An id of new storage resource.
 - `update_after_create` (Boolean) A temporary flag. An internal cheat, to skip update ssh keys. Skip it.
 

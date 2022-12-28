@@ -36,7 +36,7 @@ func resourceDNSZone() *schema.Resource {
 		CreateContext: checkDNSDependency(resourceDNSZoneCreate),
 		ReadContext:   checkDNSDependency(resourceDNSZoneRead),
 		DeleteContext: checkDNSDependency(resourceDNSZoneDelete),
-		Description:   "Represent DNS zone resource. https://dns.gcorelabs.com/zones",
+		Description:   "Represent DNS zone resource. https://dns.edgecenter.ru/zones",
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

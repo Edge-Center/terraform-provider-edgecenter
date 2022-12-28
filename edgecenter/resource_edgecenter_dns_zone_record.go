@@ -236,7 +236,7 @@ func resourceDNSZoneRecord() *schema.Resource {
 		UpdateContext: checkDNSDependency(resourceDNSZoneRecordUpdate),
 		ReadContext:   checkDNSDependency(resourceDNSZoneRecordRead),
 		DeleteContext: checkDNSDependency(resourceDNSZoneRecordDelete),
-		Description:   "Represent DNS Zone Record resource. https://dns.gcorelabs.com/zones",
+		Description:   "Represent DNS Zone Record resource. https://dns.edgecenter.ru/zones",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), ":")
