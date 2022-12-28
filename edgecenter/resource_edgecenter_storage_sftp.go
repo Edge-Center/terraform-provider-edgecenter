@@ -353,9 +353,9 @@ func resourceStorageSFTPRead(ctx context.Context, d *schema.ResourceData, m inte
 	_ = d.Set(StorageSchemaId, st.ID)
 	_ = d.Set(StorageSchemaLocation, st.Location)
 	_ = d.Set(StorageSchemaGenerateHTTPEndpoint,
-		fmt.Sprintf("http://%s.%s.origin.cdn.co", st.Name, st.Location))
+		fmt.Sprintf("http://%s.%s.origin.edgecore.ru", st.Name, st.Location))
 	_ = d.Set(StorageSchemaGenerateSFTPEndpoint,
-		fmt.Sprintf("ssh://%s@%s.origin.cdn.co:2200", st.Name, st.Location))
+		fmt.Sprintf("ssh://%s@%s.origin.edgecore.ru:2200", st.Name, st.Location))
 
 	return nil
 }
