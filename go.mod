@@ -1,13 +1,13 @@
-module github.com/terraform-providers/terraform-provider-gcorelabs
+module github.com/Edge-Center/terraform-provider-edgecenter
 
-go 1.17
+go 1.19
 
 require (
 	github.com/AlekSi/pointer v1.2.0
-	github.com/G-Core/gcore-dns-sdk-go v0.2.3
-	github.com/G-Core/gcore-storage-sdk-go v0.1.34
-	github.com/G-Core/gcorelabscdn-go v0.1.24
-	github.com/G-Core/gcorelabscloud-go v0.5.12
+	github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.0
+	github.com/Edge-Center/edgecenter-storage-sdk-go v0.1.0
+	github.com/Edge-Center/edgecentercdn-go v0.1.0
+	github.com/Edge-Center/edgecentercloud-go v0.1.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.10.1
 	github.com/mitchellh/mapstructure v1.5.0
@@ -19,19 +19,18 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/go-openapi/analysis v0.21.3 // indirect
-	github.com/go-openapi/errors v0.20.2 // indirect
+	github.com/go-openapi/analysis v0.21.4 // indirect
+	github.com/go-openapi/errors v0.20.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
-	github.com/go-openapi/loads v0.21.1 // indirect
-	github.com/go-openapi/spec v0.20.6 // indirect
-	github.com/go-openapi/strfmt v0.21.2 // indirect
-	github.com/go-openapi/swag v0.21.1 // indirect
-	github.com/go-openapi/validate v0.21.0 // indirect
+	github.com/go-openapi/loads v0.21.2 // indirect
+	github.com/go-openapi/spec v0.20.7 // indirect
+	github.com/go-openapi/strfmt v0.21.3 // indirect
+	github.com/go-openapi/swag v0.22.3 // indirect
+	github.com/go-openapi/validate v0.22.0 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator/v10 v10.2.0 // indirect
-	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -79,7 +78,7 @@ require (
 	google.golang.org/grpc v1.36.1 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
@@ -87,6 +86,6 @@ require (
 	github.com/hashicorp/terraform v1.1.9
 	github.com/hashicorp/terraform-exec v0.17.2 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
-	go.mongodb.org/mongo-driver v1.9.1 // indirect
+	go.mongodb.org/mongo-driver v1.10.1 // indirect
 	golang.org/x/net v0.0.0-20220526153639-5463443f8c37 // indirect
 )

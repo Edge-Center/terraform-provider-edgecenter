@@ -11,7 +11,7 @@ Requirements
 ------------
 
 -	[Terraform](https://www.terraform.io/downloads.html) 0.13.x
--	[Go](https://golang.org/doc/install) 1.14 (to build the provider plugin)
+-	[Go](https://golang.org/doc/install) 1.19 (to build the provider plugin)
 
 Building the provider
 ---------------------
@@ -37,7 +37,7 @@ point provider to development path
 provider_installation { 
  
   dev_overrides { 
-      "local.gcorelabs.com/repo/gcore" = "/<dev-path>/terraform-provider-gcorelabs/bin" 
+      "local.edgecenter.ru/repo/edgecenter" = "/<dev-path>/terraform-provider-edgecenter/bin" 
   } 
  
   # For all other providers, install them directly from their origin provider 
@@ -47,14 +47,14 @@ provider_installation {
 }
 ```
 
-add `local.gcorelabs.com/repo/gcore` to .tf configuration file
+add `local.edgecenter.ru/repo/edgecenter` to .tf configuration file
 ```shell
 terraform {
   required_version = ">= 0.13.0"
 
   required_providers {
-    gcore = {
-      source = "local.gcorelabs.com/repo/gcore"
+    edgecenter = {
+      source = "local.edgecenter.ru/repo/edgecenter"
     }
   }
 }

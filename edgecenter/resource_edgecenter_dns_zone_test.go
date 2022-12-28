@@ -1,0 +1,44 @@
+//go:build !cloud
+// +build !cloud
+
+package edgecenter
+
+import (
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+)
+
+func TestAccDnsZone(t *testing.T) {
+
+	random := time.Now().Nanosecond()
+	name := fmt.Sprintf("terraformtestkey%d", random)
+	zone := name + ".com"
+	resourceName := fmt.Sprintf("%s.%s", DNSZoneResource, name)
+
+	templateCreate := func() string {
+		return fmt.Sprintf(`
+resource "%s" "%s" {
+  name = "%s"
+}
+		`, DNSZoneResource, name, zone)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckVars(t, EC_USERNAME_VAR, EC_PASSWORD_VAR, EC_DNS_URL_VAR)
+		},
+		ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: templateCreate(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, DNSZoneSchemaName, zone),
+				),
+			},
+		},
+	})
+}
