@@ -192,9 +192,9 @@ func resourceStorageS3Read(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	_ = d.Set(StorageSchemaId, st.ID)
 	_ = d.Set(StorageSchemaLocation, st.Location)
-	_ = d.Set(StorageSchemaGenerateEndpoint, fmt.Sprintf("%s.cloud.edgecenter.lu/%s", st.Location, st.Name))
-	_ = d.Set(StorageSchemaGenerateHTTPEndpoint, fmt.Sprintf("https://%s.cloud.gcore.lu/{bucket_name}", st.Location))
-	_ = d.Set(StorageSchemaGenerateS3Endpoint, fmt.Sprintf("https://%s.cloud.gcore.lu", st.Location))
+	_ = d.Set(StorageSchemaGenerateEndpoint, fmt.Sprintf("%s.cloud.edgecenter.ru/%s", st.Location, st.Name))
+	_ = d.Set(StorageSchemaGenerateHTTPEndpoint, fmt.Sprintf("https://%s.cloud.edgecenter.ru/{bucket_name}", st.Location))
+	_ = d.Set(StorageSchemaGenerateS3Endpoint, fmt.Sprintf("https://%s.cloud.edgecenter.ru", st.Location))
 
 	return nil
 }
