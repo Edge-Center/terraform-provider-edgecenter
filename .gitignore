@@ -1,11 +1,17 @@
+### IDEs
+.vscode
+.idea
+.DS_Store
 
+### terraform
+.terraform/
 terraform.tfplan
 terraform.tfstate
+./*.tfstate
+
+### other
 dist/
 modules-dev/
 /pkg/
 *.backup
-./*.tfstate
-.terraform/
 *.log
-.idea
