@@ -601,9 +601,9 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 			i["subnet_id"] = subnetID
 			i["port_id"] = iface.PortID
 			i["order"] = orderedIOpts.Order
-			if len(iface.FloatingIPDetails) > 0 {
-				i["fip_source"] = types.ExistingFloatingIP
-				i["existing_fip_id"] = iface.FloatingIPDetails[0].ID
+			if iOpts.FloatingIP != nil {
+				i["fip_source"] = iOpts.FloatingIP.Source.String()
+				i["existing_fip_id"] = iOpts.FloatingIP.ExistingFloatingID
 			}
 			i["ip_address"] = assignment.IPAddress.String()
 
