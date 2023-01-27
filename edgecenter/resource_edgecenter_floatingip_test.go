@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
 )
 
 func TestAccFloatingIP(t *testing.T) {

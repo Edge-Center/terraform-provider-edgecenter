@@ -3,16 +3,17 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 	"log"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 )
 
 const networkDeleting int = 1200
@@ -43,7 +44,7 @@ func resourceNetwork() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -51,7 +52,7 @@ func resourceNetwork() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -59,7 +60,7 @@ func resourceNetwork() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -67,7 +68,7 @@ func resourceNetwork() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -75,40 +76,40 @@ func resourceNetwork() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"mtu": &schema.Schema{
+			"mtu": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 				Description: "'vlan' or 'vxlan' network type is allowed. Default value is 'vxlan'",
 			},
-			"create_router": &schema.Schema{
+			"create_router": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     true,
 				Description: "Create external router to the network, default true",
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"metadata_map": &schema.Schema{
+			"metadata_map": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"metadata_read_only": &schema.Schema{
+			"metadata_read_only": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{

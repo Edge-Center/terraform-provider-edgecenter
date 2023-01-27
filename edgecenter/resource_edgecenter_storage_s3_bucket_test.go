@@ -9,9 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
 )
 
 func TestAccStorageS3Bucket(t *testing.T) {

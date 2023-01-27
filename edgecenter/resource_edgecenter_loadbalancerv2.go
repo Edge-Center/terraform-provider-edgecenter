@@ -6,10 +6,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
 
 func resourceLoadBalancerV2() *schema.Resource {
@@ -39,7 +40,7 @@ func resourceLoadBalancerV2() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -48,7 +49,7 @@ func resourceLoadBalancerV2() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -57,7 +58,7 @@ func resourceLoadBalancerV2() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -66,7 +67,7 @@ func resourceLoadBalancerV2() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -75,31 +76,31 @@ func resourceLoadBalancerV2() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"flavor": &schema.Schema{
+			"flavor": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"vip_network_id": &schema.Schema{
+			"vip_network_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"vip_subnet_id": &schema.Schema{
+			"vip_subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"vip_address": &schema.Schema{
+			"vip_address": {
 				Type:        schema.TypeString,
 				Description: "Load balancer IP address",
 				Computed:    true,
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

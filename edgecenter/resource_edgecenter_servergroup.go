@@ -4,9 +4,10 @@ import (
 	"context"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 )
 
 const (
@@ -35,7 +36,7 @@ func resourceServerGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -44,7 +45,7 @@ func resourceServerGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -53,7 +54,7 @@ func resourceServerGroup() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -62,7 +63,7 @@ func resourceServerGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,

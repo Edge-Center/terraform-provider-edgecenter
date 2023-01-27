@@ -6,14 +6,15 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
@@ -67,7 +68,7 @@ func resourceLoadBalancer() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -76,7 +77,7 @@ func resourceLoadBalancer() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -85,7 +86,7 @@ func resourceLoadBalancer() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -94,7 +95,7 @@ func resourceLoadBalancer() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -103,49 +104,49 @@ func resourceLoadBalancer() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"flavor": &schema.Schema{
+			"flavor": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"vip_network_id": &schema.Schema{
+			"vip_network_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"vip_subnet_id": &schema.Schema{
+			"vip_subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"vip_address": &schema.Schema{
+			"vip_address": {
 				Type:        schema.TypeString,
 				Description: "Load balancer IP address",
 				Computed:    true,
 			},
-			"listener": &schema.Schema{
+			"listener": {
 				Type:     schema.TypeList,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"certificate": &schema.Schema{
+						"certificate": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP),
@@ -158,27 +159,27 @@ func resourceLoadBalancer() *schema.Resource {
 								return diag.Errorf("wrong protocol %s, available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'", v)
 							},
 						},
-						"certificate_chain": &schema.Schema{
+						"certificate_chain": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"protocol_port": &schema.Schema{
+						"protocol_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"private_key": &schema.Schema{
+						"private_key": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"insert_x_forwarded": &schema.Schema{
+						"insert_x_forwarded": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"secret_id": &schema.Schema{
+						"secret_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"sni_secret_id": &schema.Schema{
+						"sni_secret_id": {
 							Type:     schema.TypeList,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Optional: true,
@@ -186,7 +187,7 @@ func resourceLoadBalancer() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

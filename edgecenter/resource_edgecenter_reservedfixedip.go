@@ -7,13 +7,14 @@ import (
 	"net"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/port/v1/ports"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/reservedfixedip/v1/reservedfixedips"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
@@ -45,7 +46,7 @@ func resourceReservedFixedIP() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -54,7 +55,7 @@ func resourceReservedFixedIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -63,7 +64,7 @@ func resourceReservedFixedIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -72,7 +73,7 @@ func resourceReservedFixedIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -81,7 +82,7 @@ func resourceReservedFixedIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
@@ -95,11 +96,11 @@ func resourceReservedFixedIP() *schema.Resource {
 					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, reservedfixedips.External, reservedfixedips.Subnet, reservedfixedips.AnySubnet, reservedfixedips.IPAddress)
 				},
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"fixed_ip_address": &schema.Schema{
+			"fixed_ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -114,23 +115,23 @@ func resourceReservedFixedIP() *schema.Resource {
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"subnet_id": &schema.Schema{
+			"subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"network_id": &schema.Schema{
+			"network_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"is_vip": &schema.Schema{
+			"is_vip": {
 				Type:     schema.TypeBool,
 				Required: true,
 			},
-			"port_id": &schema.Schema{
+			"port_id": {
 				Type:        schema.TypeString,
 				Description: "ID of the port_id underlying the reserved fixed IP",
 				Computed:    true,
@@ -152,7 +153,7 @@ func resourceReservedFixedIP() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

@@ -9,15 +9,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
 	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
 	cdn "github.com/Edge-Center/edgecentercdn-go"
 	eccdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 type VarName string

@@ -8,13 +8,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/baremetal/v1/bminstances"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
@@ -51,7 +52,7 @@ func resourceBmInstance() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -59,7 +60,7 @@ func resourceBmInstance() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -67,7 +68,7 @@ func resourceBmInstance() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -75,7 +76,7 @@ func resourceBmInstance() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -83,23 +84,23 @@ func resourceBmInstance() *schema.Resource {
 					"region_name",
 				},
 			},
-			"flavor_id": &schema.Schema{
+			"flavor_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"name_templates": &schema.Schema{
+			"name_templates": {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Deprecated:    "Use name_template instead",
 				ConflictsWith: []string{"name_template"},
 				Elem:          &schema.Schema{Type: schema.TypeString},
 			},
-			"name_template": &schema.Schema{
+			"name_template": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"name_templates"},
@@ -120,7 +121,7 @@ func resourceBmInstance() *schema.Resource {
 					"apptemplate_id",
 				},
 			},
-			"interface": &schema.Schema{
+			"interface": {
 				Type: schema.TypeList,
 				//Set:      interfaceUniqueID,
 				Required: true,
@@ -177,19 +178,19 @@ func resourceBmInstance() *schema.Resource {
 					},
 				},
 			},
-			"keypair_name": &schema.Schema{
+			"keypair_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"password": &schema.Schema{
+			"password": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"username": &schema.Schema{
+			"username": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"metadata": &schema.Schema{
+			"metadata": {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Deprecated:    "Use metadata_map instead",
@@ -207,7 +208,7 @@ func resourceBmInstance() *schema.Resource {
 					},
 				},
 			},
-			"metadata_map": &schema.Schema{
+			"metadata_map": {
 				Type:          schema.TypeMap,
 				Optional:      true,
 				ConflictsWith: []string{"metadata"},
@@ -215,27 +216,27 @@ func resourceBmInstance() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"app_config": &schema.Schema{
+			"app_config": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
-			"user_data": &schema.Schema{
+			"user_data": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"flavor": &schema.Schema{
+			"flavor": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"vm_state": &schema.Schema{
+			"vm_state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"addresses": &schema.Schema{
+			"addresses": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -259,7 +260,7 @@ func resourceBmInstance() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

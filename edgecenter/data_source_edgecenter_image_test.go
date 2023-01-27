@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/image/v1/images"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/image/v1/images"
 )
 
 func TestAccImageDataSource(t *testing.T) {

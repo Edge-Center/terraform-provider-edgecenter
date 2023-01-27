@@ -9,9 +9,10 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/Edge-Center/edgecentercdn-go/origingroups"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercdn-go/origingroups"
 )
 
 func resourceCDNOriginGroup() *schema.Resource {

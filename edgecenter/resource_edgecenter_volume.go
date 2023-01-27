@@ -6,11 +6,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const volumeDeleting int = 1200
@@ -55,7 +56,7 @@ func resourceVolume() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -63,7 +64,7 @@ func resourceVolume() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -71,7 +72,7 @@ func resourceVolume() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -79,7 +80,7 @@ func resourceVolume() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -87,33 +88,33 @@ func resourceVolume() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"type_name": &schema.Schema{
+			"type_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				// todo add validation
 				Description: "Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'. Defaults to standard",
 			},
-			"image_id": &schema.Schema{
+			"image_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
 				Description: "Mandatory if volume is created from image",
 			},
-			"snapshot_id": &schema.Schema{
+			"snapshot_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
 				Description: "Mandatory if volume is created from a snapshot",
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 )
 
 func TestAccServerGroupDataSource(t *testing.T) {

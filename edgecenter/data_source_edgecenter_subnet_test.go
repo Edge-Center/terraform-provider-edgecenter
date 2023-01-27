@@ -8,11 +8,12 @@ import (
 	"net"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 const (

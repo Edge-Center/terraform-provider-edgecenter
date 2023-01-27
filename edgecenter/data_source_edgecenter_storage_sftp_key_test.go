@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	key2 "github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/key"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	key2 "github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/key"
 )
 
 func TestStorageSFTPKeyDataSource(t *testing.T) {

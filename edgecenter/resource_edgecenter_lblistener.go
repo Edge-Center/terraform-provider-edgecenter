@@ -6,13 +6,14 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
@@ -48,7 +49,7 @@ func resourceLbListener() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -57,7 +58,7 @@ func resourceLbListener() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -66,7 +67,7 @@ func resourceLbListener() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -75,7 +76,7 @@ func resourceLbListener() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -84,16 +85,16 @@ func resourceLbListener() *schema.Resource {
 					"region_name",
 				},
 			},
-			"loadbalancer_id": &schema.Schema{
+			"loadbalancer_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
@@ -107,39 +108,39 @@ func resourceLbListener() *schema.Resource {
 					return diag.Errorf("wrong protocol %s, available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'", v)
 				},
 			},
-			"protocol_port": &schema.Schema{
+			"protocol_port": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"insert_x_forwarded": &schema.Schema{
+			"insert_x_forwarded": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Insert *-forwarded headers",
 				ForceNew:    true,
 			},
-			"pool_count": &schema.Schema{
+			"pool_count": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"operating_status": &schema.Schema{
+			"operating_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"provisioning_status": &schema.Schema{
+			"provisioning_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"secret_id": &schema.Schema{
+			"secret_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"sni_secret_id": &schema.Schema{
+			"sni_secret_id": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

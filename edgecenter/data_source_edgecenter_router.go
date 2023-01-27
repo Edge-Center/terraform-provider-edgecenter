@@ -4,16 +4,17 @@ import (
 	"context"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
 )
 
 func dataSourceRouter() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceRouterRead,
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -21,7 +22,7 @@ func dataSourceRouter() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -29,7 +30,7 @@ func dataSourceRouter() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -37,7 +38,7 @@ func dataSourceRouter() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -45,11 +46,11 @@ func dataSourceRouter() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -85,7 +86,7 @@ func dataSourceRouter() *schema.Resource {
 					},
 				},
 			},
-			"interfaces": &schema.Schema{
+			"interfaces": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -117,16 +118,16 @@ func dataSourceRouter() *schema.Resource {
 					},
 				},
 			},
-			"routes": &schema.Schema{
+			"routes": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"destination": &schema.Schema{
+						"destination": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"nexthop": &schema.Schema{
+						"nexthop": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",

@@ -4,16 +4,17 @@ import (
 	"context"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 )
 
 func dataSourceSubnet() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceSubnetRead,
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -21,7 +22,7 @@ func dataSourceSubnet() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -29,7 +30,7 @@ func dataSourceSubnet() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -37,7 +38,7 @@ func dataSourceSubnet() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -45,44 +46,44 @@ func dataSourceSubnet() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"network_id": &schema.Schema{
+			"network_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 			},
-			"enable_dhcp": &schema.Schema{
+			"enable_dhcp": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"cidr": &schema.Schema{
+			"cidr": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"connect_to_network_router": &schema.Schema{
+			"connect_to_network_router": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"dns_nameservers": &schema.Schema{
+			"dns_nameservers": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"host_routes": &schema.Schema{
+			"host_routes": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"destination": &schema.Schema{
+						"destination": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"nexthop": &schema.Schema{
+						"nexthop": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
@@ -90,22 +91,22 @@ func dataSourceSubnet() *schema.Resource {
 					},
 				},
 			},
-			"gateway_ip": &schema.Schema{
+			"gateway_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"metadata_k": &schema.Schema{
+			"metadata_k": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"metadata_kv": &schema.Schema{
+			"metadata_kv": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"metadata_read_only": &schema.Schema{
+			"metadata_read_only": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{

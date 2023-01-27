@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccLBListener(t *testing.T) {

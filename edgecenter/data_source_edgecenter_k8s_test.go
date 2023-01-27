@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/pools"
@@ -21,7 +23,6 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 const (

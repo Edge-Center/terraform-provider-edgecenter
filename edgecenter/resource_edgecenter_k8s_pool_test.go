@@ -11,13 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/pools"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/keypair/v2/keypairs"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccK8sPool(t *testing.T) {

@@ -8,11 +8,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 )
 
 func TestAccSnapshot(t *testing.T) {

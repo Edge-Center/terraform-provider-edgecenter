@@ -6,13 +6,14 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/pools"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceK8sPool() *schema.Resource {
@@ -43,7 +44,7 @@ func resourceK8sPool() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -51,7 +52,7 @@ func resourceK8sPool() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -59,7 +60,7 @@ func resourceK8sPool() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -67,7 +68,7 @@ func resourceK8sPool() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -75,49 +76,49 @@ func resourceK8sPool() *schema.Resource {
 					"region_name",
 				},
 			},
-			"cluster_id": &schema.Schema{
+			"cluster_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"flavor_id": &schema.Schema{
+			"flavor_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"min_node_count": &schema.Schema{
+			"min_node_count": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-			"max_node_count": &schema.Schema{
+			"max_node_count": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-			"node_count": &schema.Schema{
+			"node_count": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-			"docker_volume_type": &schema.Schema{
+			"docker_volume_type": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 				Description: "Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'.",
 			},
-			"docker_volume_size": &schema.Schema{
+			"docker_volume_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"stack_id": &schema.Schema{
+			"stack_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

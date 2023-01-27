@@ -7,9 +7,10 @@ import (
 	"strconv"
 
 	"github.com/AlekSi/pointer"
-	"github.com/Edge-Center/edgecentercdn-go/rules"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercdn-go/rules"
 )
 
 func resourceCDNRule() *schema.Resource {

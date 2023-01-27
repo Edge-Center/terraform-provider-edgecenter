@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygrouprules"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygrouprules"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
 )
 
 const (
@@ -46,7 +47,7 @@ func resourceSecurityGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -54,7 +55,7 @@ func resourceSecurityGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -62,7 +63,7 @@ func resourceSecurityGroup() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -70,7 +71,7 @@ func resourceSecurityGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -78,22 +79,22 @@ func resourceSecurityGroup() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"metadata_map": &schema.Schema{
+			"metadata_map": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"metadata_read_only": &schema.Schema{
+			"metadata_read_only": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -113,18 +114,18 @@ func resourceSecurityGroup() *schema.Resource {
 					},
 				},
 			},
-			"security_group_rules": &schema.Schema{
+			"security_group_rules": {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "Firewall rules control what inbound(ingress) and outbound(egress) traffic is allowed to enter or leave a Instance. At least one 'egress' rule should be set",
 				Set:         secGroupUniqueID,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"direction": &schema.Schema{
+						"direction": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: fmt.Sprintf("Available value is '%s', '%s'", types.RuleDirectionIngress, types.RuleDirectionEgress),
@@ -137,7 +138,7 @@ func resourceSecurityGroup() *schema.Resource {
 								return diag.Errorf("wrong direction '%s', available value is '%s', '%s'", val, types.RuleDirectionIngress, types.RuleDirectionEgress)
 							},
 						},
-						"ethertype": &schema.Schema{
+						"ethertype": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: fmt.Sprintf("Available value is '%s', '%s'", types.EtherTypeIPv4, types.EtherTypeIPv6),
@@ -150,45 +151,45 @@ func resourceSecurityGroup() *schema.Resource {
 								return diag.Errorf("wrong ethertype '%s', available value is '%s', '%s'", val, types.EtherTypeIPv4, types.EtherTypeIPv6)
 							},
 						},
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: fmt.Sprintf("Available value is %s", strings.Join(types.Protocol("").StringList(), ",")),
 						},
-						"port_range_min": &schema.Schema{
+						"port_range_min": {
 							Type:             schema.TypeInt,
 							Optional:         true,
 							Default:          0,
 							ValidateDiagFunc: validatePortRange,
 						},
-						"port_range_max": &schema.Schema{
+						"port_range_max": {
 							Type:             schema.TypeInt,
 							Optional:         true,
 							Default:          0,
 							ValidateDiagFunc: validatePortRange,
 						},
-						"description": &schema.Schema{
+						"description": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "",
 						},
-						"remote_ip_prefix": &schema.Schema{
+						"remote_ip_prefix": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "",
 						},
-						"updated_at": &schema.Schema{
+						"updated_at": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"created_at": &schema.Schema{
+						"created_at": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

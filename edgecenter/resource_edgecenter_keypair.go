@@ -4,9 +4,10 @@ import (
 	"context"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/keypair/v2/keypairs"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/keypair/v2/keypairs"
 )
 
 const keypairsPoint = "keypairs"
@@ -18,7 +19,7 @@ func resourceKeypair() *schema.Resource {
 		DeleteContext: resourceKeypairDelete,
 		Description:   "Represent a ssh key, do not depends on region",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -27,7 +28,7 @@ func resourceKeypair() *schema.Resource {
 					"project_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -36,21 +37,21 @@ func resourceKeypair() *schema.Resource {
 					"project_name",
 				},
 			},
-			"public_key": &schema.Schema{
+			"public_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"sshkey_name": &schema.Schema{
+			"sshkey_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"sshkey_id": &schema.Schema{
+			"sshkey_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

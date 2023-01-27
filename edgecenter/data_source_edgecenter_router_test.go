@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccRouterDataSource(t *testing.T) {

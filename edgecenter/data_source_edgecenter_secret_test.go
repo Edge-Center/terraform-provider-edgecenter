@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v1/secrets"
 	secretsV2 "github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v2/secrets"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccSecretDataSource(t *testing.T) {

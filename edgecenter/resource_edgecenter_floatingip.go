@@ -7,12 +7,13 @@ import (
 	"net"
 	"time"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
 
 const (
@@ -43,7 +44,7 @@ func resourceFloatingIP() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -51,7 +52,7 @@ func resourceFloatingIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -59,7 +60,7 @@ func resourceFloatingIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -67,7 +68,7 @@ func resourceFloatingIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -75,11 +76,11 @@ func resourceFloatingIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"fixed_ip_address": &schema.Schema{
+			"fixed_ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -93,28 +94,28 @@ func resourceFloatingIP() *schema.Resource {
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"floating_ip_address": &schema.Schema{
+			"floating_ip_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"router_id": &schema.Schema{
+			"router_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"port_id": &schema.Schema{
+			"port_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"updated_at": &schema.Schema{
+			"updated_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

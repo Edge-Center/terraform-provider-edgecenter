@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	gstorage "github.com/Edge-Center/edgecenter-storage-sdk-go"
-	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/key"
-
-	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	gstorage "github.com/Edge-Center/edgecenter-storage-sdk-go"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/key"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
 )
 
 const (

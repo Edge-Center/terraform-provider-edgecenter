@@ -4,16 +4,17 @@ import (
 	"context"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 )
 
 func dataSourceLoadBalancerV2() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceLoadBalancerV2Read,
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -21,7 +22,7 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -29,7 +30,7 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -37,7 +38,7 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -45,15 +46,15 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"vip_address": &schema.Schema{
+			"vip_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"vip_port_id": &schema.Schema{
+			"vip_port_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

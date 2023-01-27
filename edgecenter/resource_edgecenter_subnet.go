@@ -3,19 +3,20 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 	"log"
 	"net"
 	"regexp"
 	"time"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 )
 
 const SubnetDeleting int = 1200
@@ -45,7 +46,7 @@ func resourceSubnet() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -53,7 +54,7 @@ func resourceSubnet() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -61,7 +62,7 @@ func resourceSubnet() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -69,7 +70,7 @@ func resourceSubnet() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -77,30 +78,30 @@ func resourceSubnet() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"enable_dhcp": &schema.Schema{
+			"enable_dhcp": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
-			"cidr": &schema.Schema{
+			"cidr": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"network_id": &schema.Schema{
+			"network_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"connect_to_network_router": &schema.Schema{
+			"connect_to_network_router": {
 				Type:        schema.TypeBool,
 				Description: "True if the network's router should get a gateway in this subnet. Must be explicitly 'false' when gateway_ip is null. Default true.",
 				Optional:    true,
 				Default:     true,
 			},
-			"dns_nameservers": &schema.Schema{
+			"dns_nameservers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
@@ -108,16 +109,16 @@ func resourceSubnet() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"host_routes": &schema.Schema{
+			"host_routes": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"destination": &schema.Schema{
+						"destination": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"nexthop": &schema.Schema{
+						"nexthop": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
@@ -125,7 +126,7 @@ func resourceSubnet() *schema.Resource {
 					},
 				},
 			},
-			"gateway_ip": &schema.Schema{
+			"gateway_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -138,14 +139,14 @@ func resourceSubnet() *schema.Resource {
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"metadata_map": &schema.Schema{
+			"metadata_map": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"metadata_read_only": &schema.Schema{
+			"metadata_read_only": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -165,7 +166,7 @@ func resourceSubnet() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/region/v1/regions"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/region/v1/regions"
 )
 
 func TestAccRegionDataSource(t *testing.T) {

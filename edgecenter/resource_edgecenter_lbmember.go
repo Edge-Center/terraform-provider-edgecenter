@@ -7,13 +7,13 @@ import (
 	"net"
 	"time"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
 	"github.com/hashicorp/go-cty/cty"
-
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
 
 const (
@@ -49,7 +49,7 @@ func resourceLBMember() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -58,7 +58,7 @@ func resourceLBMember() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -67,7 +67,7 @@ func resourceLBMember() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -76,7 +76,7 @@ func resourceLBMember() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -85,12 +85,12 @@ func resourceLBMember() *schema.Resource {
 					"region_name",
 				},
 			},
-			"pool_id": &schema.Schema{
+			"pool_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"address": &schema.Schema{
+			"address": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
@@ -103,11 +103,11 @@ func resourceLBMember() *schema.Resource {
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"protocol_port": &schema.Schema{
+			"protocol_port": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-			"weight": &schema.Schema{
+			"weight": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "Value between 0 and 256",
@@ -119,20 +119,20 @@ func resourceLBMember() *schema.Resource {
 					return diag.Errorf("Valid values: %d to %d got: %d", minWeight, maxWeight, v)
 				},
 			},
-			"subnet_id": &schema.Schema{
+			"subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"instance_id": &schema.Schema{
+			"instance_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"operating_status": &schema.Schema{
+			"operating_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

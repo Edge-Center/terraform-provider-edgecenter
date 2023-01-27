@@ -9,10 +9,11 @@ import (
 	"strconv"
 	"testing"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 )
 
 func checkSubnetAttrs(resourceName string, opts *subnets.CreateOpts) resource.TestCheckFunc {

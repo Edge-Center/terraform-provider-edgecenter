@@ -8,16 +8,17 @@ import (
 	"strconv"
 	"time"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 )
 
 const (
@@ -52,7 +53,7 @@ func resourceInstance() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -60,7 +61,7 @@ func resourceInstance() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -68,7 +69,7 @@ func resourceInstance() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -76,7 +77,7 @@ func resourceInstance() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -84,28 +85,28 @@ func resourceInstance() *schema.Resource {
 					"region_name",
 				},
 			},
-			"flavor_id": &schema.Schema{
+			"flavor_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"name_templates": &schema.Schema{
+			"name_templates": {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Deprecated:    "Use name_template instead",
 				ConflictsWith: []string{"name_template"},
 				Elem:          &schema.Schema{Type: schema.TypeString},
 			},
-			"name_template": &schema.Schema{
+			"name_template": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"name_templates"},
 			},
-			"volume": &schema.Schema{
+			"volume": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Set:      volumeUniqueID,
@@ -166,7 +167,7 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"interface": &schema.Schema{
+			"interface": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
@@ -222,15 +223,15 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"keypair_name": &schema.Schema{
+			"keypair_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"server_group": &schema.Schema{
+			"server_group": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"security_group": &schema.Schema{
+			"security_group": {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "Firewalls list",
@@ -248,15 +249,15 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"password": &schema.Schema{
+			"password": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"username": &schema.Schema{
+			"username": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"metadata": &schema.Schema{
+			"metadata": {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Deprecated:    "Use metadata_map instead",
@@ -274,7 +275,7 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"metadata_map": &schema.Schema{
+			"metadata_map": {
 				Type:          schema.TypeMap,
 				Optional:      true,
 				ConflictsWith: []string{"metadata"},
@@ -282,7 +283,7 @@ func resourceInstance() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"configuration": &schema.Schema{
+			"configuration": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -298,33 +299,33 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"userdata": &schema.Schema{
+			"userdata": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Description:   "**Deprecated**",
 				Deprecated:    "Use user_data instead",
 				ConflictsWith: []string{"user_data"},
 			},
-			"user_data": &schema.Schema{
+			"user_data": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"userdata"},
 			},
-			"allow_app_ports": &schema.Schema{
+			"allow_app_ports": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"flavor": &schema.Schema{
+			"flavor": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"vm_state": &schema.Schema{
+			"vm_state": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
@@ -333,7 +334,7 @@ func resourceInstance() *schema.Resource {
 					InstanceVMStateActive, InstanceVMStateStopped,
 				}, true),
 			},
-			"addresses": &schema.Schema{
+			"addresses": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
@@ -358,7 +359,7 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

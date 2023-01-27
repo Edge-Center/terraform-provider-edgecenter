@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceLoadBalancer() *schema.Resource {
@@ -17,7 +18,7 @@ func dataSourceLoadBalancer() *schema.Resource {
 		ReadContext:        dataSourceLoadBalancerRead,
 		DeprecationMessage: "!> **WARNING:** This data-source is deprecated and will be removed in the next major version. Use edgecenter_loadbalancerv2 data-source instead",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -25,7 +26,7 @@ func dataSourceLoadBalancer() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -33,7 +34,7 @@ func dataSourceLoadBalancer() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -41,7 +42,7 @@ func dataSourceLoadBalancer() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -49,37 +50,37 @@ func dataSourceLoadBalancer() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"vip_address": &schema.Schema{
+			"vip_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"vip_port_id": &schema.Schema{
+			"vip_port_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"listener": &schema.Schema{
+			"listener": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP),
 						},
-						"protocol_port": &schema.Schema{
+						"protocol_port": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},

@@ -6,12 +6,13 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const RouterDeleting int = 1200
@@ -41,7 +42,7 @@ func resourceRouter() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -49,7 +50,7 @@ func resourceRouter() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -57,7 +58,7 @@ func resourceRouter() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -65,7 +66,7 @@ func resourceRouter() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -73,7 +74,7 @@ func resourceRouter() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -120,7 +121,7 @@ func resourceRouter() *schema.Resource {
 					},
 				},
 			},
-			"interfaces": &schema.Schema{
+			"interfaces": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Set:      routerInterfaceUniqueID,
@@ -155,16 +156,16 @@ func resourceRouter() *schema.Resource {
 					},
 				},
 			},
-			"routes": &schema.Schema{
+			"routes": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"destination": &schema.Schema{
+						"destination": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"nexthop": &schema.Schema{
+						"nexthop": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
@@ -172,7 +173,7 @@ func resourceRouter() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

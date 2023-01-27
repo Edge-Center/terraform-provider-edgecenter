@@ -6,10 +6,11 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
 )
 
 func dataSourceSecurityGroup() *schema.Resource {
@@ -17,7 +18,7 @@ func dataSourceSecurityGroup() *schema.Resource {
 		ReadContext: dataSourceSecurityGroupRead,
 		Description: "Represent SecurityGroups(Firewall)",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -25,7 +26,7 @@ func dataSourceSecurityGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -33,7 +34,7 @@ func dataSourceSecurityGroup() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -41,7 +42,7 @@ func dataSourceSecurityGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -49,26 +50,26 @@ func dataSourceSecurityGroup() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"metadata_k": &schema.Schema{
+			"metadata_k": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"metadata_kv": &schema.Schema{
+			"metadata_kv": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"metadata_read_only": &schema.Schema{
+			"metadata_read_only": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -88,53 +89,53 @@ func dataSourceSecurityGroup() *schema.Resource {
 					},
 				},
 			},
-			"security_group_rules": &schema.Schema{
+			"security_group_rules": {
 				Type:        schema.TypeSet,
 				Computed:    true,
 				Description: "Firewall rules control what inbound(ingress) and outbound(egress) traffic is allowed to enter or leave a Instance. At least one 'egress' rule should be set",
 				Set:         secGroupUniqueID,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"direction": &schema.Schema{
+						"direction": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: fmt.Sprintf("Available value is '%s', '%s'", types.RuleDirectionIngress, types.RuleDirectionEgress),
 						},
-						"ethertype": &schema.Schema{
+						"ethertype": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: fmt.Sprintf("Available value is '%s', '%s'", types.EtherTypeIPv4, types.EtherTypeIPv6),
 						},
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: fmt.Sprintf("Available value is %s", strings.Join(types.Protocol("").StringList(), ",")),
 						},
-						"port_range_min": &schema.Schema{
+						"port_range_min": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"port_range_max": &schema.Schema{
+						"port_range_max": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"description": &schema.Schema{
+						"description": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"remote_ip_prefix": &schema.Schema{
+						"remote_ip_prefix": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"updated_at": &schema.Schema{
+						"updated_at": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"created_at": &schema.Schema{
+						"created_at": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},

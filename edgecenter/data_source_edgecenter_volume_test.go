@@ -8,10 +8,11 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 const (

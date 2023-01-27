@@ -2,10 +2,11 @@ package edgecenter
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"reflect"
 	"strconv"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func normalizeMetadata(metadata interface{}, defaults ...bool) (map[string]interface{}, error) {
