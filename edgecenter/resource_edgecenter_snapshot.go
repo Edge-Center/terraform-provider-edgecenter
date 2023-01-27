@@ -151,6 +151,7 @@ func resourceSnapshotCreate(ctx context.Context, d *schema.ResourceData, m inter
 	resourceSnapshotRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish snapshot creating (%s)", SnapshotID)
+
 	return diags
 }
 
@@ -185,6 +186,7 @@ func resourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	log.Println("[DEBUG] Finish snapshot reading")
+
 	return diags
 }
 
@@ -211,6 +213,7 @@ func resourceSnapshotUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish snapshot updating")
+
 	return resourceSnapshotRead(ctx, d, m)
 }
 
@@ -251,6 +254,7 @@ func resourceSnapshotDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of snapshot deleting")
+
 	return diags
 }
 

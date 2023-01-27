@@ -88,6 +88,7 @@ func resourceKeypairCreate(ctx context.Context, d *schema.ResourceData, m interf
 	resourceKeypairRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish KeyPair creating (%s)", kp.ID)
+
 	return diags
 }
 
@@ -116,6 +117,7 @@ func resourceKeypairRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("project_id", kp.ProjectID)
 
 	log.Println("[DEBUG] Finish KeyPair reading")
+
 	return diags
 }
 
@@ -138,5 +140,6 @@ func resourceKeypairDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 	d.SetId("")
 	log.Println("[DEBUG] Finish of KeyPair deleting")
+
 	return diags
 }

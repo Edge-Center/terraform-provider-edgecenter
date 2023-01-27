@@ -234,6 +234,7 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 	resourceReservedFixedIPRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish ReservedFixedIP creating (%s)", reservedFixedIPID)
+
 	return diags
 }
 
@@ -285,6 +286,7 @@ func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m 
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish ReservedFixedIP reading")
+
 	return diags
 }
 
@@ -331,6 +333,7 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish ReservedFixedIP updating")
+
 	return resourceReservedFixedIPRead(ctx, d, m)
 }
 
@@ -383,5 +386,6 @@ func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, 
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of ReservedFixedIP deleting")
+
 	return diags
 }

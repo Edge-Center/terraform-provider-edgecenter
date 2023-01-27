@@ -132,5 +132,6 @@ func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("description", image.Description)
 
 	log.Println("[DEBUG] Finish Image reading")
+
 	return nil
 }

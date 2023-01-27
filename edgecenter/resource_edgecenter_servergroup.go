@@ -129,6 +129,7 @@ func resourceServerGroupCreate(ctx context.Context, d *schema.ResourceData, m in
 	d.SetId(serverGroup.ServerGroupID)
 	resourceServerGroupRead(ctx, d, m)
 	log.Println("[DEBUG] Finish ServerGroup creating")
+
 	return diags
 }
 
@@ -165,6 +166,7 @@ func resourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	log.Println("[DEBUG] Finish ServerGroup reading")
+
 	return diags
 }
 
@@ -186,5 +188,6 @@ func resourceServerGroupDelete(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId("")
 	log.Println("[DEBUG] Finish ServerGroup deleting")
+
 	return diags
 }

@@ -126,5 +126,6 @@ func dataSourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	log.Println("[DEBUG] Finish ServerGroup reading")
+
 	return nil
 }

@@ -488,6 +488,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	resourceInstanceRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Instance creating (%s)", InstanceID)
+
 	return diags
 }
 
@@ -671,6 +672,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	log.Println("[DEBUG] Finish Instance reading")
+
 	return diags
 }
 
@@ -932,6 +934,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish Instance updating")
+
 	return resourceInstanceRead(ctx, d, m)
 }
 
@@ -973,6 +976,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of Instance deleting")
+
 	return diags
 }
 
@@ -1017,5 +1021,6 @@ func prepareSecurityGroups(ports []instances.InstancePorts) []interface{} {
 		s["name"] = sgName
 		secGroups = append(secGroups, s)
 	}
+
 	return secGroups
 }

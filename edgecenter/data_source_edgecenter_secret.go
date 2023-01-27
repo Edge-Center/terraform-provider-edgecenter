@@ -123,6 +123,7 @@ func dataSourceSecretRead(ctx context.Context, d *schema.ResourceData, m interfa
 				return diag.FromErr(err)
 			}
 			found = true
+
 			break
 		}
 	}
@@ -132,5 +133,6 @@ func dataSourceSecretRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	log.Println("[DEBUG] Finish secret reading")
+
 	return diags
 }

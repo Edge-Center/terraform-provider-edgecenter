@@ -134,5 +134,6 @@ func dataSourceK8sPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	d.Set("created_at", pool.CreatedAt.Format(time.RFC850))
 
 	log.Println("[DEBUG] Finish K8s pool reading")
+
 	return diags
 }

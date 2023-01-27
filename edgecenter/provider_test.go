@@ -211,6 +211,7 @@ func CreateTestClient(provider *edgecloud.ProviderClient, endpoint, version stri
 	if err != nil {
 		return nil, err
 	}
+
 	return client, nil
 }
 

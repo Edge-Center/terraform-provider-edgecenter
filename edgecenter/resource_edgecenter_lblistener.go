@@ -203,6 +203,7 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 	resourceLBListenerRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LBListener creating (%s)", listenerID)
+
 	return diags
 }
 
@@ -234,6 +235,7 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish LBListener reading")
+
 	return diags
 }
 
@@ -279,6 +281,7 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	log.Println("[DEBUG] Finish LBListener updating")
+
 	return resourceLBListenerRead(ctx, d, m)
 }
 
@@ -318,5 +321,6 @@ func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m int
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of LBListener deleting")
+
 	return diags
 }

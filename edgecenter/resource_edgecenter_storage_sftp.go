@@ -169,6 +169,7 @@ func resourceStorageValidateKeys(ctx context.Context, sdk *gstorage.SDK, d *sche
 			return fmt.Errorf("key %v is not found", v)
 		}
 	}
+
 	return nil
 }
 
@@ -192,6 +193,7 @@ func resourceStorageLinkKeys(ctx context.Context, sdk *gstorage.SDK, d *schema.R
 			return fmt.Errorf("link key #%d to storage: %w", keyId, err)
 		}
 	}
+
 	return nil
 }
 
@@ -237,6 +239,7 @@ func resourceStorageRelinkKeys(ctx context.Context, sdk *gstorage.SDK, d *schema
 			return fmt.Errorf("unlink key #%d to storage: %w", keyId, err)
 		}
 	}
+
 	return nil
 }
 
@@ -448,5 +451,6 @@ func resourceStorageSFTPDelete(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	d.SetId("")
+
 	return nil
 }

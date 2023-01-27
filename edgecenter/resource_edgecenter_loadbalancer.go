@@ -259,6 +259,7 @@ func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	log.Println("[DEBUG] Finish LoadBalancer reading")
+
 	return diags
 }
 
@@ -376,6 +377,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	log.Println("[DEBUG] Finish LoadBalancer updating")
+
 	return resourceLoadBalancerRead(ctx, d, m)
 }
 
@@ -415,5 +417,6 @@ func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m i
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of LoadBalancer deleting")
+
 	return diags
 }

@@ -226,6 +226,7 @@ func resourceStorageS3Delete(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	d.SetId("")
+
 	return nil
 }
 

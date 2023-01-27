@@ -189,5 +189,6 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	log.Println("[DEBUG] Finish Network reading")
+
 	return diags
 }

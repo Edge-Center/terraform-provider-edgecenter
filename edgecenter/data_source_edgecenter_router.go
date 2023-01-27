@@ -218,5 +218,6 @@ func dataSourceRouterRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("routes", rss)
 
 	log.Println("[DEBUG] Finish router reading")
+
 	return diags
 }

@@ -282,6 +282,7 @@ func resourceLifecyclePolicyCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 	d.SetId(strconv.Itoa(policy.ID))
 	log.Printf("[DEBUG] Finish of LifecyclePolicy %s creating", d.Id())
+
 	return resourceLifecyclePolicyRead(ctx, d, m)
 }
 
@@ -314,6 +315,7 @@ func resourceLifecyclePolicyRead(_ context.Context, d *schema.ResourceData, m in
 	}
 
 	log.Printf("[DEBUG] Finish of LifecyclePolicy %s reading", id)
+
 	return nil
 }
 
@@ -347,6 +349,7 @@ func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, 
 		}
 	}
 	log.Printf("[DEBUG] Finish of LifecyclePolicy %v updating", integerId)
+
 	return resourceLifecyclePolicyRead(ctx, d, m)
 }
 
@@ -368,6 +371,7 @@ func resourceLifecyclePolicyDelete(_ context.Context, d *schema.ResourceData, m 
 	}
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of LifecyclePolicy %s deleting", id)
+
 	return nil
 }
 
@@ -426,6 +430,7 @@ func expandSchedule(flat map[string]interface{}) (lifecyclepolicy.CreateSchedule
 		MaxQuantity:          flat["max_quantity"].(int),
 		RetentionTime:        expandRetentionTimer(flat["retention_time"].([]interface{})),
 	})
+
 	return expanded, nil
 }
 
@@ -467,6 +472,7 @@ func buildLifecyclePolicyCreateOpts(d *schema.ResourceData) (*lifecyclepolicy.Cr
 	} else {
 		opts.Action = lifecyclepolicy.PolicyActionVolumeSnapshot
 	}
+
 	return opts, nil
 }
 
@@ -483,6 +489,7 @@ func volumeSymmetricDifference(oldVolumes, newVolumes *schema.Set) ([]string, []
 			toAdd = append(toAdd, v.(map[string]interface{})["id"].(string))
 		}
 	}
+
 	return toRemove, toAdd
 }
 
@@ -542,6 +549,7 @@ func flattenSchedule(expanded lifecyclepolicy.Schedule) map[string]interface{} {
 	case lifecyclepolicy.ScheduleTypeCron:
 		flat["cron"] = flattenCronSchedule(expanded.(lifecyclepolicy.CronSchedule))
 	}
+
 	return flat
 }
 

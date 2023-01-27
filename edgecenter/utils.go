@@ -103,6 +103,7 @@ func (s instanceInterfaces) Less(i, j int) bool {
 
 	lOrder, _ := ifLeft["order"].(int)
 	rOrder, _ := ifRight["order"].(int)
+
 	return lOrder < rOrder
 }
 
@@ -142,6 +143,7 @@ func StringToNetHookFunc() mapstructure.DecodeHookFuncType {
 			}
 			return ip, nil
 		}
+
 		return data, nil
 	}
 }
@@ -161,6 +163,7 @@ func extractHostRoutesMap(v []interface{}) ([]subnets.HostRoute, error) {
 		}
 		HostRoutes[i] = H
 	}
+
 	return HostRoutes, nil
 }
 
@@ -185,6 +188,7 @@ func extractInterfacesMap(interfaces []interface{}) ([]routers.Interface, error)
 		}
 		Interfaces[i] = I
 	}
+
 	return Interfaces, nil
 }
 
@@ -199,6 +203,7 @@ func extractVolumesMap(volumes []interface{}) ([]instances.CreateVolumeOpts, err
 		}
 		Volumes[i] = V
 	}
+
 	return Volumes, nil
 }
 
@@ -254,6 +259,7 @@ func extractInstanceInterfacesMap(interfaces []interface{}) ([]instances.Interfa
 			SecurityGroups: sgs,
 		}
 	}
+
 	return Interfaces, nil
 }
 
@@ -296,6 +302,7 @@ func extractInstanceInterfaceIntoMap(interfaces []interface{}) (map[string]Order
 			Interfaces[I.Type.String()] = orderedInt
 		}
 	}
+
 	return Interfaces, nil
 }
 
@@ -312,6 +319,7 @@ func extractKeyValue(metadata []interface{}) (instances.MetadataSetOpts, error) 
 		MetaData[i] = MD
 	}
 	MetadataSetOpts.Metadata = MetaData
+
 	return MetadataSetOpts, nil
 }
 
@@ -360,6 +368,7 @@ func GetProject(provider *edgecloud.ProviderClient, projectID int, projectName s
 		return 0, err
 	}
 	log.Printf("[DEBUG] The attempt to get the project is successful: projectID=%d", projectID)
+
 	return projectID, nil
 }
 
@@ -398,6 +407,7 @@ func GetRegion(provider *edgecloud.ProviderClient, regionID int, regionName stri
 		return 0, err
 	}
 	log.Printf("[DEBUG] The attempt to get the region is successful: regionID=%d", regionID)
+
 	return regionID, nil
 }
 
@@ -417,6 +427,7 @@ func ImportStringParser(infoStr string) (int, int, string, error) {
 	if err != nil {
 		return 0, 0, "", err
 	}
+
 	return projectID, regionID, infoStrings[2], nil
 }
 
@@ -437,6 +448,7 @@ func ImportStringParserExtended(infoStr string) (int, int, string, string, error
 	if err != nil {
 		return 0, 0, "", "", err
 	}
+
 	return projectID, regionID, infoStrings[2], infoStrings[3], nil
 }
 
@@ -466,6 +478,7 @@ func CreateClient(provider *edgecloud.ProviderClient, d *schema.ResourceData, en
 	if err != nil {
 		return nil, err
 	}
+
 	return client, nil
 }
 
@@ -512,6 +525,7 @@ func extractSessionPersistenceMap(d *schema.ResourceData) *lbpools.CreateSession
 			sessionOpts.CookieName = cookieName.(string)
 		}
 	}
+
 	return sessionOpts
 }
 
@@ -552,6 +566,7 @@ func extractHealthMonitorMap(d *schema.ResourceData) *lbpools.CreateHealthMonito
 			healthOpts.ID = id
 		}
 	}
+
 	return healthOpts
 }
 
@@ -613,6 +628,7 @@ func extractSecurityGroupRuleMap(r interface{}, gid string) securitygroups.Creat
 	if remoteIPPrefix != "" {
 		opts.RemoteIPPrefix = &remoteIPPrefix
 	}
+
 	return opts
 }
 
@@ -667,6 +683,7 @@ func ExtractHostAndPath(uri string) (string, string, error) {
 	}
 	host = pUrl.Scheme + "://" + pUrl.Host
 	path = pUrl.Path
+
 	return host, path, nil
 }
 
@@ -704,6 +721,7 @@ func isInterfaceAttached(ifs []instances.Interface, ifs2 map[string]interface{})
 			}
 		}
 	}
+
 	return false
 }
 
@@ -724,6 +742,7 @@ func isInterfaceContains(verifiable map[string]interface{}, ifsSet []interface{}
 			}
 		}
 	}
+
 	return false
 }
 

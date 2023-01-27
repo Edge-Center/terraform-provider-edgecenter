@@ -236,5 +236,6 @@ func dataSourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("region_id", d.Get("region_id").(int))
 
 	log.Println("[DEBUG] Finish LBPool reading")
+
 	return diags
 }

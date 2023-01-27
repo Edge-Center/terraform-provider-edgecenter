@@ -189,6 +189,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	resourceNetworkRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Network creating (%s)", networkID)
+
 	return diags
 }
 
@@ -242,6 +243,7 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interfac
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish network reading")
+
 	return diags
 }
 
@@ -279,6 +281,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish network updating")
+
 	return resourceNetworkRead(ctx, d, m)
 }
 
@@ -319,5 +322,6 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of network deleting")
+
 	return diags
 }

@@ -129,5 +129,6 @@ func dataSourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m int
 	d.Set("floating_ip_address", floatingIP.FloatingIPAddress.String())
 
 	log.Println("[DEBUG] Finish FloatingIP reading")
+
 	return diags
 }

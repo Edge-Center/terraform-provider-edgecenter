@@ -69,6 +69,7 @@ resource "edgecenter_storage_sftp" "terraformtest%d_sftp" {
 					return fmt.Errorf("storage #%s wasn't deleted correctrly", rs.Primary.ID)
 				}
 			}
+
 			return nil
 		},
 		ProviderFactories: testAccProviders,

@@ -110,6 +110,7 @@ func resourceStorageS3BucketRead(ctx context.Context, d *schema.ResourceData, m 
 			return nil
 		}
 	}
+
 	return diag.FromErr(fmt.Errorf("storage buckets list has not this bucket"))
 }
 
@@ -135,6 +136,7 @@ func resourceStorageS3BucketDelete(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	d.SetId("")
+
 	return nil
 }
 
@@ -154,5 +156,6 @@ func storageBucketResourceID(d *schema.ResourceData) (int, string) {
 	id, _ := strconv.ParseInt(parts[0], 10, 64)
 	storageID = int(id)
 	bucketName = parts[1]
+
 	return storageID, bucketName
 }

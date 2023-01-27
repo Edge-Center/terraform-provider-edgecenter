@@ -495,5 +495,6 @@ func fillRRSet(d *schema.ResourceData, rType string, rrSet *dnssdk.RRSet) error 
 		}
 		rrSet.Records = append(rrSet.Records, *rr)
 	}
+
 	return nil
 }

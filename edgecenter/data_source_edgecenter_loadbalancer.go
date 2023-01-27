@@ -153,5 +153,6 @@ func dataSourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	log.Println("[DEBUG] Finish LoadBalancer reading")
+
 	return diags
 }

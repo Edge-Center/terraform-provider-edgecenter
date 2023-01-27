@@ -84,6 +84,7 @@ func resourceStorageSFTPKeyCreate(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(fmt.Errorf("create storage key: %v", err))
 	}
 	d.SetId(fmt.Sprintf("%d", result.ID))
+
 	return resourceStorageSFTPKeyRead(ctx, d, m)
 
 }
@@ -151,6 +152,7 @@ func resourceStorageSFTPKeyDelete(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	d.SetId("")
+
 	return nil
 }
 

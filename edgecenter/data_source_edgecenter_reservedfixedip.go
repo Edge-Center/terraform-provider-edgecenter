@@ -160,5 +160,6 @@ func dataSourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	log.Println("[DEBUG] Finish ReservedFixedIP reading")
+
 	return diags
 }

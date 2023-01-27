@@ -58,6 +58,7 @@ resource "edgecenter_storage_s3" "terraform_test_%d_s3" {
 					return fmt.Errorf("storage #%s wasn't deleted correctrly", rs.Primary.ID)
 				}
 			}
+
 			return nil
 		},
 		ProviderFactories: testAccProviders,

@@ -184,6 +184,7 @@ func resourceK8sPoolCreate(ctx context.Context, d *schema.ResourceData, m interf
 	resourceK8sPoolRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish K8s pool creating (%s)", poolID)
+
 	return diags
 }
 
@@ -218,6 +219,7 @@ func resourceK8sPoolRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("created_at", pool.CreatedAt.Format(time.RFC850))
 
 	log.Println("[DEBUG] Finish K8s pool reading")
+
 	return diags
 }
 
@@ -321,5 +323,6 @@ func resourceK8sPoolDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of K8s pool deleting")
+
 	return diags
 }

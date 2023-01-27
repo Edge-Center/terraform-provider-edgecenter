@@ -89,6 +89,7 @@ func resourceCDNOriginGroupCreate(ctx context.Context, d *schema.ResourceData, m
 	resourceCDNOriginGroupRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN OriginGroup creating (id=%d)\n", result.ID)
+
 	return nil
 }
 
@@ -115,6 +116,7 @@ func resourceCDNOriginGroupRead(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	log.Println("[DEBUG] Finish CDN OriginGroup reading")
+
 	return nil
 }
 
@@ -161,6 +163,7 @@ func resourceCDNOriginGroupDelete(ctx context.Context, d *schema.ResourceData, m
 
 	d.SetId("")
 	log.Println("[DEBUG] Finish CDN Resource deleting")
+
 	return nil
 }
 

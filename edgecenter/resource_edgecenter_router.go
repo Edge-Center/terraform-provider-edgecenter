@@ -252,6 +252,7 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceRouterRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish router creating (%s)", routerID)
+
 	return diags
 }
 
@@ -331,6 +332,7 @@ func resourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface
 	d.Set("routes", rs)
 
 	log.Println("[DEBUG] Finish router reading")
+
 	return diags
 }
 
@@ -422,6 +424,7 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish router updating")
+
 	return resourceRouterRead(ctx, d, m)
 }
 
@@ -462,5 +465,6 @@ func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of router deleting")
+
 	return diags
 }

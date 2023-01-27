@@ -212,6 +212,7 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceSecretRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Secret creating (%s)", secretID)
+
 	return diags
 }
 
@@ -244,6 +245,7 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	log.Println("[DEBUG] Finish secret reading")
+
 	return diags
 }
 
@@ -279,5 +281,6 @@ func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of secret deleting")
+
 	return diags
 }

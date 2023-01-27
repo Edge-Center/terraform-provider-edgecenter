@@ -296,5 +296,6 @@ func dataSourceK8sRead(ctx context.Context, d *schema.ResourceData, m interface{
 	}
 
 	log.Println("[DEBUG] Finish K8s reading")
+
 	return diags
 }

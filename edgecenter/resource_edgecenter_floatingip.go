@@ -167,6 +167,7 @@ func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m int
 	resourceFloatingIPRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish FloatingIP creating (%s)", floatingIPID)
+
 	return diags
 }
 
@@ -207,6 +208,7 @@ func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m inter
 	d.Set("floating_ip_address", floatingIP.FloatingIPAddress.String())
 
 	log.Println("[DEBUG] Finish FloatingIP reading")
+
 	return diags
 }
 
@@ -284,5 +286,6 @@ func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m int
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of FloatingIP deleting")
+
 	return diags
 }

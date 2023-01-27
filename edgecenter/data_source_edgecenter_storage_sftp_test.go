@@ -69,6 +69,7 @@ data "edgecenter_storage_sftp" "%s_sftp_data" {
 					return fmt.Errorf("storage #%s wasn't deleted correctrly", rs.Primary.ID)
 				}
 			}
+
 			return nil
 		},
 		ProviderFactories: testAccProviders,

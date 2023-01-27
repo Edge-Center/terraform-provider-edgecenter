@@ -157,6 +157,7 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 	resourceLoadBalancerV2Read(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LoadBalancer creating (%s)", lbID)
+
 	return diags
 }
 
@@ -188,6 +189,7 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish LoadBalancer reading")
+
 	return diags
 }
 
@@ -214,5 +216,6 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	log.Println("[DEBUG] Finish LoadBalancer updating")
+
 	return resourceLoadBalancerV2Read(ctx, d, m)
 }

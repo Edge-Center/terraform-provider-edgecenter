@@ -269,6 +269,7 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceLBPoolRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LBPool creating (%s)", lbPoolID)
+
 	return diags
 }
 
@@ -336,6 +337,7 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish LBPool reading")
+
 	return diags
 }
 
@@ -392,6 +394,7 @@ func resourceLBPoolUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish LBPool updating")
+
 	return resourceLBPoolRead(ctx, d, m)
 }
 
@@ -435,5 +438,6 @@ func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of LBPool deleting")
+
 	return diags
 }

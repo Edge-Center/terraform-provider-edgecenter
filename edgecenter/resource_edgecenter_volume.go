@@ -166,6 +166,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceVolumeRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish volume creating (%s)", VolumeID)
+
 	return diags
 }
 
@@ -198,6 +199,7 @@ func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish volume reading")
+
 	return diags
 }
 
@@ -258,6 +260,7 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish volume updating")
+
 	return resourceVolumeRead(ctx, d, m)
 }
 
@@ -301,6 +304,7 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of volume deleting")
+
 	return diags
 }
 
@@ -360,5 +364,6 @@ func ExtendVolume(client *edgecloud.ServiceClient, volumeID string, newSize int)
 		return err
 	}
 	log.Printf("[DEBUG] Finish waiting.")
+
 	return nil
 }

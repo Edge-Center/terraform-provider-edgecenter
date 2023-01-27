@@ -186,6 +186,7 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 	resourceLBMemberRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LBMember creating (%s)", pmID)
+
 	return diags
 }
 
@@ -221,6 +222,7 @@ func resourceLBMemberRead(ctx context.Context, d *schema.ResourceData, m interfa
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish LBMember reading)")
+
 	return diags
 }
 
@@ -287,6 +289,7 @@ func resourceLBMemberUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish LBMember updating")
+
 	return resourceLBMemberRead(ctx, d, m)
 }
 
@@ -336,5 +339,6 @@ func resourceLBMemberDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of LBMember deleting")
+
 	return diags
 }

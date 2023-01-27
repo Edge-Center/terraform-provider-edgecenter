@@ -508,6 +508,7 @@ func resourceCDNResourceCreate(ctx context.Context, d *schema.ResourceData, m in
 	resourceCDNResourceRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN Resource creating (id=%d)\n", result.ID)
+
 	return nil
 }
 
@@ -542,6 +543,7 @@ func resourceCDNResourceRead(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	log.Println("[DEBUG] Finish CDN Resource reading")
+
 	return nil
 }
 
@@ -573,6 +575,7 @@ func resourceCDNResourceUpdate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	log.Println("[DEBUG] Finish CDN Resource updating")
+
 	return resourceCDNResourceRead(ctx, d, m)
 }
 
@@ -593,6 +596,7 @@ func resourceCDNResourceDelete(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId("")
 	log.Println("[DEBUG] Finish CDN Resource deleting")
+
 	return nil
 }
 
@@ -781,6 +785,7 @@ func listToOptions(l []interface{}) *cdn.Options {
 			opts.TLSVersions.Value = append(opts.TLSVersions.Value, v.(string))
 		}
 	}
+
 	return &opts
 }
 
@@ -872,6 +877,7 @@ func optionsToList(options *cdn.Options) []interface{} {
 		m := structToMap(options.TLSVersions)
 		result["tls_versions"] = []interface{}{m}
 	}
+
 	return []interface{}{result}
 }
 
@@ -899,5 +905,6 @@ func structToMap(item interface{}) map[string]interface{} {
 			}
 		}
 	}
+
 	return res
 }

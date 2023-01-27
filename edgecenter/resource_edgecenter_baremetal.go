@@ -376,6 +376,7 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 	resourceBmInstanceRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Baremetal Instance creating (%s)", InstanceID)
+
 	return diags
 }
 
@@ -556,6 +557,7 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish Instance reading")
+
 	return diags
 }
 
@@ -730,6 +732,7 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish Instance updating")
+
 	return resourceBmInstanceRead(ctx, d, m)
 }
 
@@ -773,5 +776,6 @@ func resourceBmInstanceDelete(ctx context.Context, d *schema.ResourceData, m int
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of Instance deleting")
+
 	return diags
 }

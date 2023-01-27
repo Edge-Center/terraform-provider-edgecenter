@@ -269,6 +269,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceSubnetRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Subnet creating (%s)", subnetID)
+
 	return diags
 }
 
@@ -343,6 +344,7 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	log.Println("[DEBUG] Finish subnet reading")
+
 	return diags
 }
 
@@ -413,6 +415,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish subnet updating")
+
 	return resourceSubnetRead(ctx, d, m)
 }
 
@@ -453,5 +456,6 @@ func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of subnet deleting")
+
 	return diags
 }

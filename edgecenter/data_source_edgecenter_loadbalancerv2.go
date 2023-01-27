@@ -101,5 +101,6 @@ func dataSourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m
 	d.Set("vip_port_id", lb.VipPortID)
 
 	log.Println("[DEBUG] Finish LoadBalancer reading")
+
 	return diags
 }

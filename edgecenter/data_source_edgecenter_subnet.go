@@ -221,5 +221,6 @@ func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	log.Println("[DEBUG] Finish Subnet reading")
+
 	return diags
 }

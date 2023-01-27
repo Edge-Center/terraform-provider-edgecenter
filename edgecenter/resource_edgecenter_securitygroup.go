@@ -277,6 +277,7 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 
 	resourceSecurityGroupRead(ctx, d, m)
 	log.Printf("[DEBUG] Finish SecurityGroup creating (%s)", sg.ID)
+
 	return diags
 }
 
@@ -368,6 +369,7 @@ func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	log.Println("[DEBUG] Finish SecurityGroup reading")
+
 	return diags
 }
 
@@ -455,6 +457,7 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish SecurityGroup updating")
+
 	return resourceSecurityGroupRead(ctx, d, m)
 }
 
@@ -477,5 +480,6 @@ func resourceSecurityGroupDelete(ctx context.Context, d *schema.ResourceData, m 
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of SecurityGroup deleting")
+
 	return diags
 }

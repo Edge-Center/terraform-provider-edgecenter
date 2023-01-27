@@ -256,5 +256,6 @@ func dataSourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	log.Println("[DEBUG] Finish SecurityGroup reading")
+
 	return diags
 }

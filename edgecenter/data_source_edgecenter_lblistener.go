@@ -129,5 +129,6 @@ func dataSourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m int
 	d.Set("region_id", d.Get("region_id").(int))
 
 	log.Println("[DEBUG] Finish LBListener reading")
+
 	return diags
 }
