@@ -1,6 +1,10 @@
-package edgecenter
+package edgecenter_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+)
 
 func TestExtractHosAndPath(t *testing.T) {
 	type args struct {
@@ -43,7 +47,7 @@ func TestExtractHosAndPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotHost, gotPath, err := ExtractHostAndPath(tt.args.uri)
+			gotHost, gotPath, err := edgecenter.ExtractHostAndPath(tt.args.uri)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ExtractHostAndPath() error = %v, wantErr %v", err, tt.wantErr)
 				return

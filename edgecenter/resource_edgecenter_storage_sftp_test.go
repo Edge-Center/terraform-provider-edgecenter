@@ -1,7 +1,7 @@
 //go:build !cloud
 // +build !cloud
 
-package edgecenter
+package edgecenter_test
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func TestAccStorageSFTP(t *testing.T) {
@@ -45,7 +46,7 @@ resource "edgecenter_storage_sftp" "terraformtest%d_sftp" {
 			testAccPreCheckVars(t, EC_USERNAME_VAR, EC_PASSWORD_VAR, EC_STORAGE_URL_VAR)
 		},
 		CheckDestroy: func(s *terraform.State) error {
-			config := testAccProvider.Meta().(*Config)
+			config := testAccProvider.Meta().(*edgecenter.Config)
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
@@ -76,14 +77,14 @@ resource "edgecenter_storage_sftp" "terraformtest%d_sftp" {
 				Config: templateCreate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, StorageSchemaLocation, "mia"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.StorageSchemaLocation, "mia"),
 				),
 			},
 			{
 				Config: templateUpdate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, StorageSFTPSchemaServerAlias, alias),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.StorageSFTPSchemaServerAlias, alias),
 				),
 			},
 		},

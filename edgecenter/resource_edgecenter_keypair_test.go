@@ -1,7 +1,7 @@
 //go:build cloud
 // +build cloud
 
-package edgecenter
+package edgecenter_test
 
 import (
 	"fmt"

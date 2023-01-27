@@ -1,13 +1,14 @@
 //go:build !cloud
 // +build !cloud
 
-package edgecenter
+package edgecenter_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -37,7 +38,7 @@ resource "edgecenter_storage_sftp_key" "%s" {
 				Config: templateCreate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, StorageKeySchemaName, name),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.StorageKeySchemaName, name),
 				),
 			},
 		},

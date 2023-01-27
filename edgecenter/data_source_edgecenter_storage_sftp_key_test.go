@@ -1,7 +1,7 @@
 //go:build !cloud
 // +build !cloud
 
-package edgecenter
+package edgecenter_test
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	key2 "github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/key"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func TestStorageSFTPKeyDataSource(t *testing.T) {
@@ -68,8 +69,8 @@ data "edgecenter_storage_sftp_key" "%s_data" {
 				Config: templateRead(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(dataSourceName),
-					resource.TestCheckResourceAttr(dataSourceName, StorageKeySchemaName, name),
-					resource.TestCheckResourceAttr(dataSourceName, StorageKeySchemaId, fmt.Sprint(k.ID)),
+					resource.TestCheckResourceAttr(dataSourceName, edgecenter.StorageKeySchemaName, name),
+					resource.TestCheckResourceAttr(dataSourceName, edgecenter.StorageKeySchemaId, fmt.Sprint(k.ID)),
 				),
 			},
 		},

@@ -1,4 +1,4 @@
-package edgecenter
+package edgecenter_test
 
 import (
 	"fmt"
@@ -19,6 +19,7 @@ import (
 	eccdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 type VarName string
@@ -108,7 +109,7 @@ var testAccProvider *schema.Provider
 var testAccProviders map[string]func() (*schema.Provider, error)
 
 func init() {
-	testAccProvider = Provider()
+	testAccProvider = edgecenter.Provider()
 	testAccProviders = map[string]func() (*schema.Provider, error){
 		"edgecenter": func() (*schema.Provider, error) {
 			return testAccProvider, nil
@@ -117,7 +118,7 @@ func init() {
 }
 
 func TestProvider(t *testing.T) {
-	if err := Provider().InternalValidate(); err != nil {
+	if err := edgecenter.Provider().InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -182,7 +183,7 @@ func CreateTestClient(provider *edgecloud.ProviderClient, endpoint, version stri
 			return nil, err
 		}
 	} else {
-		projectID, err = GetProject(provider, 0, os.Getenv("TEST_PROJECT_NAME"))
+		projectID, err = edgecenter.GetProject(provider, 0, os.Getenv("TEST_PROJECT_NAME"))
 		if err != nil {
 			return nil, err
 		}
@@ -194,7 +195,7 @@ func CreateTestClient(provider *edgecloud.ProviderClient, endpoint, version stri
 			return nil, err
 		}
 	} else {
-		regionID, err = GetProject(provider, 0, os.Getenv("TEST_REGION_NAME"))
+		regionID, err = edgecenter.GetProject(provider, 0, os.Getenv("TEST_REGION_NAME"))
 		if err != nil {
 			return nil, err
 		}
@@ -213,7 +214,7 @@ func CreateTestClient(provider *edgecloud.ProviderClient, endpoint, version stri
 	return client, nil
 }
 
-func createTestConfig() (*Config, error) {
+func createTestConfig() (*edgecenter.Config, error) {
 	provider, err := ec.AuthenticatedClient(edgecloud.AuthOptions{
 		APIURL:      os.Getenv("EC_API"),
 		AuthURL:     os.Getenv("EC_PLATFORM"),
@@ -232,7 +233,7 @@ func createTestConfig() (*Config, error) {
 	cdnService := cdn.NewService(cdnProvider)
 
 	storageAPI := EC_STORAGE_API
-	stHost, stPath, err := ExtractHostAndPath(storageAPI)
+	stHost, stPath, err := edgecenter.ExtractHostAndPath(storageAPI)
 	var storageClient *storageSDK.SDK
 	if err == nil {
 		storageClient = storageSDK.NewSDK(stHost, stPath, storageSDK.WithBearerAuth(provider.AccessToken))
@@ -250,7 +251,7 @@ func createTestConfig() (*Config, error) {
 
 	}
 
-	config := Config{
+	config := edgecenter.Config{
 		Provider:      provider,
 		CDNClient:     cdnService,
 		StorageClient: storageClient,

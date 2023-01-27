@@ -1,13 +1,14 @@
 //go:build !cloud
 // +build !cloud
 
-package edgecenter
+package edgecenter_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -20,7 +21,7 @@ func TestAccDnsZoneRecord(t *testing.T) {
 	zone := domain + ".com"
 	fullDomain := subDomain + "." + zone
 
-	resourceName := fmt.Sprintf("%s.%s", DNSZoneRecordResource, name)
+	resourceName := fmt.Sprintf("%s.%s", edgecenter.DNSZoneRecordResource, name)
 
 	templateCreate := func() string {
 		return fmt.Sprintf(`
@@ -51,7 +52,7 @@ resource "%s" "%s" {
   	}
   }
 }
-		`, DNSZoneRecordResource, name, zone, fullDomain)
+		`, edgecenter.DNSZoneRecordResource, name, zone, fullDomain)
 	}
 	templateUpdate := func() string {
 		return fmt.Sprintf(`
@@ -74,7 +75,7 @@ resource "%s" "%s" {
   	}
   }
 }
-		`, DNSZoneRecordResource, name, zone, fullDomain)
+		`, edgecenter.DNSZoneRecordResource, name, zone, fullDomain)
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -87,55 +88,79 @@ resource "%s" "%s" {
 				Config: templateCreate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, DNSZoneRecordSchemaDomain, fullDomain),
-					resource.TestCheckResourceAttr(resourceName, DNSZoneRecordSchemaType, "TXT"),
-					resource.TestCheckResourceAttr(resourceName, DNSZoneRecordSchemaTTL, "10"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaDomain, fullDomain),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaType, "TXT"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaTTL, "10"),
 					resource.TestCheckResourceAttr(resourceName,
-						fmt.Sprintf("%s.0.%s", DNSZoneRecordSchemaFilter, DNSZoneRecordSchemaFilterType),
+						fmt.Sprintf("%s.0.%s", edgecenter.DNSZoneRecordSchemaFilter, edgecenter.DNSZoneRecordSchemaFilterType),
 						"geodistance"),
 					resource.TestCheckResourceAttr(resourceName,
-						fmt.Sprintf("%s.0.%s", DNSZoneRecordSchemaFilter, DNSZoneRecordSchemaFilterLimit),
+						fmt.Sprintf("%s.0.%s", edgecenter.DNSZoneRecordSchemaFilter, edgecenter.DNSZoneRecordSchemaFilterLimit),
 						"1"),
 					resource.TestCheckResourceAttr(resourceName,
-						fmt.Sprintf("%s.0.%s", DNSZoneRecordSchemaFilter, DNSZoneRecordSchemaFilterStrict),
+						fmt.Sprintf("%s.0.%s", edgecenter.DNSZoneRecordSchemaFilter, edgecenter.DNSZoneRecordSchemaFilterStrict),
 						"true"),
 					resource.TestCheckResourceAttr(resourceName,
-						fmt.Sprintf("%s.0.%s", DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaContent),
+						fmt.Sprintf("%s.0.%s", edgecenter.DNSZoneRecordSchemaResourceRecord, edgecenter.DNSZoneRecordSchemaContent),
 						"1234"),
 					resource.TestCheckResourceAttr(resourceName,
-						fmt.Sprintf("%s.0.%s", DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaEnabled),
+						fmt.Sprintf("%s.0.%s", edgecenter.DNSZoneRecordSchemaResourceRecord, edgecenter.DNSZoneRecordSchemaEnabled),
 						"true"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaLatLong),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaLatLong,
+						),
 						"52.367"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.1",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaLatLong),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaLatLong,
+						),
 						"4.9041"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaAsn),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaAsn,
+						),
 						"12345"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaIP),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaIP,
+						),
 						"1.1.1.1"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaNotes),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaNotes,
+						),
 						"notes"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaContinents),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaContinents,
+						),
 						"asia"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaCountries),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaCountries,
+						),
 						"russia"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaDefault),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaDefault,
+						),
 						"true"),
 				),
 			},
@@ -143,41 +168,65 @@ resource "%s" "%s" {
 				Config: templateUpdate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, DNSZoneRecordSchemaDomain, fullDomain),
-					resource.TestCheckResourceAttr(resourceName, DNSZoneRecordSchemaType, "TXT"),
-					resource.TestCheckResourceAttr(resourceName, DNSZoneRecordSchemaTTL, "20"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaDomain, fullDomain),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaType, "TXT"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaTTL, "20"),
 					resource.TestCheckResourceAttr(resourceName,
-						fmt.Sprintf("%s.0.%s", DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaContent),
+						fmt.Sprintf("%s.0.%s", edgecenter.DNSZoneRecordSchemaResourceRecord, edgecenter.DNSZoneRecordSchemaContent),
 						"12345"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaLatLong),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaLatLong,
+						),
 						"52.367"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.1",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaLatLong),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaLatLong,
+						),
 						"4.9041"),
 					resource.TestCheckNoResourceAttr(resourceName, fmt.Sprintf("%s.0.%s.0.%s.0",
-						DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaAsn)),
+						edgecenter.DNSZoneRecordSchemaResourceRecord,
+						edgecenter.DNSZoneRecordSchemaMeta,
+						edgecenter.DNSZoneRecordSchemaMetaAsn,
+					)),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaIP),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaIP,
+						),
 						"1.1.2.2"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaNotes),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaNotes,
+						),
 						"notes"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaContinents),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaContinents,
+						),
 						"america"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaCountries),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaCountries,
+						),
 						"usa"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s",
-							DNSZoneRecordSchemaResourceRecord, DNSZoneRecordSchemaMeta, DNSZoneRecordSchemaMetaDefault),
+							edgecenter.DNSZoneRecordSchemaResourceRecord,
+							edgecenter.DNSZoneRecordSchemaMeta,
+							edgecenter.DNSZoneRecordSchemaMetaDefault,
+						),
 						"false"),
 				),
 			},

@@ -1,7 +1,7 @@
 //go:build !cloud
 // +build !cloud
 
-package edgecenter
+package edgecenter_test
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func TestStorageS3DataSource(t *testing.T) {
@@ -42,7 +43,7 @@ data "edgecenter_storage_s3" "terraformtest%d_s3_data" {
 			testAccPreCheckVars(t, EC_USERNAME_VAR, EC_PASSWORD_VAR, EC_STORAGE_URL_VAR)
 		},
 		CheckDestroy: func(s *terraform.State) error {
-			config := testAccProvider.Meta().(*Config)
+			config := testAccProvider.Meta().(*edgecenter.Config)
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
@@ -73,14 +74,14 @@ data "edgecenter_storage_s3" "terraformtest%d_s3_data" {
 				Config: templateCreate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, StorageSchemaLocation, "s-ed1"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.StorageSchemaLocation, "s-ed1"),
 				),
 			},
 			{
 				Config: templateRead(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(dataSourceName),
-					resource.TestCheckResourceAttr(dataSourceName, StorageSchemaLocation, "s-ed1"),
+					resource.TestCheckResourceAttr(dataSourceName, edgecenter.StorageSchemaLocation, "s-ed1"),
 				),
 			},
 		},

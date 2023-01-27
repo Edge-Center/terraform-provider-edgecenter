@@ -1,13 +1,14 @@
 //go:build !cloud
 // +build !cloud
 
-package edgecenter
+package edgecenter_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -16,14 +17,14 @@ func TestAccDnsZone(t *testing.T) {
 	random := time.Now().Nanosecond()
 	name := fmt.Sprintf("terraformtestkey%d", random)
 	zone := name + ".com"
-	resourceName := fmt.Sprintf("%s.%s", DNSZoneResource, name)
+	resourceName := fmt.Sprintf("%s.%s", edgecenter.DNSZoneResource, name)
 
 	templateCreate := func() string {
 		return fmt.Sprintf(`
 resource "%s" "%s" {
   name = "%s"
 }
-		`, DNSZoneResource, name, zone)
+		`, edgecenter.DNSZoneResource, name, zone)
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -36,7 +37,7 @@ resource "%s" "%s" {
 				Config: templateCreate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, DNSZoneSchemaName, zone),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneSchemaName, zone),
 				),
 			},
 		},
