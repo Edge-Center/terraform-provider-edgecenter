@@ -734,6 +734,7 @@ func extractListenerIntoMap(listener *listeners.Listener) map[string]interface{}
 	return l
 }
 
+// nolint: unused
 func getUniqueID(d *schema.ResourceData) string {
 	return fmt.Sprintf(
 		"%d%d%s%s",
