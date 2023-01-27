@@ -61,7 +61,7 @@ func resourceStorageSFTPKey() *schema.Resource {
 	}
 }
 
-func resourceStorageSFTPKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) (dErr diag.Diagnostics) {
+func resourceStorageSFTPKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	id := new(int)
 	log.Println("[DEBUG] Start Storage Key Resource creating")
 	defer log.Printf("[DEBUG] Finish Storage Key Resource creating (id=%d)\n", *id)

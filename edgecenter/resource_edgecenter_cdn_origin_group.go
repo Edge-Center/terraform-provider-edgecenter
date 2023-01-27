@@ -164,7 +164,8 @@ func resourceCDNOriginGroupDelete(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-func setToOriginRequests(s *schema.Set) (origins []origingroups.OriginRequest) {
+func setToOriginRequests(s *schema.Set) []origingroups.OriginRequest {
+	var origins []origingroups.OriginRequest
 	for _, fields := range s.List() {
 		var originReq origingroups.OriginRequest
 

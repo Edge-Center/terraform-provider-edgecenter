@@ -138,7 +138,9 @@ func resourceStorageS3BucketDelete(ctx context.Context, d *schema.ResourceData, 
 	return nil
 }
 
-func storageBucketResourceID(d *schema.ResourceData) (storageID int, bucketName string) {
+func storageBucketResourceID(d *schema.ResourceData) (int, string) {
+	var storageID int
+	var bucketName string
 	resourceID := d.Id()
 	if resourceID == "" {
 		storageID = d.Get(StorageS3BucketSchemaStorageID).(int)

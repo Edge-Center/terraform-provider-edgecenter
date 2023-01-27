@@ -644,26 +644,30 @@ func findSharedNetworkByName(name string, nets []availablenetworks.Network) (ava
 	return network, found
 }
 
-func StructToMap(obj interface{}) (newMap map[string]interface{}, err error) {
+func StructToMap(obj interface{}) (map[string]interface{}, error) {
+	var newMap map[string]interface{}
 	data, err := json.Marshal(obj)
 	if err != nil {
-		return
+		return newMap, err
 	}
 	err = json.Unmarshal(data, &newMap)
-	return
+	return newMap, err
 }
 
 // ExtractHostAndPath from url
-func ExtractHostAndPath(uri string) (host, path string, err error) {
+func ExtractHostAndPath(uri string) (string, string, error) {
+	var host, path string
 	if uri == "" {
-		return "", "", fmt.Errorf("empty uri")
+		return host, path, fmt.Errorf("empty uri")
 	}
 	strings.Split(uri, "://")
 	pUrl, err := url.Parse(uri)
 	if err != nil {
-		return "", "", fmt.Errorf("url parse: %w", err)
+		return host, path, fmt.Errorf("url parse: %w", err)
 	}
-	return pUrl.Scheme + "://" + pUrl.Host, pUrl.Path, nil
+	host = pUrl.Scheme + "://" + pUrl.Host
+	path = pUrl.Path
+	return host, path, nil
 }
 
 func parseCIDRFromString(cidr string) (edgecloud.CIDR, error) {

@@ -405,13 +405,14 @@ func expandRetentionTimer(flat []interface{}) *lifecyclepolicy.RetentionTimer {
 	return nil
 }
 
-func expandSchedule(flat map[string]interface{}) (expanded lifecyclepolicy.CreateScheduleOpts, err error) {
+func expandSchedule(flat map[string]interface{}) (lifecyclepolicy.CreateScheduleOpts, error) {
 	t := lifecyclepolicy.ScheduleType("")
 	intervalSlice := flat["interval"].([]interface{})
 	cronSlice := flat["cron"].([]interface{})
 	if len(intervalSlice)+len(cronSlice) != 1 {
 		return nil, fmt.Errorf("exactly one of interval and cron blocks should be provided")
 	}
+	var expanded lifecyclepolicy.CreateScheduleOpts
 	if len(intervalSlice) > 0 {
 		t = lifecyclepolicy.ScheduleTypeInterval
 		expanded = expandIntervalSchedule(intervalSlice[0].(map[string]interface{}))
@@ -425,7 +426,7 @@ func expandSchedule(flat map[string]interface{}) (expanded lifecyclepolicy.Creat
 		MaxQuantity:          flat["max_quantity"].(int),
 		RetentionTime:        expandRetentionTimer(flat["retention_time"].([]interface{})),
 	})
-	return
+	return expanded, nil
 }
 
 func expandSchedules(flat []interface{}) ([]lifecyclepolicy.CreateScheduleOpts, error) {
