@@ -1,38 +1,27 @@
 run:
-  timeout: 60m
-  go: 1.19
+  timeout: 10m
+  go: "1.19"
 
 issues:
-  exclude-rules:
-    - linters:
-        - gosimple
-      text: "S1034"
-
   max-per-linter: 0
   max-same-issues: 0
 
 linters:
-  disable-all: true
-  enable:
-    - asciicheck
+  enable-all: true
+  disable:
     - deadcode
-    - errcheck
-    - gocritic
-    - goimports
-    - gosimple
-    - govet
-    - ineffassign
-    - nakedret
-    - misspell
-    - staticcheck
-    - structcheck
-    - typecheck
-    - unused
-    - unconvert
-    - unparam
+    - maligned
     - varcheck
-    - vet
-    - vetshadow
+    - nosnakecase
+    - interfacer
+    - ifshort
+    - structcheck
+    - golint
+    - scopelint
+    - exhaustivestruct
+    - rowserrcheck
+    - sqlclosecheck
+    - wastedassign
 
 linters-settings:
   errcheck:
