@@ -84,7 +84,6 @@ func resourceDNSZoneRecord() *schema.Resource {
 						}
 					}
 					return diag.Errorf("dns record type should be one of %v", types)
-
 				},
 				Description: "A type of DNS Zone Record resource.",
 			},

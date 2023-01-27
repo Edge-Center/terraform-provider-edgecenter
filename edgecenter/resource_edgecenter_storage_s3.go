@@ -24,20 +24,20 @@ const (
 
 	StorageSchemaLocation = "location"
 	StorageSchemaName     = "name"
-	StorageSchemaId       = "storage_id"
-	StorageSchemaClientId = "client_id"
+	StorageSchemaID       = "storage_id"
+	StorageSchemaClientID = "client_id"
 )
 
 func resourceStorageS3() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			StorageSchemaId: {
+			StorageSchemaID: {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
 				Description: "An id of new storage resource.",
 			},
-			StorageSchemaClientId: {
+			StorageSchemaClientID: {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
@@ -150,8 +150,8 @@ func resourceStorageS3Create(ctx context.Context, d *schema.ResourceData, m inte
 }
 
 func resourceStorageS3Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	resourceId := storageResourceID(d)
-	log.Printf("[DEBUG] Start S3 Storage Resource reading (id=%s)\n", resourceId)
+	resourceID := storageResourceID(d)
+	log.Printf("[DEBUG] Start S3 Storage Resource reading (id=%s)\n", resourceID)
 	defer log.Println("[DEBUG] Finish S3 Storage Resource reading")
 
 	config := m.(*Config)
@@ -161,14 +161,14 @@ func resourceStorageS3Read(ctx context.Context, d *schema.ResourceData, m interf
 		func(opt *storage.StorageListHTTPV2Params) { opt.Context = ctx },
 		func(opt *storage.StorageListHTTPV2Params) { opt.ShowDeleted = new(bool) },
 	}
-	if resourceId != "" {
-		opts = append(opts, func(opt *storage.StorageListHTTPV2Params) { opt.ID = &resourceId })
+	if resourceID != "" {
+		opts = append(opts, func(opt *storage.StorageListHTTPV2Params) { opt.ID = &resourceID })
 	}
 	name := d.Get(StorageSchemaName).(string)
 	if name != "" {
 		opts = append(opts, func(opt *storage.StorageListHTTPV2Params) { opt.Name = &name })
 	}
-	if resourceId == "" && name == "" {
+	if resourceID == "" && name == "" {
 		return diag.Errorf("get storage: empty storage id/name")
 	}
 
@@ -186,12 +186,12 @@ func resourceStorageS3Read(ctx context.Context, d *schema.ResourceData, m interf
 	nameParts := strings.Split(st.Name, "-")
 	if len(nameParts) > 1 {
 		clientID, _ := strconv.ParseInt(nameParts[0], 10, 64)
-		_ = d.Set(StorageSchemaClientId, int(clientID))
+		_ = d.Set(StorageSchemaClientID, int(clientID))
 		_ = d.Set(StorageSchemaName, strings.Join(nameParts[1:], "-"))
 	} else {
 		_ = d.Set(StorageSchemaName, st.Name)
 	}
-	_ = d.Set(StorageSchemaId, st.ID)
+	_ = d.Set(StorageSchemaID, st.ID)
 	_ = d.Set(StorageSchemaLocation, st.Location)
 	_ = d.Set(StorageSchemaGenerateEndpoint, fmt.Sprintf("%s.cloud.edgecenter.ru/%s", st.Location, st.Name))
 	_ = d.Set(StorageSchemaGenerateHTTPEndpoint, fmt.Sprintf("https://%s.cloud.edgecenter.ru/{bucket_name}", st.Location))
@@ -201,17 +201,17 @@ func resourceStorageS3Read(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func resourceStorageS3Delete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	resourceId := storageResourceID(d)
-	log.Printf("[DEBUG] Start S3 Storage Resource deleting (id=%s)\n", resourceId)
+	resourceID := storageResourceID(d)
+	log.Printf("[DEBUG] Start S3 Storage Resource deleting (id=%s)\n", resourceID)
 	defer log.Println("[DEBUG] Finish S3 Storage Resource deleting")
-	if resourceId == "" {
+	if resourceID == "" {
 		return diag.Errorf("empty storage id")
 	}
 
 	config := m.(*Config)
 	client := config.StorageClient
 
-	id, err := strconv.ParseInt(resourceId, 10, 64)
+	id, err := strconv.ParseInt(resourceID, 10, 64)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("get resource id: %w", err))
 	}
@@ -233,7 +233,7 @@ func resourceStorageS3Delete(ctx context.Context, d *schema.ResourceData, m inte
 func storageResourceID(d *schema.ResourceData) string {
 	resourceID := d.Id()
 	if resourceID == "" {
-		id := d.Get(StorageSchemaId).(int)
+		id := d.Get(StorageSchemaID).(int)
 		if id > 0 {
 			resourceID = fmt.Sprint(id)
 		}

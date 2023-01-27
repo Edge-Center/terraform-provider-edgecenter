@@ -13,7 +13,6 @@ import (
 )
 
 func TestAccStorageKey(t *testing.T) {
-
 	random := time.Now().Nanosecond()
 	name := fmt.Sprintf("terraform_test_key_%d", random)
 	resourceName := fmt.Sprintf("edgecenter_storage_sftp_key.%s", name)

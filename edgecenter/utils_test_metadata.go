@@ -63,7 +63,6 @@ func modulePrimaryInstanceState(ms *terraform.ModuleState, name string) (*terraf
 
 // nolint: unused
 func getMetadataFromResourceAttributes(prefix string, attributes *map[string]string) ([]map[string]interface{}, error) {
-
 	metadataLength, err := strconv.Atoi((*attributes)[prefix+".#"])
 	if err != nil {
 		return nil, err

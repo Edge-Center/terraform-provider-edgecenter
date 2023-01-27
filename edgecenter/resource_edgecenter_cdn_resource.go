@@ -882,7 +882,6 @@ func optionsToList(options *cdn.Options) []interface{} {
 }
 
 func structToMap(item interface{}) map[string]interface{} {
-
 	res := map[string]interface{}{}
 	if item == nil {
 		return res

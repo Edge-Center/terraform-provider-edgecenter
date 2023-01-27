@@ -45,7 +45,6 @@ func resourceDNSZone() *schema.Resource {
 
 func checkDNSDependency(next func(context.Context, *schema.ResourceData,
 	interface{}) diag.Diagnostics) func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics {
-
 	return func(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
 		config := i.(*Config)
 		client := config.DNSClient

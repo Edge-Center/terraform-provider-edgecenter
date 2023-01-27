@@ -258,7 +258,6 @@ func resourceK8sPoolUpdate(ctx context.Context, d *schema.ResourceData, m interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
 	}
 
 	if d.HasChange("node_count") {

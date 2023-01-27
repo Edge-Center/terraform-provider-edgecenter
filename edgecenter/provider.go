@@ -23,7 +23,7 @@ import (
 const (
 	ProviderOptPermanentToken    = "permanent_api_token"
 	ProviderOptSkipCredsAuthErr  = "ignore_creds_auth_error"
-	ProviderOptSingleApiEndpoint = "api_endpoint"
+	ProviderOptSingleAPIEndpoint = "api_endpoint"
 
 	lifecyclePolicyResource = "edgecenter_lifecyclepolicy"
 )
@@ -57,7 +57,7 @@ func Provider() *schema.Provider {
 				Description: "A permanent [API-token](https://support.edgecenter.ru/knowledge_base/item/257788)",
 				DefaultFunc: schema.EnvDefaultFunc("EC_PERMANENT_TOKEN", nil),
 			},
-			ProviderOptSingleApiEndpoint: {
+			ProviderOptSingleAPIEndpoint: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A single API endpoint for all products. Will be used when specific product API url is not defined.",
@@ -188,14 +188,14 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 	username := d.Get("user_name").(string)
 	password := d.Get("password").(string)
 	permanentToken := d.Get(ProviderOptPermanentToken).(string)
-	apiEndpoint := d.Get(ProviderOptSingleApiEndpoint).(string)
+	apiEndpoint := d.Get(ProviderOptSingleAPIEndpoint).(string)
 
-	cloudApi := d.Get("edgecenter_cloud_api").(string)
-	if cloudApi == "" {
-		cloudApi = d.Get("edgecenter_api").(string)
+	cloudAPI := d.Get("edgecenter_cloud_api").(string)
+	if cloudAPI == "" {
+		cloudAPI = d.Get("edgecenter_api").(string)
 	}
-	if cloudApi == "" {
-		cloudApi = apiEndpoint + "/cloud"
+	if cloudAPI == "" {
+		cloudAPI = apiEndpoint + "/cloud"
 	}
 
 	cdnAPI := d.Get("edgecenter_cdn_api").(string)
@@ -229,12 +229,12 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 	var provider *edgecloud.ProviderClient
 	if permanentToken != "" {
 		provider, err = ec.APITokenClient(edgecloud.APITokenOptions{
-			APIURL:   cloudApi,
+			APIURL:   cloudAPI,
 			APIToken: permanentToken,
 		})
 	} else {
 		provider, err = ec.AuthenticatedClient(edgecloud.AuthOptions{
-			APIURL:      cloudApi,
+			APIURL:      cloudAPI,
 			AuthURL:     platform,
 			Username:    username,
 			Password:    password,
@@ -276,7 +276,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		)
 	}
 	if dnsAPI != "" {
-		baseUrl, err := url.Parse(dnsAPI)
+		baseURL, err := url.Parse(dnsAPI)
 		if err != nil {
 			return nil, diag.FromErr(fmt.Errorf("dns api url: %w", err))
 		}
@@ -287,7 +287,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		config.DNSClient = dnssdk.NewClient(
 			authorizer,
 			func(client *dnssdk.Client) {
-				client.BaseURL = baseUrl
+				client.BaseURL = baseURL
 				client.Debug = os.Getenv("TF_LOG") == "DEBUG"
 			},
 			func(client *dnssdk.Client) {

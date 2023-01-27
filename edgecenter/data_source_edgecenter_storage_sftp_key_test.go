@@ -70,7 +70,7 @@ data "edgecenter_storage_sftp_key" "%s_data" {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(dataSourceName),
 					resource.TestCheckResourceAttr(dataSourceName, edgecenter.StorageKeySchemaName, name),
-					resource.TestCheckResourceAttr(dataSourceName, edgecenter.StorageKeySchemaId, fmt.Sprint(k.ID)),
+					resource.TestCheckResourceAttr(dataSourceName, edgecenter.StorageKeySchemaID, fmt.Sprint(k.ID)),
 				),
 			},
 		},

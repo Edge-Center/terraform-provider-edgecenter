@@ -200,10 +200,10 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		createOpts.CIDR = eccidr
 	}
 
-	dns_nameservers := d.Get("dns_nameservers").([]interface{})
+	dnsNameservers := d.Get("dns_nameservers").([]interface{})
 	createOpts.DNSNameservers = make([]net.IP, 0)
-	if len(dns_nameservers) > 0 {
-		ns := dns_nameservers
+	if len(dnsNameservers) > 0 {
+		ns := dnsNameservers
 		dns := make([]net.IP, len(ns))
 		for i, s := range ns {
 			dns[i] = net.ParseIP(s.(string))
@@ -211,10 +211,10 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		createOpts.DNSNameservers = dns
 	}
 
-	host_routes := d.Get("host_routes").([]interface{})
+	hostRoutes := d.Get("host_routes").([]interface{})
 	createOpts.HostRoutes = make([]subnets.HostRoute, 0)
-	if len(host_routes) > 0 {
-		createOpts.HostRoutes, err = extractHostRoutesMap(host_routes)
+	if len(hostRoutes) > 0 {
+		createOpts.HostRoutes, err = extractHostRoutesMap(hostRoutes)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -368,10 +368,10 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	// In the structure, the field is mandatory for the ability to transfer the absence of data,
 	// if you do not initialize it with a empty list, marshalling will send null and receive a validation error.
-	dns_nameservers := d.Get("dns_nameservers").([]interface{})
+	dnsNameservers := d.Get("dns_nameservers").([]interface{})
 	updateOpts.DNSNameservers = make([]net.IP, 0)
-	if len(dns_nameservers) > 0 {
-		ns := dns_nameservers
+	if len(dnsNameservers) > 0 {
+		ns := dnsNameservers
 		dns := make([]net.IP, len(ns))
 		for i, s := range ns {
 			dns[i] = net.ParseIP(s.(string))
@@ -379,10 +379,10 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		updateOpts.DNSNameservers = dns
 	}
 
-	host_routes := d.Get("host_routes").([]interface{})
+	hostRoutes := d.Get("host_routes").([]interface{})
 	updateOpts.HostRoutes = make([]subnets.HostRoute, 0)
-	if len(host_routes) > 0 {
-		updateOpts.HostRoutes, err = extractHostRoutesMap(host_routes)
+	if len(hostRoutes) > 0 {
+		updateOpts.HostRoutes, err = extractHostRoutesMap(hostRoutes)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -391,8 +391,8 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	if d.HasChange("gateway_ip") {
 		_, newValue := d.GetChange("gateway_ip")
 		if newValue.(string) != "disable" {
-			gateway_ip := net.ParseIP(newValue.(string))
-			updateOpts.GatewayIP = &gateway_ip
+			gatewayIP := net.ParseIP(newValue.(string))
+			updateOpts.GatewayIP = &gatewayIP
 		}
 	}
 

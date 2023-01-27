@@ -292,13 +292,13 @@ func resourceLifecyclePolicyRead(_ context.Context, d *schema.ResourceData, m in
 		return diag.Errorf("Error creating client: %s", err)
 	}
 	id := d.Id()
-	integerId, err := strconv.Atoi(id)
+	integerID, err := strconv.Atoi(id)
 	if err != nil {
 		return diag.Errorf("Error converting lifecycle policy ID to integer: %s", err)
 	}
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy %s reading", id)
-	policy, err := lifecyclepolicy.Get(client, integerId, lifecyclepolicy.GetOpts{NeedVolumes: true}).Extract()
+	policy, err := lifecyclepolicy.Get(client, integerID, lifecyclepolicy.GetOpts{NeedVolumes: true}).Extract()
 	if err != nil {
 		return diag.Errorf("Error getting lifecycle policy: %s", err)
 	}
@@ -325,13 +325,13 @@ func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, 
 		return diag.Errorf("Error creating client: %s", err)
 	}
 	id := d.Id()
-	integerId, err := strconv.Atoi(id)
+	integerID, err := strconv.Atoi(id)
 	if err != nil {
 		return diag.Errorf("Error converting lifecycle policy ID to integer: %s", err)
 	}
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy updating")
-	_, err = lifecyclepolicy.Update(client, integerId, buildLifecyclePolicyUpdateOpts(d)).Extract()
+	_, err = lifecyclepolicy.Update(client, integerID, buildLifecyclePolicyUpdateOpts(d)).Extract()
 	if err != nil {
 		return diag.Errorf("Error updating lifecycle policy: %s", err)
 	}
@@ -339,16 +339,16 @@ func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, 
 	if d.HasChange("volume") {
 		oldVolumes, newVolumes := d.GetChange("volume")
 		toRemove, toAdd := volumeSymmetricDifference(oldVolumes.(*schema.Set), newVolumes.(*schema.Set))
-		_, err = lifecyclepolicy.RemoveVolumes(client, integerId, lifecyclepolicy.RemoveVolumesOpts{VolumeIds: toRemove}).Extract()
+		_, err = lifecyclepolicy.RemoveVolumes(client, integerID, lifecyclepolicy.RemoveVolumesOpts{VolumeIds: toRemove}).Extract()
 		if err != nil {
 			return diag.Errorf("Error removing volumes from lifecycle policy: %s", err)
 		}
-		_, err = lifecyclepolicy.AddVolumes(client, integerId, lifecyclepolicy.AddVolumesOpts{VolumeIds: toAdd}).Extract()
+		_, err = lifecyclepolicy.AddVolumes(client, integerID, lifecyclepolicy.AddVolumesOpts{VolumeIds: toAdd}).Extract()
 		if err != nil {
 			return diag.Errorf("Error adding volumes to lifecycle policy: %s", err)
 		}
 	}
-	log.Printf("[DEBUG] Finish of LifecyclePolicy %v updating", integerId)
+	log.Printf("[DEBUG] Finish of LifecyclePolicy %v updating", integerID)
 
 	return resourceLifecyclePolicyRead(ctx, d, m)
 }
@@ -359,13 +359,13 @@ func resourceLifecyclePolicyDelete(_ context.Context, d *schema.ResourceData, m 
 		return diag.Errorf("Error creating client: %s", err)
 	}
 	id := d.Id()
-	integerId, err := strconv.Atoi(id)
+	integerID, err := strconv.Atoi(id)
 	if err != nil {
 		return diag.Errorf("Error converting lifecycle policy ID to integer: %s", err)
 	}
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy %s deleting", id)
-	err = lifecyclepolicy.Delete(client, integerId)
+	err = lifecyclepolicy.Delete(client, integerID)
 	if err != nil {
 		return diag.Errorf("Error deleting lifecycle policy: %s", err)
 	}

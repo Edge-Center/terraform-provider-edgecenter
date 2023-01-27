@@ -242,14 +242,13 @@ func createTestConfig() (*edgecenter.Config, error) {
 
 	var dnsClient *dnssdk.Client
 	if EC_DNS_API != "" {
-		baseUrl, err := url.Parse(EC_DNS_API)
+		baseURL, err := url.Parse(EC_DNS_API)
 		if err == nil {
 			authorizer := dnssdk.BearerAuth(provider.AccessToken())
 			dnsClient = dnssdk.NewClient(authorizer, func(client *dnssdk.Client) {
-				client.BaseURL = baseUrl
+				client.BaseURL = baseURL
 			})
 		}
-
 	}
 
 	config := edgecenter.Config{

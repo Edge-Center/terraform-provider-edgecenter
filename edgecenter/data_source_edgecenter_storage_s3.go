@@ -11,16 +11,16 @@ import (
 func dataSourceStorageS3() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			StorageSchemaId: {
+			StorageSchemaID: {
 				Type:     schema.TypeInt,
 				Optional: true,
 				AtLeastOneOf: []string{
-					StorageSchemaId,
+					StorageSchemaID,
 					StorageSchemaName,
 				},
 				Description: "An id of new storage resource.",
 			},
-			StorageSchemaClientId: {
+			StorageSchemaClientID: {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "An client id of new storage resource.",
@@ -36,7 +36,7 @@ func dataSourceStorageS3() *schema.Resource {
 					return nil
 				},
 				AtLeastOneOf: []string{
-					StorageSchemaId,
+					StorageSchemaID,
 					StorageSchemaName,
 				},
 				Description: "A name of new storage resource.",

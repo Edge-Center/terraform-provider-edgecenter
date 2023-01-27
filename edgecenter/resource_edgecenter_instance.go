@@ -701,8 +701,8 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("flavor_id") {
-		flavor_id := d.Get("flavor_id").(string)
-		results, err := instances.Resize(client, instanceID, instances.ChangeFlavorOpts{FlavorID: flavor_id}).Extract()
+		flavorID := d.Get("flavor_id").(string)
+		results, err := instances.Resize(client, instanceID, instances.ChangeFlavorOpts{FlavorID: flavorID}).Extract()
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -860,7 +860,6 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			if err != nil {
 				return diag.FromErr(err)
 			}
-
 		}
 	}
 

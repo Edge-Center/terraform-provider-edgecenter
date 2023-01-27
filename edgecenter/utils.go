@@ -54,7 +54,7 @@ type Config struct {
 }
 
 type Project struct {
-	Id   int    `json:"id"`
+	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -64,7 +64,7 @@ type Projects struct {
 }
 
 type Region struct {
-	Id          int    `json:"id"`
+	ID          int    `json:"id"`
 	DisplayName string `json:"display_name"`
 }
 
@@ -417,7 +417,6 @@ func ImportStringParser(infoStr string) (int, int, string, error) {
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 3 {
 		return 0, 0, "", fmt.Errorf("Failed import: wrong input id: %s", infoStr)
-
 	}
 	projectID, err := strconv.Atoi(infoStrings[0])
 	if err != nil {
@@ -438,7 +437,6 @@ func ImportStringParserExtended(infoStr string) (int, int, string, string, error
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 4 {
 		return 0, 0, "", "", fmt.Errorf("Failed import: wrong input id: %s", infoStr)
-
 	}
 	projectID, err := strconv.Atoi(infoStrings[0])
 	if err != nil {
@@ -677,12 +675,12 @@ func ExtractHostAndPath(uri string) (string, string, error) {
 		return host, path, fmt.Errorf("empty uri")
 	}
 	strings.Split(uri, "://")
-	pUrl, err := url.Parse(uri)
+	pURL, err := url.Parse(uri)
 	if err != nil {
 		return host, path, fmt.Errorf("url parse: %w", err)
 	}
-	host = pUrl.Scheme + "://" + pUrl.Host
-	path = pUrl.Path
+	host = pURL.Scheme + "://" + pURL.Host
+	path = pURL.Path
 
 	return host, path, nil
 }
