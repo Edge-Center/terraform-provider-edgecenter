@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -277,8 +278,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 		opts := loadbalancers.UpdateOpts{
 			Name: d.Get("name").(string),
 		}
-		_, err = loadbalancers.Update(client, d.Id(), opts).Extract()
-		if err != nil {
+		if _, err = loadbalancers.Update(client, d.Id(), opts).Extract(); err != nil {
 			return diag.FromErr(err)
 		}
 
@@ -311,12 +311,11 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 				if err == nil {
 					return nil, fmt.Errorf("cannot delete LBListener with ID: %s", listenerID)
 				}
-				switch err.(type) {
-				case edgecloud.ErrDefault404:
+				var errDefault404 *edgecloud.ErrDefault404
+				if errors.As(err, &errDefault404) {
 					return nil, nil
-				default:
-					return nil, err
 				}
+				return nil, err
 			})
 			if err != nil {
 				return diag.FromErr(err)
@@ -404,12 +403,11 @@ func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m i
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete loadbalancer with ID: %s", id)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, err
 	})
 	if err != nil {
 		return diag.FromErr(err)

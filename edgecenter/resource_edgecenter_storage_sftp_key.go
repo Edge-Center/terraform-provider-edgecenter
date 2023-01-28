@@ -81,7 +81,7 @@ func resourceStorageSFTPKeyCreate(ctx context.Context, d *schema.ResourceData, m
 
 	result, err := client.CreateKey(opts...)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("create storage key: %v", err))
+		return diag.FromErr(fmt.Errorf("create storage key: %w", err))
 	}
 	d.SetId(fmt.Sprintf("%d", result.ID))
 

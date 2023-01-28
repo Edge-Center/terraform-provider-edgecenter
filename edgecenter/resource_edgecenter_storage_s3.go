@@ -135,7 +135,7 @@ func resourceStorageS3Create(ctx context.Context, d *schema.ResourceData, m inte
 
 	result, err := client.CreateStorage(opts...)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("create storage: %v", err))
+		return diag.FromErr(fmt.Errorf("create storage: %w", err))
 	}
 	d.SetId(fmt.Sprintf("%d", result.ID))
 	*id = int(result.ID)

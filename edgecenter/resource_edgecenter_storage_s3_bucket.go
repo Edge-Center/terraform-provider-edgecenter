@@ -75,7 +75,7 @@ func resourceStorageS3BucketCreate(ctx context.Context, d *schema.ResourceData, 
 
 	err := client.CreateBucket(opts...)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("create storage bucket: %v", err))
+		return diag.FromErr(fmt.Errorf("create storage bucket: %w", err))
 	}
 	d.SetId(fmt.Sprintf("%d:%s", id, name))
 

@@ -278,7 +278,7 @@ func resourceDNSZoneRecordCreate(ctx context.Context, d *schema.ResourceData, m 
 
 	err = client.CreateRRSet(ctx, zone, domain, rType, rrSet)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("create zone rrset: %v", err))
+		return diag.FromErr(fmt.Errorf("create zone rrset: %w", err))
 	}
 	d.SetId(zone)
 
@@ -307,7 +307,7 @@ func resourceDNSZoneRecordUpdate(ctx context.Context, d *schema.ResourceData, m 
 
 	err = client.UpdateRRSet(ctx, zone, domain, rType, rrSet)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("update zone rrset: %v", err))
+		return diag.FromErr(fmt.Errorf("update zone rrset: %w", err))
 	}
 	d.SetId(zone)
 

@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -309,12 +310,11 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete network with ID: %s", networkID)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, err
 	})
 	if err != nil {
 		return diag.FromErr(err)

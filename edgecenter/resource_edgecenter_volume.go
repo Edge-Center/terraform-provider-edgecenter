@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -47,7 +48,7 @@ func resourceVolume() *schema.Resource {
 
 				volume, err := volumes.Get(client, volumeID).Extract()
 				if err != nil {
-					return nil, fmt.Errorf("cannot get volume with ID: %s. Error: %s", volumeID, err)
+					return nil, fmt.Errorf("cannot get volume with ID: %s. Error: %w", volumeID, err)
 				}
 				d.Set("image_id", volume.VolumeImageMetadata.ImageID)
 
@@ -291,12 +292,11 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete volume with ID: %s", volumeID)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, err
 	})
 	if err != nil {
 		return diag.FromErr(err)

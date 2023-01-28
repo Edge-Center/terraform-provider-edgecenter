@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -507,14 +508,13 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	instance, err := instances.Get(client, instanceID).Extract()
 	if err != nil {
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil
-		default:
-			return diag.FromErr(err)
 		}
+		return diag.FromErr(err)
 	}
 
 	d.Set("name", instance.Name)
@@ -962,12 +962,11 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete instance with ID: %s", instanceID)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, err
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -985,12 +984,12 @@ func ServerV2StateRefreshFunc(client *edgecloud.ServiceClient, instanceID string
 	return func() (interface{}, string, error) {
 		s, err := instances.Get(client, instanceID).Extract()
 		if err != nil {
-			if _, ok := err.(edgecloud.ErrDefault404); ok {
+			var errDefault404 *edgecloud.ErrDefault404
+			if errors.As(err, &errDefault404) {
 				return s, "DELETED", nil
 			}
 			return nil, "", err
 		}
-
 		return s, s.VMState, nil
 	}
 }

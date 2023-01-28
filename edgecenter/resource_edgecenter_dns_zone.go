@@ -65,7 +65,7 @@ func resourceDNSZoneCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	_, err := client.CreateZone(ctx, name)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("create zone: %v", err))
+		return diag.FromErr(fmt.Errorf("create zone: %w", err))
 	}
 	d.SetId(name)
 

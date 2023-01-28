@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -308,14 +309,13 @@ func resourceLBMemberDelete(ctx context.Context, d *schema.ResourceData, m inter
 	pid := d.Get("pool_id").(string)
 	results, err := lbpools.DeleteMember(client, pid, mid).Extract()
 	if err != nil {
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			d.SetId("")
 			log.Printf("[DEBUG] Finish of LBMember deleting")
 			return diags
-		default:
-			return diag.FromErr(err)
 		}
+		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]

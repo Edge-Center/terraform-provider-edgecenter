@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -412,9 +413,8 @@ func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	id := d.Id()
 	results, err := lbpools.Delete(client, id).Extract()
 	if err != nil {
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
-		default:
+		var errDefault404 *edgecloud.ErrDefault404
+		if !errors.As(err, &errDefault404) {
 			return diag.FromErr(err)
 		}
 	}
@@ -425,12 +425,11 @@ func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete LBPool with ID: %s", id)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, err
 	})
 	if err != nil {
 		return diag.FromErr(err)
