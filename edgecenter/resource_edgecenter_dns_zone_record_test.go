@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func TestAccDnsZoneRecord(t *testing.T) {

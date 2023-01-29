@@ -26,7 +26,7 @@ func dataSourceStorageSFTPKey() *schema.Resource {
 			StorageKeySchemaID: {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "An id of of storage key resource.",
+				Description: "An id of storage key resource.",
 			},
 		},
 		ReadContext: resourceStorageSFTPKeyRead,

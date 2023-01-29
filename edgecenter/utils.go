@@ -207,7 +207,7 @@ func extractVolumesMap(volumes []interface{}) ([]instances.CreateVolumeOpts, err
 	return Volumes, nil
 }
 
-// todo refactoring
+// todo refactoring.
 func extractVolumesIntoMap(volumes []interface{}) map[string]map[string]interface{} {
 	Volumes := make(map[string]map[string]interface{}, len(volumes))
 	for _, volume := range volumes {
@@ -268,7 +268,7 @@ type OrderedInterfaceOpts struct {
 	Order int
 }
 
-// todo refactoring
+// todo refactoring.
 func extractInstanceInterfaceIntoMap(interfaces []interface{}) (map[string]OrderedInterfaceOpts, error) {
 	Interfaces := make(map[string]OrderedInterfaceOpts)
 	for _, iface := range interfaces {
@@ -342,7 +342,7 @@ func findProjectByName(arr []projects.Project, name string) (int, error) {
 	return 0, fmt.Errorf("project with name %s not found", name)
 }
 
-// GetProject returns valid projectID for a resource
+// GetProject returns valid projectID for a resource.
 func GetProject(provider *edgecloud.ProviderClient, projectID int, projectName string) (int, error) {
 	log.Println("[DEBUG] Try to get project ID")
 	// valid cases
@@ -381,7 +381,7 @@ func findRegionByName(arr []regions.Region, name string) (int, error) {
 	return 0, fmt.Errorf("region with name %s not found", name)
 }
 
-// GetRegion returns valid regionID for a resource
+// GetRegion returns valid regionID for a resource.
 func GetRegion(provider *edgecloud.ProviderClient, regionID int, regionName string) (int, error) {
 	// valid cases
 	if regionID != 0 {
@@ -416,7 +416,7 @@ func ImportStringParser(infoStr string) (int, int, string, error) {
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 3 {
-		return 0, 0, "", fmt.Errorf("Failed import: wrong input id: %s", infoStr)
+		return 0, 0, "", fmt.Errorf("failed import: wrong input id: %s", infoStr)
 	}
 	projectID, err := strconv.Atoi(infoStrings[0])
 	if err != nil {
@@ -436,7 +436,7 @@ func ImportStringParserExtended(infoStr string) (int, int, string, string, error
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 4 {
-		return 0, 0, "", "", fmt.Errorf("Failed import: wrong input id: %s", infoStr)
+		return 0, 0, "", "", fmt.Errorf("failed import: wrong input id: %s", infoStr)
 	}
 	projectID, err := strconv.Atoi(infoStrings[0])
 	if err != nil {
@@ -630,7 +630,7 @@ func extractSecurityGroupRuleMap(r interface{}, gid string) securitygroups.Creat
 	return opts
 }
 
-// technical debt
+// technical debt.
 func findNetworkByName(name string, nets []networks.Network) (networks.Network, bool) {
 	var found bool
 	var network networks.Network
@@ -644,7 +644,7 @@ func findNetworkByName(name string, nets []networks.Network) (networks.Network, 
 	return network, found
 }
 
-// technical debt
+// technical debt.
 func findSharedNetworkByName(name string, nets []availablenetworks.Network) (availablenetworks.Network, bool) {
 	var found bool
 	var network availablenetworks.Network
@@ -668,7 +668,7 @@ func StructToMap(obj interface{}) (map[string]interface{}, error) {
 	return newMap, err
 }
 
-// ExtractHostAndPath from url
+// ExtractHostAndPath from url.
 func ExtractHostAndPath(uri string) (string, string, error) {
 	var host, path string
 	if uri == "" {

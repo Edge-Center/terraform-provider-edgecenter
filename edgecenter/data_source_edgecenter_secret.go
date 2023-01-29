@@ -4,11 +4,11 @@ import (
 	"context"
 	"log"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v1/secrets"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v1/secrets"
 )
 
 func dataSourceSecret() *schema.Resource {

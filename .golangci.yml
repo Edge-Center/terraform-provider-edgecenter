@@ -5,25 +5,36 @@ run:
 issues:
   max-per-linter: 0
   max-same-issues: 0
+  exclude:
+    # revive, stylecheck: ignore constants in all caps
+    - don't use ALL_CAPS in Go names; use CamelCase
+    - ST1003
 
 linters:
-  enable-all: true
-  disable:
-    - deadcode
-    - maligned
-    - varcheck
-    - nosnakecase
-    - interfacer
-    - ifshort
-    - structcheck
-    - golint
-    - scopelint
-    - exhaustivestruct
-    - rowserrcheck
-    - sqlclosecheck
-    - wastedassign
+  # enable-all: true
+  # disable:
+  #   - deadcode
+  #   - maligned
+  #   - varcheck
+  #   - nosnakecase
+  #   - interfacer
+  #   - ifshort
+  #   - structcheck
+  #   - golint
+  #   - scopelint
+  #   - exhaustivestruct
+  #   - rowserrcheck
+  #   - sqlclosecheck
+  #   - wastedassign
 
 linters-settings:
+  nlreturn:
+    block-size: 10
+  gci:
+    sections:
+      - standard # Standard section: captures all standard packages.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - prefix(github.com/Edge-Center)
   errcheck:
     ignore: github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set,fmt:.*,io:Close,io:WriteString
   nakedret:
