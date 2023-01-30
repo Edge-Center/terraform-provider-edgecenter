@@ -297,7 +297,7 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("extracting Volume resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -334,7 +334,7 @@ func getVolumeData(d *schema.ResourceData) (*volumes.CreateOpts, error) {
 	if typeName != "" {
 		modifiedTypeName, err := volumes.VolumeType(typeName).ValidOrNil()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("checking Volume validation error: %w", err)
 		}
 		volumeData.TypeName = *modifiedTypeName
 	}
@@ -348,7 +348,7 @@ func ExtendVolume(client *edgecloud.ServiceClient, volumeID string, newSize int)
 	}
 	results, err := volumes.Extend(client, volumeID, opts).Extract()
 	if err != nil {
-		return err
+		return fmt.Errorf("extracting Volume resource error: %w", err)
 	}
 
 	taskID := results.Tasks[0]
@@ -362,7 +362,7 @@ func ExtendVolume(client *edgecloud.ServiceClient, volumeID string, newSize int)
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("checking Volume state error: %w", err)
 	}
 	log.Printf("[DEBUG] Finish waiting.")
 

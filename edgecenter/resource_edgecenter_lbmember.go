@@ -320,7 +320,7 @@ func resourceLBMemberDelete(ctx context.Context, d *schema.ResourceData, m inter
 	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, LBPoolsCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
 		pool, err := lbpools.Get(client, pid).Extract()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("extracting LBPool resource error: %w", err)
 		}
 
 		for _, pm := range pool.Members {

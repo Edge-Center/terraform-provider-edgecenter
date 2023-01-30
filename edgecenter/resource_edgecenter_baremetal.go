@@ -708,6 +708,7 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 				opts.NetworkID = iface["network_id"].(string)
 			case types.ReservedFixedIpType:
 				opts.PortID = iface["port_id"].(string)
+			case types.ExternalInterfaceType:
 			}
 
 			log.Printf("[DEBUG] attach interface: %+v", opts)
@@ -767,7 +768,7 @@ func resourceBmInstanceDelete(ctx context.Context, d *schema.ResourceData, m int
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("extracting Instance resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)

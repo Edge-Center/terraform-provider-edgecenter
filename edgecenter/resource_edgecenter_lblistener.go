@@ -104,6 +104,7 @@ func resourceLbListener() *schema.Resource {
 					switch types.ProtocolType(v) {
 					case types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP:
 						return diag.Diagnostics{}
+					case types.ProtocolTypeTerminatedHTTPS, types.ProtocolTypePROXY:
 					}
 					return diag.Errorf("wrong protocol %s, available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'", v)
 				},
@@ -311,7 +312,7 @@ func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m int
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("extracting Listener resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)

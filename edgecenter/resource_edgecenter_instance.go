@@ -826,6 +826,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				opts.NetworkID = iface["network_id"].(string)
 			case types.ReservedFixedIpType:
 				opts.PortID = iface["port_id"].(string)
+			case types.ExternalInterfaceType:
 			}
 
 			rawSgsID := iface["security_groups"].([]interface{})
@@ -965,7 +966,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("extracting Instance resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -987,7 +988,7 @@ func ServerV2StateRefreshFunc(client *edgecloud.ServiceClient, instanceID string
 			if errors.As(err, &errDefault404) {
 				return s, "DELETED", nil
 			}
-			return nil, "", err
+			return nil, "", fmt.Errorf("extracting Instance resource error: %w", err)
 		}
 		return s, s.VMState, nil
 	}

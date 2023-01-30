@@ -55,12 +55,12 @@ func resourceLoadBalancer() *schema.Resource {
 
 				listener, err := listeners.Get(listenersClient, listenerID).Extract()
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("extracting Listener resource error: %w", err)
 				}
 
 				l := extractListenerIntoMap(listener)
 				if err := d.Set("listener", []interface{}{l}); err != nil {
-					return nil, err
+					return nil, fmt.Errorf("set listener error: %w", err)
 				}
 
 				return []*schema.ResourceData{d}, nil
@@ -155,6 +155,7 @@ func resourceLoadBalancer() *schema.Resource {
 								switch types.ProtocolType(v) {
 								case types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP:
 									return diag.Diagnostics{}
+								case types.ProtocolTypeTerminatedHTTPS, types.ProtocolTypePROXY:
 								}
 								return diag.Errorf("wrong protocol %s, available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'", v)
 							},
@@ -314,7 +315,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 				if errors.As(err, &errDefault404) {
 					return nil, nil
 				}
-				return nil, err
+				return nil, fmt.Errorf("extracting Listener resource error: %w", err)
 			})
 			if err != nil {
 				return diag.FromErr(err)
@@ -406,7 +407,7 @@ func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m i
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("extracting Load Balancer resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)

@@ -536,7 +536,7 @@ func resourceK8sDelete(ctx context.Context, d *schema.ResourceData, m interface{
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("extracting Cluster resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)

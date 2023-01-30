@@ -458,7 +458,7 @@ func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("extracting Router resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)

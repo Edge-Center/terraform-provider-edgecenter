@@ -276,7 +276,7 @@ func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m int
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("extracting FloatingIP resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)

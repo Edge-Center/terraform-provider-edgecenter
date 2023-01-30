@@ -20,6 +20,9 @@ issues:
     - text: lifecyclepolicy.CreateScheduleOpts
       linters:
         - ireturn
+    - path: utils.go|_test
+      linters:
+        - wrapcheck
 
 linters:
   enable-all: true
@@ -44,6 +47,17 @@ linters:
     - goerr113         # Golang linter to check the errors handling expressions
     - exhaustruct      # Checks if all structure fields are initialized
     - lll              # Reports long lines
+    - godox            # Tool for detection of FIXME, TODO and other comment keywords
+    - wsl              # Whitespace Linter - Forces you to use empty lines!
+    - forcetypeassert  # finds forced type assertions
+    # complexity: need to refactor
+    - cyclop
+    - funlen
+    - gocognit
+    - gocyclo
+    - maintidx
+    - nestif
+    - dupl
 
 linters-settings:
   nlreturn:
