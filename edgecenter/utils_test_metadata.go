@@ -114,7 +114,6 @@ func testAccCheckMetadata(name string, isMetaExists bool, metadataForCheck inter
 		// retrieve the resource by name from state
 		ms := s.RootModule()
 		is, err := modulePrimaryInstanceState(ms, name)
-
 		if err != nil {
 			return err
 		}

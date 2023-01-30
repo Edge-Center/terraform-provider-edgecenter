@@ -34,7 +34,6 @@ func resourceReservedFixedIP() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, ipID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}

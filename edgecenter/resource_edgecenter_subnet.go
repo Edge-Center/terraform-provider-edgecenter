@@ -20,9 +20,11 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 )
 
-const SubnetDeleting int = 1200
-const SubnetCreatingTimeout int = 1200
-const subnetPoint = "subnets"
+const (
+	SubnetDeleting        int = 1200
+	SubnetCreatingTimeout int = 1200
+	subnetPoint               = "subnets"
+)
 
 func resourceSubnet() *schema.Resource {
 	return &schema.Resource{
@@ -34,7 +36,6 @@ func resourceSubnet() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, subnetID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -133,7 +134,7 @@ func resourceSubnet() *schema.Resource {
 				Computed: true,
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
-					var IP = regexp.MustCompile(`(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}`)
+					IP := regexp.MustCompile(`(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}`)
 					if v == "disable" || IP.MatchString(v) {
 						return nil
 					}

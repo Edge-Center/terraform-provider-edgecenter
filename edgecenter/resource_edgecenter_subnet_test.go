@@ -46,7 +46,6 @@ func checkSubnetAttrs(resourceName string, opts *subnets.CreateOpts) resource.Te
 }
 
 func TestAccSubnet(t *testing.T) {
-
 	var dst1, dst2, cidr edgecloud.CIDR
 
 	_, netIPNet, _ := net.ParseCIDR("10.0.3.0/24")

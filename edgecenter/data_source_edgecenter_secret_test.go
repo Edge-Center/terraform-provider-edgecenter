@@ -55,7 +55,6 @@ func TestAccSecretDataSource(t *testing.T) {
 		return Secret, nil
 	},
 	)
-
 	if err != nil {
 		t.Fatal(err)
 	}

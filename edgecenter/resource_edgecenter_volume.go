@@ -15,10 +15,12 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 )
 
-const volumeDeleting int = 1200
-const volumeCreatingTimeout int = 1200
-const volumeExtending int = 1200
-const volumesPoint = "volumes"
+const (
+	volumeDeleting        int = 1200
+	volumeCreatingTimeout int = 1200
+	volumeExtending       int = 1200
+	volumesPoint              = "volumes"
+)
 
 func resourceVolume() *schema.Resource {
 	return &schema.Resource{
@@ -30,7 +32,6 @@ func resourceVolume() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, volumeID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}

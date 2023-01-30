@@ -36,7 +36,6 @@ func resourceLbListener() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, listenerID, lbID, err := ImportStringParserExtended(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -195,7 +194,6 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 		}
 		return listenerID, nil
 	})
-
 	if err != nil {
 		return diag.FromErr(err)
 	}

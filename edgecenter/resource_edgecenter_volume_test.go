@@ -16,7 +16,6 @@ import (
 )
 
 func TestAccVolume(t *testing.T) {
-
 	type Params struct {
 		Name       string
 		Size       int
@@ -42,7 +41,6 @@ func TestAccVolume(t *testing.T) {
 	importStateIDPrefix := fmt.Sprintf("%s:%s:", os.Getenv("TEST_PROJECT_ID"), os.Getenv("TEST_REGION_ID"))
 
 	VolumeTemplate := func(params *Params) string {
-
 		additional := fmt.Sprintf("%s\n        %s", regionInfo(), projectInfo())
 		if params.SnapshotID != "" {
 			additional += fmt.Sprintf(`%s        snapshot_id = "%s"`, "\n", params.SnapshotID)

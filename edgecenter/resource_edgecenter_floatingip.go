@@ -32,7 +32,6 @@ func resourceFloatingIP() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, fipID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}

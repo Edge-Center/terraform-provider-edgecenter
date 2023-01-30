@@ -40,7 +40,6 @@ func resourceBmInstance() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, InstanceID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -124,7 +123,7 @@ func resourceBmInstance() *schema.Resource {
 			},
 			"interface": {
 				Type: schema.TypeList,
-				//Set:      interfaceUniqueID,
+				// Set:      interfaceUniqueID,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{

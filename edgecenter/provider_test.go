@@ -105,8 +105,10 @@ func testAccPreCheckVars(t *testing.T, vars ...VarName) {
 	}
 }
 
-var testAccProvider *schema.Provider
-var testAccProviders map[string]func() (*schema.Provider, error)
+var (
+	testAccProvider  *schema.Provider
+	testAccProviders map[string]func() (*schema.Provider, error)
+)
 
 func init() {
 	testAccProvider = edgecenter.Provider()
@@ -207,7 +209,6 @@ func CreateTestClient(provider *edgecloud.ProviderClient, endpoint, version stri
 		Project: projectID,
 		Version: version,
 	})
-
 	if err != nil {
 		return nil, err
 	}

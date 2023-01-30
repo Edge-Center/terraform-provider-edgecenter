@@ -112,7 +112,8 @@ func TestAccSubnetDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(fullName, "id", subnet1ID),
 					resource.TestCheckResourceAttr(fullName, "network_id", networkID),
 					testAccCheckMetadata(fullName, true, map[string]string{
-						"key1": "val1", "key2": "val2"}),
+						"key1": "val1", "key2": "val2",
+					}),
 				),
 			},
 			{
@@ -121,7 +122,7 @@ func TestAccSubnetDataSource(t *testing.T) {
 					testAccCheckResourceExists(fullName),
 					resource.TestCheckResourceAttr(fullName, "name", optsSubnet2.Name),
 					resource.TestCheckResourceAttr(fullName, "id", subnet2ID),
-					//resource.TestCheckResourceAttr(fullName, "network_id", networkID),
+					// resource.TestCheckResourceAttr(fullName, "network_id", networkID),
 					testAccCheckMetadata(fullName, true, map[string]string{
 						"key3": "val3",
 					}),

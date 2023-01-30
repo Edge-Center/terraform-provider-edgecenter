@@ -35,8 +35,8 @@ func Provider() *schema.Provider {
 				Type:     schema.TypeString,
 				Optional: true,
 				// commented because it's broke all tests
-				//AtLeastOneOf: []string{ProviderOptPermanentToken, "user_name"},
-				//RequiredWith: []string{"user_name", "password"},
+				// AtLeastOneOf: []string{ProviderOptPermanentToken, "user_name"},
+				// RequiredWith: []string{"user_name", "password"},
 				Deprecated:  fmt.Sprintf("Use %s instead", ProviderOptPermanentToken),
 				DefaultFunc: schema.EnvDefaultFunc("EC_USERNAME", nil),
 			},
@@ -44,7 +44,7 @@ func Provider() *schema.Provider {
 				Type:     schema.TypeString,
 				Optional: true,
 				// commented because it's broke all tests
-				//RequiredWith: []string{"user_name", "password"},
+				// RequiredWith: []string{"user_name", "password"},
 				Deprecated:  fmt.Sprintf("Use %s instead", ProviderOptPermanentToken),
 				DefaultFunc: schema.EnvDefaultFunc("EC_PASSWORD", nil),
 			},
@@ -52,7 +52,7 @@ func Provider() *schema.Provider {
 				Type:     schema.TypeString,
 				Optional: true,
 				// commented because it's broke all tests
-				//AtLeastOneOf: []string{ProviderOptPermanentToken, "user_name"},
+				// AtLeastOneOf: []string{ProviderOptPermanentToken, "user_name"},
 				Sensitive:   true,
 				Description: "A permanent [API-token](https://support.edgecenter.ru/knowledge_base/item/257788)",
 				DefaultFunc: schema.EnvDefaultFunc("EC_PERMANENT_TOKEN", nil),

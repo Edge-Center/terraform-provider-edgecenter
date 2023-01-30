@@ -20,10 +20,8 @@ const (
 	nameRegexString = `^[a-zA-Z0-9][a-zA-Z 0-9._\-]{1,61}[a-zA-Z0-9._]$`
 )
 
-var (
-	// Maybe move to utils and use for other resources.
-	nameRegex = regexp.MustCompile(nameRegexString)
-)
+// Maybe move to utils and use for other resources.
+var nameRegex = regexp.MustCompile(nameRegexString)
 
 func resourceLifecyclePolicy() *schema.Resource {
 	return &schema.Resource{
@@ -35,7 +33,6 @@ func resourceLifecyclePolicy() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, lcpID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}

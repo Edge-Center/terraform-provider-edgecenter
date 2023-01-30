@@ -16,9 +16,11 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
 
-const RouterDeleting int = 1200
-const RouterCreatingTimeout int = 1200
-const RouterPoint = "routers"
+const (
+	RouterDeleting        int = 1200
+	RouterCreatingTimeout int = 1200
+	RouterPoint               = "routers"
+)
 
 func resourceRouter() *schema.Resource {
 	return &schema.Resource{
@@ -30,7 +32,6 @@ func resourceRouter() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, routerID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}

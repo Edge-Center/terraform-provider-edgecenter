@@ -62,7 +62,6 @@ func TestAccSnapshot(t *testing.T) {
 	importStateIDPrefix := fmt.Sprintf("%s:%s:", os.Getenv("TEST_PROJECT_ID"), os.Getenv("TEST_REGION_ID"))
 
 	SnapshotTemplate := func(params *Params) string {
-
 		additional := fmt.Sprintf("%s\n        %s", regionInfo(), projectInfo())
 
 		template := fmt.Sprintf(`

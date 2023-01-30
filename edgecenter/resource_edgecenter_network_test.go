@@ -16,7 +16,6 @@ import (
 )
 
 func TestAccNetwork(t *testing.T) {
-
 	type Params struct {
 		Name        string
 		Type        string

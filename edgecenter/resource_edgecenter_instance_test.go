@@ -251,7 +251,6 @@ func TestAccInstance(t *testing.T) {
                 ip_address = null
 				
 			},`, params.Interfaces[i]["type"], params.Interfaces[i]["network_id"], params.Interfaces[i]["subnet_id"])
-
 		}
 		template += fmt.Sprint(`]
 			metadata = [`)

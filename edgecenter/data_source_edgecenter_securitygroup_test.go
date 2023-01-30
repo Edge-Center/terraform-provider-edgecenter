@@ -92,7 +92,8 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(fullName, "name", sg1.Name),
 					resource.TestCheckResourceAttr(fullName, "id", sg1.ID),
 					testAccCheckMetadata(fullName, true, map[string]interface{}{
-						"key1": "val1", "key2": "val2"}),
+						"key1": "val1", "key2": "val2",
+					}),
 				),
 			},
 			{

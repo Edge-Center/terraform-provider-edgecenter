@@ -125,7 +125,8 @@ func StringToNetHookFunc() mapstructure.DecodeHookFuncType {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
-		data interface{}) (interface{}, error) {
+		data interface{},
+	) (interface{}, error) {
 		if f.Kind() != reflect.String {
 			return data, nil
 		}
@@ -149,7 +150,7 @@ func StringToNetHookFunc() mapstructure.DecodeHookFuncType {
 }
 
 func extractHostRoutesMap(v []interface{}) ([]subnets.HostRoute, error) {
-	var config = &mapstructure.DecoderConfig{
+	config := &mapstructure.DecoderConfig{
 		DecodeHook: StringToNetHookFunc(),
 	}
 
@@ -472,7 +473,6 @@ func CreateClient(provider *edgecloud.ProviderClient, d *schema.ResourceData, en
 		Project: projectID,
 		Version: version,
 	})
-
 	if err != nil {
 		return nil, err
 	}

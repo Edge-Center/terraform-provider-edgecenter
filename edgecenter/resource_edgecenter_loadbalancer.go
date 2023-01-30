@@ -38,7 +38,6 @@ func resourceLoadBalancer() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, lbID, listenerID, err := ImportStringParserExtended(d.Id())
-
 				if err != nil {
 					return nil, err
 				}

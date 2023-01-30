@@ -27,7 +27,6 @@ func resourceLoadBalancerV2() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, lbID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -148,7 +147,6 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 		}
 		return lbID, nil
 	})
-
 	if err != nil {
 		return diag.FromErr(err)
 	}

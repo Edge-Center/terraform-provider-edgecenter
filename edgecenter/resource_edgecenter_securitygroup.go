@@ -34,7 +34,6 @@ func resourceSecurityGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, sgID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}

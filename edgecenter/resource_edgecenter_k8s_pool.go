@@ -31,7 +31,6 @@ func resourceK8sPool() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, poolID, clusterID, err := ImportStringParserExtended(d.Id())
-
 				if err != nil {
 					return nil, err
 				}

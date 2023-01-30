@@ -17,10 +17,12 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 )
 
-const networkDeleting int = 1200
-const networkCreatingTimeout int = 1200
-const networksPoint = "networks"
-const sharedNetworksPoint = "availablenetworks"
+const (
+	networkDeleting        int = 1200
+	networkCreatingTimeout int = 1200
+	networksPoint              = "networks"
+	sharedNetworksPoint        = "availablenetworks"
+)
 
 func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
@@ -32,7 +34,6 @@ func resourceNetwork() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, NetworkID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}

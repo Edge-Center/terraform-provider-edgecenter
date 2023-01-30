@@ -9,23 +9,35 @@ issues:
     # revive, stylecheck: ignore constants in all caps
     - don't use ALL_CAPS in Go names; use CamelCase
     - ST1003
+  exclude-rules:
+    - path: \.go
+      linters:
+        - nolintlint
+      text: should be written without leading space
 
 linters:
-  # enable-all: true
-  # disable:
-  #   - deadcode
-  #   - maligned
-  #   - varcheck
-  #   - nosnakecase
-  #   - interfacer
-  #   - ifshort
-  #   - structcheck
-  #   - golint
-  #   - scopelint
-  #   - exhaustivestruct
-  #   - rowserrcheck
-  #   - sqlclosecheck
-  #   - wastedassign
+  enable-all: true
+  disable:
+    - deadcode
+    - maligned
+    - varcheck
+    - nosnakecase
+    - interfacer
+    - ifshort
+    - structcheck
+    - golint
+    - scopelint
+    - exhaustivestruct
+    - rowserrcheck
+    - sqlclosecheck
+    - wastedassign
+    # skip
+    - gochecknoglobals # check that no global variables exist
+    - nilnil           # Checks that there is no simultaneous return of nil error and an invalid value.
+    - gomnd            # An analyzer to detect magic numbers.
+    - goerr113         # Golang linter to check the errors handling expressions
+    - exhaustruct      # Checks if all structure fields are initialized
+    - lll              # Reports long lines
 
 linters-settings:
   nlreturn:
@@ -39,3 +51,5 @@ linters-settings:
     ignore: github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set,fmt:.*,io:Close,io:WriteString
   nakedret:
     max-func-lines: 40
+  varnamelen:
+    min-name-length: 1

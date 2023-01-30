@@ -15,9 +15,11 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
 
-const snapshotDeleting int = 1200
-const snapshotCreatingTimeout int = 1200
-const snapshotsPoint = "snapshots"
+const (
+	snapshotDeleting        int = 1200
+	snapshotCreatingTimeout int = 1200
+	snapshotsPoint              = "snapshots"
+)
 
 func resourceSnapshot() *schema.Resource {
 	return &schema.Resource{
@@ -28,7 +30,6 @@ func resourceSnapshot() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, snapshotID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}

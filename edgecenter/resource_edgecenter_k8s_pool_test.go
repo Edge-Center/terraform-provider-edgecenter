@@ -118,7 +118,7 @@ func TestAccK8sPool(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer deleteTestCluster(k8sClient, clusterID)
-	//we need to wait until upgrade will e finished
+	// we need to wait until upgrade will e finished
 	time.Sleep(time.Second * 30)
 
 	fullName := "edgecenter_k8s_pool.acctest"

@@ -36,7 +36,6 @@ func resourceLBMember() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, memberID, lbPoolID, err := ImportStringParserExtended(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -178,7 +177,6 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 		return pmID, nil
 	})
-
 	if err != nil {
 		return diag.FromErr(err)
 	}

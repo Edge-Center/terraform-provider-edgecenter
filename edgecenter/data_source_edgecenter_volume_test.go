@@ -92,7 +92,6 @@ func createTestVolume(client *edgecloud.ServiceClient, opts volumes.CreateOpts) 
 		return volumeID, nil
 	},
 	)
-
 	if err != nil {
 		return "", err
 	}

@@ -16,9 +16,11 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
 
-const SecretDeleting int = 1200
-const SecretCreatingTimeout int = 1200
-const secretPoint = "secrets"
+const (
+	SecretDeleting        int = 1200
+	SecretCreatingTimeout int = 1200
+	secretPoint               = "secrets"
+)
 
 func resourceSecret() *schema.Resource {
 	return &schema.Resource{
@@ -29,7 +31,6 @@ func resourceSecret() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, secretID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
