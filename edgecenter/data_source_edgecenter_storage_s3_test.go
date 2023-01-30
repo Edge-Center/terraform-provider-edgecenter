@@ -21,6 +21,7 @@ const (
 )
 
 func TestStorageS3DataSource(t *testing.T) {
+	t.Parallel()
 	random := time.Now().Nanosecond()
 	resourceName := fmt.Sprintf("edgecenter_storage_s3.terraformtest%d_s3", random)
 	dataSourceName := fmt.Sprintf("data.edgecenter_storage_s3.terraformtest%d_s3_data", random)

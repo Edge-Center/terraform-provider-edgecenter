@@ -7,6 +7,8 @@ import (
 )
 
 func TestExtractHosAndPath(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		uri string
 	}
@@ -46,7 +48,9 @@ func TestExtractHosAndPath(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			gotHost, gotPath, err := edgecenter.ExtractHostAndPath(tt.args.uri)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ExtractHostAndPath() error = %v, wantErr %v", err, tt.wantErr)

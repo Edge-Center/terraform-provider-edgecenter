@@ -17,6 +17,7 @@ import (
 )
 
 func TestAccStorageSFTP(t *testing.T) {
+	t.Parallel()
 	random := time.Now().Nanosecond()
 	alias := fmt.Sprintf("terraformtestalias%dsftp", random)
 	resourceName := fmt.Sprintf("edgecenter_storage_sftp.terraformtest%d_sftp", random)

@@ -98,6 +98,7 @@ var varsMap = map[VarName]string{
 }
 
 func testAccPreCheckVars(t *testing.T, vars ...VarName) {
+	t.Helper()
 	for _, name := range vars {
 		if val := varsMap[name]; val == "" {
 			t.Fatalf("'%s' must be set for acceptance test", name)
@@ -120,13 +121,15 @@ func TestMain(m *testing.M) {
 }
 
 func TestProvider(t *testing.T) {
+	t.Parallel()
 	if err := edgecenter.Provider().InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
 
-// nolint: deadcode,unused
+// nolint: unused
 func testAccPreCheck(t *testing.T) {
+	t.Helper()
 	vars := map[string]interface{}{
 		"EC_USERNAME": EC_USERNAME,
 		"EC_PASSWORD": EC_PASSWORD,
@@ -136,13 +139,14 @@ func testAccPreCheck(t *testing.T) {
 			t.Fatalf("'%s' must be set for acceptance test", k)
 		}
 	}
-	checkNameAndID("PROJECT", t)
-	checkNameAndID("REGION", t)
+	checkNameAndID(t, "PROJECT")
+	checkNameAndID(t, "REGION")
 }
 
 // nolint: unused
-func checkNameAndID(resourceType string, t *testing.T) {
+func checkNameAndID(t *testing.T, resourceType string) {
 	// resourceType is a word in capital letters
+	t.Helper()
 	keyID := fmt.Sprintf("TEST_%s_ID", resourceType)
 	keyName := fmt.Sprintf("TEST_%s_NAME", resourceType)
 	_, haveID := os.LookupEnv(keyID)
@@ -155,12 +159,12 @@ func checkNameAndID(resourceType string, t *testing.T) {
 	}
 }
 
-// nolint: deadcode,unused
+// nolint: unused
 func regionInfo() string {
 	return objectInfo("REGION")
 }
 
-// nolint: deadcode,unused
+// nolint: unused
 func projectInfo() string {
 	return objectInfo("PROJECT")
 }

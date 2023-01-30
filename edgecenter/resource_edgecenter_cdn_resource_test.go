@@ -12,6 +12,7 @@ import (
 )
 
 func TestAccCDNResource(t *testing.T) {
+	t.Parallel()
 	fullName := "edgecenter_cdn_resource.acctest"
 
 	type Params struct {

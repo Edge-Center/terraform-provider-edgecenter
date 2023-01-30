@@ -17,6 +17,7 @@ import (
 )
 
 func TestStorageSFTPDataSource(t *testing.T) {
+	t.Parallel()
 	random := time.Now().Nanosecond()
 	name := fmt.Sprintf("terraformtestsftp%d", random)
 	location := "mia"

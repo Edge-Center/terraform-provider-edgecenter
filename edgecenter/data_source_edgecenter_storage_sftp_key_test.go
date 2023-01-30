@@ -16,6 +16,7 @@ import (
 )
 
 func TestStorageSFTPKeyDataSource(t *testing.T) {
+	t.Parallel()
 	random := time.Now().Nanosecond()
 	name := fmt.Sprintf("terraformtestsftpkey%d", random)
 

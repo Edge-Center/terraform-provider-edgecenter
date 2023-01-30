@@ -17,6 +17,7 @@ import (
 )
 
 func TestAccStorageS3Bucket(t *testing.T) {
+	t.Parallel()
 	random := time.Now().Nanosecond()
 	storageResourceName := fmt.Sprintf("edgecenter_storage_s3.terraform_test_%d_s3", random)
 	bucketResourceName := fmt.Sprintf("edgecenter_storage_s3_bucket.terraform_test_%d_s3_bucket", random)

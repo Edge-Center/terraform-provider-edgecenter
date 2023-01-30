@@ -11,6 +11,7 @@ import (
 )
 
 func TestAccCDNCert(t *testing.T) {
+	t.Parallel()
 	fullName := "edgecenter_cdn_sslcert.acctest"
 	template := fmt.Sprintf(`
 resource "edgecenter_cdn_sslcert" "acctest" {

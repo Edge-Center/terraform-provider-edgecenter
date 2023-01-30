@@ -13,6 +13,7 @@ import (
 )
 
 func TestAccOriginGroup(t *testing.T) {
+	t.Parallel()
 	fullName := "edgecenter_cdn_origingroup.acctest"
 
 	type Params struct {
