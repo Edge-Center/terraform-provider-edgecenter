@@ -22,7 +22,7 @@ import (
 
 const (
 	ProviderOptPermanentToken    = "permanent_api_token"
-	ProviderOptSkipCredsAuthErr  = "ignore_creds_auth_error"
+	ProviderOptSkipCredsAuthErr  = "ignore_creds_auth_error" //nolint: gosec
 	ProviderOptSingleAPIEndpoint = "api_endpoint"
 
 	lifecyclePolicyResource = "edgecenter_lifecyclepolicy"

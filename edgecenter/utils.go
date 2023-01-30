@@ -65,7 +65,7 @@ type Projects struct {
 
 type Region struct {
 	ID          int    `json:"id"`
-	DisplayName string `json:"display_name"`
+	DisplayName string `json:"displayName"`
 }
 
 type Regions struct {
@@ -605,7 +605,7 @@ func validatePortRange(v interface{}, path cty.Path) diag.Diagnostics {
 	return diag.Errorf("available range %d-%d", minPort, maxPort)
 }
 
-func extractSecurityGroupRuleMap(r interface{}, gid string) securitygroups.CreateRuleOptsBuilder {
+func extractSecurityGroupRuleMap(r interface{}, gid string) securitygroups.CreateSecurityGroupRuleOpts {
 	rule := r.(map[string]interface{})
 	opts := securitygroups.CreateSecurityGroupRuleOpts{
 		Direction:       typesSG.RuleDirection(rule["direction"].(string)),

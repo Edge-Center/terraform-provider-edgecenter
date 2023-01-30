@@ -9,11 +9,17 @@ issues:
     # revive, stylecheck: ignore constants in all caps
     - don't use ALL_CAPS in Go names; use CamelCase
     - ST1003
+    # gosec
+    - G401
+    - G501
   exclude-rules:
     - path: \.go
       linters:
         - nolintlint
       text: should be written without leading space
+    - text: lifecyclepolicy.CreateScheduleOpts
+      linters:
+        - ireturn
 
 linters:
   enable-all: true

@@ -332,7 +332,10 @@ func resourceDNSZoneRecordRead(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(fmt.Errorf("get zone rrset: %w", err))
 	}
 	id := struct{ Zone, Domain, Type string }{zone, domain, rType}
-	bs, _ := json.Marshal(id)
+	bs, err := json.Marshal(id)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(string(bs))
 	_ = d.Set(DNSZoneRecordSchemaZone, zone)
 	_ = d.Set(DNSZoneRecordSchemaDomain, domain)
