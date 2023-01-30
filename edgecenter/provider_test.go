@@ -110,7 +110,7 @@ var (
 	testAccProviders map[string]func() (*schema.Provider, error)
 )
 
-func init() {
+func TestMain(m *testing.M) {
 	testAccProvider = edgecenter.Provider()
 	testAccProviders = map[string]func() (*schema.Provider, error){
 		"edgecenter": func() (*schema.Provider, error) {

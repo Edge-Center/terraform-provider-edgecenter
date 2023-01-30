@@ -16,6 +16,10 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
+const (
+	s3Storage = "edgecenter_storage_s3"
+)
+
 func TestStorageS3DataSource(t *testing.T) {
 	random := time.Now().Nanosecond()
 	resourceName := fmt.Sprintf("edgecenter_storage_s3.terraformtest%d_s3", random)
@@ -23,19 +27,19 @@ func TestStorageS3DataSource(t *testing.T) {
 
 	templateCreate := func() string {
 		return fmt.Sprintf(`
-resource "edgecenter_storage_s3" "terraformtest%d_s3" {
+resource "%s" "terraformtest%d_s3" {
   name = "terraformtest%d"
   location = "s-ed1"
 }
-		`, random, random)
+		`, s3Storage, random, random)
 	}
 
 	templateRead := func() string {
 		return fmt.Sprintf(`
-data "edgecenter_storage_s3" "terraformtest%d_s3_data" {
+data "%s" "terraformtest%d_s3_data" {
   name = "terraformtest%d"
 }
-		`, random, random)
+		`, s3Storage, random, random)
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -48,7 +52,7 @@ data "edgecenter_storage_s3" "terraformtest%d_s3_data" {
 			defer cancel()
 
 			for _, rs := range s.RootModule().Resources {
-				if rs.Type != "edgecenter_storage_s3" {
+				if rs.Type != s3Storage {
 					continue
 				}
 				opts := []func(opt *storage.StorageListHTTPV2Params){

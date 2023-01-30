@@ -24,6 +24,7 @@ const (
 	SubnetDeleting        int = 1200
 	SubnetCreatingTimeout int = 1200
 	subnetPoint               = "subnets"
+	disable                   = "disable"
 )
 
 func resourceSubnet() *schema.Resource {
@@ -135,7 +136,7 @@ func resourceSubnet() *schema.Resource {
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					IP := regexp.MustCompile(`(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}`)
-					if v == "disable" || IP.MatchString(v) {
+					if v == disable || IP.MatchString(v) {
 						return nil
 					}
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
@@ -228,7 +229,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	createOpts.ConnectToNetworkRouter = d.Get("connect_to_network_router").(bool)
 	gatewayIP := d.Get("gateway_ip").(string)
 	gw := net.ParseIP(gatewayIP)
-	if gatewayIP == "disable" {
+	if gatewayIP == disable {
 		createOpts.ConnectToNetworkRouter = false
 	} else {
 		createOpts.GatewayIP = &gw
@@ -322,7 +323,7 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	if subnet.GatewayIP == nil {
 		d.Set("connect_to_network_router", false)
-		d.Set("gateway_ip", "disable")
+		d.Set("gateway_ip", disable)
 	}
 
 	metadataMap := make(map[string]string)
@@ -392,7 +393,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	if d.HasChange("gateway_ip") {
 		_, newValue := d.GetChange("gateway_ip")
-		if newValue.(string) != "disable" {
+		if newValue.(string) != disable {
 			gatewayIP := net.ParseIP(newValue.(string))
 			updateOpts.GatewayIP = &gatewayIP
 		}

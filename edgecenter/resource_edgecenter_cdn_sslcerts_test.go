@@ -19,7 +19,6 @@ resource "edgecenter_cdn_sslcert" "acctest" {
   private_key = <<EOT%sEOT
 }`, cert, privateKey)
 
-	fmt.Println(template)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheckVars(t, EC_USERNAME_VAR, EC_PASSWORD_VAR, EC_CDN_URL_VAR)
