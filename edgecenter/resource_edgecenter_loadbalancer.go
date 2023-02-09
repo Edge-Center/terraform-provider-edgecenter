@@ -48,7 +48,7 @@ func resourceLoadBalancer() *schema.Resource {
 				config := m.(*Config)
 				provider := config.Provider
 
-				listenersClient, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+				listenersClient, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 				if err != nil {
 					return nil, err
 				}
@@ -207,7 +207,7 @@ func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -228,7 +228,7 @@ func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m int
 	fields := []string{"vip_network_id", "vip_subnet_id"}
 	revertState(d, &fields)
 
-	listenersClient, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+	listenersClient, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -269,7 +269,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -286,7 +286,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("listener") {
-		client, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+		client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -386,7 +386,7 @@ func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m i
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

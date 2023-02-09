@@ -172,7 +172,7 @@ func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

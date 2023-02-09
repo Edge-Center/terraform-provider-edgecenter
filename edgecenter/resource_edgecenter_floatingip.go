@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	floatingIPsPoint        = "floatingips"
+	FloatingIPsPoint        = "floatingips"
 	FloatingIPCreateTimeout = 1200
 )
 
@@ -130,7 +130,7 @@ func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, floatingIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -177,7 +177,7 @@ func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, floatingIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -216,7 +216,7 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, floatingIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -255,7 +255,7 @@ func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, floatingIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

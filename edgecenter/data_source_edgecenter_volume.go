@@ -70,7 +70,7 @@ func dataSourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

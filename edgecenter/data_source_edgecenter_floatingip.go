@@ -89,7 +89,7 @@ func dataSourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, floatingIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

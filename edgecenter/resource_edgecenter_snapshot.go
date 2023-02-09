@@ -18,7 +18,7 @@ import (
 const (
 	snapshotDeleting        int = 1200
 	snapshotCreatingTimeout int = 1200
-	snapshotsPoint              = "snapshots"
+	SnapshotsPoint              = "snapshots"
 )
 
 func resourceSnapshot() *schema.Resource {
@@ -119,7 +119,7 @@ func resourceSnapshotCreate(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, snapshotsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -166,7 +166,7 @@ func resourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m interfa
 	snapshotID := d.Id()
 	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
 
-	client, err := CreateClient(provider, d, snapshotsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -198,7 +198,7 @@ func resourceSnapshotUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if d.HasChange("metadata") {
 		config := m.(*Config)
 		provider := config.Provider
-		client, err := CreateClient(provider, d, snapshotsPoint, versionPointV1)
+		client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -227,7 +227,7 @@ func resourceSnapshotDelete(ctx context.Context, d *schema.ResourceData, m inter
 	snapshotID := d.Id()
 	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
 
-	client, err := CreateClient(provider, d, snapshotsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

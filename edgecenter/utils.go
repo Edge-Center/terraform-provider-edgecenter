@@ -39,11 +39,11 @@ import (
 )
 
 const (
-	versionPointV1 = "v1"
-	versionPointV2 = "v2"
+	VersionPointV1 = "v1"
+	VersionPointV2 = "v2"
 
-	projectPoint = "projects"
-	regionPoint  = "regions"
+	ProjectPoint = "projects"
+	RegionPoint  = "regions"
 )
 
 type Config struct {
@@ -351,7 +351,7 @@ func GetProject(provider *edgecloud.ProviderClient, projectID int, projectName s
 		return projectID, nil
 	}
 	client, err := ec.ClientServiceFromProvider(provider, edgecloud.EndpointOpts{
-		Name:    projectPoint,
+		Name:    ProjectPoint,
 		Region:  0,
 		Project: 0,
 		Version: "v1",
@@ -389,7 +389,7 @@ func GetRegion(provider *edgecloud.ProviderClient, regionID int, regionName stri
 		return regionID, nil
 	}
 	client, err := ec.ClientServiceFromProvider(provider, edgecloud.EndpointOpts{
-		Name:    regionPoint,
+		Name:    RegionPoint,
 		Region:  0,
 		Project: 0,
 		Version: "v1",

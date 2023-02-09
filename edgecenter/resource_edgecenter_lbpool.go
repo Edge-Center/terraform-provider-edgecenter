@@ -227,7 +227,7 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -279,7 +279,7 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -346,7 +346,7 @@ func resourceLBPoolUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -404,7 +404,7 @@ func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

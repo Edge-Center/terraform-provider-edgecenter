@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	reservedFixedIPsPoint        = "reserved_fixed_ips"
+	ReservedFixedIPsPoint        = "reserved_fixed_ips"
 	portsPoint                   = "ports"
 	ReservedFixedIPCreateTimeout = 1200
 )
@@ -168,7 +168,7 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, reservedFixedIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -244,7 +244,7 @@ func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, reservedFixedIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -294,7 +294,7 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, reservedFixedIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -319,7 +319,7 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 			}
 		}
 
-		clientPort, err := CreateClient(provider, d, portsPoint, versionPointV1)
+		clientPort, err := CreateClient(provider, d, portsPoint, VersionPointV1)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -342,7 +342,7 @@ func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, reservedFixedIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

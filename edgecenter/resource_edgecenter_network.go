@@ -18,10 +18,10 @@ import (
 )
 
 const (
-	networkDeleting        int = 1200
-	networkCreatingTimeout int = 1200
-	networksPoint              = "networks"
-	sharedNetworksPoint        = "availablenetworks"
+	NetworkDeleting        int = 1200
+	NetworkCreatingTimeout int = 1200
+	NetworksPoint              = "networks"
+	SharedNetworksPoint        = "availablenetworks"
 )
 
 func resourceNetwork() *schema.Resource {
@@ -141,7 +141,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, networksPoint, versionPointV1)
+	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -170,7 +170,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	networkID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, networkCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
+	networkID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, NetworkCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
@@ -204,7 +204,7 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interfac
 	networkID := d.Id()
 	log.Printf("[DEBUG] Network id = %s", networkID)
 
-	client, err := CreateClient(provider, d, networksPoint, versionPointV1)
+	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -255,7 +255,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	log.Printf("[DEBUG] Volume id = %s", networkID)
 	config := m.(*Config)
 	provider := config.Provider
-	client, err := CreateClient(provider, d, networksPoint, versionPointV1)
+	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -295,7 +295,7 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 	networkID := d.Id()
 	log.Printf("[DEBUG] Network id = %s", networkID)
 
-	client, err := CreateClient(provider, d, networksPoint, versionPointV1)
+	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -306,7 +306,7 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, networkDeleting, func(task tasks.TaskID) (interface{}, error) {
+	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, NetworkDeleting, func(task tasks.TaskID) (interface{}, error) {
 		_, err := networks.Get(client, networkID).Extract()
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete network with ID: %s", networkID)

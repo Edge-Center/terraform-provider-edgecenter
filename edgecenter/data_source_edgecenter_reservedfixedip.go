@@ -110,7 +110,7 @@ func dataSourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, reservedFixedIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

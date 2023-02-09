@@ -151,7 +151,7 @@ func dataSourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -107,7 +107,7 @@ func dataSourceK8sPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, versionPointV1)
+	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

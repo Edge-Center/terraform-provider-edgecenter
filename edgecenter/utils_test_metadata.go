@@ -108,8 +108,7 @@ func checkMapInMap(srcMap map[string]interface{}, dstMap map[string]interface{})
 	return reflect.DeepEqual(srcMap, slicedMap)
 }
 
-// nolint: unused
-func testAccCheckMetadata(name string, isMetaExists bool, metadataForCheck interface{}) resource.TestCheckFunc {
+func TestAccCheckMetadata(name string, isMetaExists bool, metadataForCheck interface{}) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// retrieve the resource by name from state
 		ms := s.RootModule()

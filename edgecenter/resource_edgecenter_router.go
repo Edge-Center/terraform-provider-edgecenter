@@ -190,7 +190,7 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, RouterPoint, versionPointV1)
+	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -267,7 +267,7 @@ func resourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface
 	routerID := d.Id()
 	log.Printf("[DEBUG] Router id = %s", routerID)
 
-	client, err := CreateClient(provider, d, RouterPoint, versionPointV1)
+	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -344,7 +344,7 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Printf("[DEBUG] Router id = %s", routerID)
 	config := m.(*Config)
 	provider := config.Provider
-	client, err := CreateClient(provider, d, RouterPoint, versionPointV1)
+	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -438,7 +438,7 @@ func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	routerID := d.Id()
 	log.Printf("[DEBUG] Router id = %s", routerID)
 
-	client, err := CreateClient(provider, d, RouterPoint, versionPointV1)
+	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

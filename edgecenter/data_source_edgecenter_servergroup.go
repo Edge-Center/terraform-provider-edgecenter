@@ -83,7 +83,7 @@ func dataSourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, serverGroupsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

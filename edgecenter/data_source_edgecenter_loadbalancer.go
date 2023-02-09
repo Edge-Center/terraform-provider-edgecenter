@@ -97,7 +97,7 @@ func dataSourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m i
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -129,7 +129,7 @@ func dataSourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m i
 	d.Set("vip_address", lb.VipAddress.String())
 	d.Set("vip_port_id", lb.VipPortID)
 
-	listenersClient, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+	listenersClient, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

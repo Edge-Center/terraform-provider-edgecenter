@@ -264,7 +264,7 @@ func resourceK8sCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, versionPointV1)
+	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -354,7 +354,7 @@ func resourceK8sRead(ctx context.Context, d *schema.ResourceData, m interface{})
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, versionPointV1)
+	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -447,7 +447,7 @@ func resourceK8sUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, versionPointV1)
+	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -515,7 +515,7 @@ func resourceK8sDelete(ctx context.Context, d *schema.ResourceData, m interface{
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, versionPointV1)
+	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

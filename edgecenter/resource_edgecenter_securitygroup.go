@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	securityGroupPoint      = "securitygroups"
+	SecurityGroupPoint      = "securitygroups"
 	securityGroupRulesPoint = "securitygrouprules"
 
 	minPort = 0
@@ -217,7 +217,7 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, securityGroupPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -286,7 +286,7 @@ func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, securityGroupPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -389,12 +389,12 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 
 	config := m.(*Config)
 	provider := config.Provider
-	clientCreate, err := CreateClient(provider, d, securityGroupPoint, versionPointV1)
+	clientCreate, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientUpdateDelete, err := CreateClient(provider, d, securityGroupRulesPoint, versionPointV1)
+	clientUpdateDelete, err := CreateClient(provider, d, securityGroupRulesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -467,7 +467,7 @@ func resourceSecurityGroupDelete(ctx context.Context, d *schema.ResourceData, m 
 	provider := config.Provider
 	sgID := d.Id()
 
-	client, err := CreateClient(provider, d, securityGroupPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

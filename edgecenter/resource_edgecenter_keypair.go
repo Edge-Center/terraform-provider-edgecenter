@@ -10,7 +10,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/keypair/v2/keypairs"
 )
 
-const keypairsPoint = "keypairs"
+const KeypairsPoint = "keypairs"
 
 func resourceKeypair() *schema.Resource {
 	return &schema.Resource{
@@ -66,7 +66,7 @@ func resourceKeypairCreate(ctx context.Context, d *schema.ResourceData, m interf
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, keypairsPoint, versionPointV2)
+	client, err := CreateClient(provider, d, KeypairsPoint, VersionPointV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -99,7 +99,7 @@ func resourceKeypairRead(ctx context.Context, d *schema.ResourceData, m interfac
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, keypairsPoint, versionPointV2)
+	client, err := CreateClient(provider, d, KeypairsPoint, VersionPointV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -128,7 +128,7 @@ func resourceKeypairDelete(ctx context.Context, d *schema.ResourceData, m interf
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, keypairsPoint, versionPointV2)
+	client, err := CreateClient(provider, d, KeypairsPoint, VersionPointV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}

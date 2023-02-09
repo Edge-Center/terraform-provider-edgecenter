@@ -110,11 +110,11 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, networksPoint, versionPointV1)
+	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	clientShared, err := CreateClient(provider, d, sharedNetworksPoint, versionPointV1)
+	clientShared, err := CreateClient(provider, d, SharedNetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

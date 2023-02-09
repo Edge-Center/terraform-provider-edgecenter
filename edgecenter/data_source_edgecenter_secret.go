@@ -97,7 +97,7 @@ func dataSourceSecretRead(ctx context.Context, d *schema.ResourceData, m interfa
 	secretID := d.Id()
 	log.Printf("[DEBUG] Secret id = %s", secretID)
 
-	client, err := CreateClient(provider, d, secretPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

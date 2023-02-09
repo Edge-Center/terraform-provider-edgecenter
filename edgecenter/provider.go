@@ -25,7 +25,7 @@ const (
 	ProviderOptSkipCredsAuthErr  = "ignore_creds_auth_error" //nolint: gosec
 	ProviderOptSingleAPIEndpoint = "api_endpoint"
 
-	lifecyclePolicyResource = "edgecenter_lifecyclepolicy"
+	LifecyclePolicyResource = "edgecenter_lifecyclepolicy"
 )
 
 func Provider() *schema.Provider {
@@ -153,7 +153,7 @@ func Provider() *schema.Provider {
 			"edgecenter_cdn_origingroup":   resourceCDNOriginGroup(),
 			"edgecenter_cdn_rule":          resourceCDNRule(),
 			"edgecenter_cdn_sslcert":       resourceCDNCert(),
-			lifecyclePolicyResource:        resourceLifecyclePolicy(),
+			LifecyclePolicyResource:        resourceLifecyclePolicy(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":           dataSourceProject(),

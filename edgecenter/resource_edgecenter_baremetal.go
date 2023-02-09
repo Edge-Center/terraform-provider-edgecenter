@@ -275,7 +275,7 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, BmInstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, BmInstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -388,7 +388,7 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -567,7 +567,7 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 	config := m.(*Config)
 	provider := config.Provider
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -745,7 +745,7 @@ func resourceBmInstanceDelete(ctx context.Context, d *schema.ResourceData, m int
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

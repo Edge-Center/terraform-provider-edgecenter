@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	imagesPoint   = "images"
+	ImagesPoint   = "images"
 	bmImagesPoint = "bmimages"
 )
 
@@ -94,11 +94,11 @@ func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interfac
 	config := m.(*Config)
 	provider := config.Provider
 
-	point := imagesPoint
+	point := ImagesPoint
 	if isBm, _ := d.Get("is_baremetal").(bool); isBm {
 		point = bmImagesPoint
 	}
-	client, err := CreateClient(provider, d, point, versionPointV1)
+	client, err := CreateClient(provider, d, point, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

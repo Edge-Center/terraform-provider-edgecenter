@@ -68,7 +68,7 @@ func dataSourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

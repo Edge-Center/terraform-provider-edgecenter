@@ -19,7 +19,7 @@ import (
 const (
 	SecretDeleting        int = 1200
 	SecretCreatingTimeout int = 1200
-	secretPoint               = "secrets"
+	SecretPoint               = "secrets"
 )
 
 func resourceSecret() *schema.Resource {
@@ -158,7 +158,7 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, secretPoint, versionPointV2)
+	client, err := CreateClient(provider, d, SecretPoint, VersionPointV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -187,7 +187,7 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
 
-	clientV1, err := CreateClient(provider, d, secretPoint, versionPointV1)
+	clientV1, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -225,7 +225,7 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 	secretID := d.Id()
 	log.Printf("[DEBUG] Secret id = %s", secretID)
 
-	client, err := CreateClient(provider, d, secretPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -258,7 +258,7 @@ func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	secretID := d.Id()
 	log.Printf("[DEBUG] Secret id = %s", secretID)
 
-	client, err := CreateClient(provider, d, secretPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

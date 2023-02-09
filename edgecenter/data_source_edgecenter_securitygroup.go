@@ -152,7 +152,7 @@ func dataSourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, securityGroupPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

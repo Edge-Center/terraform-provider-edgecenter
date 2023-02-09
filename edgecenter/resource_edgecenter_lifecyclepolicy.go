@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	lifecyclePolicyPoint = "lifecycle_policy"
+	LifecyclePolicyPoint = "lifecycle_policy"
 	// Maybe move to utils and use for other resources.
 	nameRegexString = `^[a-zA-Z0-9][a-zA-Z 0-9._\-]{1,61}[a-zA-Z0-9._]$`
 )
@@ -263,7 +263,7 @@ func resourceLifecyclePolicy() *schema.Resource {
 }
 
 func resourceLifecyclePolicyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, lifecyclePolicyPoint, versionPointV1)
+	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
 	if err != nil {
 		return diag.Errorf("Error creating client: %s", err)
 	}
@@ -284,7 +284,7 @@ func resourceLifecyclePolicyCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceLifecyclePolicyRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, lifecyclePolicyPoint, versionPointV1)
+	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
 	if err != nil {
 		return diag.Errorf("Error creating client: %s", err)
 	}
@@ -317,7 +317,7 @@ func resourceLifecyclePolicyRead(_ context.Context, d *schema.ResourceData, m in
 }
 
 func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, lifecyclePolicyPoint, versionPointV1)
+	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
 	if err != nil {
 		return diag.Errorf("Error creating client: %s", err)
 	}
@@ -351,7 +351,7 @@ func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceLifecyclePolicyDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, lifecyclePolicyPoint, versionPointV1)
+	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
 	if err != nil {
 		return diag.Errorf("Error creating client: %s", err)
 	}

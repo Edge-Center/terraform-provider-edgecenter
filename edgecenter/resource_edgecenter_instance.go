@@ -374,11 +374,11 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	clientv1, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	clientv1, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	clientv2, err := CreateClient(provider, d, InstancePoint, versionPointV2)
+	clientv2, err := CreateClient(provider, d, InstancePoint, VersionPointV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -500,7 +500,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -681,7 +681,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 	config := m.(*Config)
 	provider := config.Provider
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -864,7 +864,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("volume") {
-		vClient, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+		vClient, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -945,7 +945,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

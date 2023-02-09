@@ -17,9 +17,9 @@ import (
 
 const (
 	volumeDeleting        int = 1200
-	volumeCreatingTimeout int = 1200
+	VolumeCreatingTimeout int = 1200
 	volumeExtending       int = 1200
-	volumesPoint              = "volumes"
+	VolumesPoint              = "volumes"
 )
 
 func resourceVolume() *schema.Resource {
@@ -42,7 +42,7 @@ func resourceVolume() *schema.Resource {
 				config := meta.(*Config)
 				provider := config.Provider
 
-				client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+				client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 				if err != nil {
 					return nil, err
 				}
@@ -131,7 +131,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -147,7 +147,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	VolumeID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, volumeCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
+	VolumeID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, VolumeCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
@@ -181,7 +181,7 @@ func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 
-	client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -211,7 +211,7 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 	config := m.(*Config)
 	provider := config.Provider
-	client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -274,7 +274,7 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 
-	client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	serverGroupsPoint = "servergroups"
+	ServerGroupsPoint = "servergroups"
 )
 
 func resourceServerGroup() *schema.Resource {
@@ -110,7 +110,7 @@ func resourceServerGroupCreate(ctx context.Context, d *schema.ResourceData, m in
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, serverGroupsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -138,7 +138,7 @@ func resourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m inte
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, serverGroupsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -175,7 +175,7 @@ func resourceServerGroupDelete(ctx context.Context, d *schema.ResourceData, m in
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, serverGroupsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
