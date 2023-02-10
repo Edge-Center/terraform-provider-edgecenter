@@ -1,5 +1,4 @@
-//go:build !cloud
-// +build !cloud
+//go:build dns
 
 package edgecenter_test
 

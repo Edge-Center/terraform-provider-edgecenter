@@ -1,4 +1,4 @@
-//go:build !cloud
+//go:build storage
 
 package edgecenter_test
 

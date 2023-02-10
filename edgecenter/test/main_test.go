@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud && dns && storage && cdn
 
 package edgecenter_test
 

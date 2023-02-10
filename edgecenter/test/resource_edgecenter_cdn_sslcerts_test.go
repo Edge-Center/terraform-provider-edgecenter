@@ -1,5 +1,4 @@
-//go:build !cloud
-// +build !cloud
+//go:build cdn
 
 package edgecenter_test
 
@@ -18,7 +17,7 @@ resource "edgecenter_cdn_sslcert" "acctest" {
   name = "Terraform acctest cert"
   cert = <<EOT%sEOT
   private_key = <<EOT%sEOT
-}`, cert, privateKey)
+}`, cdnCert, cdnPrivateKey)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -39,7 +38,7 @@ resource "edgecenter_cdn_sslcert" "acctest" {
 }
 
 var (
-	cert = `
+	cdnCert = `
 -----BEGIN CERTIFICATE-----
 MIIFTDCCAzQCCQCQkJiJe7joYzANBgkqhkiG9w0BAQsFADBoMQswCQYDVQQGEwJS
 QjEOMAwGA1UECAwFTWluc2sxDjAMBgNVBAcMBU1pbnNrMRQwEgYDVQQKDAtHLUNv
@@ -72,7 +71,7 @@ yQ1+IiJmACbD9NBknrc5xrS7suRfFczBfzlYZjGD97jgevDgglPLxUzsUUGowhmy
 p9wz7rufPw6cvSf55JTGkg==
 -----END CERTIFICATE-----
 `
-	privateKey = `
+	cdnPrivateKey = `
 -----BEGIN RSA PRIVATE KEY-----
 MIIJKQIBAAKCAgEAq5OVuLKu9Zpsi5Eao28FeDIVvJiRIBR9nzH9jWT62ziwHJFX
 y49pBEeLf3arQDtHsEqFvZUCiiyyfsTEz+A2RrlxsI5AoWSVWC+HDHJ2ruYleiQC

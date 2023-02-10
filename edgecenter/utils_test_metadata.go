@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-// nolint: unused
 func normalizeMetadata(metadata interface{}, defaults ...bool) (map[string]interface{}, error) {
 	normalizedMetadata := map[string]interface{}{}
 	readOnly := false
@@ -46,7 +45,6 @@ func normalizeMetadata(metadata interface{}, defaults ...bool) (map[string]inter
 	return normalizedMetadata, nil
 }
 
-// nolint: unused
 func modulePrimaryInstanceState(ms *terraform.ModuleState, name string) (*terraform.InstanceState, error) {
 	rs, ok := ms.Resources[name]
 	if !ok {
@@ -61,7 +59,6 @@ func modulePrimaryInstanceState(ms *terraform.ModuleState, name string) (*terraf
 	return is, nil
 }
 
-// nolint: unused
 func getMetadataFromResourceAttributes(prefix string, attributes *map[string]string) ([]map[string]interface{}, error) {
 	metadataLength, err := strconv.Atoi((*attributes)[prefix+".#"])
 	if err != nil {
@@ -87,7 +84,6 @@ func getMetadataFromResourceAttributes(prefix string, attributes *map[string]str
 	return metadata, nil
 }
 
-// nolint: unused
 func checkMapInMap(srcMap map[string]interface{}, dstMap map[string]interface{}) bool {
 	if len(srcMap) > len(dstMap) {
 		return false

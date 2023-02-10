@@ -9,9 +9,9 @@ require (
 	github.com/Edge-Center/edgecentercdn-go v0.1.0
 	github.com/Edge-Center/edgecentercloud-go v0.1.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
+	github.com/hashicorp/terraform v1.1.9
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.1
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/hashicorp/terraform v1.1.9
 )
 
 require (
@@ -72,9 +72,9 @@ require (
 	github.com/vmihailenco/tagparser v0.1.1 // indirect
 	github.com/zclconf/go-cty v1.12.1 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220808155132-1c4a2a72c664 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/sync v0.1.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210402141018-6c239bbf2bb1 // indirect
 	google.golang.org/grpc v1.50.1 // indirect
@@ -88,5 +88,5 @@ require (
 	github.com/hashicorp/terraform-exec v0.17.3 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	go.mongodb.org/mongo-driver v1.10.1 // indirect
-	golang.org/x/net v0.0.0-20220526153639-5463443f8c37 // indirect
+	golang.org/x/net v0.5.0 // indirect
 )

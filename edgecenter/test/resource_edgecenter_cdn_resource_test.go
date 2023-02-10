@@ -1,5 +1,4 @@
-//go:build !cloud
-// +build !cloud
+//go:build cdn
 
 package edgecenter_test
 

@@ -9,6 +9,9 @@ terraform.tfplan
 terraform.tfstate
 ./*.tfstate
 
+### bin
+golangci-lint
+
 ### other
 dist/
 modules-dev/
