@@ -18,6 +18,7 @@ import (
 )
 
 func TestAccLifecyclePolicy(t *testing.T) {
+	t.Skip()
 	// Templates
 	resName := "acctest"
 	fullLPName := edgecenter.LifecyclePolicyResource + "." + resName

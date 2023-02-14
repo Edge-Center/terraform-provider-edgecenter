@@ -11,6 +11,10 @@ terraform.tfstate
 
 ### bin
 golangci-lint
+jq
+vault
+vault.zip
+.local.env
 
 ### other
 dist/

@@ -85,8 +85,12 @@ func TestAccInstanceDataSource(t *testing.T) {
 			BootIndex: 0,
 			VolumeID:  volumeID,
 		}},
-		Interfaces:     []instances.InterfaceInstanceCreateOpts{{InterfaceOpts: instances.InterfaceOpts{Type: types.ExternalInterfaceType}}},
-		SecurityGroups: []edgecloud.ItemID{},
+		Interfaces: []instances.InterfaceInstanceCreateOpts{
+			{
+				InterfaceOpts:  instances.InterfaceOpts{Type: types.ExternalInterfaceType},
+				SecurityGroups: []edgecloud.ItemID{},
+			},
+		},
 	}
 
 	res, err := instances.Create(client, opts).Extract()

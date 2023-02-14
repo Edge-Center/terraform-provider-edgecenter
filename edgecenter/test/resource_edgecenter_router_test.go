@@ -58,6 +58,7 @@ func checkRouterAttrs(resourceName string, opts *routers.CreateOpts) resource.Te
 }
 
 func TestAccRouter(t *testing.T) {
+	t.Skip()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)

@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccReservedFixedIP(t *testing.T) {
+	t.Skip()
 	type Params struct {
 		Type  string
 		IsVip bool

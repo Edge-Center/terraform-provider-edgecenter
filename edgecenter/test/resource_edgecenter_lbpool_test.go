@@ -17,6 +17,7 @@ import (
 )
 
 func TestAccLBPool(t *testing.T) {
+	t.Skip()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)

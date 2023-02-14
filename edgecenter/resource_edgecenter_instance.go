@@ -851,11 +851,15 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				}
 				portID, err := instances.ExtractInstancePortIDFromTask(taskInfo)
 				if err != nil {
-					return nil, fmt.Errorf("cannot retrieve instance port ID from task info: %w", err)
+					reservedFixedIPID, ok := (*taskInfo.Data)["reserved_fixed_ip_id"]
+					if !ok || reservedFixedIPID.(string) == "" {
+						return nil, fmt.Errorf("cannot retrieve instance port ID from task info: %w", err)
+					}
+					portID = reservedFixedIPID.(string)
 				}
+
 				return portID, nil
-			},
-			)
+			})
 
 			if err != nil {
 				return diag.FromErr(err)

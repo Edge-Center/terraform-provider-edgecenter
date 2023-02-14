@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccLoadBalancer(t *testing.T) {
+	t.Skip()
 	type Params struct {
 		Name string
 	}

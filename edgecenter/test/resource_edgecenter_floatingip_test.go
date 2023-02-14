@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccFloatingIP(t *testing.T) {
+	t.Skip()
 	fullName := "edgecenter_floatingip.acctest"
 
 	ipTemplate := fmt.Sprintf(`

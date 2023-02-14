@@ -10,12 +10,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19
 
+      - name: Linters
+        run: make linters
+
       - name: Build
         run: go build -v ./...
+
+      - name: Tests
+        env:
+          EC_USERNAME: ${{ secrets.EC_USERNAME }}
+          EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
+        run: make test_cloud

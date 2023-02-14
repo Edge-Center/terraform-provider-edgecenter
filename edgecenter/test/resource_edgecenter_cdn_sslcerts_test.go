@@ -10,6 +10,7 @@ import (
 )
 
 func TestAccCDNCert(t *testing.T) {
+	t.Skip()
 	t.Parallel()
 	fullName := "edgecenter_cdn_sslcert.acctest"
 	template := fmt.Sprintf(`

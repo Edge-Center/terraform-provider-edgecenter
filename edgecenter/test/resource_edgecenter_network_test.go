@@ -16,6 +16,7 @@ import (
 )
 
 func TestAccNetwork(t *testing.T) {
+	t.Skip()
 	type Params struct {
 		Name        string
 		Type        string

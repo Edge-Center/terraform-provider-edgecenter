@@ -74,18 +74,25 @@ $ cp ./examples/... .
 $ terraform init
 ```
 
+Testing
+------------------
+Remote: Tests are run with provided secrets envs in the GitHub repository.
+Local: execute the command `make test_local`. For this command to work, you need to:
+* Create a `.local.env` file and fill it with the necessary envs. 
+* Run `make envs` to automatically fill the envs from Vault (don't forget to export `VAULT_TOKEN` to terminal).
+* `make envs` requires the installation of `jq` and the `vault` binary. You can install them with the `make vault` and `make jq` commands, respectively.
+
 Debugging
 ------------------
-There are two ways to debbugging the provider:
-### vscode debugging
-1. create a `launch.json` file
-  - In the the Run view, click `create a launch.json file`
-  - Choose Go: Launch Package from the debug configuration drop-down menu. 
-  - VS Code will create a `launch.json` file in a `.vscode` folder in your workspace
-2. add a new configuration to `launch.json`:
-- the `address` arg must be equal to the `source` field from your `provider.tf`
-```
-{
+There are two ways to debug the provider:
+### VSCode debugging
+1. Create a `launch.json` file:
+   * In the Run view, click `create a launch.json file`.
+   * Choose Go: Launch Package from the debug configuration drop-down menu. 
+   * VS Code will create a `launch.json` file in a `.vscode` folder in your workspace.
+2. Add a new configuration to `launch.json`:
+   * The `address` argument must be equal to the `source` field from your `provider.tf`.
+   ``` {
     "version": "0.2.0",
     "configurations": [
         {
@@ -101,39 +108,39 @@ There are two ways to debbugging the provider:
             ]
         }
     ]
-}
-```
-3. launch the debug mode: `Run > Start Debugging (F5)`
-4. copy `TF_REATTACH_PROVIDERS` env from the console and export it to the terminal as follows:
-```
-export TF_REATTACH_PROVIDERS='{"local.edgecenter.ru/repo/edgecenter":{...'
-```
-5. set a breakpoint in your code and apply the terraform config: `terraform apply`
-6. debugging
+   } 
+   ```
+3. Launch the debug mode: `Run > Start Debugging (F5)`.
+4. Copy the `TF_REATTACH_PROVIDERS` env from the console and export it to the terminal as follows:
+    ```shell
+    export TF_REATTACH_PROVIDERS='{"local.edgecenter.ru/repo/edgecenter":{...'
+    ```
+5. Set a breakpoint in your code and apply the Terraform config: `terraform apply`.
+6. Debugging.
 
 ### using delve
-1. installing the delve lib - [installation](https://github.com/go-delve/delve/tree/master/Documentation/installation)
-2. building binary without optimisation or use `make build_debug` 
-```
-go build -o bin/$(BINARY_NAME) -gcflags '-N -l'
-```
-3. open first terminal:
-  - run the binary with debug option:
-  ```
-  dlv exec bin/terraform-provider-edgecenter -- -debug
-  ```
-  - set a breakpoint for the create function with a resource that want to debug, e.g,
+1. Install the Delve library - [installation](https://github.com/go-delve/delve/tree/master/Documentation/installation)
+2. Build binary without optimization or use `make build_debug` 
+    ```shell
+    go build -o bin/$(BINARY_NAME) -gcflags '-N -l'
+    ```
+3. Open the first terminal:
+   * Run the binary with the debug option:
+   ```shell
+   dlv exec bin/terraform-provider-edgecenter -- -debug
    ```
-   break resourceFloatingIPCreate
-   ```
-  - `continue`
-  - copy `TF_REATTACH_PROVIDERS` with its value from output
-5. open second terminal:
-  - exporting `TF_REATTACH_PROVIDERS`:
-  ```
-  export TF_REATTACH_PROVIDERS='{"local.edgecenter.ru/repo/edgecenter":{...'
-  ```
-  - launch ```terraform apply```
-  - debugging with the `continue` command in the first terminal via `delve`
+   * Set a breakpoint for the create function with a resource that you want to debug, e.g,
+      ```shell
+      break resourceFloatingIPCreate
+      ```
+   * `continue`
+   * Copy `TF_REATTACH_PROVIDERS` with its value from output
+4. Open the second terminal:
+   * Export `TF_REATTACH_PROVIDERS`:
+     ```shell
+     export TF_REATTACH_PROVIDERS='{"local.edgecenter.ru/repo/edgecenter":{...'
+     ```
+   * Launch ```terraform apply```
+   * Debug with the `continue` command in the first terminal via `delve`
 
 Thank You
