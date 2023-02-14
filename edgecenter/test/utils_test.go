@@ -6,7 +6,7 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-func TestExtractHosAndPath(t *testing.T) {
+func TestExtractHostAndPath(t *testing.T) {
 	t.Parallel()
 
 	type args struct {

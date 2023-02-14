@@ -1,4 +1,4 @@
-//go:build cloud && dns && storage && cdn
+//go:build cloud || dns || storage || cdn
 
 package edgecenter_test
 
@@ -123,7 +123,6 @@ func testAccPreCheck(t *testing.T) {
 	checkNameAndID(t, "REGION")
 }
 
-// nolint: unused
 func checkNameAndID(t *testing.T, resourceType string) {
 	// resourceType is a word in capital letters
 	t.Helper()
@@ -139,17 +138,14 @@ func checkNameAndID(t *testing.T, resourceType string) {
 	}
 }
 
-// nolint: unused
 func regionInfo() string {
 	return objectInfo("REGION")
 }
 
-// nolint: unused
 func projectInfo() string {
 	return objectInfo("PROJECT")
 }
 
-// nolint: unused
 func objectInfo(resourceType string) string {
 	// resourceType is a word in capital letters
 	keyID := fmt.Sprintf("TEST_%s_ID", resourceType)
@@ -255,7 +251,7 @@ func testAccCheckResourceExists(resourceName string) resource.TestCheckFunc {
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("Widget ID is not set")
+			return fmt.Errorf("widget ID is not set")
 		}
 		return nil
 	}

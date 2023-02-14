@@ -53,26 +53,6 @@ type Config struct {
 	DNSClient     *dnssdk.Client
 }
 
-type Project struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-type Projects struct {
-	Count   int       `json:"count"`
-	Results []Project `json:"results"`
-}
-
-type Region struct {
-	ID          int    `json:"id"`
-	DisplayName string `json:"displayName"`
-}
-
-type Regions struct {
-	Count   int      `json:"count"`
-	Results []Region `json:"results"`
-}
-
 var config = &mapstructure.DecoderConfig{
 	TagName: "json",
 }
@@ -753,15 +733,4 @@ func extractListenerIntoMap(listener *listeners.Listener) map[string]interface{}
 	l["secret_id"] = listener.SecretID
 	l["sni_secret_id"] = listener.SNISecretID
 	return l
-}
-
-// nolint: unused
-func getUniqueID(d *schema.ResourceData) string {
-	return fmt.Sprintf(
-		"%d%d%s%s",
-		d.Get("region_id").(int),
-		d.Get("project_id").(int),
-		d.Get("region_name").(string),
-		d.Get("project_name").(string),
-	)
 }
