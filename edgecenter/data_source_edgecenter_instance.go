@@ -5,9 +5,10 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
 )
 
 func dataSourceInstance() *schema.Resource {
@@ -15,7 +16,7 @@ func dataSourceInstance() *schema.Resource {
 		ReadContext: dataSourceInstanceRead,
 		Description: "Represent instance. Could be used with baremetal also",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -23,7 +24,7 @@ func dataSourceInstance() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -31,7 +32,7 @@ func dataSourceInstance() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -39,7 +40,7 @@ func dataSourceInstance() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -47,15 +48,15 @@ func dataSourceInstance() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"flavor_id": &schema.Schema{
+			"flavor_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"volume": &schema.Schema{
+			"volume": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Set:      volumeUniqueID,
@@ -72,7 +73,7 @@ func dataSourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"interface": &schema.Schema{
+			"interface": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -96,7 +97,7 @@ func dataSourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"security_group": &schema.Schema{
+			"security_group": {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "Firewalls list",
@@ -109,7 +110,7 @@ func dataSourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"metadata": &schema.Schema{
+			"metadata": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -125,19 +126,19 @@ func dataSourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"flavor": &schema.Schema{
+			"flavor": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"vm_state": &schema.Schema{
+			"vm_state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"addresses": &schema.Schema{
+			"addresses": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -171,7 +172,7 @@ func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -289,5 +290,6 @@ func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	log.Println("[DEBUG] Finish Instance reading")
+
 	return diags
 }

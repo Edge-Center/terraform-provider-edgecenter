@@ -2,20 +2,24 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/snapshot/v1/snapshots"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const snapshotDeleting int = 1200
-const snapshotCreatingTimeout int = 1200
-const snapshotsPoint = "snapshots"
+const (
+	snapshotDeleting        int = 1200
+	snapshotCreatingTimeout int = 1200
+	SnapshotsPoint              = "snapshots"
+)
 
 func resourceSnapshot() *schema.Resource {
 	return &schema.Resource{
@@ -26,7 +30,6 @@ func resourceSnapshot() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, snapshotID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -39,7 +42,7 @@ func resourceSnapshot() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -47,7 +50,7 @@ func resourceSnapshot() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -55,7 +58,7 @@ func resourceSnapshot() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -63,7 +66,7 @@ func resourceSnapshot() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -71,29 +74,29 @@ func resourceSnapshot() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"volume_id": &schema.Schema{
+			"volume_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"metadata": &schema.Schema{
+			"metadata": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Computed: true,
@@ -101,7 +104,7 @@ func resourceSnapshot() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -116,7 +119,7 @@ func resourceSnapshotCreate(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, snapshotsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -150,6 +153,7 @@ func resourceSnapshotCreate(ctx context.Context, d *schema.ResourceData, m inter
 	resourceSnapshotRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish snapshot creating (%s)", SnapshotID)
+
 	return diags
 }
 
@@ -162,7 +166,7 @@ func resourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m interfa
 	snapshotID := d.Id()
 	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
 
-	client, err := CreateClient(provider, d, snapshotsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -184,6 +188,7 @@ func resourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	log.Println("[DEBUG] Finish snapshot reading")
+
 	return diags
 }
 
@@ -193,7 +198,7 @@ func resourceSnapshotUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if d.HasChange("metadata") {
 		config := m.(*Config)
 		provider := config.Provider
-		client, err := CreateClient(provider, d, snapshotsPoint, versionPointV1)
+		client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -210,6 +215,7 @@ func resourceSnapshotUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish snapshot updating")
+
 	return resourceSnapshotRead(ctx, d, m)
 }
 
@@ -221,7 +227,7 @@ func resourceSnapshotDelete(ctx context.Context, d *schema.ResourceData, m inter
 	snapshotID := d.Id()
 	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
 
-	client, err := CreateClient(provider, d, snapshotsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -237,12 +243,11 @@ func resourceSnapshotDelete(ctx context.Context, d *schema.ResourceData, m inter
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete snapshot with ID: %s", snapshotID)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting Shapshot resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -250,6 +255,7 @@ func resourceSnapshotDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of snapshot deleting")
+
 	return diags
 }
 

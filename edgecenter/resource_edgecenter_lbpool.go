@@ -2,18 +2,19 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
-	"github.com/hashicorp/go-cty/cty"
-
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
@@ -36,7 +37,6 @@ func resourceLBPool() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, lbPoolID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -48,7 +48,7 @@ func resourceLBPool() *schema.Resource {
 			},
 		},
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -57,7 +57,7 @@ func resourceLBPool() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -66,7 +66,7 @@ func resourceLBPool() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -75,7 +75,7 @@ func resourceLBPool() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -84,11 +84,11 @@ func resourceLBPool() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"lb_algorithm": &schema.Schema{
+			"lb_algorithm": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s'", types.LoadBalancerAlgorithmRoundRobin, types.LoadBalancerAlgorithmLeastConnections, types.LoadBalancerAlgorithmSourceIP, types.LoadBalancerAlgorithmSourceIPPort),
@@ -101,7 +101,7 @@ func resourceLBPool() *schema.Resource {
 					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, types.LoadBalancerAlgorithmRoundRobin, types.LoadBalancerAlgorithmLeastConnections, types.LoadBalancerAlgorithmSourceIP, types.LoadBalancerAlgorithmSourceIPPort)
 				},
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP),
@@ -110,31 +110,32 @@ func resourceLBPool() *schema.Resource {
 					switch types.ProtocolType(v) {
 					case types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP:
 						return diag.Diagnostics{}
+					case types.ProtocolTypeTerminatedHTTPS, types.ProtocolTypePROXY:
 					}
 					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP)
 				},
 			},
-			"loadbalancer_id": &schema.Schema{
+			"loadbalancer_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"listener_id": &schema.Schema{
+			"listener_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"health_monitor": &schema.Schema{
+			"health_monitor": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s', '%s', '%s", types.HealthMonitorTypeHTTP, types.HealthMonitorTypeHTTPS, types.HealthMonitorTypePING, types.HealthMonitorTypeTCP, types.HealthMonitorTypeTLSHello, types.HealthMonitorTypeUDPConnect),
@@ -147,34 +148,34 @@ func resourceLBPool() *schema.Resource {
 								return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s', '%s', '%s", v, types.HealthMonitorTypeHTTP, types.HealthMonitorTypeHTTPS, types.HealthMonitorTypePING, types.HealthMonitorTypeTCP, types.HealthMonitorTypeTLSHello, types.HealthMonitorTypeUDPConnect)
 							},
 						},
-						"delay": &schema.Schema{
+						"delay": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"max_retries": &schema.Schema{
+						"max_retries": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"timeout": &schema.Schema{
+						"timeout": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"max_retries_down": &schema.Schema{
+						"max_retries_down": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 						},
-						"http_method": &schema.Schema{
+						"http_method": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
-						"url_path": &schema.Schema{
+						"url_path": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
-						"expected_codes": &schema.Schema{
+						"expected_codes": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -182,28 +183,28 @@ func resourceLBPool() *schema.Resource {
 					},
 				},
 			},
-			"session_persistence": &schema.Schema{
+			"session_persistence": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"cookie_name": &schema.Schema{
+						"cookie_name": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
-						"persistence_granularity": &schema.Schema{
+						"persistence_granularity": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
-						"persistence_timeout": &schema.Schema{
+						"persistence_timeout": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
@@ -211,7 +212,7 @@ func resourceLBPool() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -226,7 +227,7 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -260,7 +261,6 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		return lbPoolID, nil
 	})
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -269,6 +269,7 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceLBPoolRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LBPool creating (%s)", lbPoolID)
+
 	return diags
 }
 
@@ -278,7 +279,7 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -336,6 +337,7 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish LBPool reading")
+
 	return diags
 }
 
@@ -344,7 +346,7 @@ func resourceLBPoolUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -392,6 +394,7 @@ func resourceLBPoolUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish LBPool updating")
+
 	return resourceLBPoolRead(ctx, d, m)
 }
 
@@ -401,7 +404,7 @@ func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -409,9 +412,8 @@ func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	id := d.Id()
 	results, err := lbpools.Delete(client, id).Extract()
 	if err != nil {
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
-		default:
+		var errDefault404 *edgecloud.ErrDefault404
+		if !errors.As(err, &errDefault404) {
 			return diag.FromErr(err)
 		}
 	}
@@ -422,12 +424,11 @@ func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete LBPool with ID: %s", id)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting LBPool resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -435,5 +436,6 @@ func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of LBPool deleting")
+
 	return diags
 }

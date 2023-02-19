@@ -8,20 +8,20 @@ import (
 	"strconv"
 	"strings"
 
-	gstorage "github.com/Edge-Center/edgecenter-storage-sdk-go"
-	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/key"
-
-	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	gstorage "github.com/Edge-Center/edgecenter-storage-sdk-go"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/key"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
 )
 
 const (
 	StorageSFTPSchemaGenerateSftpPassword = "generated_password"
 	StorageSchemaGenerateSFTPEndpoint     = "generated_sftp_endpoint"
 	StorageSFTPSchemaSftpPassword         = "password"
-	StorageSFTPSchemaKeyId                = "ssh_key_id"
+	StorageSFTPSchemaKeyID                = "ssh_key_id"
 	StorageSFTPSchemaExpires              = "http_expires_header_value"
 	StorageSFTPSchemaServerAlias          = "http_servername_alias"
 
@@ -31,7 +31,7 @@ const (
 func resourceStorageSFTP() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			StorageSchemaId: {
+			StorageSchemaID: {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
@@ -43,7 +43,7 @@ func resourceStorageSFTP() *schema.Resource {
 				Computed:    true,
 				Description: "A temporary flag. An internal cheat, to skip update ssh keys. Skip it.",
 			},
-			StorageSchemaClientId: {
+			StorageSchemaClientID: {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
@@ -114,7 +114,7 @@ func resourceStorageSFTP() *schema.Resource {
 				Optional:    true,
 				Description: "An auto generated sftp password for new storage resource.",
 			},
-			StorageSFTPSchemaKeyId: {
+			StorageSFTPSchemaKeyID: {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
@@ -147,7 +147,7 @@ func resourceStorageSFTP() *schema.Resource {
 }
 
 func resourceStorageValidateKeys(ctx context.Context, sdk *gstorage.SDK, d *schema.ResourceData) error {
-	keyIds := d.Get(StorageSFTPSchemaKeyId).([]interface{})
+	keyIds := d.Get(StorageSFTPSchemaKeyID).([]interface{})
 	if len(keyIds) == 0 {
 		return nil
 	}
@@ -169,37 +169,39 @@ func resourceStorageValidateKeys(ctx context.Context, sdk *gstorage.SDK, d *sche
 			return fmt.Errorf("key %v is not found", v)
 		}
 	}
+
 	return nil
 }
 
 func resourceStorageLinkKeys(ctx context.Context, sdk *gstorage.SDK, d *schema.ResourceData, storageID int64) error {
-	keyIds := d.Get(StorageSFTPSchemaKeyId).([]interface{})
+	keyIds := d.Get(StorageSFTPSchemaKeyID).([]interface{})
 	if len(keyIds) == 0 {
 		return nil
 	}
 	for _, v := range keyIds {
-		keyId, ok := v.(int)
+		keyID, ok := v.(int)
 		if !ok {
 			log.Printf("[ERROR] ssh key id should be int: %+v is %T\n", v, v)
 			continue
 		}
 		keyOpts := []func(opt *storage.KeyLinkHTTPParams){
 			func(opt *storage.KeyLinkHTTPParams) { opt.Context = ctx },
-			func(opt *storage.KeyLinkHTTPParams) { opt.ID = storageID; opt.KeyID = int64(keyId) },
+			func(opt *storage.KeyLinkHTTPParams) { opt.ID = storageID; opt.KeyID = int64(keyID) },
 		}
 		err := sdk.LinkKeyToStorage(keyOpts...)
 		if err != nil {
-			return fmt.Errorf("link key #%d to storage: %w", keyId, err)
+			return fmt.Errorf("link key #%d to storage: %w", keyID, err)
 		}
 	}
+
 	return nil
 }
 
 func resourceStorageRelinkKeys(ctx context.Context, sdk *gstorage.SDK, d *schema.ResourceData, storageID int64) error {
-	if !d.HasChange(StorageSFTPSchemaKeyId) {
+	if !d.HasChange(StorageSFTPSchemaKeyID) {
 		return nil
 	}
-	oldKeys, newKeys := d.GetChange(StorageSFTPSchemaKeyId)
+	oldKeys, newKeys := d.GetChange(StorageSFTPSchemaKeyID)
 	oldIDs, newIDs := oldKeys.([]interface{}), newKeys.([]interface{})
 	decision := map[interface{}]int{}
 	for _, v := range oldIDs {
@@ -217,26 +219,27 @@ func resourceStorageRelinkKeys(ctx context.Context, sdk *gstorage.SDK, d *schema
 			unlink = append(unlink, id.(int))
 		}
 	}
-	for _, keyId := range link {
+	for _, keyID := range link {
 		keyOpts := []func(opt *storage.KeyLinkHTTPParams){
 			func(opt *storage.KeyLinkHTTPParams) { opt.Context = ctx },
-			func(opt *storage.KeyLinkHTTPParams) { opt.ID = storageID; opt.KeyID = int64(keyId) },
+			func(opt *storage.KeyLinkHTTPParams) { opt.ID = storageID; opt.KeyID = int64(keyID) },
 		}
 		err := sdk.LinkKeyToStorage(keyOpts...)
 		if err != nil {
-			return fmt.Errorf("link key #%d to storage: %w", keyId, err)
+			return fmt.Errorf("link key #%d to storage: %w", keyID, err)
 		}
 	}
-	for _, keyId := range unlink {
+	for _, keyID := range unlink {
 		keyOpts := []func(opt *storage.KeyUnlinkHTTPParams){
 			func(opt *storage.KeyUnlinkHTTPParams) { opt.Context = ctx },
-			func(opt *storage.KeyUnlinkHTTPParams) { opt.ID = storageID; opt.KeyID = int64(keyId) },
+			func(opt *storage.KeyUnlinkHTTPParams) { opt.ID = storageID; opt.KeyID = int64(keyID) },
 		}
 		err := sdk.UnlinkKeyFromStorage(keyOpts...)
 		if err != nil {
-			return fmt.Errorf("unlink key #%d to storage: %w", keyId, err)
+			return fmt.Errorf("unlink key #%d to storage: %w", keyID, err)
 		}
 	}
+
 	return nil
 }
 
@@ -274,7 +277,7 @@ func resourceStorageSFTPCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	result, err := client.CreateStorage(opts...)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("create storage: %v", err))
+		return diag.FromErr(fmt.Errorf("create storage: %w", err))
 	}
 	d.SetId(fmt.Sprintf("%d", result.ID))
 	*id = int(result.ID)
@@ -297,8 +300,8 @@ func resourceStorageSFTPCreate(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceStorageSFTPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	resourceId := storageResourceID(d)
-	log.Printf("[DEBUG] Start SFTP Storage Resource reading (id=%s)\n", resourceId)
+	resourceID := storageResourceID(d)
+	log.Printf("[DEBUG] Start SFTP Storage Resource reading (id=%s)\n", resourceID)
 	defer log.Println("[DEBUG] Finish SFTP Storage Resource reading")
 
 	config := m.(*Config)
@@ -308,14 +311,14 @@ func resourceStorageSFTPRead(ctx context.Context, d *schema.ResourceData, m inte
 		func(opt *storage.StorageListHTTPV2Params) { opt.Context = ctx },
 		func(opt *storage.StorageListHTTPV2Params) { opt.ShowDeleted = new(bool) },
 	}
-	if resourceId != "" {
-		opts = append(opts, func(opt *storage.StorageListHTTPV2Params) { opt.ID = &resourceId })
+	if resourceID != "" {
+		opts = append(opts, func(opt *storage.StorageListHTTPV2Params) { opt.ID = &resourceID })
 	}
 	name := d.Get(StorageSchemaName).(string)
 	if name != "" {
 		opts = append(opts, func(opt *storage.StorageListHTTPV2Params) { opt.Name = &name })
 	}
-	if resourceId == "" && name == "" {
+	if resourceID == "" && name == "" {
 		return diag.Errorf("get storage: empty storage id/name")
 	}
 
@@ -333,7 +336,7 @@ func resourceStorageSFTPRead(ctx context.Context, d *schema.ResourceData, m inte
 	nameParts := strings.Split(st.Name, "-")
 	if len(nameParts) > 1 {
 		clientID, _ := strconv.ParseInt(nameParts[0], 10, 64)
-		_ = d.Set(StorageSchemaClientId, int(clientID))
+		_ = d.Set(StorageSchemaClientID, int(clientID))
 		_ = d.Set(StorageSchemaName, strings.Join(nameParts[1:], "-"))
 	} else {
 		_ = d.Set(StorageSchemaName, st.Name)
@@ -346,11 +349,11 @@ func resourceStorageSFTPRead(ctx context.Context, d *schema.ResourceData, m inte
 			}
 			keys = append(keys, int(k.ID))
 		}
-		_ = d.Set(StorageKeySchemaId, keys)
+		_ = d.Set(StorageKeySchemaID, keys)
 	}
 	_ = d.Set(StorageSFTPSchemaServerAlias, st.ServerAlias)
 	_ = d.Set(StorageSFTPSchemaExpires, st.Expires)
-	_ = d.Set(StorageSchemaId, st.ID)
+	_ = d.Set(StorageSchemaID, st.ID)
 	_ = d.Set(StorageSchemaLocation, st.Location)
 	_ = d.Set(StorageSchemaGenerateHTTPEndpoint,
 		fmt.Sprintf("http://%s.%s.origin.edgecore.ru", st.Name, st.Location))
@@ -361,17 +364,17 @@ func resourceStorageSFTPRead(ctx context.Context, d *schema.ResourceData, m inte
 }
 
 func resourceStorageSFTPUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	resourceId := storageResourceID(d)
-	log.Printf("[DEBUG] Start SFTP Storage Resource updating (id=%s)\n", resourceId)
+	resourceID := storageResourceID(d)
+	log.Printf("[DEBUG] Start SFTP Storage Resource updating (id=%s)\n", resourceID)
 	defer log.Println("[DEBUG] Finish SFTP Storage Resource updating")
-	if resourceId == "" {
+	if resourceID == "" {
 		return diag.Errorf("empty storage id")
 	}
 
 	config := m.(*Config)
 	client := config.StorageClient
 
-	id, err := strconv.ParseInt(resourceId, 10, 64)
+	id, err := strconv.ParseInt(resourceID, 10, 64)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("get resource id: %w", err))
 	}
@@ -423,17 +426,17 @@ func resourceStorageSFTPUpdate(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceStorageSFTPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	resourceId := storageResourceID(d)
-	log.Printf("[DEBUG] Start SFTP Storage Resource deleting (id=%s)\n", resourceId)
+	resourceID := storageResourceID(d)
+	log.Printf("[DEBUG] Start SFTP Storage Resource deleting (id=%s)\n", resourceID)
 	defer log.Println("[DEBUG] Finish SFTP Storage Resource deleting")
-	if resourceId == "" {
+	if resourceID == "" {
 		return diag.Errorf("empty storage id")
 	}
 
 	config := m.(*Config)
 	client := config.StorageClient
 
-	id, err := strconv.ParseInt(resourceId, 10, 64)
+	id, err := strconv.ParseInt(resourceID, 10, 64)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("get resource id: %w", err))
 	}
@@ -448,5 +451,6 @@ func resourceStorageSFTPDelete(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	d.SetId("")
+
 	return nil
 }

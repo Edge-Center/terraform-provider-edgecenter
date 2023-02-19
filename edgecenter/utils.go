@@ -13,6 +13,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/mitchellh/mapstructure"
+
 	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
 	cdn "github.com/Edge-Center/edgecentercdn-go"
@@ -31,18 +36,14 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
 	typesSG "github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/mitchellh/mapstructure"
 )
 
 const (
-	versionPointV1 = "v1"
-	versionPointV2 = "v2"
+	VersionPointV1 = "v1"
+	VersionPointV2 = "v2"
 
-	projectPoint = "projects"
-	regionPoint  = "regions"
+	ProjectPoint = "projects"
+	RegionPoint  = "regions"
 )
 
 type Config struct {
@@ -50,26 +51,6 @@ type Config struct {
 	CDNClient     cdn.ClientService
 	StorageClient *storageSDK.SDK
 	DNSClient     *dnssdk.Client
-}
-
-type Project struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-type Projects struct {
-	Count   int       `json:"count"`
-	Results []Project `json:"results"`
-}
-
-type Region struct {
-	Id          int    `json:"id"`
-	DisplayName string `json:"display_name"`
-}
-
-type Regions struct {
-	Count   int      `json:"count"`
-	Results []Region `json:"results"`
 }
 
 var config = &mapstructure.DecoderConfig{
@@ -102,6 +83,7 @@ func (s instanceInterfaces) Less(i, j int) bool {
 
 	lOrder, _ := ifLeft["order"].(int)
 	rOrder, _ := ifRight["order"].(int)
+
 	return lOrder < rOrder
 }
 
@@ -123,7 +105,8 @@ func StringToNetHookFunc() mapstructure.DecodeHookFuncType {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
-		data interface{}) (interface{}, error) {
+		data interface{},
+	) (interface{}, error) {
 		if f.Kind() != reflect.String {
 			return data, nil
 		}
@@ -141,12 +124,13 @@ func StringToNetHookFunc() mapstructure.DecodeHookFuncType {
 			}
 			return ip, nil
 		}
+
 		return data, nil
 	}
 }
 
 func extractHostRoutesMap(v []interface{}) ([]subnets.HostRoute, error) {
-	var config = &mapstructure.DecoderConfig{
+	config := &mapstructure.DecoderConfig{
 		DecodeHook: StringToNetHookFunc(),
 	}
 
@@ -160,6 +144,7 @@ func extractHostRoutesMap(v []interface{}) ([]subnets.HostRoute, error) {
 		}
 		HostRoutes[i] = H
 	}
+
 	return HostRoutes, nil
 }
 
@@ -184,6 +169,7 @@ func extractInterfacesMap(interfaces []interface{}) ([]routers.Interface, error)
 		}
 		Interfaces[i] = I
 	}
+
 	return Interfaces, nil
 }
 
@@ -198,10 +184,11 @@ func extractVolumesMap(volumes []interface{}) ([]instances.CreateVolumeOpts, err
 		}
 		Volumes[i] = V
 	}
+
 	return Volumes, nil
 }
 
-// todo refactoring
+// todo refactoring.
 func extractVolumesIntoMap(volumes []interface{}) map[string]map[string]interface{} {
 	Volumes := make(map[string]map[string]interface{}, len(volumes))
 	for _, volume := range volumes {
@@ -253,6 +240,7 @@ func extractInstanceInterfacesMap(interfaces []interface{}) ([]instances.Interfa
 			SecurityGroups: sgs,
 		}
 	}
+
 	return Interfaces, nil
 }
 
@@ -261,7 +249,7 @@ type OrderedInterfaceOpts struct {
 	Order int
 }
 
-// todo refactoring
+// todo refactoring.
 func extractInstanceInterfaceIntoMap(interfaces []interface{}) (map[string]OrderedInterfaceOpts, error) {
 	Interfaces := make(map[string]OrderedInterfaceOpts)
 	for _, iface := range interfaces {
@@ -295,6 +283,7 @@ func extractInstanceInterfaceIntoMap(interfaces []interface{}) (map[string]Order
 			Interfaces[I.Type.String()] = orderedInt
 		}
 	}
+
 	return Interfaces, nil
 }
 
@@ -311,6 +300,7 @@ func extractKeyValue(metadata []interface{}) (instances.MetadataSetOpts, error) 
 		MetaData[i] = MD
 	}
 	MetadataSetOpts.Metadata = MetaData
+
 	return MetadataSetOpts, nil
 }
 
@@ -333,7 +323,7 @@ func findProjectByName(arr []projects.Project, name string) (int, error) {
 	return 0, fmt.Errorf("project with name %s not found", name)
 }
 
-// GetProject returns valid projectID for a resource
+// GetProject returns valid projectID for a resource.
 func GetProject(provider *edgecloud.ProviderClient, projectID int, projectName string) (int, error) {
 	log.Println("[DEBUG] Try to get project ID")
 	// valid cases
@@ -341,7 +331,7 @@ func GetProject(provider *edgecloud.ProviderClient, projectID int, projectName s
 		return projectID, nil
 	}
 	client, err := ec.ClientServiceFromProvider(provider, edgecloud.EndpointOpts{
-		Name:    projectPoint,
+		Name:    ProjectPoint,
 		Region:  0,
 		Project: 0,
 		Version: "v1",
@@ -359,6 +349,7 @@ func GetProject(provider *edgecloud.ProviderClient, projectID int, projectName s
 		return 0, err
 	}
 	log.Printf("[DEBUG] The attempt to get the project is successful: projectID=%d", projectID)
+
 	return projectID, nil
 }
 
@@ -371,14 +362,14 @@ func findRegionByName(arr []regions.Region, name string) (int, error) {
 	return 0, fmt.Errorf("region with name %s not found", name)
 }
 
-// GetRegion returns valid regionID for a resource
+// GetRegion returns valid regionID for a resource.
 func GetRegion(provider *edgecloud.ProviderClient, regionID int, regionName string) (int, error) {
 	// valid cases
 	if regionID != 0 {
 		return regionID, nil
 	}
 	client, err := ec.ClientServiceFromProvider(provider, edgecloud.EndpointOpts{
-		Name:    regionPoint,
+		Name:    RegionPoint,
 		Region:  0,
 		Project: 0,
 		Version: "v1",
@@ -397,6 +388,7 @@ func GetRegion(provider *edgecloud.ProviderClient, regionID int, regionName stri
 		return 0, err
 	}
 	log.Printf("[DEBUG] The attempt to get the region is successful: regionID=%d", regionID)
+
 	return regionID, nil
 }
 
@@ -405,8 +397,7 @@ func ImportStringParser(infoStr string) (int, int, string, error) {
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 3 {
-		return 0, 0, "", fmt.Errorf("Failed import: wrong input id: %s", infoStr)
-
+		return 0, 0, "", fmt.Errorf("failed import: wrong input id: %s", infoStr)
 	}
 	projectID, err := strconv.Atoi(infoStrings[0])
 	if err != nil {
@@ -416,6 +407,7 @@ func ImportStringParser(infoStr string) (int, int, string, error) {
 	if err != nil {
 		return 0, 0, "", err
 	}
+
 	return projectID, regionID, infoStrings[2], nil
 }
 
@@ -425,8 +417,7 @@ func ImportStringParserExtended(infoStr string) (int, int, string, string, error
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 4 {
-		return 0, 0, "", "", fmt.Errorf("Failed import: wrong input id: %s", infoStr)
-
+		return 0, 0, "", "", fmt.Errorf("failed import: wrong input id: %s", infoStr)
 	}
 	projectID, err := strconv.Atoi(infoStrings[0])
 	if err != nil {
@@ -436,6 +427,7 @@ func ImportStringParserExtended(infoStr string) (int, int, string, string, error
 	if err != nil {
 		return 0, 0, "", "", err
 	}
+
 	return projectID, regionID, infoStrings[2], infoStrings[3], nil
 }
 
@@ -461,10 +453,10 @@ func CreateClient(provider *edgecloud.ProviderClient, d *schema.ResourceData, en
 		Project: projectID,
 		Version: version,
 	})
-
 	if err != nil {
 		return nil, err
 	}
+
 	return client, nil
 }
 
@@ -511,6 +503,7 @@ func extractSessionPersistenceMap(d *schema.ResourceData) *lbpools.CreateSession
 			sessionOpts.CookieName = cookieName.(string)
 		}
 	}
+
 	return sessionOpts
 }
 
@@ -551,6 +544,7 @@ func extractHealthMonitorMap(d *schema.ResourceData) *lbpools.CreateHealthMonito
 			healthOpts.ID = id
 		}
 	}
+
 	return healthOpts
 }
 
@@ -591,7 +585,7 @@ func validatePortRange(v interface{}, path cty.Path) diag.Diagnostics {
 	return diag.Errorf("available range %d-%d", minPort, maxPort)
 }
 
-func extractSecurityGroupRuleMap(r interface{}, gid string) securitygroups.CreateRuleOptsBuilder {
+func extractSecurityGroupRuleMap(r interface{}, gid string) securitygroups.CreateSecurityGroupRuleOpts {
 	rule := r.(map[string]interface{})
 	opts := securitygroups.CreateSecurityGroupRuleOpts{
 		Direction:       typesSG.RuleDirection(rule["direction"].(string)),
@@ -612,10 +606,11 @@ func extractSecurityGroupRuleMap(r interface{}, gid string) securitygroups.Creat
 	if remoteIPPrefix != "" {
 		opts.RemoteIPPrefix = &remoteIPPrefix
 	}
+
 	return opts
 }
 
-// technical debt
+// technical debt.
 func findNetworkByName(name string, nets []networks.Network) (networks.Network, bool) {
 	var found bool
 	var network networks.Network
@@ -629,7 +624,7 @@ func findNetworkByName(name string, nets []networks.Network) (networks.Network, 
 	return network, found
 }
 
-// technical debt
+// technical debt.
 func findSharedNetworkByName(name string, nets []availablenetworks.Network) (availablenetworks.Network, bool) {
 	var found bool
 	var network availablenetworks.Network
@@ -643,26 +638,31 @@ func findSharedNetworkByName(name string, nets []availablenetworks.Network) (ava
 	return network, found
 }
 
-func StructToMap(obj interface{}) (newMap map[string]interface{}, err error) {
+func StructToMap(obj interface{}) (map[string]interface{}, error) {
+	var newMap map[string]interface{}
 	data, err := json.Marshal(obj)
 	if err != nil {
-		return
+		return newMap, err
 	}
 	err = json.Unmarshal(data, &newMap)
-	return
+	return newMap, err
 }
 
-// ExtractHostAndPath from url
-func ExtractHostAndPath(uri string) (host, path string, err error) {
+// ExtractHostAndPath from url.
+func ExtractHostAndPath(uri string) (string, string, error) {
+	var host, path string
 	if uri == "" {
-		return "", "", fmt.Errorf("empty uri")
+		return host, path, fmt.Errorf("empty uri")
 	}
 	strings.Split(uri, "://")
-	pUrl, err := url.Parse(uri)
+	pURL, err := url.Parse(uri)
 	if err != nil {
-		return "", "", fmt.Errorf("url parse: %w", err)
+		return host, path, fmt.Errorf("url parse: %w", err)
 	}
-	return pUrl.Scheme + "://" + pUrl.Host, pUrl.Path, nil
+	host = pURL.Scheme + "://" + pURL.Host
+	path = pURL.Path
+
+	return host, path, nil
 }
 
 func parseCIDRFromString(cidr string) (edgecloud.CIDR, error) {
@@ -699,6 +699,7 @@ func isInterfaceAttached(ifs []instances.Interface, ifs2 map[string]interface{})
 			}
 		}
 	}
+
 	return false
 }
 
@@ -719,6 +720,7 @@ func isInterfaceContains(verifiable map[string]interface{}, ifsSet []interface{}
 			}
 		}
 	}
+
 	return false
 }
 
@@ -731,14 +733,4 @@ func extractListenerIntoMap(listener *listeners.Listener) map[string]interface{}
 	l["secret_id"] = listener.SecretID
 	l["sni_secret_id"] = listener.SNISecretID
 	return l
-}
-
-func getUniqueID(d *schema.ResourceData) string {
-	return fmt.Sprintf(
-		"%d%d%s%s",
-		d.Get("region_id").(int),
-		d.Get("project_id").(int),
-		d.Get("region_name").(string),
-		d.Get("project_name").(string),
-	)
 }

@@ -4,9 +4,10 @@ import (
 	"context"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 )
 
 func dataSourceServerGroup() *schema.Resource {
@@ -14,7 +15,7 @@ func dataSourceServerGroup() *schema.Resource {
 		ReadContext: dataSourceServerGroupRead,
 		Description: "Represent server group data",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -22,7 +23,7 @@ func dataSourceServerGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -30,7 +31,7 @@ func dataSourceServerGroup() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -38,7 +39,7 @@ func dataSourceServerGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -82,7 +83,7 @@ func dataSourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, serverGroupsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -125,5 +126,6 @@ func dataSourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	log.Println("[DEBUG] Finish ServerGroup reading")
+
 	return nil
 }

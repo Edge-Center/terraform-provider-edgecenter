@@ -6,10 +6,11 @@ import (
 	"log"
 	"net"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
 )
 
 func dataSourceFloatingIP() *schema.Resource {
@@ -17,7 +18,7 @@ func dataSourceFloatingIP() *schema.Resource {
 		ReadContext: dataSourceFloatingIPRead,
 		Description: "A floating IP is a static IP address that points to one of your Instances. It allows you to redirect network traffic to any of your Instances in the same datacenter.",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -25,7 +26,7 @@ func dataSourceFloatingIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -33,7 +34,7 @@ func dataSourceFloatingIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -41,7 +42,7 @@ func dataSourceFloatingIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -49,7 +50,7 @@ func dataSourceFloatingIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"floating_ip_address": &schema.Schema{
+			"floating_ip_address": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
@@ -62,19 +63,19 @@ func dataSourceFloatingIP() *schema.Resource {
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"fixed_ip_address": &schema.Schema{
+			"fixed_ip_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"router_id": &schema.Schema{
+			"router_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"port_id": &schema.Schema{
+			"port_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -88,7 +89,7 @@ func dataSourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, floatingIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -128,5 +129,6 @@ func dataSourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m int
 	d.Set("floating_ip_address", floatingIP.FloatingIPAddress.String())
 
 	log.Println("[DEBUG] Finish FloatingIP reading")
+
 	return diags
 }

@@ -2,18 +2,19 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"time"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
 	"github.com/hashicorp/go-cty/cty"
-
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
 
 const (
@@ -35,7 +36,6 @@ func resourceLBMember() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, memberID, lbPoolID, err := ImportStringParserExtended(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -49,7 +49,7 @@ func resourceLBMember() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -58,7 +58,7 @@ func resourceLBMember() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -67,7 +67,7 @@ func resourceLBMember() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -76,7 +76,7 @@ func resourceLBMember() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -85,12 +85,12 @@ func resourceLBMember() *schema.Resource {
 					"region_name",
 				},
 			},
-			"pool_id": &schema.Schema{
+			"pool_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"address": &schema.Schema{
+			"address": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
@@ -103,11 +103,11 @@ func resourceLBMember() *schema.Resource {
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"protocol_port": &schema.Schema{
+			"protocol_port": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-			"weight": &schema.Schema{
+			"weight": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "Value between 0 and 256",
@@ -119,20 +119,20 @@ func resourceLBMember() *schema.Resource {
 					return diag.Errorf("Valid values: %d to %d got: %d", minWeight, maxWeight, v)
 				},
 			},
-			"subnet_id": &schema.Schema{
+			"subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"instance_id": &schema.Schema{
+			"instance_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"operating_status": &schema.Schema{
+			"operating_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -147,7 +147,7 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -177,7 +177,6 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 		return pmID, nil
 	})
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -186,6 +185,7 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 	resourceLBMemberRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LBMember creating (%s)", pmID)
+
 	return diags
 }
 
@@ -195,7 +195,7 @@ func resourceLBMemberRead(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -221,6 +221,7 @@ func resourceLBMemberRead(ctx context.Context, d *schema.ResourceData, m interfa
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish LBMember reading)")
+
 	return diags
 }
 
@@ -229,7 +230,7 @@ func resourceLBMemberUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -287,6 +288,7 @@ func resourceLBMemberUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish LBMember updating")
+
 	return resourceLBMemberRead(ctx, d, m)
 }
 
@@ -296,7 +298,7 @@ func resourceLBMemberDelete(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -305,21 +307,20 @@ func resourceLBMemberDelete(ctx context.Context, d *schema.ResourceData, m inter
 	pid := d.Get("pool_id").(string)
 	results, err := lbpools.DeleteMember(client, pid, mid).Extract()
 	if err != nil {
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			d.SetId("")
 			log.Printf("[DEBUG] Finish of LBMember deleting")
 			return diags
-		default:
-			return diag.FromErr(err)
 		}
+		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
 	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, LBPoolsCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
 		pool, err := lbpools.Get(client, pid).Extract()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("extracting LBPool resource error: %w", err)
 		}
 
 		for _, pm := range pool.Members {
@@ -336,5 +337,6 @@ func resourceLBMemberDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of LBMember deleting")
+
 	return diags
 }

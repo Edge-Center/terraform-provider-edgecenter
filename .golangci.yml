@@ -1,41 +1,75 @@
 run:
-  timeout: 60m
-  go: 1.19
+  timeout: 10m
+  go: "1.19"
 
 issues:
-  exclude-rules:
-    - linters:
-        - gosimple
-      text: "S1034"
-
   max-per-linter: 0
   max-same-issues: 0
+  exclude:
+    # revive, stylecheck: ignore constants in all caps
+    - don't use ALL_CAPS in Go names; use CamelCase
+    - ST1003
+    # gosec
+    - G401
+    - G501
+  exclude-rules:
+    - path: \.go
+      linters:
+        - nolintlint
+      text: should be written without leading space
+    - text: lifecyclepolicy.CreateScheduleOpts
+      linters:
+        - ireturn
+    - path: utils.go|_test
+      linters:
+        - wrapcheck
 
 linters:
-  disable-all: true
-  enable:
-    - asciicheck
+  enable-all: true
+  disable:
     - deadcode
-    - errcheck
-    - gocritic
-    - goimports
-    - gosimple
-    - govet
-    - ineffassign
-    - nakedret
-    - misspell
-    - staticcheck
-    - structcheck
-    - typecheck
-    - unused
-    - unconvert
-    - unparam
+    - maligned
     - varcheck
-    - vet
-    - vetshadow
+    - nosnakecase
+    - interfacer
+    - ifshort
+    - structcheck
+    - golint
+    - scopelint
+    - exhaustivestruct
+    - rowserrcheck
+    - sqlclosecheck
+    - wastedassign
+    # skip
+    - gochecknoglobals # check that no global variables exist
+    - nilnil           # Checks that there is no simultaneous return of nil error and an invalid value.
+    - gomnd            # An analyzer to detect magic numbers.
+    - goerr113         # Golang linter to check the errors handling expressions
+    - exhaustruct      # Checks if all structure fields are initialized
+    - lll              # Reports long lines
+    - godox            # Tool for detection of FIXME, TODO and other comment keywords
+    - wsl              # Whitespace Linter - Forces you to use empty lines!
+    - forcetypeassert  # finds forced type assertions
+    # complexity: need to refactor
+    - cyclop
+    - funlen
+    - gocognit
+    - gocyclo
+    - maintidx
+    - nestif
+    - dupl
 
 linters-settings:
+  nlreturn:
+    block-size: 10
+  gci:
+    sections:
+      - standard # Standard section: captures all standard packages.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - prefix(github.com/Edge-Center)
   errcheck:
     ignore: github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set,fmt:.*,io:Close,io:WriteString
   nakedret:
     max-func-lines: 40
+  varnamelen:
+    min-name-length: 1

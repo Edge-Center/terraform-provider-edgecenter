@@ -38,5 +38,6 @@ func dataSourceRegionRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("name", name)
 
 	log.Println("[DEBUG] Finish Region reading")
+
 	return nil
 }

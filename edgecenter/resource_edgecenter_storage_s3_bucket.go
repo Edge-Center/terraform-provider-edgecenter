@@ -8,10 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
 )
 
 const (
@@ -55,7 +56,7 @@ func resourceStorageS3Bucket() *schema.Resource {
 }
 
 func resourceStorageS3BucketCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	id := d.Get(StorageSchemaId).(int)
+	id := d.Get(StorageSchemaID).(int)
 	log.Println("[DEBUG] Start S3 Storage Bucket Resource creating")
 	defer log.Printf("[DEBUG] Finish S3 Storage Bucket Resource creating (id=%d)\n", id)
 	config := m.(*Config)
@@ -74,7 +75,7 @@ func resourceStorageS3BucketCreate(ctx context.Context, d *schema.ResourceData, 
 
 	err := client.CreateBucket(opts...)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("create storage bucket: %v", err))
+		return diag.FromErr(fmt.Errorf("create storage bucket: %w", err))
 	}
 	d.SetId(fmt.Sprintf("%d:%s", id, name))
 
@@ -82,8 +83,8 @@ func resourceStorageS3BucketCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceStorageS3BucketRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	storageId, bucketName := storageBucketResourceID(d)
-	log.Printf("[DEBUG] Start S3 Storage Bucket Resource reading (id=%d, name=%s)\n", storageId, bucketName)
+	storageID, bucketName := storageBucketResourceID(d)
+	log.Printf("[DEBUG] Start S3 Storage Bucket Resource reading (id=%d, name=%s)\n", storageID, bucketName)
 	defer log.Println("[DEBUG] Finish S3 Storage Bucket Resource reading")
 
 	config := m.(*Config)
@@ -91,7 +92,7 @@ func resourceStorageS3BucketRead(ctx context.Context, d *schema.ResourceData, m 
 
 	opts := []func(opt *storage.StorageListBucketsHTTPParams){
 		func(opt *storage.StorageListBucketsHTTPParams) { opt.Context = ctx },
-		func(opt *storage.StorageListBucketsHTTPParams) { opt.ID = int64(storageId) },
+		func(opt *storage.StorageListBucketsHTTPParams) { opt.ID = int64(storageID) },
 	}
 
 	result, err := client.BucketsList(opts...)
@@ -103,18 +104,19 @@ func resourceStorageS3BucketRead(ctx context.Context, d *schema.ResourceData, m 
 	}
 	for _, bucket := range result {
 		if bucket.Name == bucketName {
-			d.SetId(fmt.Sprintf("%d:%s", storageId, bucketName))
-			_ = d.Set(StorageS3BucketSchemaStorageID, storageId)
+			d.SetId(fmt.Sprintf("%d:%s", storageID, bucketName))
+			_ = d.Set(StorageS3BucketSchemaStorageID, storageID)
 			_ = d.Set(StorageS3BucketSchemaName, bucketName)
 			return nil
 		}
 	}
+
 	return diag.FromErr(fmt.Errorf("storage buckets list has not this bucket"))
 }
 
 func resourceStorageS3BucketDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	storageId, bucketName := storageBucketResourceID(d)
-	log.Printf("[DEBUG] Start S3 Storage Bucket Resource deleting (id=%d,name=%s)\n", storageId, bucketName)
+	storageID, bucketName := storageBucketResourceID(d)
+	log.Printf("[DEBUG] Start S3 Storage Bucket Resource deleting (id=%d,name=%s)\n", storageID, bucketName)
 	defer log.Println("[DEBUG] Finish S3 Storage Bucket Resource deleting")
 	if bucketName == "" {
 		return diag.Errorf("empty bucket")
@@ -125,7 +127,7 @@ func resourceStorageS3BucketDelete(ctx context.Context, d *schema.ResourceData, 
 
 	opts := []func(opt *storage.StorageBucketRemoveHTTPParams){
 		func(opt *storage.StorageBucketRemoveHTTPParams) { opt.Context = ctx },
-		func(opt *storage.StorageBucketRemoveHTTPParams) { opt.ID = int64(storageId) },
+		func(opt *storage.StorageBucketRemoveHTTPParams) { opt.ID = int64(storageID) },
 		func(opt *storage.StorageBucketRemoveHTTPParams) { opt.Name = bucketName },
 	}
 	err := client.DeleteBucket(opts...)
@@ -134,10 +136,13 @@ func resourceStorageS3BucketDelete(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	d.SetId("")
+
 	return nil
 }
 
-func storageBucketResourceID(d *schema.ResourceData) (storageID int, bucketName string) {
+func storageBucketResourceID(d *schema.ResourceData) (int, string) {
+	var storageID int
+	var bucketName string
 	resourceID := d.Id()
 	if resourceID == "" {
 		storageID = d.Get(StorageS3BucketSchemaStorageID).(int)
@@ -151,5 +156,6 @@ func storageBucketResourceID(d *schema.ResourceData) (storageID int, bucketName 
 	id, _ := strconv.ParseInt(parts[0], 10, 64)
 	storageID = int(id)
 	bucketName = parts[1]
+
 	return storageID, bucketName
 }

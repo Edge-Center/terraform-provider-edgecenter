@@ -7,16 +7,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygrouprules"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygrouprules"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
 )
 
 const (
-	securityGroupPoint      = "securitygroups"
+	SecurityGroupPoint      = "securitygroups"
 	securityGroupRulesPoint = "securitygrouprules"
 
 	minPort = 0
@@ -33,7 +34,6 @@ func resourceSecurityGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, sgID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -46,7 +46,7 @@ func resourceSecurityGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -54,7 +54,7 @@ func resourceSecurityGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -62,7 +62,7 @@ func resourceSecurityGroup() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -70,7 +70,7 @@ func resourceSecurityGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -78,22 +78,22 @@ func resourceSecurityGroup() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"metadata_map": &schema.Schema{
+			"metadata_map": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"metadata_read_only": &schema.Schema{
+			"metadata_read_only": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -113,18 +113,18 @@ func resourceSecurityGroup() *schema.Resource {
 					},
 				},
 			},
-			"security_group_rules": &schema.Schema{
+			"security_group_rules": {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "Firewall rules control what inbound(ingress) and outbound(egress) traffic is allowed to enter or leave a Instance. At least one 'egress' rule should be set",
 				Set:         secGroupUniqueID,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"direction": &schema.Schema{
+						"direction": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: fmt.Sprintf("Available value is '%s', '%s'", types.RuleDirectionIngress, types.RuleDirectionEgress),
@@ -137,7 +137,7 @@ func resourceSecurityGroup() *schema.Resource {
 								return diag.Errorf("wrong direction '%s', available value is '%s', '%s'", val, types.RuleDirectionIngress, types.RuleDirectionEgress)
 							},
 						},
-						"ethertype": &schema.Schema{
+						"ethertype": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: fmt.Sprintf("Available value is '%s', '%s'", types.EtherTypeIPv4, types.EtherTypeIPv6),
@@ -150,45 +150,45 @@ func resourceSecurityGroup() *schema.Resource {
 								return diag.Errorf("wrong ethertype '%s', available value is '%s', '%s'", val, types.EtherTypeIPv4, types.EtherTypeIPv6)
 							},
 						},
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: fmt.Sprintf("Available value is %s", strings.Join(types.Protocol("").StringList(), ",")),
 						},
-						"port_range_min": &schema.Schema{
+						"port_range_min": {
 							Type:             schema.TypeInt,
 							Optional:         true,
 							Default:          0,
 							ValidateDiagFunc: validatePortRange,
 						},
-						"port_range_max": &schema.Schema{
+						"port_range_max": {
 							Type:             schema.TypeInt,
 							Optional:         true,
 							Default:          0,
 							ValidateDiagFunc: validatePortRange,
 						},
-						"description": &schema.Schema{
+						"description": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "",
 						},
-						"remote_ip_prefix": &schema.Schema{
+						"remote_ip_prefix": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "",
 						},
-						"updated_at": &schema.Schema{
+						"updated_at": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"created_at": &schema.Schema{
+						"created_at": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -217,7 +217,7 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, securityGroupPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -276,6 +276,7 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 
 	resourceSecurityGroupRead(ctx, d, m)
 	log.Printf("[DEBUG] Finish SecurityGroup creating (%s)", sg.ID)
+
 	return diags
 }
 
@@ -285,7 +286,7 @@ func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, securityGroupPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -367,6 +368,7 @@ func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	log.Println("[DEBUG] Finish SecurityGroup reading")
+
 	return diags
 }
 
@@ -387,12 +389,12 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 
 	config := m.(*Config)
 	provider := config.Provider
-	clientCreate, err := CreateClient(provider, d, securityGroupPoint, versionPointV1)
+	clientCreate, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientUpdateDelete, err := CreateClient(provider, d, securityGroupRulesPoint, versionPointV1)
+	clientUpdateDelete, err := CreateClient(provider, d, securityGroupRulesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -454,6 +456,7 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish SecurityGroup updating")
+
 	return resourceSecurityGroupRead(ctx, d, m)
 }
 
@@ -464,7 +467,7 @@ func resourceSecurityGroupDelete(ctx context.Context, d *schema.ResourceData, m 
 	provider := config.Provider
 	sgID := d.Id()
 
-	client, err := CreateClient(provider, d, securityGroupPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -476,5 +479,6 @@ func resourceSecurityGroupDelete(ctx context.Context, d *schema.ResourceData, m 
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of SecurityGroup deleting")
+
 	return diags
 }

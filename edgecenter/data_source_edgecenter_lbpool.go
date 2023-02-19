@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
 )
 
 func dataSourceLBPool() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceLBPoolRead,
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -23,7 +24,7 @@ func dataSourceLBPool() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -31,7 +32,7 @@ func dataSourceLBPool() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -39,7 +40,7 @@ func dataSourceLBPool() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -47,93 +48,93 @@ func dataSourceLBPool() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"loadbalancer_id": &schema.Schema{
+			"loadbalancer_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"listener_id": &schema.Schema{
+			"listener_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"lb_algorithm": &schema.Schema{
+			"lb_algorithm": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s'", types.LoadBalancerAlgorithmRoundRobin, types.LoadBalancerAlgorithmLeastConnections, types.LoadBalancerAlgorithmSourceIP, types.LoadBalancerAlgorithmSourceIPPort),
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP),
 			},
-			"health_monitor": &schema.Schema{
+			"health_monitor": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s', '%s', '%s", types.HealthMonitorTypeHTTP, types.HealthMonitorTypeHTTPS, types.HealthMonitorTypePING, types.HealthMonitorTypeTCP, types.HealthMonitorTypeTLSHello, types.HealthMonitorTypeUDPConnect),
 						},
-						"delay": &schema.Schema{
+						"delay": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"max_retries": &schema.Schema{
+						"max_retries": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"timeout": &schema.Schema{
+						"timeout": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"max_retries_down": &schema.Schema{
+						"max_retries_down": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"http_method": &schema.Schema{
+						"http_method": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"url_path": &schema.Schema{
+						"url_path": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"expected_codes": &schema.Schema{
+						"expected_codes": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"session_persistence": &schema.Schema{
+			"session_persistence": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"cookie_name": &schema.Schema{
+						"cookie_name": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"persistence_granularity": &schema.Schema{
+						"persistence_granularity": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"persistence_timeout": &schema.Schema{
+						"persistence_timeout": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
@@ -150,7 +151,7 @@ func dataSourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -235,5 +236,6 @@ func dataSourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("region_id", d.Get("region_id").(int))
 
 	log.Println("[DEBUG] Finish LBPool reading")
+
 	return diags
 }

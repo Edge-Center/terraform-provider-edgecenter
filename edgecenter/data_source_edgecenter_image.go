@@ -5,13 +5,14 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/image/v1/images"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/image/v1/images"
 )
 
 const (
-	imagesPoint   = "images"
+	ImagesPoint   = "images"
 	bmImagesPoint = "bmimages"
 )
 
@@ -20,7 +21,7 @@ func dataSourceImage() *schema.Resource {
 		ReadContext: dataSourceImageRead,
 		Description: "Represent image data",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -28,7 +29,7 @@ func dataSourceImage() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -36,7 +37,7 @@ func dataSourceImage() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -44,7 +45,7 @@ func dataSourceImage() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -52,33 +53,33 @@ func dataSourceImage() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Description: "use 'os-version', for example 'ubuntu-20.04'",
 				Required:    true,
 			},
-			"is_baremetal": &schema.Schema{
+			"is_baremetal": {
 				Type:        schema.TypeBool,
 				Description: "set to true if need to get baremetal image",
 				Optional:    true,
 			},
-			"min_disk": &schema.Schema{
+			"min_disk": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"min_ram": &schema.Schema{
+			"min_ram": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"os_distro": &schema.Schema{
+			"os_distro": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"os_version": &schema.Schema{
+			"os_version": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -93,11 +94,11 @@ func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interfac
 	config := m.(*Config)
 	provider := config.Provider
 
-	point := imagesPoint
+	point := ImagesPoint
 	if isBm, _ := d.Get("is_baremetal").(bool); isBm {
 		point = bmImagesPoint
 	}
-	client, err := CreateClient(provider, d, point, versionPointV1)
+	client, err := CreateClient(provider, d, point, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -131,5 +132,6 @@ func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("description", image.Description)
 
 	log.Println("[DEBUG] Finish Image reading")
+
 	return nil
 }

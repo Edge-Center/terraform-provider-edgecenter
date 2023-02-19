@@ -4,16 +4,17 @@ import (
 	"context"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 )
 
 func dataSourceLBListener() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceLBListenerRead,
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -21,7 +22,7 @@ func dataSourceLBListener() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -29,7 +30,7 @@ func dataSourceLBListener() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -37,7 +38,7 @@ func dataSourceLBListener() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -45,33 +46,33 @@ func dataSourceLBListener() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"loadbalancer_id": &schema.Schema{
+			"loadbalancer_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'",
 			},
-			"protocol_port": &schema.Schema{
+			"protocol_port": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"pool_count": &schema.Schema{
+			"pool_count": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"operating_status": &schema.Schema{
+			"operating_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"provisioning_status": &schema.Schema{
+			"provisioning_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -85,7 +86,7 @@ func dataSourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -128,5 +129,6 @@ func dataSourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m int
 	d.Set("region_id", d.Get("region_id").(int))
 
 	log.Println("[DEBUG] Finish LBListener reading")
+
 	return diags
 }

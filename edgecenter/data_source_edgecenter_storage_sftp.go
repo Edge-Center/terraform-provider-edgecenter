@@ -11,16 +11,16 @@ import (
 func dataSourceStorageSFTP() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			StorageSchemaId: {
+			StorageSchemaID: {
 				Type:     schema.TypeInt,
 				Optional: true,
 				AtLeastOneOf: []string{
-					StorageSchemaId,
+					StorageSchemaID,
 					StorageSchemaName,
 				},
 				Description: "An id of storage resource.",
 			},
-			StorageSchemaClientId: {
+			StorageSchemaClientID: {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "An client id of storage resource.",
@@ -29,7 +29,7 @@ func dataSourceStorageSFTP() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				AtLeastOneOf: []string{
-					StorageSchemaId,
+					StorageSchemaID,
 					StorageSchemaName,
 				},
 				ValidateDiagFunc: func(i interface{}, path cty.Path) diag.Diagnostics {
@@ -56,7 +56,7 @@ func dataSourceStorageSFTP() *schema.Resource {
 				Computed:    true,
 				Description: "A location of new storage resource. One of (ams, sin, fra, mia)",
 			},
-			StorageSFTPSchemaKeyId: {
+			StorageSFTPSchemaKeyID: {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,

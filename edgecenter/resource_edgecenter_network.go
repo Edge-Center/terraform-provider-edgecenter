@@ -2,23 +2,27 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 	"log"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 )
 
-const networkDeleting int = 1200
-const networkCreatingTimeout int = 1200
-const networksPoint = "networks"
-const sharedNetworksPoint = "availablenetworks"
+const (
+	NetworkDeleting        int = 1200
+	NetworkCreatingTimeout int = 1200
+	NetworksPoint              = "networks"
+	SharedNetworksPoint        = "availablenetworks"
+)
 
 func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
@@ -30,7 +34,6 @@ func resourceNetwork() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, NetworkID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -43,7 +46,7 @@ func resourceNetwork() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -51,7 +54,7 @@ func resourceNetwork() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -59,7 +62,7 @@ func resourceNetwork() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -67,7 +70,7 @@ func resourceNetwork() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -75,40 +78,40 @@ func resourceNetwork() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"mtu": &schema.Schema{
+			"mtu": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 				Description: "'vlan' or 'vxlan' network type is allowed. Default value is 'vxlan'",
 			},
-			"create_router": &schema.Schema{
+			"create_router": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     true,
 				Description: "Create external router to the network, default true",
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"metadata_map": &schema.Schema{
+			"metadata_map": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"metadata_read_only": &schema.Schema{
+			"metadata_read_only": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -138,7 +141,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, networksPoint, versionPointV1)
+	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -167,7 +170,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	networkID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, networkCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
+	networkID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, NetworkCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
@@ -188,6 +191,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	resourceNetworkRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Network creating (%s)", networkID)
+
 	return diags
 }
 
@@ -200,7 +204,7 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interfac
 	networkID := d.Id()
 	log.Printf("[DEBUG] Network id = %s", networkID)
 
-	client, err := CreateClient(provider, d, networksPoint, versionPointV1)
+	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -241,6 +245,7 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interfac
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish network reading")
+
 	return diags
 }
 
@@ -250,7 +255,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	log.Printf("[DEBUG] Volume id = %s", networkID)
 	config := m.(*Config)
 	provider := config.Provider
-	client, err := CreateClient(provider, d, networksPoint, versionPointV1)
+	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -278,6 +283,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish network updating")
+
 	return resourceNetworkRead(ctx, d, m)
 }
 
@@ -289,7 +295,7 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 	networkID := d.Id()
 	log.Printf("[DEBUG] Network id = %s", networkID)
 
-	client, err := CreateClient(provider, d, networksPoint, versionPointV1)
+	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -300,17 +306,16 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, networkDeleting, func(task tasks.TaskID) (interface{}, error) {
+	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, NetworkDeleting, func(task tasks.TaskID) (interface{}, error) {
 		_, err := networks.Get(client, networkID).Extract()
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete network with ID: %s", networkID)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting Network resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -318,5 +323,6 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of network deleting")
+
 	return diags
 }

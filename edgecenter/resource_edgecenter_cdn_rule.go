@@ -7,9 +7,10 @@ import (
 	"strconv"
 
 	"github.com/AlekSi/pointer"
-	"github.com/Edge-Center/edgecentercdn-go/rules"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercdn-go/rules"
 )
 
 func resourceCDNRule() *schema.Resource {
@@ -88,6 +89,7 @@ func resourceCDNRuleCreate(ctx context.Context, d *schema.ResourceData, m interf
 	resourceCDNRuleRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN Rule creating (id=%d)\n", result.ID)
+
 	return nil
 }
 
@@ -119,6 +121,7 @@ func resourceCDNRuleRead(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	log.Println("[DEBUG] Finish CDN Rule reading")
+
 	return nil
 }
 
@@ -155,6 +158,7 @@ func resourceCDNRuleUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	log.Println("[DEBUG] Finish CDN Rule updating")
+
 	return resourceCDNRuleRead(ctx, d, m)
 }
 
@@ -177,5 +181,6 @@ func resourceCDNRuleDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 	d.SetId("")
 	log.Println("[DEBUG] Finish CDN Rule deleting")
+
 	return nil
 }

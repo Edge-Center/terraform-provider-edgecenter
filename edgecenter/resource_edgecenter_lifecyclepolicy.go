@@ -7,22 +7,21 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/lifecyclepolicy/v1/lifecyclepolicy"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/lifecyclepolicy/v1/lifecyclepolicy"
 )
 
 const (
-	lifecyclePolicyPoint = "lifecycle_policy"
-	// Maybe move to utils and use for other resources
+	LifecyclePolicyPoint = "lifecycle_policy"
+	// Maybe move to utils and use for other resources.
 	nameRegexString = `^[a-zA-Z0-9][a-zA-Z 0-9._\-]{1,61}[a-zA-Z0-9._]$`
 )
 
-var (
-	// Maybe move to utils and use for other resources
-	nameRegex = regexp.MustCompile(nameRegexString)
-)
+// Maybe move to utils and use for other resources.
+var nameRegex = regexp.MustCompile(nameRegexString)
 
 func resourceLifecyclePolicy() *schema.Resource {
 	return &schema.Resource{
@@ -34,7 +33,6 @@ func resourceLifecyclePolicy() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, lcpID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -265,7 +263,7 @@ func resourceLifecyclePolicy() *schema.Resource {
 }
 
 func resourceLifecyclePolicyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, lifecyclePolicyPoint, versionPointV1)
+	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
 	if err != nil {
 		return diag.Errorf("Error creating client: %s", err)
 	}
@@ -281,22 +279,23 @@ func resourceLifecyclePolicyCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 	d.SetId(strconv.Itoa(policy.ID))
 	log.Printf("[DEBUG] Finish of LifecyclePolicy %s creating", d.Id())
+
 	return resourceLifecyclePolicyRead(ctx, d, m)
 }
 
 func resourceLifecyclePolicyRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, lifecyclePolicyPoint, versionPointV1)
+	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
 	if err != nil {
 		return diag.Errorf("Error creating client: %s", err)
 	}
 	id := d.Id()
-	integerId, err := strconv.Atoi(id)
+	integerID, err := strconv.Atoi(id)
 	if err != nil {
 		return diag.Errorf("Error converting lifecycle policy ID to integer: %s", err)
 	}
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy %s reading", id)
-	policy, err := lifecyclepolicy.Get(client, integerId, lifecyclepolicy.GetOpts{NeedVolumes: true}).Extract()
+	policy, err := lifecyclepolicy.Get(client, integerID, lifecyclepolicy.GetOpts{NeedVolumes: true}).Extract()
 	if err != nil {
 		return diag.Errorf("Error getting lifecycle policy: %s", err)
 	}
@@ -313,22 +312,23 @@ func resourceLifecyclePolicyRead(_ context.Context, d *schema.ResourceData, m in
 	}
 
 	log.Printf("[DEBUG] Finish of LifecyclePolicy %s reading", id)
+
 	return nil
 }
 
 func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, lifecyclePolicyPoint, versionPointV1)
+	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
 	if err != nil {
 		return diag.Errorf("Error creating client: %s", err)
 	}
 	id := d.Id()
-	integerId, err := strconv.Atoi(id)
+	integerID, err := strconv.Atoi(id)
 	if err != nil {
 		return diag.Errorf("Error converting lifecycle policy ID to integer: %s", err)
 	}
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy updating")
-	_, err = lifecyclepolicy.Update(client, integerId, buildLifecyclePolicyUpdateOpts(d)).Extract()
+	_, err = lifecyclepolicy.Update(client, integerID, buildLifecyclePolicyUpdateOpts(d)).Extract()
 	if err != nil {
 		return diag.Errorf("Error updating lifecycle policy: %s", err)
 	}
@@ -336,37 +336,39 @@ func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, 
 	if d.HasChange("volume") {
 		oldVolumes, newVolumes := d.GetChange("volume")
 		toRemove, toAdd := volumeSymmetricDifference(oldVolumes.(*schema.Set), newVolumes.(*schema.Set))
-		_, err = lifecyclepolicy.RemoveVolumes(client, integerId, lifecyclepolicy.RemoveVolumesOpts{VolumeIds: toRemove}).Extract()
+		_, err = lifecyclepolicy.RemoveVolumes(client, integerID, lifecyclepolicy.RemoveVolumesOpts{VolumeIds: toRemove}).Extract()
 		if err != nil {
 			return diag.Errorf("Error removing volumes from lifecycle policy: %s", err)
 		}
-		_, err = lifecyclepolicy.AddVolumes(client, integerId, lifecyclepolicy.AddVolumesOpts{VolumeIds: toAdd}).Extract()
+		_, err = lifecyclepolicy.AddVolumes(client, integerID, lifecyclepolicy.AddVolumesOpts{VolumeIds: toAdd}).Extract()
 		if err != nil {
 			return diag.Errorf("Error adding volumes to lifecycle policy: %s", err)
 		}
 	}
-	log.Printf("[DEBUG] Finish of LifecyclePolicy %v updating", integerId)
+	log.Printf("[DEBUG] Finish of LifecyclePolicy %v updating", integerID)
+
 	return resourceLifecyclePolicyRead(ctx, d, m)
 }
 
 func resourceLifecyclePolicyDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, lifecyclePolicyPoint, versionPointV1)
+	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
 	if err != nil {
 		return diag.Errorf("Error creating client: %s", err)
 	}
 	id := d.Id()
-	integerId, err := strconv.Atoi(id)
+	integerID, err := strconv.Atoi(id)
 	if err != nil {
 		return diag.Errorf("Error converting lifecycle policy ID to integer: %s", err)
 	}
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy %s deleting", id)
-	err = lifecyclepolicy.Delete(client, integerId)
+	err = lifecyclepolicy.Delete(client, integerID)
 	if err != nil {
 		return diag.Errorf("Error deleting lifecycle policy: %s", err)
 	}
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of LifecyclePolicy %s deleting", id)
+
 	return nil
 }
 
@@ -404,13 +406,14 @@ func expandRetentionTimer(flat []interface{}) *lifecyclepolicy.RetentionTimer {
 	return nil
 }
 
-func expandSchedule(flat map[string]interface{}) (expanded lifecyclepolicy.CreateScheduleOpts, err error) {
+func expandSchedule(flat map[string]interface{}) (lifecyclepolicy.CreateScheduleOpts, error) {
 	t := lifecyclepolicy.ScheduleType("")
 	intervalSlice := flat["interval"].([]interface{})
 	cronSlice := flat["cron"].([]interface{})
 	if len(intervalSlice)+len(cronSlice) != 1 {
 		return nil, fmt.Errorf("exactly one of interval and cron blocks should be provided")
 	}
+	var expanded lifecyclepolicy.CreateScheduleOpts
 	if len(intervalSlice) > 0 {
 		t = lifecyclepolicy.ScheduleTypeInterval
 		expanded = expandIntervalSchedule(intervalSlice[0].(map[string]interface{}))
@@ -424,7 +427,8 @@ func expandSchedule(flat map[string]interface{}) (expanded lifecyclepolicy.Creat
 		MaxQuantity:          flat["max_quantity"].(int),
 		RetentionTime:        expandRetentionTimer(flat["retention_time"].([]interface{})),
 	})
-	return
+
+	return expanded, nil
 }
 
 func expandSchedules(flat []interface{}) ([]lifecyclepolicy.CreateScheduleOpts, error) {
@@ -465,6 +469,7 @@ func buildLifecyclePolicyCreateOpts(d *schema.ResourceData) (*lifecyclepolicy.Cr
 	} else {
 		opts.Action = lifecyclepolicy.PolicyActionVolumeSnapshot
 	}
+
 	return opts, nil
 }
 
@@ -481,6 +486,7 @@ func volumeSymmetricDifference(oldVolumes, newVolumes *schema.Set) ([]string, []
 			toAdd = append(toAdd, v.(map[string]interface{})["id"].(string))
 		}
 	}
+
 	return toRemove, toAdd
 }
 
@@ -540,6 +546,7 @@ func flattenSchedule(expanded lifecyclepolicy.Schedule) map[string]interface{} {
 	case lifecyclepolicy.ScheduleTypeCron:
 		flat["cron"] = flattenCronSchedule(expanded.(lifecyclepolicy.CronSchedule))
 	}
+
 	return flat
 }
 

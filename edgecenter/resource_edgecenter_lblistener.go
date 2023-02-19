@@ -2,17 +2,19 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
@@ -34,7 +36,6 @@ func resourceLbListener() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, listenerID, lbID, err := ImportStringParserExtended(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -48,7 +49,7 @@ func resourceLbListener() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -57,7 +58,7 @@ func resourceLbListener() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -66,7 +67,7 @@ func resourceLbListener() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -75,7 +76,7 @@ func resourceLbListener() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -84,16 +85,16 @@ func resourceLbListener() *schema.Resource {
 					"region_name",
 				},
 			},
-			"loadbalancer_id": &schema.Schema{
+			"loadbalancer_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
@@ -103,43 +104,44 @@ func resourceLbListener() *schema.Resource {
 					switch types.ProtocolType(v) {
 					case types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP:
 						return diag.Diagnostics{}
+					case types.ProtocolTypeTerminatedHTTPS, types.ProtocolTypePROXY:
 					}
 					return diag.Errorf("wrong protocol %s, available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'", v)
 				},
 			},
-			"protocol_port": &schema.Schema{
+			"protocol_port": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"insert_x_forwarded": &schema.Schema{
+			"insert_x_forwarded": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Insert *-forwarded headers",
 				ForceNew:    true,
 			},
-			"pool_count": &schema.Schema{
+			"pool_count": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"operating_status": &schema.Schema{
+			"operating_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"provisioning_status": &schema.Schema{
+			"provisioning_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"secret_id": &schema.Schema{
+			"secret_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"sni_secret_id": &schema.Schema{
+			"sni_secret_id": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -154,7 +156,7 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -193,7 +195,6 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 		}
 		return listenerID, nil
 	})
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -202,6 +203,7 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 	resourceLBListenerRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LBListener creating (%s)", listenerID)
+
 	return diags
 }
 
@@ -211,7 +213,7 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -233,6 +235,7 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish LBListener reading")
+
 	return diags
 }
 
@@ -241,7 +244,7 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -278,6 +281,7 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	log.Println("[DEBUG] Finish LBListener updating")
+
 	return resourceLBListenerRead(ctx, d, m)
 }
 
@@ -287,7 +291,7 @@ func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -304,12 +308,11 @@ func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m int
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete LBListener with ID: %s", id)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting Listener resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -317,5 +320,6 @@ func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m int
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of LBListener deleting")
+
 	return diags
 }

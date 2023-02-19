@@ -9,9 +9,10 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/Edge-Center/edgecentercdn-go/origingroups"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercdn-go/origingroups"
 )
 
 func resourceCDNOriginGroup() *schema.Resource {
@@ -88,6 +89,7 @@ func resourceCDNOriginGroupCreate(ctx context.Context, d *schema.ResourceData, m
 	resourceCDNOriginGroupRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN OriginGroup creating (id=%d)\n", result.ID)
+
 	return nil
 }
 
@@ -114,6 +116,7 @@ func resourceCDNOriginGroupRead(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	log.Println("[DEBUG] Finish CDN OriginGroup reading")
+
 	return nil
 }
 
@@ -160,10 +163,12 @@ func resourceCDNOriginGroupDelete(ctx context.Context, d *schema.ResourceData, m
 
 	d.SetId("")
 	log.Println("[DEBUG] Finish CDN Resource deleting")
+
 	return nil
 }
 
-func setToOriginRequests(s *schema.Set) (origins []origingroups.OriginRequest) {
+func setToOriginRequests(s *schema.Set) []origingroups.OriginRequest {
+	origins := make([]origingroups.OriginRequest, 0)
 	for _, fields := range s.List() {
 		var originReq origingroups.OriginRequest
 

@@ -2,18 +2,20 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
@@ -36,7 +38,6 @@ func resourceLoadBalancer() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, lbID, listenerID, err := ImportStringParserExtended(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -47,19 +48,19 @@ func resourceLoadBalancer() *schema.Resource {
 				config := m.(*Config)
 				provider := config.Provider
 
-				listenersClient, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+				listenersClient, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 				if err != nil {
 					return nil, err
 				}
 
 				listener, err := listeners.Get(listenersClient, listenerID).Extract()
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("extracting Listener resource error: %w", err)
 				}
 
 				l := extractListenerIntoMap(listener)
 				if err := d.Set("listener", []interface{}{l}); err != nil {
-					return nil, err
+					return nil, fmt.Errorf("set listener error: %w", err)
 				}
 
 				return []*schema.ResourceData{d}, nil
@@ -67,7 +68,7 @@ func resourceLoadBalancer() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -76,7 +77,7 @@ func resourceLoadBalancer() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -85,7 +86,7 @@ func resourceLoadBalancer() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -94,7 +95,7 @@ func resourceLoadBalancer() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -103,49 +104,49 @@ func resourceLoadBalancer() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"flavor": &schema.Schema{
+			"flavor": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"vip_network_id": &schema.Schema{
+			"vip_network_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"vip_subnet_id": &schema.Schema{
+			"vip_subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"vip_address": &schema.Schema{
+			"vip_address": {
 				Type:        schema.TypeString,
 				Description: "Load balancer IP address",
 				Computed:    true,
 			},
-			"listener": &schema.Schema{
+			"listener": {
 				Type:     schema.TypeList,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"certificate": &schema.Schema{
+						"certificate": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP),
@@ -154,31 +155,32 @@ func resourceLoadBalancer() *schema.Resource {
 								switch types.ProtocolType(v) {
 								case types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP:
 									return diag.Diagnostics{}
+								case types.ProtocolTypeTerminatedHTTPS, types.ProtocolTypePROXY:
 								}
 								return diag.Errorf("wrong protocol %s, available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'", v)
 							},
 						},
-						"certificate_chain": &schema.Schema{
+						"certificate_chain": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"protocol_port": &schema.Schema{
+						"protocol_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"private_key": &schema.Schema{
+						"private_key": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"insert_x_forwarded": &schema.Schema{
+						"insert_x_forwarded": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"secret_id": &schema.Schema{
+						"secret_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"sni_secret_id": &schema.Schema{
+						"sni_secret_id": {
 							Type:     schema.TypeList,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Optional: true,
@@ -186,7 +188,7 @@ func resourceLoadBalancer() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -205,7 +207,7 @@ func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -226,7 +228,7 @@ func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m int
 	fields := []string{"vip_network_id", "vip_subnet_id"}
 	revertState(d, &fields)
 
-	listenersClient, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+	listenersClient, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -258,6 +260,7 @@ func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	log.Println("[DEBUG] Finish LoadBalancer reading")
+
 	return diags
 }
 
@@ -266,7 +269,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -275,8 +278,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 		opts := loadbalancers.UpdateOpts{
 			Name: d.Get("name").(string),
 		}
-		_, err = loadbalancers.Update(client, d.Id(), opts).Extract()
-		if err != nil {
+		if _, err = loadbalancers.Update(client, d.Id(), opts).Extract(); err != nil {
 			return diag.FromErr(err)
 		}
 
@@ -284,7 +286,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("listener") {
-		client, err := CreateClient(provider, d, LBListenersPoint, versionPointV1)
+		client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -309,12 +311,11 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 				if err == nil {
 					return nil, fmt.Errorf("cannot delete LBListener with ID: %s", listenerID)
 				}
-				switch err.(type) {
-				case edgecloud.ErrDefault404:
+				var errDefault404 *edgecloud.ErrDefault404
+				if errors.As(err, &errDefault404) {
 					return nil, nil
-				default:
-					return nil, err
 				}
+				return nil, fmt.Errorf("extracting Listener resource error: %w", err)
 			})
 			if err != nil {
 				return diag.FromErr(err)
@@ -375,6 +376,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	log.Println("[DEBUG] Finish LoadBalancer updating")
+
 	return resourceLoadBalancerRead(ctx, d, m)
 }
 
@@ -384,7 +386,7 @@ func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m i
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, versionPointV1)
+	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -401,12 +403,11 @@ func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m i
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete loadbalancer with ID: %s", id)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting Load Balancer resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -414,5 +415,6 @@ func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m i
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of LoadBalancer deleting")
+
 	return diags
 }

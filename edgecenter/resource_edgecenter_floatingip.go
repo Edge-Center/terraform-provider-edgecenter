@@ -2,21 +2,23 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"time"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
 
 const (
-	floatingIPsPoint        = "floatingips"
+	FloatingIPsPoint        = "floatingips"
 	FloatingIPCreateTimeout = 1200
 )
 
@@ -30,7 +32,6 @@ func resourceFloatingIP() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, fipID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -43,7 +44,7 @@ func resourceFloatingIP() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -51,7 +52,7 @@ func resourceFloatingIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -59,7 +60,7 @@ func resourceFloatingIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -67,7 +68,7 @@ func resourceFloatingIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -75,11 +76,11 @@ func resourceFloatingIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"fixed_ip_address": &schema.Schema{
+			"fixed_ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -93,28 +94,28 @@ func resourceFloatingIP() *schema.Resource {
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"floating_ip_address": &schema.Schema{
+			"floating_ip_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"router_id": &schema.Schema{
+			"router_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"port_id": &schema.Schema{
+			"port_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"updated_at": &schema.Schema{
+			"updated_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -129,7 +130,7 @@ func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, floatingIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -166,6 +167,7 @@ func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m int
 	resourceFloatingIPRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish FloatingIP creating (%s)", floatingIPID)
+
 	return diags
 }
 
@@ -175,21 +177,20 @@ func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, floatingIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	floatingIP, err := floatingips.Get(client, d.Id()).Extract()
 	if err != nil {
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			log.Printf("[WARN] Removing floating ip %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil
-		default:
-			return diag.FromErr(err)
 		}
+		return diag.FromErr(err)
 	}
 
 	if floatingIP.FixedIPAddress != nil {
@@ -206,6 +207,7 @@ func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m inter
 	d.Set("floating_ip_address", floatingIP.FloatingIPAddress.String())
 
 	log.Println("[DEBUG] Finish FloatingIP reading")
+
 	return diags
 }
 
@@ -214,7 +216,7 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, floatingIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -253,7 +255,7 @@ func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, floatingIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -270,12 +272,11 @@ func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m int
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete floating ip with ID: %s", id)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting FloatingIP resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -283,5 +284,6 @@ func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m int
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of FloatingIP deleting")
+
 	return diags
 }

@@ -8,10 +8,11 @@ import (
 	"net"
 	"strings"
 
-	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
 )
 
 const (
@@ -83,7 +84,6 @@ func resourceDNSZoneRecord() *schema.Resource {
 						}
 					}
 					return diag.Errorf("dns record type should be one of %v", types)
-
 				},
 				Description: "A type of DNS Zone Record resource.",
 			},
@@ -278,7 +278,7 @@ func resourceDNSZoneRecordCreate(ctx context.Context, d *schema.ResourceData, m 
 
 	err = client.CreateRRSet(ctx, zone, domain, rType, rrSet)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("create zone rrset: %v", err))
+		return diag.FromErr(fmt.Errorf("create zone rrset: %w", err))
 	}
 	d.SetId(zone)
 
@@ -307,7 +307,7 @@ func resourceDNSZoneRecordUpdate(ctx context.Context, d *schema.ResourceData, m 
 
 	err = client.UpdateRRSet(ctx, zone, domain, rType, rrSet)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("update zone rrset: %v", err))
+		return diag.FromErr(fmt.Errorf("update zone rrset: %w", err))
 	}
 	d.SetId(zone)
 
@@ -331,8 +331,11 @@ func resourceDNSZoneRecordRead(ctx context.Context, d *schema.ResourceData, m in
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("get zone rrset: %w", err))
 	}
-	id := struct{ Zone, Domain, Type string }{zone, domain, rType}
-	bs, _ := json.Marshal(id)
+	id := struct{ Zone, Domain, Type string }{zone, domain, rType} //nolint: musttag
+	bs, err := json.Marshal(id)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(string(bs))
 	_ = d.Set(DNSZoneRecordSchemaZone, zone)
 	_ = d.Set(DNSZoneRecordSchemaDomain, domain)
@@ -494,5 +497,6 @@ func fillRRSet(d *schema.ResourceData, rType string, rrSet *dnssdk.RRSet) error 
 		}
 		rrSet.Records = append(rrSet.Records, *rr)
 	}
+
 	return nil
 }

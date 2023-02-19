@@ -8,23 +8,24 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform/version"
+
 	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
 	cdn "github.com/Edge-Center/edgecentercdn-go"
 	eccdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform/version"
 )
 
 const (
 	ProviderOptPermanentToken    = "permanent_api_token"
-	ProviderOptSkipCredsAuthErr  = "ignore_creds_auth_error"
-	ProviderOptSingleApiEndpoint = "api_endpoint"
+	ProviderOptSkipCredsAuthErr  = "ignore_creds_auth_error" //nolint: gosec
+	ProviderOptSingleAPIEndpoint = "api_endpoint"
 
-	lifecyclePolicyResource = "edgecenter_lifecyclepolicy"
+	LifecyclePolicyResource = "edgecenter_lifecyclepolicy"
 )
 
 func Provider() *schema.Provider {
@@ -34,8 +35,8 @@ func Provider() *schema.Provider {
 				Type:     schema.TypeString,
 				Optional: true,
 				// commented because it's broke all tests
-				//AtLeastOneOf: []string{ProviderOptPermanentToken, "user_name"},
-				//RequiredWith: []string{"user_name", "password"},
+				// AtLeastOneOf: []string{ProviderOptPermanentToken, "user_name"},
+				// RequiredWith: []string{"user_name", "password"},
 				Deprecated:  fmt.Sprintf("Use %s instead", ProviderOptPermanentToken),
 				DefaultFunc: schema.EnvDefaultFunc("EC_USERNAME", nil),
 			},
@@ -43,7 +44,7 @@ func Provider() *schema.Provider {
 				Type:     schema.TypeString,
 				Optional: true,
 				// commented because it's broke all tests
-				//RequiredWith: []string{"user_name", "password"},
+				// RequiredWith: []string{"user_name", "password"},
 				Deprecated:  fmt.Sprintf("Use %s instead", ProviderOptPermanentToken),
 				DefaultFunc: schema.EnvDefaultFunc("EC_PASSWORD", nil),
 			},
@@ -51,12 +52,12 @@ func Provider() *schema.Provider {
 				Type:     schema.TypeString,
 				Optional: true,
 				// commented because it's broke all tests
-				//AtLeastOneOf: []string{ProviderOptPermanentToken, "user_name"},
+				// AtLeastOneOf: []string{ProviderOptPermanentToken, "user_name"},
 				Sensitive:   true,
 				Description: "A permanent [API-token](https://support.edgecenter.ru/knowledge_base/item/257788)",
 				DefaultFunc: schema.EnvDefaultFunc("EC_PERMANENT_TOKEN", nil),
 			},
-			ProviderOptSingleApiEndpoint: {
+			ProviderOptSingleAPIEndpoint: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A single API endpoint for all products. Will be used when specific product API url is not defined.",
@@ -152,7 +153,7 @@ func Provider() *schema.Provider {
 			"edgecenter_cdn_origingroup":   resourceCDNOriginGroup(),
 			"edgecenter_cdn_rule":          resourceCDNRule(),
 			"edgecenter_cdn_sslcert":       resourceCDNCert(),
-			lifecyclePolicyResource:        resourceLifecyclePolicy(),
+			LifecyclePolicyResource:        resourceLifecyclePolicy(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":           dataSourceProject(),
@@ -187,14 +188,14 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 	username := d.Get("user_name").(string)
 	password := d.Get("password").(string)
 	permanentToken := d.Get(ProviderOptPermanentToken).(string)
-	apiEndpoint := d.Get(ProviderOptSingleApiEndpoint).(string)
+	apiEndpoint := d.Get(ProviderOptSingleAPIEndpoint).(string)
 
-	cloudApi := d.Get("edgecenter_cloud_api").(string)
-	if cloudApi == "" {
-		cloudApi = d.Get("edgecenter_api").(string)
+	cloudAPI := d.Get("edgecenter_cloud_api").(string)
+	if cloudAPI == "" {
+		cloudAPI = d.Get("edgecenter_api").(string)
 	}
-	if cloudApi == "" {
-		cloudApi = apiEndpoint + "/cloud"
+	if cloudAPI == "" {
+		cloudAPI = apiEndpoint + "/cloud"
 	}
 
 	cdnAPI := d.Get("edgecenter_cdn_api").(string)
@@ -228,12 +229,12 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 	var provider *edgecloud.ProviderClient
 	if permanentToken != "" {
 		provider, err = ec.APITokenClient(edgecloud.APITokenOptions{
-			APIURL:   cloudApi,
+			APIURL:   cloudAPI,
 			APIToken: permanentToken,
 		})
 	} else {
 		provider, err = ec.AuthenticatedClient(edgecloud.AuthOptions{
-			APIURL:      cloudApi,
+			APIURL:      cloudAPI,
 			AuthURL:     platform,
 			Username:    username,
 			Password:    password,
@@ -275,7 +276,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		)
 	}
 	if dnsAPI != "" {
-		baseUrl, err := url.Parse(dnsAPI)
+		baseURL, err := url.Parse(dnsAPI)
 		if err != nil {
 			return nil, diag.FromErr(fmt.Errorf("dns api url: %w", err))
 		}
@@ -286,7 +287,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		config.DNSClient = dnssdk.NewClient(
 			authorizer,
 			func(client *dnssdk.Client) {
-				client.BaseURL = baseUrl
+				client.BaseURL = baseURL
 				client.Debug = os.Getenv("TF_LOG") == "DEBUG"
 			},
 			func(client *dnssdk.Client) {

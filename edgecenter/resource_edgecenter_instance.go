@@ -2,22 +2,24 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"sort"
 	"strconv"
 	"time"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 )
 
 const (
@@ -39,7 +41,6 @@ func resourceInstance() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, InstanceID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -52,7 +53,7 @@ func resourceInstance() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -60,7 +61,7 @@ func resourceInstance() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -68,7 +69,7 @@ func resourceInstance() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -76,7 +77,7 @@ func resourceInstance() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -84,28 +85,28 @@ func resourceInstance() *schema.Resource {
 					"region_name",
 				},
 			},
-			"flavor_id": &schema.Schema{
+			"flavor_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"name_templates": &schema.Schema{
+			"name_templates": {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Deprecated:    "Use name_template instead",
 				ConflictsWith: []string{"name_template"},
 				Elem:          &schema.Schema{Type: schema.TypeString},
 			},
-			"name_template": &schema.Schema{
+			"name_template": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"name_templates"},
 			},
-			"volume": &schema.Schema{
+			"volume": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Set:      volumeUniqueID,
@@ -166,7 +167,7 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"interface": &schema.Schema{
+			"interface": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
@@ -222,15 +223,15 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"keypair_name": &schema.Schema{
+			"keypair_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"server_group": &schema.Schema{
+			"server_group": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"security_group": &schema.Schema{
+			"security_group": {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "Firewalls list",
@@ -248,15 +249,15 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"password": &schema.Schema{
+			"password": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"username": &schema.Schema{
+			"username": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"metadata": &schema.Schema{
+			"metadata": {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Deprecated:    "Use metadata_map instead",
@@ -274,7 +275,7 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"metadata_map": &schema.Schema{
+			"metadata_map": {
 				Type:          schema.TypeMap,
 				Optional:      true,
 				ConflictsWith: []string{"metadata"},
@@ -282,7 +283,7 @@ func resourceInstance() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"configuration": &schema.Schema{
+			"configuration": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -298,33 +299,33 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"userdata": &schema.Schema{
+			"userdata": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Description:   "**Deprecated**",
 				Deprecated:    "Use user_data instead",
 				ConflictsWith: []string{"user_data"},
 			},
-			"user_data": &schema.Schema{
+			"user_data": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"userdata"},
 			},
-			"allow_app_ports": &schema.Schema{
+			"allow_app_ports": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"flavor": &schema.Schema{
+			"flavor": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"vm_state": &schema.Schema{
+			"vm_state": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
@@ -333,7 +334,7 @@ func resourceInstance() *schema.Resource {
 					InstanceVMStateActive, InstanceVMStateStopped,
 				}, true),
 			},
-			"addresses": &schema.Schema{
+			"addresses": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
@@ -358,7 +359,7 @@ func resourceInstance() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -373,11 +374,11 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	clientv1, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	clientv1, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	clientv2, err := CreateClient(provider, d, InstancePoint, versionPointV2)
+	clientv2, err := CreateClient(provider, d, InstancePoint, VersionPointV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -487,6 +488,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	resourceInstanceRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Instance creating (%s)", InstanceID)
+
 	return diags
 }
 
@@ -498,21 +500,20 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	instance, err := instances.Get(client, instanceID).Extract()
 	if err != nil {
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil
-		default:
-			return diag.FromErr(err)
 		}
+		return diag.FromErr(err)
 	}
 
 	d.Set("name", instance.Name)
@@ -670,6 +671,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	log.Println("[DEBUG] Finish Instance reading")
+
 	return diags
 }
 
@@ -679,7 +681,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 	config := m.(*Config)
 	provider := config.Provider
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -698,8 +700,8 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("flavor_id") {
-		flavor_id := d.Get("flavor_id").(string)
-		results, err := instances.Resize(client, instanceID, instances.ChangeFlavorOpts{FlavorID: flavor_id}).Extract()
+		flavorID := d.Get("flavor_id").(string)
+		results, err := instances.Resize(client, instanceID, instances.ChangeFlavorOpts{FlavorID: flavorID}).Extract()
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -824,6 +826,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				opts.NetworkID = iface["network_id"].(string)
 			case types.ReservedFixedIpType:
 				opts.PortID = iface["port_id"].(string)
+			case types.ExternalInterfaceType:
 			}
 
 			rawSgsID := iface["security_groups"].([]interface{})
@@ -848,27 +851,24 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				}
 				portID, err := instances.ExtractInstancePortIDFromTask(taskInfo)
 				if err != nil {
-					var taskData *map[string]interface{} = taskInfo.Data
-					reserved_fixed_ip_id, ok := (*taskData)["reserved_fixed_ip_id"]
-					if !ok || reserved_fixed_ip_id.(string) == "" {
+					reservedFixedIPID, ok := (*taskInfo.Data)["reserved_fixed_ip_id"]
+					if !ok || reservedFixedIPID.(string) == "" {
 						return nil, fmt.Errorf("cannot retrieve instance port ID from task info: %w", err)
-					} else {
-						portID = reserved_fixed_ip_id.(string)
 					}
-
+					portID = reservedFixedIPID.(string)
 				}
+
 				return portID, nil
 			})
 
 			if err != nil {
 				return diag.FromErr(err)
 			}
-
 		}
 	}
 
 	if d.HasChange("volume") {
-		vClient, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+		vClient, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -937,6 +937,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish Instance updating")
+
 	return resourceInstanceRead(ctx, d, m)
 }
 
@@ -948,7 +949,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	client, err := CreateClient(provider, d, InstancePoint, versionPointV1)
+	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -965,12 +966,11 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete instance with ID: %s", instanceID)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting Instance resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -978,6 +978,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of Instance deleting")
+
 	return diags
 }
 
@@ -987,12 +988,12 @@ func ServerV2StateRefreshFunc(client *edgecloud.ServiceClient, instanceID string
 	return func() (interface{}, string, error) {
 		s, err := instances.Get(client, instanceID).Extract()
 		if err != nil {
-			if _, ok := err.(edgecloud.ErrDefault404); ok {
+			var errDefault404 *edgecloud.ErrDefault404
+			if errors.As(err, &errDefault404) {
 				return s, "DELETED", nil
 			}
-			return nil, "", err
+			return nil, "", fmt.Errorf("extracting Instance resource error: %w", err)
 		}
-
 		return s, s.VMState, nil
 	}
 }
@@ -1022,5 +1023,6 @@ func prepareSecurityGroups(ports []instances.InstancePorts) []interface{} {
 		s["name"] = sgName
 		secGroups = append(secGroups, s)
 	}
+
 	return secGroups
 }

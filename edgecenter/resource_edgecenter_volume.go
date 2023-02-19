@@ -2,21 +2,25 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const volumeDeleting int = 1200
-const volumeCreatingTimeout int = 1200
-const volumeExtending int = 1200
-const volumesPoint = "volumes"
+const (
+	volumeDeleting        int = 1200
+	VolumeCreatingTimeout int = 1200
+	volumeExtending       int = 1200
+	VolumesPoint              = "volumes"
+)
 
 func resourceVolume() *schema.Resource {
 	return &schema.Resource{
@@ -28,7 +32,6 @@ func resourceVolume() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, volumeID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -39,14 +42,14 @@ func resourceVolume() *schema.Resource {
 				config := meta.(*Config)
 				provider := config.Provider
 
-				client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+				client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 				if err != nil {
 					return nil, err
 				}
 
 				volume, err := volumes.Get(client, volumeID).Extract()
 				if err != nil {
-					return nil, fmt.Errorf("cannot get volume with ID: %s. Error: %s", volumeID, err)
+					return nil, fmt.Errorf("cannot get volume with ID: %s. Error: %w", volumeID, err)
 				}
 				d.Set("image_id", volume.VolumeImageMetadata.ImageID)
 
@@ -55,7 +58,7 @@ func resourceVolume() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -63,7 +66,7 @@ func resourceVolume() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -71,7 +74,7 @@ func resourceVolume() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -79,7 +82,7 @@ func resourceVolume() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -87,33 +90,33 @@ func resourceVolume() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"type_name": &schema.Schema{
+			"type_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				// todo add validation
 				Description: "Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'. Defaults to standard",
 			},
-			"image_id": &schema.Schema{
+			"image_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
 				Description: "Mandatory if volume is created from image",
 			},
-			"snapshot_id": &schema.Schema{
+			"snapshot_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
 				Description: "Mandatory if volume is created from a snapshot",
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -128,7 +131,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -144,7 +147,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	VolumeID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, volumeCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
+	VolumeID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, VolumeCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
@@ -165,6 +168,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceVolumeRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish volume creating (%s)", VolumeID)
+
 	return diags
 }
 
@@ -177,7 +181,7 @@ func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 
-	client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -197,6 +201,7 @@ func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish volume reading")
+
 	return diags
 }
 
@@ -206,7 +211,7 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 	config := m.(*Config)
 	provider := config.Provider
-	client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -257,6 +262,7 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish volume updating")
+
 	return resourceVolumeRead(ctx, d, m)
 }
 
@@ -268,7 +274,7 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 
-	client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -287,12 +293,11 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete volume with ID: %s", volumeID)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting Volume resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -300,6 +305,7 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of volume deleting")
+
 	return diags
 }
 
@@ -328,7 +334,7 @@ func getVolumeData(d *schema.ResourceData) (*volumes.CreateOpts, error) {
 	if typeName != "" {
 		modifiedTypeName, err := volumes.VolumeType(typeName).ValidOrNil()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("checking Volume validation error: %w", err)
 		}
 		volumeData.TypeName = *modifiedTypeName
 	}
@@ -342,7 +348,7 @@ func ExtendVolume(client *edgecloud.ServiceClient, volumeID string, newSize int)
 	}
 	results, err := volumes.Extend(client, volumeID, opts).Extract()
 	if err != nil {
-		return err
+		return fmt.Errorf("extracting Volume resource error: %w", err)
 	}
 
 	taskID := results.Tasks[0]
@@ -356,8 +362,9 @@ func ExtendVolume(client *edgecloud.ServiceClient, volumeID string, newSize int)
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("checking Volume state error: %w", err)
 	}
 	log.Printf("[DEBUG] Finish waiting.")
+
 	return nil
 }

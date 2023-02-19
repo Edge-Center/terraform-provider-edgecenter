@@ -5,10 +5,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/pools"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/pools"
 )
 
 func dataSourceK8s() *schema.Resource {
@@ -16,7 +17,7 @@ func dataSourceK8s() *schema.Resource {
 		ReadContext: dataSourceK8sRead,
 		Description: "Represent k8s cluster with one default pool.",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -24,7 +25,7 @@ func dataSourceK8s() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -32,7 +33,7 @@ func dataSourceK8s() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -40,7 +41,7 @@ func dataSourceK8s() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -48,157 +49,157 @@ func dataSourceK8s() *schema.Resource {
 					"region_name",
 				},
 			},
-			"cluster_id": &schema.Schema{
+			"cluster_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"fixed_network": &schema.Schema{
+			"fixed_network": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"fixed_subnet": &schema.Schema{
+			"fixed_subnet": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"auto_healing_enabled": &schema.Schema{
+			"auto_healing_enabled": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"external_dns_enabled": &schema.Schema{
+			"external_dns_enabled": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"master_lb_floating_ip_enabled": &schema.Schema{
+			"master_lb_floating_ip_enabled": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"keypair": &schema.Schema{
+			"keypair": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"pool": &schema.Schema{
+			"pool": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"flavor_id": &schema.Schema{
+						"flavor_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"min_node_count": &schema.Schema{
+						"min_node_count": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"max_node_count": &schema.Schema{
+						"max_node_count": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"node_count": &schema.Schema{
+						"node_count": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"docker_volume_type": &schema.Schema{
+						"docker_volume_type": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"docker_volume_size": &schema.Schema{
+						"docker_volume_size": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"uuid": &schema.Schema{
+						"uuid": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"stack_id": &schema.Schema{
+						"stack_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"created_at": &schema.Schema{
+						"created_at": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"node_count": &schema.Schema{
+			"node_count": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status_reason": &schema.Schema{
+			"status_reason": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"master_addresses": &schema.Schema{
+			"master_addresses": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"node_addresses": &schema.Schema{
+			"node_addresses": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"container_version": &schema.Schema{
+			"container_version": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"api_address": &schema.Schema{
+			"api_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"user_id": &schema.Schema{
+			"user_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"discovery_url": &schema.Schema{
+			"discovery_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"health_status": &schema.Schema{
+			"health_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"health_status_reason": &schema.Schema{
+			"health_status_reason": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"faults": &schema.Schema{
+			"faults": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"master_flavor_id": &schema.Schema{
+			"master_flavor_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"cluster_template_id": &schema.Schema{
+			"cluster_template_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"version": &schema.Schema{
+			"version": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"updated_at": &schema.Schema{
+			"updated_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -212,7 +213,7 @@ func dataSourceK8sRead(ctx context.Context, d *schema.ResourceData, m interface{
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, versionPointV1)
+	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -295,5 +296,6 @@ func dataSourceK8sRead(ctx context.Context, d *schema.ResourceData, m interface{
 	}
 
 	log.Println("[DEBUG] Finish K8s reading")
+
 	return diags
 }

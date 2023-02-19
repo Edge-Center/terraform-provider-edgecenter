@@ -2,25 +2,30 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 	"log"
 	"net"
 	"regexp"
 	"time"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 )
 
-const SubnetDeleting int = 1200
-const SubnetCreatingTimeout int = 1200
-const subnetPoint = "subnets"
+const (
+	SubnetDeleting        int = 1200
+	SubnetCreatingTimeout int = 1200
+	SubnetPoint               = "subnets"
+	disable                   = "disable"
+)
 
 func resourceSubnet() *schema.Resource {
 	return &schema.Resource{
@@ -32,7 +37,6 @@ func resourceSubnet() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, subnetID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -45,7 +49,7 @@ func resourceSubnet() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -53,7 +57,7 @@ func resourceSubnet() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -61,7 +65,7 @@ func resourceSubnet() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -69,7 +73,7 @@ func resourceSubnet() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -77,30 +81,30 @@ func resourceSubnet() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"enable_dhcp": &schema.Schema{
+			"enable_dhcp": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
-			"cidr": &schema.Schema{
+			"cidr": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"network_id": &schema.Schema{
+			"network_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"connect_to_network_router": &schema.Schema{
+			"connect_to_network_router": {
 				Type:        schema.TypeBool,
 				Description: "True if the network's router should get a gateway in this subnet. Must be explicitly 'false' when gateway_ip is null. Default true.",
 				Optional:    true,
 				Default:     true,
 			},
-			"dns_nameservers": &schema.Schema{
+			"dns_nameservers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
@@ -108,16 +112,16 @@ func resourceSubnet() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"host_routes": &schema.Schema{
+			"host_routes": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"destination": &schema.Schema{
+						"destination": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"nexthop": &schema.Schema{
+						"nexthop": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
@@ -125,27 +129,27 @@ func resourceSubnet() *schema.Resource {
 					},
 				},
 			},
-			"gateway_ip": &schema.Schema{
+			"gateway_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
-					var IP = regexp.MustCompile(`(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}`)
-					if v == "disable" || IP.MatchString(v) {
+					IP := regexp.MustCompile(`(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}`)
+					if v == disable || IP.MatchString(v) {
 						return nil
 					}
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"metadata_map": &schema.Schema{
+			"metadata_map": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"metadata_read_only": &schema.Schema{
+			"metadata_read_only": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -165,7 +169,7 @@ func resourceSubnet() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -180,7 +184,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, subnetPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SubnetPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -199,10 +203,10 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		createOpts.CIDR = eccidr
 	}
 
-	dns_nameservers := d.Get("dns_nameservers").([]interface{})
+	dnsNameservers := d.Get("dns_nameservers").([]interface{})
 	createOpts.DNSNameservers = make([]net.IP, 0)
-	if len(dns_nameservers) > 0 {
-		ns := dns_nameservers
+	if len(dnsNameservers) > 0 {
+		ns := dnsNameservers
 		dns := make([]net.IP, len(ns))
 		for i, s := range ns {
 			dns[i] = net.ParseIP(s.(string))
@@ -210,10 +214,10 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		createOpts.DNSNameservers = dns
 	}
 
-	host_routes := d.Get("host_routes").([]interface{})
+	hostRoutes := d.Get("host_routes").([]interface{})
 	createOpts.HostRoutes = make([]subnets.HostRoute, 0)
-	if len(host_routes) > 0 {
-		createOpts.HostRoutes, err = extractHostRoutesMap(host_routes)
+	if len(hostRoutes) > 0 {
+		createOpts.HostRoutes, err = extractHostRoutesMap(hostRoutes)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -225,7 +229,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	createOpts.ConnectToNetworkRouter = d.Get("connect_to_network_router").(bool)
 	gatewayIP := d.Get("gateway_ip").(string)
 	gw := net.ParseIP(gatewayIP)
-	if gatewayIP == "disable" {
+	if gatewayIP == disable {
 		createOpts.ConnectToNetworkRouter = false
 	} else {
 		createOpts.GatewayIP = &gw
@@ -268,6 +272,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceSubnetRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Subnet creating (%s)", subnetID)
+
 	return diags
 }
 
@@ -280,7 +285,7 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 	subnetID := d.Id()
 	log.Printf("[DEBUG] Subnet id = %s", subnetID)
 
-	client, err := CreateClient(provider, d, subnetPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SubnetPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -318,7 +323,7 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	if subnet.GatewayIP == nil {
 		d.Set("connect_to_network_router", false)
-		d.Set("gateway_ip", "disable")
+		d.Set("gateway_ip", disable)
 	}
 
 	metadataMap := make(map[string]string)
@@ -342,6 +347,7 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	log.Println("[DEBUG] Finish subnet reading")
+
 	return diags
 }
 
@@ -351,7 +357,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Printf("[DEBUG] Subnet id = %s", subnetID)
 	config := m.(*Config)
 	provider := config.Provider
-	client, err := CreateClient(provider, d, subnetPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SubnetPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -365,10 +371,10 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	// In the structure, the field is mandatory for the ability to transfer the absence of data,
 	// if you do not initialize it with a empty list, marshalling will send null and receive a validation error.
-	dns_nameservers := d.Get("dns_nameservers").([]interface{})
+	dnsNameservers := d.Get("dns_nameservers").([]interface{})
 	updateOpts.DNSNameservers = make([]net.IP, 0)
-	if len(dns_nameservers) > 0 {
-		ns := dns_nameservers
+	if len(dnsNameservers) > 0 {
+		ns := dnsNameservers
 		dns := make([]net.IP, len(ns))
 		for i, s := range ns {
 			dns[i] = net.ParseIP(s.(string))
@@ -376,10 +382,10 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		updateOpts.DNSNameservers = dns
 	}
 
-	host_routes := d.Get("host_routes").([]interface{})
+	hostRoutes := d.Get("host_routes").([]interface{})
 	updateOpts.HostRoutes = make([]subnets.HostRoute, 0)
-	if len(host_routes) > 0 {
-		updateOpts.HostRoutes, err = extractHostRoutesMap(host_routes)
+	if len(hostRoutes) > 0 {
+		updateOpts.HostRoutes, err = extractHostRoutesMap(hostRoutes)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -387,9 +393,9 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	if d.HasChange("gateway_ip") {
 		_, newValue := d.GetChange("gateway_ip")
-		if newValue.(string) != "disable" {
-			gateway_ip := net.ParseIP(newValue.(string))
-			updateOpts.GatewayIP = &gateway_ip
+		if newValue.(string) != disable {
+			gatewayIP := net.ParseIP(newValue.(string))
+			updateOpts.GatewayIP = &gatewayIP
 		}
 	}
 
@@ -412,6 +418,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish subnet updating")
+
 	return resourceSubnetRead(ctx, d, m)
 }
 
@@ -423,7 +430,7 @@ func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	subnetID := d.Id()
 	log.Printf("[DEBUG] Subnet id = %s", subnetID)
 
-	client, err := CreateClient(provider, d, subnetPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SubnetPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -439,12 +446,11 @@ func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete subnet with ID: %s", subnetID)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting Subnet resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -452,5 +458,6 @@ func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of subnet deleting")
+
 	return diags
 }

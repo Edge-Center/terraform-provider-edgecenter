@@ -4,9 +4,10 @@ import (
 	"context"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 )
 
 func dataSourceVolume() *schema.Resource {
@@ -14,7 +15,7 @@ func dataSourceVolume() *schema.Resource {
 		ReadContext: dataSourceVolumeRead,
 		Description: "Represent volume. A volume is a file storage which is similar to SSD and HDD hard disks",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -22,7 +23,7 @@ func dataSourceVolume() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -30,7 +31,7 @@ func dataSourceVolume() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -38,7 +39,7 @@ func dataSourceVolume() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -46,15 +47,15 @@ func dataSourceVolume() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"type_name": &schema.Schema{
+			"type_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'. Defaults to standard",
@@ -69,7 +70,7 @@ func dataSourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, volumesPoint, versionPointV1)
+	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -102,5 +103,6 @@ func dataSourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("project_id", volume.ProjectID)
 
 	log.Println("[DEBUG] Finish Volume reading")
+
 	return diags
 }

@@ -7,375 +7,374 @@ import (
 	"reflect"
 	"strconv"
 
-	cdn "github.com/Edge-Center/edgecentercdn-go/edgecenter"
-	"github.com/Edge-Center/edgecentercdn-go/resources"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	cdn "github.com/Edge-Center/edgecentercdn-go/edgecenter"
+	"github.com/Edge-Center/edgecentercdn-go/resources"
 )
 
-var (
-	optionsSchema = &schema.Schema{
-		Type:        schema.TypeList,
-		MaxItems:    1,
-		Optional:    true,
-		Computed:    true,
-		Description: "Each option in CDN resource settings. Each option added to CDN resource settings should have the following mandatory request fields: enabled, value.",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"edge_cache_settings": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Computed:    true,
-					Description: "The cache expiration time for CDN servers.",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
+var optionsSchema = &schema.Schema{
+	Type:        schema.TypeList,
+	MaxItems:    1,
+	Optional:    true,
+	Computed:    true,
+	Description: "Each option in CDN resource settings. Each option added to CDN resource settings should have the following mandatory request fields: enabled, value.",
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"edge_cache_settings": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Computed:    true,
+				Description: "The cache expiration time for CDN servers.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Caching time for a response with codes 200, 206, 301, 302. Responses with codes 4xx, 5xx will not be cached. Use '0s' disable to caching. Use custom_values field to specify a custom caching time for a response with specific codes.",
+						},
+						"default": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Content will be cached according to origin cache settings. The value applies for a response with codes 200, 201, 204, 206, 301, 302, 303, 304, 307, 308 if an origin server does not have caching HTTP headers. Responses with other codes will not be cached.",
+						},
+						"custom_values": {
+							Type:     schema.TypeMap,
+							Optional: true,
+							Computed: true,
+							DefaultFunc: func() (interface{}, error) {
+								return map[string]interface{}{}, nil
 							},
-							"value": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								Description: "Caching time for a response with codes 200, 206, 301, 302. Responses with codes 4xx, 5xx will not be cached. Use '0s' disable to caching. Use custom_values field to specify a custom caching time for a response with specific codes.",
-							},
-							"default": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								Description: "Content will be cached according to origin cache settings. The value applies for a response with codes 200, 201, 204, 206, 301, 302, 303, 304, 307, 308 if an origin server does not have caching HTTP headers. Responses with other codes will not be cached.",
-							},
-							"custom_values": {
-								Type:     schema.TypeMap,
-								Optional: true,
-								Computed: true,
-								DefaultFunc: func() (interface{}, error) {
-									return map[string]interface{}{}, nil
-								},
-								Elem:        schema.TypeString,
-								Description: "Caching time for a response with specific codes. These settings have a higher priority than the value field. Response code ('304', '404' for example). Use 'any' to specify caching time for all response codes. Caching time in seconds ('0s', '600s' for example). Use '0s' to disable caching for a specific response code.",
-							},
+							Elem:        schema.TypeString,
+							Description: "Caching time for a response with specific codes. These settings have a higher priority than the value field. Response code ('304', '404' for example). Use 'any' to specify caching time for all response codes. Caching time in seconds ('0s', '600s' for example). Use '0s' to disable caching for a specific response code.",
 						},
 					},
 				},
-				"browser_cache_settings": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Computed:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								Description: "",
-							},
+			},
+			"browser_cache_settings": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Computed:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "",
 						},
 					},
 				},
-				"host_header": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "Specify the Host header that CDN servers use when request content from an origin server. Your server must be able to process requests with the chosen header. If the option is in NULL state Host Header value is taken from the CNAME field.",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeString,
-								Required: true,
-							},
+			},
+			"host_header": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "Specify the Host header that CDN servers use when request content from an origin server. Your server must be able to process requests with the chosen header. If the option is in NULL state Host Header value is taken from the CNAME field.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Required: true,
 						},
 					},
 				},
-				"redirect_http_to_https": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "Sets redirect from HTTP protocol to HTTPS for all resource requests.",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeBool,
-								Required: true,
-							},
+			},
+			"redirect_http_to_https": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "Sets redirect from HTTP protocol to HTTPS for all resource requests.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeBool,
+							Required: true,
 						},
 					},
 				},
-				"gzip_on": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeBool,
-								Required: true,
-							},
+			},
+			"gzip_on": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeBool,
+							Required: true,
 						},
 					},
 				},
-				"cors": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeSet,
-								Elem:     &schema.Schema{Type: schema.TypeString},
-								Required: true,
-							},
+			},
+			"cors": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeSet,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Required: true,
 						},
 					},
 				},
-				"rewrite": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"body": {
-								Type:     schema.TypeString,
-								Required: true,
-							},
-							"flag": {
-								Type:     schema.TypeString,
-								Optional: true,
-								Default:  "break",
-							},
+			},
+			"rewrite": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"body": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"flag": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "break",
 						},
 					},
 				},
-				"webp": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"jpg_quality": {
-								Type:     schema.TypeInt,
-								Required: true,
-							},
-							"png_quality": {
-								Type:     schema.TypeInt,
-								Required: true,
-							},
-							"png_lossless": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  false,
-							},
+			},
+			"webp": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"jpg_quality": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"png_quality": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"png_lossless": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
 						},
 					},
 				},
-				"sni": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Computed:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"sni_type": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								Description: "Available values 'dynamic' or 'custom'",
-							},
-							"custom_hostname": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								Description: "Required to set custom hostname in case sni-type='custom'",
-							},
+			},
+			"sni": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Computed:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"sni_type": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Available values 'dynamic' or 'custom'",
+						},
+						"custom_hostname": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Required to set custom hostname in case sni-type='custom'",
 						},
 					},
 				},
-				"ignore_query_string": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeBool,
-								Required: true,
-							},
+			},
+			"ignore_query_string": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeBool,
+							Required: true,
 						},
 					},
 				},
-				"query_params_whitelist": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeSet,
-								Elem:     &schema.Schema{Type: schema.TypeString},
-								Required: true,
-							},
+			},
+			"query_params_whitelist": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeSet,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Required: true,
 						},
 					},
 				},
-				"query_params_blacklist": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeSet,
-								Elem:     &schema.Schema{Type: schema.TypeString},
-								Required: true,
-							},
+			},
+			"query_params_blacklist": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeSet,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Required: true,
 						},
 					},
 				},
-				"static_request_headers": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeMap,
-								Elem:     &schema.Schema{Type: schema.TypeString},
-								Required: true,
-							},
+			},
+			"static_request_headers": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeMap,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Required: true,
 						},
 					},
 				},
-				"static_headers": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeMap,
-								Elem:     &schema.Schema{Type: schema.TypeString},
-								Required: true,
-							},
+			},
+			"static_headers": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeMap,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Required: true,
 						},
 					},
 				},
-				"websockets": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeBool,
-								Required: true,
-							},
+			},
+			"websockets": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeBool,
+							Required: true,
 						},
 					},
 				},
-				"tls_versions": {
-					Type:        schema.TypeList,
-					MaxItems:    1,
-					Optional:    true,
-					Description: "",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"enabled": {
-								Type:     schema.TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-							"value": {
-								Type:     schema.TypeSet,
-								Elem:     &schema.Schema{Type: schema.TypeString},
-								Required: true,
-							},
+			},
+			"tls_versions": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"value": {
+							Type:     schema.TypeSet,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Required: true,
 						},
 					},
 				},
 			},
 		},
-	}
-)
+	},
+}
 
 func resourceCDNResource() *schema.Resource {
 	return &schema.Resource{
@@ -507,6 +506,7 @@ func resourceCDNResourceCreate(ctx context.Context, d *schema.ResourceData, m in
 	resourceCDNResourceRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN Resource creating (id=%d)\n", result.ID)
+
 	return nil
 }
 
@@ -541,6 +541,7 @@ func resourceCDNResourceRead(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	log.Println("[DEBUG] Finish CDN Resource reading")
+
 	return nil
 }
 
@@ -572,6 +573,7 @@ func resourceCDNResourceUpdate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	log.Println("[DEBUG] Finish CDN Resource updating")
+
 	return resourceCDNResourceRead(ctx, d, m)
 }
 
@@ -592,6 +594,7 @@ func resourceCDNResourceDelete(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId("")
 	log.Println("[DEBUG] Finish CDN Resource deleting")
+
 	return nil
 }
 
@@ -780,6 +783,7 @@ func listToOptions(l []interface{}) *cdn.Options {
 			opts.TLSVersions.Value = append(opts.TLSVersions.Value, v.(string))
 		}
 	}
+
 	return &opts
 }
 
@@ -871,11 +875,11 @@ func optionsToList(options *cdn.Options) []interface{} {
 		m := structToMap(options.TLSVersions)
 		result["tls_versions"] = []interface{}{m}
 	}
+
 	return []interface{}{result}
 }
 
 func structToMap(item interface{}) map[string]interface{} {
-
 	res := map[string]interface{}{}
 	if item == nil {
 		return res
@@ -898,5 +902,6 @@ func structToMap(item interface{}) map[string]interface{} {
 			}
 		}
 	}
+
 	return res
 }

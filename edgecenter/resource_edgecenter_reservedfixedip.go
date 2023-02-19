@@ -2,22 +2,24 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/port/v1/ports"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/reservedfixedip/v1/reservedfixedips"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
-	reservedFixedIPsPoint        = "reserved_fixed_ips"
+	ReservedFixedIPsPoint        = "reserved_fixed_ips"
 	portsPoint                   = "ports"
 	ReservedFixedIPCreateTimeout = 1200
 )
@@ -32,7 +34,6 @@ func resourceReservedFixedIP() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, ipID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -45,7 +46,7 @@ func resourceReservedFixedIP() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -54,7 +55,7 @@ func resourceReservedFixedIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -63,7 +64,7 @@ func resourceReservedFixedIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -72,7 +73,7 @@ func resourceReservedFixedIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -81,7 +82,7 @@ func resourceReservedFixedIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
@@ -95,11 +96,11 @@ func resourceReservedFixedIP() *schema.Resource {
 					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, reservedfixedips.External, reservedfixedips.Subnet, reservedfixedips.AnySubnet, reservedfixedips.IPAddress)
 				},
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"fixed_ip_address": &schema.Schema{
+			"fixed_ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -114,23 +115,23 @@ func resourceReservedFixedIP() *schema.Resource {
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"subnet_id": &schema.Schema{
+			"subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"network_id": &schema.Schema{
+			"network_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"is_vip": &schema.Schema{
+			"is_vip": {
 				Type:     schema.TypeBool,
 				Required: true,
 			},
-			"port_id": &schema.Schema{
+			"port_id": {
 				Type:        schema.TypeString,
 				Description: "ID of the port_id underlying the reserved fixed IP",
 				Computed:    true,
@@ -152,7 +153,7 @@ func resourceReservedFixedIP() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -167,7 +168,7 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, reservedFixedIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -233,6 +234,7 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 	resourceReservedFixedIPRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish ReservedFixedIP creating (%s)", reservedFixedIPID)
+
 	return diags
 }
 
@@ -242,21 +244,20 @@ func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, reservedFixedIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	reservedFixedIP, err := reservedfixedips.Get(client, d.Id()).Extract()
 	if err != nil {
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			log.Printf("[WARN] Removing reserved fixed ip %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil
-		default:
-			return diag.FromErr(err)
 		}
+		return diag.FromErr(err)
 	}
 
 	d.Set("project_id", reservedFixedIP.ProjectID)
@@ -284,6 +285,7 @@ func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m 
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish ReservedFixedIP reading")
+
 	return diags
 }
 
@@ -292,7 +294,7 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, reservedFixedIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -317,7 +319,7 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 			}
 		}
 
-		clientPort, err := CreateClient(provider, d, portsPoint, versionPointV1)
+		clientPort, err := CreateClient(provider, d, portsPoint, VersionPointV1)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -330,6 +332,7 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish ReservedFixedIP updating")
+
 	return resourceReservedFixedIPRead(ctx, d, m)
 }
 
@@ -339,7 +342,7 @@ func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, reservedFixedIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -353,14 +356,13 @@ func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, 
 	id := d.Id()
 	results, err := reservedfixedips.Delete(client, id).Extract()
 	if err != nil {
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			d.SetId("")
 			log.Printf("[DEBUG] Finish of ReservedFixedIP deleting")
 			return diags
-		default:
-			return diag.FromErr(err)
 		}
+		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
@@ -369,12 +371,11 @@ func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, 
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete reserved fixed ip with ID: %s", id)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting FixedIP resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -382,5 +383,6 @@ func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, 
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of ReservedFixedIP deleting")
+
 	return diags
 }

@@ -4,10 +4,11 @@ import (
 	"context"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/availablenetworks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/availablenetworks"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 )
 
 func dataSourceNetwork() *schema.Resource {
@@ -15,7 +16,7 @@ func dataSourceNetwork() *schema.Resource {
 		ReadContext: dataSourceNetworkRead,
 		Description: "Represent network. A network is a software-defined network in a cloud computing infrastructure",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -23,7 +24,7 @@ func dataSourceNetwork() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -31,7 +32,7 @@ func dataSourceNetwork() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -39,7 +40,7 @@ func dataSourceNetwork() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -47,39 +48,39 @@ func dataSourceNetwork() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"mtu": &schema.Schema{
+			"mtu": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "'vlan' or 'vxlan' network type is allowed. Default value is 'vxlan'",
 			},
-			"external": &schema.Schema{
+			"external": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"shared": &schema.Schema{
+			"shared": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"metadata_k": &schema.Schema{
+			"metadata_k": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"metadata_kv": &schema.Schema{
+			"metadata_kv": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"metadata_read_only": &schema.Schema{
+			"metadata_read_only": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -109,11 +110,11 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, networksPoint, versionPointV1)
+	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	clientShared, err := CreateClient(provider, d, sharedNetworksPoint, versionPointV1)
+	clientShared, err := CreateClient(provider, d, SharedNetworksPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -188,5 +189,6 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	log.Println("[DEBUG] Finish Network reading")
+
 	return diags
 }

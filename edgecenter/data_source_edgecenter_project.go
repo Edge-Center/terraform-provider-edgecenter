@@ -37,5 +37,6 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interf
 	d.Set("name", name)
 
 	log.Println("[DEBUG] Finish Project reading")
+
 	return nil
 }

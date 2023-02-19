@@ -6,18 +6,21 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v1/secrets"
 	secretsV2 "github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v2/secrets"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const SecretDeleting int = 1200
-const SecretCreatingTimeout int = 1200
-const secretPoint = "secrets"
+const (
+	SecretDeleting        int = 1200
+	SecretCreatingTimeout int = 1200
+	SecretPoint               = "secrets"
+)
 
 func resourceSecret() *schema.Resource {
 	return &schema.Resource{
@@ -28,7 +31,6 @@ func resourceSecret() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, secretID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -41,7 +43,7 @@ func resourceSecret() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -50,7 +52,7 @@ func resourceSecret() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -59,7 +61,7 @@ func resourceSecret() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -68,7 +70,7 @@ func resourceSecret() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -77,53 +79,53 @@ func resourceSecret() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"private_key": &schema.Schema{
+			"private_key": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "SSL private key in PEM format",
 			},
-			"certificate_chain": &schema.Schema{
+			"certificate_chain": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "SSL certificate chain of intermediates and root certificates in PEM format",
 			},
-			"certificate": &schema.Schema{
+			"certificate": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "SSL certificate in PEM format",
 			},
-			"algorithm": &schema.Schema{
+			"algorithm": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"bit_length": &schema.Schema{
+			"bit_length": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"mode": &schema.Schema{
+			"mode": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"content_types": &schema.Schema{
+			"content_types": {
 				Type:     schema.TypeMap,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"expiration": &schema.Schema{
+			"expiration": {
 				Type:        schema.TypeString,
 				Description: "Datetime when the secret will expire. The format is 2025-12-28T19:14:44",
 				Optional:    true,
@@ -141,7 +143,7 @@ func resourceSecret() *schema.Resource {
 					return nil
 				},
 			},
-			"created": &schema.Schema{
+			"created": {
 				Type:        schema.TypeString,
 				Description: "Datetime when the secret was created. The format is 2025-12-28T19:14:44.180394",
 				Computed:    true,
@@ -156,7 +158,7 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, secretPoint, versionPointV2)
+	client, err := CreateClient(provider, d, SecretPoint, VersionPointV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -185,7 +187,7 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
 
-	clientV1, err := CreateClient(provider, d, secretPoint, versionPointV1)
+	clientV1, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -211,6 +213,7 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceSecretRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Secret creating (%s)", secretID)
+
 	return diags
 }
 
@@ -222,7 +225,7 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 	secretID := d.Id()
 	log.Printf("[DEBUG] Secret id = %s", secretID)
 
-	client, err := CreateClient(provider, d, secretPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -243,6 +246,7 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	log.Println("[DEBUG] Finish secret reading")
+
 	return diags
 }
 
@@ -254,7 +258,7 @@ func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	secretID := d.Id()
 	log.Printf("[DEBUG] Secret id = %s", secretID)
 
-	client, err := CreateClient(provider, d, secretPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -278,5 +282,6 @@ func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of secret deleting")
+
 	return diags
 }

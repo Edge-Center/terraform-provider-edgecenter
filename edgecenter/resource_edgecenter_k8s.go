@@ -2,17 +2,19 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/pools"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const (
@@ -36,7 +38,6 @@ func resourceK8s() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, k8sID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -49,7 +50,7 @@ func resourceK8s() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -57,7 +58,7 @@ func resourceK8s() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -65,7 +66,7 @@ func resourceK8s() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -73,7 +74,7 @@ func resourceK8s() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -81,174 +82,174 @@ func resourceK8s() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"fixed_network": &schema.Schema{
+			"fixed_network": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"fixed_subnet": &schema.Schema{
+			"fixed_subnet": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "Subnet should has router",
 			},
-			"auto_healing_enabled": &schema.Schema{
+			"auto_healing_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"external_dns_enabled": &schema.Schema{
+			"external_dns_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"master_lb_floating_ip_enabled": &schema.Schema{
+			"master_lb_floating_ip_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"pods_ip_pool": &schema.Schema{
+			"pods_ip_pool": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"services_ip_pool": &schema.Schema{
+			"services_ip_pool": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"keypair": &schema.Schema{
+			"keypair": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"pool": &schema.Schema{
+			"pool": {
 				Type:     schema.TypeList,
 				Required: true,
 				MaxItems: 1,
 				MinItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"flavor_id": &schema.Schema{
+						"flavor_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"min_node_count": &schema.Schema{
+						"min_node_count": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"max_node_count": &schema.Schema{
+						"max_node_count": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"node_count": &schema.Schema{
+						"node_count": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"docker_volume_type": &schema.Schema{
+						"docker_volume_type": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Computed:    true,
 							Description: "Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'.",
 						},
-						"docker_volume_size": &schema.Schema{
+						"docker_volume_size": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"uuid": &schema.Schema{
+						"uuid": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"stack_id": &schema.Schema{
+						"stack_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"created_at": &schema.Schema{
+						"created_at": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"node_count": &schema.Schema{
+			"node_count": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status_reason": &schema.Schema{
+			"status_reason": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"master_addresses": &schema.Schema{
+			"master_addresses": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"node_addresses": &schema.Schema{
+			"node_addresses": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"container_version": &schema.Schema{
+			"container_version": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"api_address": &schema.Schema{
+			"api_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"user_id": &schema.Schema{
+			"user_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"discovery_url": &schema.Schema{
+			"discovery_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"health_status": &schema.Schema{
+			"health_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"health_status_reason": &schema.Schema{
+			"health_status_reason": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"faults": &schema.Schema{
+			"faults": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"master_flavor_id": &schema.Schema{
+			"master_flavor_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"cluster_template_id": &schema.Schema{
+			"cluster_template_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"version": &schema.Schema{
+			"version": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"updated_at": &schema.Schema{
+			"updated_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -263,7 +264,7 @@ func resourceK8sCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, versionPointV1)
+	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -343,6 +344,7 @@ func resourceK8sCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	resourceK8sRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish K8s creating (%s)", k8sID)
+
 	return diags
 }
 
@@ -352,7 +354,7 @@ func resourceK8sRead(ctx context.Context, d *schema.ResourceData, m interface{})
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, versionPointV1)
+	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -436,6 +438,7 @@ func resourceK8sRead(ctx context.Context, d *schema.ResourceData, m interface{})
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish K8s reading")
+
 	return diags
 }
 
@@ -444,7 +447,7 @@ func resourceK8sUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, versionPointV1)
+	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -512,7 +515,7 @@ func resourceK8sDelete(ctx context.Context, d *schema.ResourceData, m interface{
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, versionPointV1)
+	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -529,12 +532,11 @@ func resourceK8sDelete(ctx context.Context, d *schema.ResourceData, m interface{
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete k8s cluster with ID: %s", id)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting Cluster resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -542,5 +544,6 @@ func resourceK8sDelete(ctx context.Context, d *schema.ResourceData, m interface{
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of K8s deleting")
+
 	return diags
 }

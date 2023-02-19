@@ -9,6 +9,13 @@ terraform.tfplan
 terraform.tfstate
 ./*.tfstate
 
+### bin
+golangci-lint
+jq
+vault
+vault.zip
+.local.env
+
 ### other
 dist/
 modules-dev/

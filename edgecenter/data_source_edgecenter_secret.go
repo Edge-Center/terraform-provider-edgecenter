@@ -4,10 +4,11 @@ import (
 	"context"
 	"log"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v1/secrets"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v1/secrets"
 )
 
 func dataSourceSecret() *schema.Resource {
@@ -15,7 +16,7 @@ func dataSourceSecret() *schema.Resource {
 		ReadContext: dataSourceSecretRead,
 		Description: "Represent secret",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -23,7 +24,7 @@ func dataSourceSecret() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -31,7 +32,7 @@ func dataSourceSecret() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -39,7 +40,7 @@ func dataSourceSecret() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -47,39 +48,39 @@ func dataSourceSecret() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"algorithm": &schema.Schema{
+			"algorithm": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"bit_length": &schema.Schema{
+			"bit_length": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"mode": &schema.Schema{
+			"mode": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"content_types": &schema.Schema{
+			"content_types": {
 				Type:     schema.TypeMap,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"expiration": &schema.Schema{
+			"expiration": {
 				Type:        schema.TypeString,
 				Description: "Datetime when the secret will expire. The format is 2025-12-28T19:14:44.180394",
 				Computed:    true,
 			},
-			"created": &schema.Schema{
+			"created": {
 				Type:        schema.TypeString,
 				Description: "Datetime when the secret was created. The format is 2025-12-28T19:14:44.180394",
 				Computed:    true,
@@ -96,7 +97,7 @@ func dataSourceSecretRead(ctx context.Context, d *schema.ResourceData, m interfa
 	secretID := d.Id()
 	log.Printf("[DEBUG] Secret id = %s", secretID)
 
-	client, err := CreateClient(provider, d, secretPoint, versionPointV1)
+	client, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -122,6 +123,7 @@ func dataSourceSecretRead(ctx context.Context, d *schema.ResourceData, m interfa
 				return diag.FromErr(err)
 			}
 			found = true
+
 			break
 		}
 	}
@@ -131,5 +133,6 @@ func dataSourceSecretRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	log.Println("[DEBUG] Finish secret reading")
+
 	return diags
 }

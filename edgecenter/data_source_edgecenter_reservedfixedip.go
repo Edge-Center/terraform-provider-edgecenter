@@ -6,10 +6,11 @@ import (
 	"log"
 	"net"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/reservedfixedip/v1/reservedfixedips"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/reservedfixedip/v1/reservedfixedips"
 )
 
 func dataSourceReservedFixedIP() *schema.Resource {
@@ -17,7 +18,7 @@ func dataSourceReservedFixedIP() *schema.Resource {
 		ReadContext: dataSourceReservedFixedIPRead,
 		Description: "Represent reserved ips",
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -25,7 +26,7 @@ func dataSourceReservedFixedIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -33,7 +34,7 @@ func dataSourceReservedFixedIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -41,7 +42,7 @@ func dataSourceReservedFixedIP() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -49,7 +50,7 @@ func dataSourceReservedFixedIP() *schema.Resource {
 					"region_name",
 				},
 			},
-			"fixed_ip_address": &schema.Schema{
+			"fixed_ip_address": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
@@ -62,23 +63,23 @@ func dataSourceReservedFixedIP() *schema.Resource {
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"subnet_id": &schema.Schema{
+			"subnet_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"network_id": &schema.Schema{
+			"network_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"is_vip": &schema.Schema{
+			"is_vip": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"port_id": &schema.Schema{
+			"port_id": {
 				Type:        schema.TypeString,
 				Description: "ID of the port_id underlying the reserved fixed IP",
 				Computed:    true,
@@ -109,7 +110,7 @@ func dataSourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, 
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, reservedFixedIPsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -159,5 +160,6 @@ func dataSourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	log.Println("[DEBUG] Finish ReservedFixedIP reading")
+
 	return diags
 }

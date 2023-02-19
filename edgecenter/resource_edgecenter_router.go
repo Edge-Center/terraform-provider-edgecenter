@@ -2,21 +2,25 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const RouterDeleting int = 1200
-const RouterCreatingTimeout int = 1200
-const RouterPoint = "routers"
+const (
+	RouterDeleting        int = 1200
+	RouterCreatingTimeout int = 1200
+	RouterPoint               = "routers"
+)
 
 func resourceRouter() *schema.Resource {
 	return &schema.Resource{
@@ -28,7 +32,6 @@ func resourceRouter() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, routerID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -41,7 +44,7 @@ func resourceRouter() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -49,7 +52,7 @@ func resourceRouter() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -57,7 +60,7 @@ func resourceRouter() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -65,7 +68,7 @@ func resourceRouter() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
@@ -73,7 +76,7 @@ func resourceRouter() *schema.Resource {
 					"region_name",
 				},
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -120,7 +123,7 @@ func resourceRouter() *schema.Resource {
 					},
 				},
 			},
-			"interfaces": &schema.Schema{
+			"interfaces": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Set:      routerInterfaceUniqueID,
@@ -155,16 +158,16 @@ func resourceRouter() *schema.Resource {
 					},
 				},
 			},
-			"routes": &schema.Schema{
+			"routes": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"destination": &schema.Schema{
+						"destination": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"nexthop": &schema.Schema{
+						"nexthop": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
@@ -172,7 +175,7 @@ func resourceRouter() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
+			"last_updated": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -187,7 +190,7 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, RouterPoint, versionPointV1)
+	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -251,6 +254,7 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceRouterRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish router creating (%s)", routerID)
+
 	return diags
 }
 
@@ -263,7 +267,7 @@ func resourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface
 	routerID := d.Id()
 	log.Printf("[DEBUG] Router id = %s", routerID)
 
-	client, err := CreateClient(provider, d, RouterPoint, versionPointV1)
+	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -330,6 +334,7 @@ func resourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface
 	d.Set("routes", rs)
 
 	log.Println("[DEBUG] Finish router reading")
+
 	return diags
 }
 
@@ -339,7 +344,7 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Printf("[DEBUG] Router id = %s", routerID)
 	config := m.(*Config)
 	provider := config.Provider
-	client, err := CreateClient(provider, d, RouterPoint, versionPointV1)
+	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -421,6 +426,7 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish router updating")
+
 	return resourceRouterRead(ctx, d, m)
 }
 
@@ -432,7 +438,7 @@ func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	routerID := d.Id()
 	log.Printf("[DEBUG] Router id = %s", routerID)
 
-	client, err := CreateClient(provider, d, RouterPoint, versionPointV1)
+	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -448,12 +454,11 @@ func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete router with ID: %s", routerID)
 		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
+		var errDefault404 *edgecloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
 			return nil, nil
-		default:
-			return nil, err
 		}
+		return nil, fmt.Errorf("extracting Router resource error: %w", err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -461,5 +466,6 @@ func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of router deleting")
+
 	return diags
 }

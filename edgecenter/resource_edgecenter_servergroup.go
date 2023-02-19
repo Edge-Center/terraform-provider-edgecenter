@@ -4,13 +4,14 @@ import (
 	"context"
 	"log"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 )
 
 const (
-	serverGroupsPoint = "servergroups"
+	ServerGroupsPoint = "servergroups"
 )
 
 func resourceServerGroup() *schema.Resource {
@@ -22,7 +23,6 @@ func resourceServerGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, sgID, err := ImportStringParser(d.Id())
-
 				if err != nil {
 					return nil, err
 				}
@@ -35,7 +35,7 @@ func resourceServerGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -44,7 +44,7 @@ func resourceServerGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_id": &schema.Schema{
+			"region_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -53,7 +53,7 @@ func resourceServerGroup() *schema.Resource {
 					"region_name",
 				},
 			},
-			"project_name": &schema.Schema{
+			"project_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -62,7 +62,7 @@ func resourceServerGroup() *schema.Resource {
 					"project_name",
 				},
 			},
-			"region_name": &schema.Schema{
+			"region_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -110,7 +110,7 @@ func resourceServerGroupCreate(ctx context.Context, d *schema.ResourceData, m in
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, serverGroupsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -128,6 +128,7 @@ func resourceServerGroupCreate(ctx context.Context, d *schema.ResourceData, m in
 	d.SetId(serverGroup.ServerGroupID)
 	resourceServerGroupRead(ctx, d, m)
 	log.Println("[DEBUG] Finish ServerGroup creating")
+
 	return diags
 }
 
@@ -137,7 +138,7 @@ func resourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m inte
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, serverGroupsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -164,6 +165,7 @@ func resourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	log.Println("[DEBUG] Finish ServerGroup reading")
+
 	return diags
 }
 
@@ -173,7 +175,7 @@ func resourceServerGroupDelete(ctx context.Context, d *schema.ResourceData, m in
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, serverGroupsPoint, versionPointV1)
+	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -185,5 +187,6 @@ func resourceServerGroupDelete(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId("")
 	log.Println("[DEBUG] Finish ServerGroup deleting")
+
 	return diags
 }

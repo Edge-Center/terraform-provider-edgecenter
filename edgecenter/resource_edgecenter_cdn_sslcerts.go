@@ -6,9 +6,10 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/Edge-Center/edgecentercdn-go/sslcerts"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercdn-go/sslcerts"
 )
 
 func resourceCDNCert() *schema.Resource {
@@ -73,6 +74,7 @@ func resourceCDNCertCreate(ctx context.Context, d *schema.ResourceData, m interf
 	resourceCDNCertRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN Cert creating (id=%d)\n", result.ID)
+
 	return nil
 }
 
@@ -96,6 +98,7 @@ func resourceCDNCertRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("automated", result.Automated)
 
 	log.Println("[DEBUG] Finish CDN Cert reading")
+
 	return nil
 }
 
@@ -116,5 +119,6 @@ func resourceCDNCertDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 	d.SetId("")
 	log.Println("[DEBUG] Finish CDN Cert deleting")
+
 	return nil
 }
