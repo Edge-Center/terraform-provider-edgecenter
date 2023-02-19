@@ -780,89 +780,131 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("interface") {
-		ifsOldRaw, ifsNewRaw := d.GetChange("interface")
+		iOldRaw, iNewRaw := d.GetChange("interface")
+		ifsOldSlice, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
+		sort.Sort(instanceInterfaces(ifsOldSlice))
+		sort.Sort(instanceInterfaces(ifsNewSlice))
 
-		ifsOld := ifsOldRaw.([]interface{})
-		ifsNew := ifsNewRaw.([]interface{})
+		switch {
+		// the same number of interfaces
+		case len(ifsOldSlice) == len(ifsNewSlice):
+			for idx, item := range ifsOldSlice {
+				iOld := item.(map[string]interface{})
+				iNew := ifsNewSlice[idx].(map[string]interface{})
 
-		for _, i := range ifsOld {
-			iface := i.(map[string]interface{})
-			var opts instances.InterfaceOpts
-			opts.PortID = iface["port_id"].(string)
-			opts.IpAddress = iface["ip_address"].(string)
-
-			log.Printf("[DEBUG] detach interface: %+v", opts)
-			results, err := instances.DetachInterface(client, instanceID, opts).Extract()
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			taskID := results.Tasks[0]
-			_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, InstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-				taskInfo, err := tasks.Get(client, string(task)).Extract()
-				if err != nil {
-					return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w, task: %+v", task, err, taskInfo)
-				}
-				return nil, nil
-			},
-			)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		}
-
-		sort.Sort(instanceInterfaces(ifsNew))
-		for _, i := range ifsNew {
-			iface := i.(map[string]interface{})
-
-			iType := types.InterfaceType(iface["type"].(string))
-			opts := instances.InterfaceInstanceCreateOpts{
-				InterfaceOpts: instances.InterfaceOpts{Type: iType},
-			}
-
-			switch iType {
-			case types.SubnetInterfaceType:
-				opts.SubnetID = iface["subnet_id"].(string)
-			case types.AnySubnetInterfaceType:
-				opts.NetworkID = iface["network_id"].(string)
-			case types.ReservedFixedIpType:
-				opts.PortID = iface["port_id"].(string)
-			case types.ExternalInterfaceType:
-			}
-
-			rawSgsID := iface["security_groups"].([]interface{})
-			sgs := make([]edgecloud.ItemID, len(rawSgsID))
-			for i, sgID := range rawSgsID {
-				sgs[i] = edgecloud.ItemID{ID: sgID.(string)}
-			}
-			opts.SecurityGroups = sgs
-
-			log.Printf("[DEBUG] attach interface: %+v", opts)
-			results, err := instances.AttachInterface(client, instanceID, opts).Extract()
-			if err != nil {
-				return diag.Errorf("cannot attach interface: %s. Error: %s", iType, err)
-			}
-
-			taskID := results.Tasks[0]
-			log.Printf("[DEBUG] attach interface taskID: %s", taskID)
-			_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, InstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-				taskInfo, err := tasks.Get(client, string(task)).Extract()
-				if err != nil {
-					return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w, task: %+v", task, err, taskInfo)
-				}
-				portID, err := instances.ExtractInstancePortIDFromTask(taskInfo)
-				if err != nil {
-					reservedFixedIPID, ok := (*taskInfo.Data)["reserved_fixed_ip_id"]
-					if !ok || reservedFixedIPID.(string) == "" {
-						return nil, fmt.Errorf("cannot retrieve instance port ID from task info: %w", err)
+				sgsIDsOld := getSecurityGroupsIDs(iOld["security_groups"].([]interface{}))
+				sgsIDsNew := getSecurityGroupsIDs(iNew["security_groups"].([]interface{}))
+				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
+					portID := iOld["port_id"].(string)
+					clientSG, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
+					if err != nil {
+						return diag.FromErr(err)
 					}
-					portID = reservedFixedIPID.(string)
+					removeSGs := getSecurityGroupsDifference(sgsIDsNew, sgsIDsOld)
+					if err := removeSecurityGroupFromInstance(clientSG, client, instanceID, portID, removeSGs); err != nil {
+						return diag.FromErr(err)
+					}
+					addSGs := getSecurityGroupsDifference(sgsIDsOld, sgsIDsNew)
+					if err := attachSecurityGroupToInstance(clientSG, client, instanceID, portID, addSGs); err != nil {
+						return diag.FromErr(err)
+					}
 				}
 
-				return portID, nil
-			})
+				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
+				if len(differentFields) > 0 {
+					if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
+						return diag.FromErr(err)
+					}
+					if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+						return diag.FromErr(err)
+					}
+				}
+			}
 
-			if err != nil {
-				return diag.FromErr(err)
+		// new interfaces > old interfaces - need to attach new
+		case len(ifsOldSlice) < len(ifsNewSlice):
+			for idx, item := range ifsOldSlice {
+				iOld := item.(map[string]interface{})
+				iNew := ifsNewSlice[idx].(map[string]interface{})
+
+				sgsIDsOld := getSecurityGroupsIDs(iOld["security_groups"].([]interface{}))
+				sgsIDsNew := getSecurityGroupsIDs(iNew["security_groups"].([]interface{}))
+				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
+					portID := iOld["port_id"].(string)
+					clientSG, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
+					if err != nil {
+						return diag.FromErr(err)
+					}
+					removeSGs := getSecurityGroupsDifference(sgsIDsNew, sgsIDsOld)
+					if err := removeSecurityGroupFromInstance(clientSG, client, instanceID, portID, removeSGs); err != nil {
+						return diag.FromErr(err)
+					}
+
+					addSGs := getSecurityGroupsDifference(sgsIDsOld, sgsIDsNew)
+					if err := attachSecurityGroupToInstance(clientSG, client, instanceID, portID, addSGs); err != nil {
+						return diag.FromErr(err)
+					}
+				}
+
+				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
+				if len(differentFields) > 0 {
+					if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
+						return diag.FromErr(err)
+					}
+					if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+						return diag.FromErr(err)
+					}
+				}
+			}
+
+			for _, item := range ifsNewSlice[len(ifsOldSlice):] {
+				iNew := item.(map[string]interface{})
+				if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+
+		// old interfaces > new interfaces - need to detach old
+		case len(ifsOldSlice) > len(ifsNewSlice):
+			for idx, item := range ifsOldSlice[:len(ifsNewSlice)] {
+				iOld := item.(map[string]interface{})
+				iNew := ifsNewSlice[idx].(map[string]interface{})
+
+				sgsIDsOld := getSecurityGroupsIDs(iOld["security_groups"].([]interface{}))
+				sgsIDsNew := getSecurityGroupsIDs(iNew["security_groups"].([]interface{}))
+				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
+					portID := iOld["port_id"].(string)
+					clientSG, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
+					if err != nil {
+						return diag.FromErr(err)
+					}
+					removeSGs := getSecurityGroupsDifference(sgsIDsNew, sgsIDsOld)
+					if err := removeSecurityGroupFromInstance(clientSG, client, instanceID, portID, removeSGs); err != nil {
+						return diag.FromErr(err)
+					}
+
+					addSGs := getSecurityGroupsDifference(sgsIDsOld, sgsIDsNew)
+					if err := attachSecurityGroupToInstance(clientSG, client, instanceID, portID, addSGs); err != nil {
+						return diag.FromErr(err)
+					}
+				}
+
+				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
+				if len(differentFields) > 0 {
+					if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
+						return diag.FromErr(err)
+					}
+					if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+						return diag.FromErr(err)
+					}
+				}
+			}
+
+			for _, item := range ifsOldSlice[len(ifsNewSlice):] {
+				iOld := item.(map[string]interface{})
+				if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
+					return diag.FromErr(err)
+				}
 			}
 		}
 	}
@@ -980,49 +1022,4 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 	log.Printf("[DEBUG] Finish of Instance deleting")
 
 	return diags
-}
-
-// ServerV2StateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
-// a edgecloud instance.
-func ServerV2StateRefreshFunc(client *edgecloud.ServiceClient, instanceID string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		s, err := instances.Get(client, instanceID).Extract()
-		if err != nil {
-			var errDefault404 *edgecloud.ErrDefault404
-			if errors.As(err, &errDefault404) {
-				return s, "DELETED", nil
-			}
-			return nil, "", fmt.Errorf("extracting Instance resource error: %w", err)
-		}
-		return s, s.VMState, nil
-	}
-}
-
-func findInstancePort(portID string, ports []instances.InstancePorts) (instances.InstancePorts, error) {
-	for _, port := range ports {
-		if port.ID == portID {
-			return port, nil
-		}
-	}
-
-	return instances.InstancePorts{}, fmt.Errorf("port not found")
-}
-
-func prepareSecurityGroups(ports []instances.InstancePorts) []interface{} {
-	sgs := make(map[string]string)
-	for _, port := range ports {
-		for _, sg := range port.SecurityGroups {
-			sgs[sg.ID] = sg.Name
-		}
-	}
-
-	secGroups := make([]interface{}, 0, len(sgs))
-	for sgID, sgName := range sgs {
-		s := make(map[string]interface{})
-		s["id"] = sgID
-		s["name"] = sgName
-		secGroups = append(secGroups, s)
-	}
-
-	return secGroups
 }

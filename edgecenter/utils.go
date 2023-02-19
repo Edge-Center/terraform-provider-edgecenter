@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 
@@ -36,6 +38,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
 	typesSG "github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
 
 const (
@@ -733,4 +736,216 @@ func extractListenerIntoMap(listener *listeners.Listener) map[string]interface{}
 	l["secret_id"] = listener.SecretID
 	l["sni_secret_id"] = listener.SNISecretID
 	return l
+}
+
+// ServerV2StateRefreshFunc returns a resource.StateRefreshFunc that is used to watch an edgecloud instance.
+func ServerV2StateRefreshFunc(client *edgecloud.ServiceClient, instanceID string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		s, err := instances.Get(client, instanceID).Extract()
+		if err != nil {
+			var errDefault404 *edgecloud.ErrDefault404
+			if errors.As(err, &errDefault404) {
+				return s, "DELETED", nil
+			}
+			return nil, "", err
+		}
+
+		return s, s.VMState, nil
+	}
+}
+
+func findInstancePort(portID string, ports []instances.InstancePorts) (instances.InstancePorts, error) {
+	for _, port := range ports {
+		if port.ID == portID {
+			return port, nil
+		}
+	}
+
+	return instances.InstancePorts{}, fmt.Errorf("port not found")
+}
+
+func prepareSecurityGroups(ports []instances.InstancePorts) []interface{} {
+	sgs := make(map[string]string)
+	for _, port := range ports {
+		for _, sg := range port.SecurityGroups {
+			sgs[sg.ID] = sg.Name
+		}
+	}
+
+	secGroups := make([]interface{}, 0, len(sgs))
+	for sgID, sgName := range sgs {
+		s := make(map[string]interface{})
+		s["id"] = sgID
+		s["name"] = sgName
+		secGroups = append(secGroups, s)
+	}
+
+	return secGroups
+}
+
+// contains check if slice contains the element.
+func contains[K comparable](slice []K, elm K) bool {
+	for _, s := range slice {
+		if s == elm {
+			return true
+		}
+	}
+	return false
+}
+
+// getMapDifference compares two maps and returns a map of only different values.
+// uncheckedKeys - list of keys to skip when comparing.
+func getMapDifference(iMapOld, iMapNew map[string]interface{}, uncheckedKeys []string) map[string]interface{} {
+	differentFields := make(map[string]interface{})
+
+	for oldMapK, oldMapV := range iMapOld {
+		if contains(uncheckedKeys, oldMapK) {
+			continue
+		}
+
+		if newMapV, ok := iMapNew[oldMapK]; !ok || !reflect.DeepEqual(newMapV, oldMapV) {
+			differentFields[oldMapK] = oldMapV
+		}
+	}
+
+	for newMapK, newMapV := range iMapNew {
+		if contains(uncheckedKeys, newMapK) {
+			continue
+		}
+
+		if _, ok := iMapOld[newMapK]; !ok {
+			differentFields[newMapK] = newMapV
+		}
+	}
+
+	return differentFields
+}
+
+func getSecurityGroupsIDs(sgsRaw []interface{}) []edgecloud.ItemID {
+	sgs := make([]edgecloud.ItemID, len(sgsRaw))
+	for i, sgID := range sgsRaw {
+		sgs[i] = edgecloud.ItemID{ID: sgID.(string)}
+	}
+	return sgs
+}
+
+func getSecurityGroupsDifference(sl1, sl2 []edgecloud.ItemID) (diff []edgecloud.ItemID) { //nolint: nonamedreturns
+	set := make(map[string]bool)
+	for _, item := range sl1 {
+		set[item.ID] = true
+	}
+
+	for _, item := range sl2 {
+		if !set[item.ID] {
+			diff = append(diff, item)
+		}
+	}
+
+	return diff
+}
+
+func detachInterfaceFromInstance(client *edgecloud.ServiceClient, instanceID string, iface map[string]interface{}) error {
+	var opts instances.InterfaceOpts
+	opts.PortID = iface["port_id"].(string)
+	opts.IpAddress = iface["ip_address"].(string)
+
+	log.Printf("[DEBUG] detach interface: %+v", opts)
+	results, err := instances.DetachInterface(client, instanceID, opts).Extract()
+	if err != nil {
+		return err
+	}
+
+	err = tasks.WaitTaskAndProcessResult(client, results.Tasks[0], true, InstanceCreatingTimeout, func(task tasks.TaskID) error {
+		if taskInfo, err := tasks.Get(client, string(task)).Extract(); err != nil {
+			return fmt.Errorf("cannot get task with ID: %s. Error: %w, task: %+v", task, err, taskInfo)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func attachInterfaceToInstance(client *edgecloud.ServiceClient, instanceID string, iface map[string]interface{}) error {
+	iType := types.InterfaceType(iface["type"].(string))
+	opts := instances.InterfaceInstanceCreateOpts{
+		InterfaceOpts: instances.InterfaceOpts{Type: iType},
+	}
+
+	switch iType { //nolint: exhaustive
+	case types.SubnetInterfaceType:
+		opts.SubnetID = iface["subnet_id"].(string)
+	case types.AnySubnetInterfaceType:
+		opts.NetworkID = iface["network_id"].(string)
+	case types.ReservedFixedIpType:
+		opts.PortID = iface["port_id"].(string)
+	}
+	opts.SecurityGroups = getSecurityGroupsIDs(iface["security_groups"].([]interface{}))
+
+	log.Printf("[DEBUG] attach interface: %+v", opts)
+	results, err := instances.AttachInterface(client, instanceID, opts).Extract()
+	if err != nil {
+		return fmt.Errorf("cannot attach interface: %s. Error: %w", iType, err)
+	}
+
+	err = tasks.WaitTaskAndProcessResult(client, results.Tasks[0], true, InstanceCreatingTimeout, func(task tasks.TaskID) error {
+		taskInfo, err := tasks.Get(client, string(task)).Extract()
+		if err != nil {
+			return fmt.Errorf("cannot get task with ID: %s. Error: %w, task: %+v", task, err, taskInfo)
+		}
+
+		if _, err := instances.ExtractInstancePortIDFromTask(taskInfo); err != nil {
+			reservedFixedIPID, ok := (*taskInfo.Data)["reserved_fixed_ip_id"]
+			if !ok || reservedFixedIPID.(string) == "" {
+				return fmt.Errorf("cannot retrieve instance port ID from task info: %w", err)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removeSecurityGroupFromInstance(clientSG, clientInstance *edgecloud.ServiceClient, instanceID, portID string, removeSGs []edgecloud.ItemID) error {
+	for _, sg := range removeSGs {
+		sgInfo, err := securitygroups.Get(clientSG, sg.ID).Extract()
+		if err != nil {
+			return err
+		}
+
+		portSGNames := instances.PortSecurityGroupNames{PortID: &portID, SecurityGroupNames: []string{sgInfo.Name}}
+		sgOpts := instances.SecurityGroupOpts{PortsSecurityGroupNames: []instances.PortSecurityGroupNames{portSGNames}}
+
+		log.Printf("[DEBUG] remove security group opts: %+v", sgOpts)
+		if err := instances.UnAssignSecurityGroup(clientInstance, instanceID, sgOpts).Err; err != nil {
+			return fmt.Errorf("cannot remove security group. Error: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func attachSecurityGroupToInstance(clientSG, clientInstance *edgecloud.ServiceClient, instanceID, portID string, addSGs []edgecloud.ItemID) error {
+	for _, sg := range addSGs {
+		sgInfo, err := securitygroups.Get(clientSG, sg.ID).Extract()
+		if err != nil {
+			return err
+		}
+
+		portSGNames := instances.PortSecurityGroupNames{PortID: &portID, SecurityGroupNames: []string{sgInfo.Name}}
+		sgOpts := instances.SecurityGroupOpts{PortsSecurityGroupNames: []instances.PortSecurityGroupNames{portSGNames}}
+
+		log.Printf("[DEBUG] attach security group opts: %+v", sgOpts)
+		if err := instances.AssignSecurityGroup(clientInstance, instanceID, sgOpts).Err; err != nil {
+			return fmt.Errorf("cannot attach security group. Error: %w", err)
+		}
+	}
+
+	return nil
 }
