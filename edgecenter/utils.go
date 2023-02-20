@@ -868,7 +868,7 @@ func detachInterfaceFromInstance(client *edgecloud.ServiceClient, instanceID str
 	return nil
 }
 
-func attachInterfaceToInstance(client *edgecloud.ServiceClient, instanceID string, iface map[string]interface{}) error {
+func attachInterfaceToInstance(instanceClient *edgecloud.ServiceClient, instanceID string, iface map[string]interface{}) error {
 	iType := types.InterfaceType(iface["type"].(string))
 	opts := instances.InterfaceInstanceCreateOpts{
 		InterfaceOpts: instances.InterfaceOpts{Type: iType},
@@ -885,13 +885,13 @@ func attachInterfaceToInstance(client *edgecloud.ServiceClient, instanceID strin
 	opts.SecurityGroups = getSecurityGroupsIDs(iface["security_groups"].([]interface{}))
 
 	log.Printf("[DEBUG] attach interface: %+v", opts)
-	results, err := instances.AttachInterface(client, instanceID, opts).Extract()
+	results, err := instances.AttachInterface(instanceClient, instanceID, opts).Extract()
 	if err != nil {
 		return fmt.Errorf("cannot attach interface: %s. Error: %w", iType, err)
 	}
 
-	err = tasks.WaitTaskAndProcessResult(client, results.Tasks[0], true, InstanceCreatingTimeout, func(task tasks.TaskID) error {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
+	err = tasks.WaitTaskAndProcessResult(instanceClient, results.Tasks[0], true, InstanceCreatingTimeout, func(task tasks.TaskID) error {
+		taskInfo, err := tasks.Get(instanceClient, string(task)).Extract()
 		if err != nil {
 			return fmt.Errorf("cannot get task with ID: %s. Error: %w, task: %+v", task, err, taskInfo)
 		}
@@ -912,9 +912,9 @@ func attachInterfaceToInstance(client *edgecloud.ServiceClient, instanceID strin
 	return nil
 }
 
-func removeSecurityGroupFromInstance(clientSG, clientInstance *edgecloud.ServiceClient, instanceID, portID string, removeSGs []edgecloud.ItemID) error {
+func removeSecurityGroupFromInstance(sgClient, instanceClient *edgecloud.ServiceClient, instanceID, portID string, removeSGs []edgecloud.ItemID) error {
 	for _, sg := range removeSGs {
-		sgInfo, err := securitygroups.Get(clientSG, sg.ID).Extract()
+		sgInfo, err := securitygroups.Get(sgClient, sg.ID).Extract()
 		if err != nil {
 			return err
 		}
@@ -923,7 +923,7 @@ func removeSecurityGroupFromInstance(clientSG, clientInstance *edgecloud.Service
 		sgOpts := instances.SecurityGroupOpts{PortsSecurityGroupNames: []instances.PortSecurityGroupNames{portSGNames}}
 
 		log.Printf("[DEBUG] remove security group opts: %+v", sgOpts)
-		if err := instances.UnAssignSecurityGroup(clientInstance, instanceID, sgOpts).Err; err != nil {
+		if err := instances.UnAssignSecurityGroup(instanceClient, instanceID, sgOpts).Err; err != nil {
 			return fmt.Errorf("cannot remove security group. Error: %w", err)
 		}
 	}
@@ -931,9 +931,9 @@ func removeSecurityGroupFromInstance(clientSG, clientInstance *edgecloud.Service
 	return nil
 }
 
-func attachSecurityGroupToInstance(clientSG, clientInstance *edgecloud.ServiceClient, instanceID, portID string, addSGs []edgecloud.ItemID) error {
+func attachSecurityGroupToInstance(sgClient, instanceClient *edgecloud.ServiceClient, instanceID, portID string, addSGs []edgecloud.ItemID) error {
 	for _, sg := range addSGs {
-		sgInfo, err := securitygroups.Get(clientSG, sg.ID).Extract()
+		sgInfo, err := securitygroups.Get(sgClient, sg.ID).Extract()
 		if err != nil {
 			return err
 		}
@@ -942,7 +942,7 @@ func attachSecurityGroupToInstance(clientSG, clientInstance *edgecloud.ServiceCl
 		sgOpts := instances.SecurityGroupOpts{PortsSecurityGroupNames: []instances.PortSecurityGroupNames{portSGNames}}
 
 		log.Printf("[DEBUG] attach security group opts: %+v", sgOpts)
-		if err := instances.AssignSecurityGroup(clientInstance, instanceID, sgOpts).Err; err != nil {
+		if err := instances.AssignSecurityGroup(instanceClient, instanceID, sgOpts).Err; err != nil {
 			return fmt.Errorf("cannot attach security group. Error: %w", err)
 		}
 	}

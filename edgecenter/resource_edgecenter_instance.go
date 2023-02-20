@@ -796,16 +796,16 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				sgsIDsNew := getSecurityGroupsIDs(iNew["security_groups"].([]interface{}))
 				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
 					portID := iOld["port_id"].(string)
-					clientSG, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
+					sgClient, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
 					if err != nil {
 						return diag.FromErr(err)
 					}
 					removeSGs := getSecurityGroupsDifference(sgsIDsNew, sgsIDsOld)
-					if err := removeSecurityGroupFromInstance(clientSG, client, instanceID, portID, removeSGs); err != nil {
+					if err := removeSecurityGroupFromInstance(sgClient, client, instanceID, portID, removeSGs); err != nil {
 						return diag.FromErr(err)
 					}
 					addSGs := getSecurityGroupsDifference(sgsIDsOld, sgsIDsNew)
-					if err := attachSecurityGroupToInstance(clientSG, client, instanceID, portID, addSGs); err != nil {
+					if err := attachSecurityGroupToInstance(sgClient, client, instanceID, portID, addSGs); err != nil {
 						return diag.FromErr(err)
 					}
 				}
