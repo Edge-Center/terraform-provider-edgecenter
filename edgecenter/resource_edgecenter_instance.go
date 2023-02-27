@@ -909,6 +909,32 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 	}
 
+	if d.HasChange("server_group") {
+		oldSGRaw, newSGRaw := d.GetChange("server_group")
+		oldSGID, newSGID := oldSGRaw.(string), newSGRaw.(string)
+
+		clientSG, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		// delete old server group
+		if oldSGID != "" {
+			err := deleteServerGroup(clientSG, client, instanceID, oldSGID)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
+		// add new server group if needed
+		if newSGID != "" {
+			err := addServerGroup(clientSG, client, instanceID, newSGID)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
 	if d.HasChange("volume") {
 		vClient, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
 		if err != nil {

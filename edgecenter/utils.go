@@ -37,6 +37,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
 	typesSG "github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
@@ -945,6 +946,60 @@ func attachSecurityGroupToInstance(sgClient, instanceClient *edgecloud.ServiceCl
 		if err := instances.AssignSecurityGroup(instanceClient, instanceID, sgOpts).Err; err != nil {
 			return fmt.Errorf("cannot attach security group. Error: %w", err)
 		}
+	}
+
+	return nil
+}
+
+func deleteServerGroup(sgClient, instanceClient *edgecloud.ServiceClient, instanceID, sgID string) error {
+	log.Printf("[DEBUG] remove server group from instance: %s", instanceID)
+	results, err := instances.RemoveServerGroup(instanceClient, instanceID).Extract()
+	if err != nil {
+		return fmt.Errorf("failed to remove server group %s from instance %s: %w", sgID, instanceID, err)
+	}
+
+	err = tasks.WaitTaskAndProcessResult(sgClient, results.Tasks[0], true, InstanceCreatingTimeout, func(task tasks.TaskID) error {
+		sgInfo, err := servergroups.Get(sgClient, sgID).Extract()
+		if err != nil {
+			return fmt.Errorf("failed to get server group %s: %w", sgID, err)
+		}
+		for _, instanceInfo := range sgInfo.Instances {
+			if instanceInfo.InstanceID == instanceID {
+				return fmt.Errorf("server group %s was not removed from instance %s", sgID, instanceID)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func addServerGroup(sgClient, instanceClient *edgecloud.ServiceClient, instanceID, sgID string) error {
+	log.Printf("[DEBUG] add server group to instance: %s", instanceID)
+	results, err := instances.AddServerGroup(instanceClient, instanceID, instances.ServerGroupOpts{ServerGroupID: sgID}).Extract()
+	if err != nil {
+		return fmt.Errorf("failed to add server group %s to instance %s: %w", sgID, instanceID, err)
+	}
+
+	err = tasks.WaitTaskAndProcessResult(sgClient, results.Tasks[0], true, InstanceCreatingTimeout, func(task tasks.TaskID) error {
+		sgInfo, err := servergroups.Get(sgClient, sgID).Extract()
+		if err != nil {
+			return fmt.Errorf("cannot get server group with ID: %s. Error: %w", sgID, err)
+		}
+		for _, instanceInfo := range sgInfo.Instances {
+			if instanceInfo.InstanceID == instanceID {
+				return nil
+			}
+		}
+		return fmt.Errorf("the server group: %s was not added to the instance: %s. Error: %w", sgID, instanceID, err)
+	})
+
+	if err != nil {
+		return err
 	}
 
 	return nil
