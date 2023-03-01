@@ -98,15 +98,15 @@ func resourceLbListener() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'",
+				Description: "Available values is 'TCP', 'UDP', 'HTTP', 'HTTPS', 'Terminated HTTPS'",
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					switch types.ProtocolType(v) {
-					case types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP:
+					case types.ProtocolTypeTCP, types.ProtocolTypeUDP, types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTerminatedHTTPS:
 						return diag.Diagnostics{}
-					case types.ProtocolTypeTerminatedHTTPS, types.ProtocolTypePROXY:
+					case types.ProtocolTypePROXY:
 					}
-					return diag.Errorf("wrong protocol %s, available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'", v)
+					return diag.Errorf("wrong protocol %s, available values is 'TCP', 'UDP', 'HTTP', 'HTTPS', 'Terminated HTTPS'", v)
 				},
 			},
 			"protocol_port": {
@@ -244,15 +244,17 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
+	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var changed bool
-	opts := listeners.UpdateOpts{}
+	opts := listeners.UpdateOpts{
+		Name: d.Get("name").(string),
+	}
+
 	if d.HasChange("name") {
-		opts.Name = d.Get("name").(string)
 		changed = true
 	}
 
