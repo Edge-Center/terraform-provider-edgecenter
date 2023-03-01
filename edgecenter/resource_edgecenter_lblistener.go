@@ -28,7 +28,7 @@ func resourceLbListener() *schema.Resource {
 		ReadContext:   resourceLBListenerRead,
 		UpdateContext: resourceLBListenerUpdate,
 		DeleteContext: resourceLBListenerDelete,
-		Description:   "Represent load balancer listener. Can not be created without load balancer. A listener is a process that checks for connection requests, using the protocol and port that you configure",
+		Description:   "Represent a load balancer listener. Can not be created without a load balancer. A listener is a process that checks for connection requests using the protocol and port that you configure.",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),
@@ -98,15 +98,15 @@ func resourceLbListener() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'",
+				Description: "Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS' and 'Terminated HTTPS'.",
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					switch types.ProtocolType(v) {
-					case types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP:
+					case types.ProtocolTypeTCP, types.ProtocolTypeUDP, types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTerminatedHTTPS:
 						return diag.Diagnostics{}
-					case types.ProtocolTypeTerminatedHTTPS, types.ProtocolTypePROXY:
+					case types.ProtocolTypePROXY:
 					}
-					return diag.Errorf("wrong protocol %s, available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'", v)
+					return diag.Errorf("wrong protocol %s, available values are 'TCP', 'UDP', 'HTTP', 'HTTPS' and 'Terminated HTTPS'.", v)
 				},
 			},
 			"protocol_port": {
@@ -167,15 +167,39 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 		ProtocolPort:     d.Get("protocol_port").(int),
 		LoadBalancerID:   d.Get("loadbalancer_id").(string),
 		InsertXForwarded: d.Get("insert_x_forwarded").(bool),
-		SecretID:         d.Get("secret_id").(string),
 	}
+	secretID := d.Get("secret_id").(string)
 	sniSecretIDRaw := d.Get("sni_secret_id").([]interface{})
-	if len(sniSecretIDRaw) != 0 {
-		sniSecretID := make([]string, len(sniSecretIDRaw))
-		for i, s := range sniSecretIDRaw {
-			sniSecretID[i] = s.(string)
+
+	switch opts.Protocol { //nolint: exhaustive
+	case types.ProtocolTypeTCP, types.ProtocolTypeUDP, types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS:
+		if secretID != "" {
+			return diag.Errorf("secret_id parameter can only be used with %s listener protocol type", types.ProtocolTypeTerminatedHTTPS)
 		}
-		opts.SNISecretID = sniSecretID
+
+		if len(sniSecretIDRaw) > 0 {
+			return diag.Errorf("sni_secret_id parameter can only be used with %s listener protocol type", types.ProtocolTypeTerminatedHTTPS)
+		}
+
+		if opts.InsertXForwarded && (opts.Protocol == types.ProtocolTypeTCP || opts.Protocol == types.ProtocolTypeUDP || opts.Protocol == types.ProtocolTypeHTTPS) {
+			return diag.Errorf(
+				"X-Forwarded headers can only be used with %s or %s listener protocol type",
+				types.ProtocolTypeHTTP, types.ProtocolTypeTerminatedHTTPS,
+			)
+		}
+	case types.ProtocolTypeTerminatedHTTPS:
+		if secretID == "" {
+			return diag.Errorf("secret_id parameter is required with %s listener protocol type", types.ProtocolTypeTerminatedHTTPS)
+		}
+		opts.SecretID = secretID
+		if len(sniSecretIDRaw) > 0 {
+			opts.SNISecretID = make([]string, len(sniSecretIDRaw))
+			for i, s := range sniSecretIDRaw {
+				opts.SNISecretID[i] = s.(string)
+			}
+		}
+	default:
+		return diag.Errorf("wrong protocol")
 	}
 
 	results, err := listeners.Create(client, opts).Extract()
@@ -244,24 +268,32 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
+	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var changed bool
-	opts := listeners.UpdateOpts{}
+	opts := listeners.UpdateOpts{
+		Name: d.Get("name").(string),
+	}
+
 	if d.HasChange("name") {
-		opts.Name = d.Get("name").(string)
 		changed = true
 	}
 
 	if d.HasChange("secret_id") {
+		if types.ProtocolType(d.Get("protocol").(string)) != types.ProtocolTypeTerminatedHTTPS {
+			return diag.Errorf("secret_id parameter can only be used with %s listener protocol type", types.ProtocolTypeTerminatedHTTPS)
+		}
 		opts.SecretID = d.Get("secret_id").(string)
 		changed = true
 	}
 
 	if d.HasChange("sni_secret_id") {
+		if types.ProtocolType(d.Get("protocol").(string)) != types.ProtocolTypeTerminatedHTTPS {
+			return diag.Errorf("sni_secret_id parameter can only be used with %s listener protocol type", types.ProtocolTypeTerminatedHTTPS)
+		}
 		sniSecretIDRaw := d.Get("sni_secret_id").([]interface{})
 		sniSecretID := make([]string, len(sniSecretIDRaw))
 		for i, s := range sniSecretIDRaw {
