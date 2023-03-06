@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 )
 
@@ -104,6 +105,16 @@ func resourceLoadBalancerV2() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"security_group": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Creates a new security group with the specified name",
+			},
+			"security_group_id": {
+				Type:        schema.TypeString,
+				Description: "Load balancer security group ID",
+				Computed:    true,
+			},
 		},
 	}
 }
@@ -152,6 +163,32 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	d.SetId(lbID.(string))
+
+	securityGroup := d.Get("security_group").(string)
+	if securityGroup != "" {
+		if err := loadbalancers.CreateCustomSecurityGroup(client, d.Id()).ExtractErr(); err != nil {
+			return diag.FromErr(err)
+		}
+
+		sgInfo, err := loadbalancers.ListCustomSecurityGroup(client, d.Id()).Extract()
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if len(sgInfo) > 0 {
+			sgID := sgInfo[0].ID
+			d.Set("security_group_id", sgID)
+			clientSG, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			_, err = securitygroups.Update(clientSG, sgID, securitygroups.UpdateOpts{Name: securityGroup}).Extract()
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
 	resourceLoadBalancerV2Read(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LoadBalancer creating (%s)", lbID)

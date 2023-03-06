@@ -58,6 +58,11 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"security_group_id": {
+				Type:        schema.TypeString,
+				Description: "Load balancer security group ID",
+				Computed:    true,
+			},
 		},
 	}
 }
@@ -99,6 +104,14 @@ func dataSourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m
 	d.Set("name", lb.Name)
 	d.Set("vip_address", lb.VipAddress.String())
 	d.Set("vip_port_id", lb.VipPortID)
+
+	sgInfo, err := loadbalancers.ListCustomSecurityGroup(client, d.Id()).Extract()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if len(sgInfo) > 0 {
+		d.Set("security_group_id", sgInfo[0].ID)
+	}
 
 	log.Println("[DEBUG] Finish LoadBalancer reading")
 
