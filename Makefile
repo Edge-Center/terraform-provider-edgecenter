@@ -44,10 +44,10 @@ envs_reader:
 	go install github.com/joho/godotenv/cmd/godotenv@latest
 
 test_cloud_data_source: envs_reader
-	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud_data_source -short -timeout=3m
+	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud_data_source -short -timeout=5m
 
 test_cloud_resource: envs_reader
-	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud_resource -short -timeout=5m
+	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud_resource -short -timeout=7m
 
 test_not_cloud: envs_reader
 	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags dns storage cdn -v -timeout=5m
