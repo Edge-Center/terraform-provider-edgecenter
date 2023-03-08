@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -30,22 +30,22 @@ func TestAccK8sPool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k8sClient, err := CreateTestClient(cfg.Provider, edgecenter.K8sPoint, edgecenter.VersionPointV1)
+	k8sClient, err := createTestClient(cfg.Provider, edgecenter.K8sPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	netClient, err := CreateTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	netClient, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	subnetClient, err := CreateTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	subnetClient, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	kpClient, err := CreateTestClient(cfg.Provider, edgecenter.KeypairsPoint, edgecenter.VersionPointV2)
+	kpClient, err := createTestClient(cfg.Provider, edgecenter.KeypairsPoint, edgecenter.VersionPointV2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestAccK8sPool(t *testing.T) {
 		GatewayIP:              &gw,
 	}
 
-	subnetID, err := CreateTestSubnet(subnetClient, subnetOpts)
+	subnetID, err := createTestSubnet(subnetClient, subnetOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestAccK8sPool(t *testing.T) {
 	}
 
 	kpOpts := keypairs.CreateOpts{
-		Name:      kpName,
+		Name:      kpTestName,
 		PublicKey: pkTest,
 		ProjectID: pid,
 	}
@@ -97,20 +97,20 @@ func TestAccK8sPool(t *testing.T) {
 	defer keypairs.Delete(kpClient, keyPair.ID)
 
 	k8sOpts := clusters.CreateOpts{
-		Name:               testClusterName,
+		Name:               clusterTestName,
 		FixedNetwork:       networkID,
 		FixedSubnet:        subnetID,
 		AutoHealingEnabled: true,
 		KeyPair:            keyPair.ID,
-		Version:            testClusterVersion,
+		Version:            clusterVersionTest,
 		Pools: []pools.CreateOpts{{
-			Name:             testClusterPoolName,
-			FlavorID:         testPoolFlavor,
-			NodeCount:        testNodeCount,
-			DockerVolumeSize: testDockerVolumeSize,
-			DockerVolumeType: testDockerVolumeType,
-			MinNodeCount:     testMinNodeCount,
-			MaxNodeCount:     testMaxNodeCount,
+			Name:             poolTestName,
+			FlavorID:         flavorTest,
+			NodeCount:        nodeCountTest,
+			DockerVolumeSize: dockerVolumeSizeTest,
+			DockerVolumeType: ockerVolumeTypeTest,
+			MinNodeCount:     minNodeCountTest,
+			MaxNodeCount:     maxNodeCountTest,
 		}},
 	}
 	clusterID, err := createTestCluster(k8sClient, k8sOpts)
@@ -121,7 +121,7 @@ func TestAccK8sPool(t *testing.T) {
 	// we need to wait until upgrade will e finished
 	time.Sleep(time.Second * 30)
 
-	fullName := "edgecenter_k8s_pool.acctest"
+	resourceName := "edgecenter_k8s_pool.acctest"
 	type Params struct {
 		Name             string
 		Flavor           string
@@ -175,25 +175,25 @@ func TestAccK8sPool(t *testing.T) {
 			{
 				Config: ipTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", create.Name),
-					resource.TestCheckResourceAttr(fullName, "flavor_id", create.Flavor),
-					resource.TestCheckResourceAttr(fullName, "docker_volume_size", strconv.Itoa(create.DockerVolumeSize)),
-					resource.TestCheckResourceAttr(fullName, "min_node_count", strconv.Itoa(create.MinNodeCount)),
-					resource.TestCheckResourceAttr(fullName, "max_node_count", strconv.Itoa(create.MaxNodeCount)),
-					resource.TestCheckResourceAttr(fullName, "node_count", strconv.Itoa(create.NodeCount)),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", create.Name),
+					resource.TestCheckResourceAttr(resourceName, "flavor_id", create.Flavor),
+					resource.TestCheckResourceAttr(resourceName, "docker_volume_size", strconv.Itoa(create.DockerVolumeSize)),
+					resource.TestCheckResourceAttr(resourceName, "min_node_count", strconv.Itoa(create.MinNodeCount)),
+					resource.TestCheckResourceAttr(resourceName, "max_node_count", strconv.Itoa(create.MaxNodeCount)),
+					resource.TestCheckResourceAttr(resourceName, "node_count", strconv.Itoa(create.NodeCount)),
 				),
 			},
 			{
 				Config: ipTemplate(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", update.Name),
-					resource.TestCheckResourceAttr(fullName, "flavor_id", update.Flavor),
-					resource.TestCheckResourceAttr(fullName, "docker_volume_size", strconv.Itoa(update.DockerVolumeSize)),
-					resource.TestCheckResourceAttr(fullName, "min_node_count", strconv.Itoa(update.MinNodeCount)),
-					resource.TestCheckResourceAttr(fullName, "max_node_count", strconv.Itoa(update.MaxNodeCount)),
-					resource.TestCheckResourceAttr(fullName, "node_count", strconv.Itoa(update.NodeCount)),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", update.Name),
+					resource.TestCheckResourceAttr(resourceName, "flavor_id", update.Flavor),
+					resource.TestCheckResourceAttr(resourceName, "docker_volume_size", strconv.Itoa(update.DockerVolumeSize)),
+					resource.TestCheckResourceAttr(resourceName, "min_node_count", strconv.Itoa(update.MinNodeCount)),
+					resource.TestCheckResourceAttr(resourceName, "max_node_count", strconv.Itoa(update.MaxNodeCount)),
+					resource.TestCheckResourceAttr(resourceName, "node_count", strconv.Itoa(update.NodeCount)),
 				),
 			},
 		},
@@ -202,7 +202,7 @@ func TestAccK8sPool(t *testing.T) {
 
 func testAccK8sPoolDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.K8sPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.K8sPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

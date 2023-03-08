@@ -11,9 +11,8 @@ import (
 )
 
 func TestAccCDNResource(t *testing.T) {
-	t.Skip()
 	t.Parallel()
-	fullName := "edgecenter_cdn_resource.acctest"
+	resourceName := "edgecenter_cdn_resource.acctest"
 
 	type Params struct {
 		Proto string
@@ -45,17 +44,17 @@ resource "edgecenter_cdn_resource" "acctest" {
 			{
 				Config: template(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "cname", cname),
-					resource.TestCheckResourceAttr(fullName, "origin_protocol", create.Proto),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "cname", cname),
+					resource.TestCheckResourceAttr(resourceName, "origin_protocol", create.Proto),
 				),
 			},
 			{
 				Config: template(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "cname", cname),
-					resource.TestCheckResourceAttr(fullName, "origin_protocol", update.Proto),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "cname", cname),
+					resource.TestCheckResourceAttr(resourceName, "origin_protocol", update.Proto),
 				),
 			},
 		},

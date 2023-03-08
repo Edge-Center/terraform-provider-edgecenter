@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -17,18 +17,20 @@ import (
 )
 
 func TestAccLBPool(t *testing.T) {
-	t.Skip()
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientListener, err := CreateTestClient(cfg.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
+	clientListener, err := createTestClient(cfg.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +65,7 @@ func TestAccLBPool(t *testing.T) {
 
 	update := Params{"test1", "LEAST_CONNECTIONS"}
 
-	fullName := "edgecenter_lbpool.acctest"
+	resourceName := "edgecenter_lbpool.acctest"
 
 	ripTemplate := func(params *Params) string {
 		return fmt.Sprintf(`
@@ -87,17 +89,17 @@ func TestAccLBPool(t *testing.T) {
 			{
 				Config: ripTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", create.Name),
-					resource.TestCheckResourceAttr(fullName, "lb_algorithm", create.LBAlgorithm),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", create.Name),
+					resource.TestCheckResourceAttr(resourceName, "lb_algorithm", create.LBAlgorithm),
 				),
 			},
 			{
 				Config: ripTemplate(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", update.Name),
-					resource.TestCheckResourceAttr(fullName, "lb_algorithm", update.LBAlgorithm),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", update.Name),
+					resource.TestCheckResourceAttr(resourceName, "lb_algorithm", update.LBAlgorithm),
 				),
 			},
 		},
@@ -106,7 +108,7 @@ func TestAccLBPool(t *testing.T) {
 
 func testAccLBPoolDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.LBPoolsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.LBPoolsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

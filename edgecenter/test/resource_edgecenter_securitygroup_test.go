@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -14,7 +14,8 @@ import (
 )
 
 func TestAccSecurityGroup(t *testing.T) {
-	fullName := "edgecenter_securitygroup.acctest"
+	t.Parallel()
+	resourceName := "edgecenter_securitygroup.acctest"
 
 	ipTemplate1 := fmt.Sprintf(`
 			resource "edgecenter_securitygroup" "acctest" {
@@ -57,10 +58,10 @@ func TestAccSecurityGroup(t *testing.T) {
 			{
 				Config: ipTemplate1,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "metadata_map.key1", "val1"),
-					resource.TestCheckResourceAttr(fullName, "metadata_map.key2", "val2"),
-					edgecenter.TestAccCheckMetadata(fullName, true, map[string]interface{}{
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "metadata_map.key1", "val1"),
+					resource.TestCheckResourceAttr(resourceName, "metadata_map.key2", "val2"),
+					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]interface{}{
 						"key1": "val1",
 						"key2": "val2",
 					}),
@@ -69,15 +70,15 @@ func TestAccSecurityGroup(t *testing.T) {
 			{
 				Config: ipTemplate2,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "metadata_map.key3", "val3"),
-					edgecenter.TestAccCheckMetadata(fullName, true, map[string]interface{}{
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "metadata_map.key3", "val3"),
+					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]interface{}{
 						"key3": "val3",
 					}),
-					edgecenter.TestAccCheckMetadata(fullName, false, map[string]interface{}{
+					edgecenter.TestAccCheckMetadata(resourceName, false, map[string]interface{}{
 						"key1": "val1",
 					}),
-					edgecenter.TestAccCheckMetadata(fullName, false, map[string]interface{}{
+					edgecenter.TestAccCheckMetadata(resourceName, false, map[string]interface{}{
 						"key2": "val2",
 					}),
 				),
@@ -88,7 +89,7 @@ func TestAccSecurityGroup(t *testing.T) {
 
 func testAccSecurityGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.SecurityGroupPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.SecurityGroupPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

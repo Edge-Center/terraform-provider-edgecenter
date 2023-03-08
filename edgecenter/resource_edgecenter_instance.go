@@ -507,7 +507,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	instance, err := instances.Get(client, instanceID).Extract()
 	if err != nil {
-		var errDefault404 *edgecloud.ErrDefault404
+		var errDefault404 edgecloud.ErrDefault404
 		if errors.As(err, &errDefault404) {
 			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
@@ -1034,7 +1034,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete instance with ID: %s", instanceID)
 		}
-		var errDefault404 *edgecloud.ErrDefault404
+		var errDefault404 edgecloud.ErrDefault404
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}

@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -7,65 +7,45 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/pools"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/keypair/v2/keypairs"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/availablenetworks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-)
-
-const (
-	testClusterName      = "test-cluster"
-	testClusterVersion   = "1.20.15"
-	testClusterPoolName  = "test-pool"
-	testPoolFlavor       = "g1-standard-1-2"
-	testNodeCount        = 1
-	testDockerVolumeSize = 10
-	testDockerVolumeType = volumes.Standard
-	testMinNodeCount     = 1
-	testMaxNodeCount     = 1
-
-	kpName = "testkp"
 )
 
 func TestAccK8sDataSource(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
-	fullName := "data.edgecenter_k8s.acctest"
+	resourceName := "data.edgecenter_k8s.acctest"
 
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	k8sClient, err := CreateTestClient(cfg.Provider, edgecenter.K8sPoint, edgecenter.VersionPointV1)
+	k8sClient, err := createTestClient(cfg.Provider, edgecenter.K8sPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	netClient, err := CreateTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	netClient, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	subnetClient, err := CreateTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	subnetClient, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	kpClient, err := CreateTestClient(cfg.Provider, edgecenter.KeypairsPoint, edgecenter.VersionPointV2)
+	kpClient, err := createTestClient(cfg.Provider, edgecenter.KeypairsPoint, edgecenter.VersionPointV2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +69,7 @@ func TestAccK8sDataSource(t *testing.T) {
 		GatewayIP:              &gw,
 	}
 
-	subnetID, err := CreateTestSubnet(subnetClient, subnetOpts)
+	subnetID, err := createTestSubnet(subnetClient, subnetOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +86,7 @@ func TestAccK8sDataSource(t *testing.T) {
 	}
 
 	kpOpts := keypairs.CreateOpts{
-		Name:      kpName,
+		Name:      kpTestName,
 		PublicKey: pkTest,
 		ProjectID: pid,
 	}
@@ -117,20 +97,20 @@ func TestAccK8sDataSource(t *testing.T) {
 	defer keypairs.Delete(kpClient, keyPair.ID)
 
 	k8sOpts := clusters.CreateOpts{
-		Name:               testClusterName,
+		Name:               clusterTestName,
 		FixedNetwork:       networkID,
 		FixedSubnet:        subnetID,
 		AutoHealingEnabled: true,
 		KeyPair:            keyPair.ID,
-		Version:            testClusterVersion,
+		Version:            clusterVersionTest,
 		Pools: []pools.CreateOpts{{
-			Name:             testClusterPoolName,
-			FlavorID:         testPoolFlavor,
-			NodeCount:        testNodeCount,
-			DockerVolumeSize: testDockerVolumeSize,
-			DockerVolumeType: testDockerVolumeType,
-			MinNodeCount:     testMinNodeCount,
-			MaxNodeCount:     testMaxNodeCount,
+			Name:             poolTestName,
+			FlavorID:         flavorTest,
+			NodeCount:        nodeCountTest,
+			DockerVolumeSize: dockerVolumeSizeTest,
+			DockerVolumeType: ockerVolumeTypeTest,
+			MinNodeCount:     minNodeCountTest,
+			MaxNodeCount:     maxNodeCountTest,
 		}},
 	}
 	clusterID, err := createTestCluster(k8sClient, k8sOpts)
@@ -154,103 +134,10 @@ func TestAccK8sDataSource(t *testing.T) {
 			{
 				Config: ipTemplate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "cluster_id", clusterID),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "cluster_id", clusterID),
 				),
 			},
 		},
 	})
-}
-
-func patchRouterForK8S(provider *edgecloud.ProviderClient, networkID string) error {
-	routersClient, err := CreateTestClient(provider, edgecenter.RouterPoint, edgecenter.VersionPointV1)
-	if err != nil {
-		return err
-	}
-
-	aNetClient, err := CreateTestClient(provider, edgecenter.SharedNetworksPoint, edgecenter.VersionPointV1)
-	if err != nil {
-		return err
-	}
-
-	availableNetworks, err := availablenetworks.ListAll(aNetClient, nil)
-	if err != nil {
-		return err
-	}
-	var extNet availablenetworks.Network
-	for _, an := range availableNetworks {
-		if an.External {
-			extNet = an
-			break
-		}
-	}
-
-	rs, err := routers.ListAll(routersClient, nil)
-	if err != nil {
-		return err
-	}
-
-	var router routers.Router
-	for _, r := range rs {
-		if strings.Contains(r.Name, networkID) {
-			router = r
-			break
-		}
-	}
-
-	extSubnet := extNet.Subnets[0]
-	routerOpts := routers.UpdateOpts{Routes: extSubnet.HostRoutes}
-	_, err = routers.Update(routersClient, router.ID, routerOpts).Extract()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func createTestCluster(client *edgecloud.ServiceClient, opts clusters.CreateOpts) (string, error) {
-	res, err := clusters.Create(client, opts).Extract()
-	if err != nil {
-		return "", err
-	}
-
-	taskID := res.Tasks[0]
-	clusterID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.K8sCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		clusterID, err := clusters.ExtractClusterIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve cluster ID from task info: %w", err)
-		}
-		return clusterID, nil
-	},
-	)
-	if err != nil {
-		return "", err
-	}
-
-	return clusterID.(string), nil
-}
-
-func deleteTestCluster(client *edgecloud.ServiceClient, clusterID string) error {
-	results, err := clusters.Delete(client, clusterID).Extract()
-	if err != nil {
-		return err
-	}
-
-	taskID := results.Tasks[0]
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.K8sCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		_, err := clusters.Get(client, clusterID).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete k8s cluster with ID: %s", clusterID)
-		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
-			return nil, nil
-		default:
-			return nil, err
-		}
-	})
-	return err
 }

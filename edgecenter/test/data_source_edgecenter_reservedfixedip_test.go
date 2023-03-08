@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -14,12 +14,13 @@ import (
 )
 
 func TestAccReservedFixedIPDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.ReservedFixedIPsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.ReservedFixedIPsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +57,7 @@ func TestAccReservedFixedIPDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fullName := "data.edgecenter_reservedfixedip.acctest"
+	resourceName := "data.edgecenter_reservedfixedip.acctest"
 	tpl := func(ip string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_reservedfixedip" "acctest" {
@@ -74,9 +75,9 @@ func TestAccReservedFixedIPDataSource(t *testing.T) {
 			{
 				Config: tpl(fip.FixedIPAddress.String()),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "id", reservedFixedIPID.(string)),
-					resource.TestCheckResourceAttr(fullName, "fixed_ip_address", fip.FixedIPAddress.String()),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", reservedFixedIPID.(string)),
+					resource.TestCheckResourceAttr(resourceName, "fixed_ip_address", fip.FixedIPAddress.String()),
 				),
 			},
 		},

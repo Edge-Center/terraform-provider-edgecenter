@@ -13,7 +13,6 @@ import (
 )
 
 func TestAccStorageKey(t *testing.T) {
-	t.Skip()
 	t.Parallel()
 	random := time.Now().Nanosecond()
 	name := fmt.Sprintf("terraform_test_key_%d", random)

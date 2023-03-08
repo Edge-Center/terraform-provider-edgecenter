@@ -1,26 +1,24 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
 import (
 	"fmt"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func TestAccBaremetal(t *testing.T) {
-	t.Skip()
-	if os.Getenv("LOCAL_TEST") == "" {
-		t.Skip("skip test in ci")
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
 	}
 
-	fullName := "edgecenter_baremetal.acctest"
+	resourceName := "edgecenter_baremetal.acctest"
 
 	ipTemplate := fmt.Sprintf(`
 			resource "edgecenter_baremetal" "acctest" {
@@ -40,9 +38,9 @@ func TestAccBaremetal(t *testing.T) {
 			{
 				Config: ipTemplate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", "test_sg"),
-					resource.TestCheckResourceAttr(fullName, "flavor_id", "bm1-infrastructure-small"),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", "test_sg"),
+					resource.TestCheckResourceAttr(resourceName, "flavor_id", "bm1-infrastructure-small"),
 				),
 			},
 		},
@@ -51,7 +49,7 @@ func TestAccBaremetal(t *testing.T) {
 
 func testAccBaremetalDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

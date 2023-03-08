@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -18,7 +18,7 @@ import (
 )
 
 func TestAccLifecyclePolicy(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 	// Templates
 	resName := "acctest"
 	fullLPName := edgecenter.LifecyclePolicyResource + "." + resName
@@ -201,11 +201,11 @@ resource "%s" "%s" {
 
 func testAccLifecyclePolicyDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	volumesClient, err := CreateTestClient(config.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
+	volumesClient, err := createTestClient(config.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}
-	lifecyclePolicyClient, err := CreateTestClient(config.Provider, edgecenter.LifecyclePolicyPoint, edgecenter.VersionPointV1)
+	lifecyclePolicyClient, err := createTestClient(config.Provider, edgecenter.LifecyclePolicyPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

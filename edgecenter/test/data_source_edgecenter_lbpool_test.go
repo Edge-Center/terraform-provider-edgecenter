@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -16,28 +16,26 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-const (
-	poolTestName = "test-pool"
-)
-
 func TestAccLBPoolDataSource(t *testing.T) {
-	t.Skip()
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientListener, err := CreateTestClient(cfg.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
+	clientListener, err := createTestClient(cfg.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientPools, err := CreateTestClient(cfg.Provider, edgecenter.LBPoolsPoint, edgecenter.VersionPointV1)
+	clientPools, err := createTestClient(cfg.Provider, edgecenter.LBPoolsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +104,7 @@ func TestAccLBPoolDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fullName := "data.edgecenter_lbpool.acctest"
+	resourceName := "data.edgecenter_lbpool.acctest"
 	tpl := func(name string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_lbpool" "acctest" {
@@ -124,9 +122,9 @@ func TestAccLBPoolDataSource(t *testing.T) {
 			{
 				Config: tpl(poolTestName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", poolTestName),
-					resource.TestCheckResourceAttr(fullName, "id", pool.ID),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", poolTestName),
+					resource.TestCheckResourceAttr(resourceName, "id", pool.ID),
 				),
 			},
 		},

@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -13,12 +13,13 @@ import (
 )
 
 func TestAccServerGroupDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.ServerGroupsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.ServerGroupsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +30,7 @@ func TestAccServerGroupDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fullName := "data.edgecenter_servergroup.acctest"
+	resourceName := "data.edgecenter_servergroup.acctest"
 	tpl := func(name string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_servergroup" "acctest" {
@@ -49,10 +50,10 @@ func TestAccServerGroupDataSource(t *testing.T) {
 			{
 				Config: tpl(opts.Name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", serverGroup.Name),
-					resource.TestCheckResourceAttr(fullName, "id", serverGroup.ServerGroupID),
-					resource.TestCheckResourceAttr(fullName, "policy", serverGroup.Policy.String()),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", serverGroup.Name),
+					resource.TestCheckResourceAttr(resourceName, "id", serverGroup.ServerGroupID),
+					resource.TestCheckResourceAttr(resourceName, "policy", serverGroup.Policy.String()),
 				),
 			},
 		},

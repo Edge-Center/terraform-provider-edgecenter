@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -29,17 +29,17 @@ func TestAccK8s(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	netClient, err := CreateTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	netClient, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	subnetClient, err := CreateTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	subnetClient, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	kpClient, err := CreateTestClient(cfg.Provider, edgecenter.KeypairsPoint, edgecenter.VersionPointV2)
+	kpClient, err := createTestClient(cfg.Provider, edgecenter.KeypairsPoint, edgecenter.VersionPointV2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestAccK8s(t *testing.T) {
 		GatewayIP:              &gw,
 	}
 
-	subnetID, err := CreateTestSubnet(subnetClient, subnetOpts)
+	subnetID, err := createTestSubnet(subnetClient, subnetOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestAccK8s(t *testing.T) {
 	}
 
 	kpOpts := keypairs.CreateOpts{
-		Name:      kpName,
+		Name:      kpTestName,
 		PublicKey: pkTest,
 		ProjectID: pid,
 	}
@@ -90,7 +90,7 @@ func TestAccK8s(t *testing.T) {
 	}
 	defer keypairs.Delete(kpClient, keyPair.ID)
 
-	fullName := "edgecenter_k8s.acctest"
+	resourceName := "edgecenter_k8s.acctest"
 
 	ipTemplate := fmt.Sprintf(`
 			resource "edgecenter_k8s" "acctest" {
@@ -120,8 +120,8 @@ func TestAccK8s(t *testing.T) {
 			{
 				Config: ipTemplate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", "tf-k8s"),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", "tf-k8s"),
 				),
 			},
 		},
@@ -130,7 +130,7 @@ func TestAccK8s(t *testing.T) {
 
 func testAccK8sDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.K8sPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.K8sPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

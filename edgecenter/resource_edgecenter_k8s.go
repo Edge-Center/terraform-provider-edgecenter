@@ -532,7 +532,7 @@ func resourceK8sDelete(ctx context.Context, d *schema.ResourceData, m interface{
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete k8s cluster with ID: %s", id)
 		}
-		var errDefault404 *edgecloud.ErrDefault404
+		var errDefault404 edgecloud.ErrDefault404
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}

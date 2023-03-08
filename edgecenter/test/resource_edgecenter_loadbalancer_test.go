@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -14,7 +14,6 @@ import (
 )
 
 func TestAccLoadBalancer(t *testing.T) {
-	t.Skip()
 	type Params struct {
 		Name string
 	}
@@ -23,7 +22,7 @@ func TestAccLoadBalancer(t *testing.T) {
 
 	update := Params{"test1"}
 
-	fullName := "edgecenter_loadbalancerv2.acctest"
+	resourceName := "edgecenter_loadbalancerv2.acctest"
 
 	ripTemplate := func(params *Params) string {
 		return fmt.Sprintf(`
@@ -44,15 +43,15 @@ func TestAccLoadBalancer(t *testing.T) {
 			{
 				Config: ripTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", create.Name),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", create.Name),
 				),
 			},
 			{
 				Config: ripTemplate(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", update.Name),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", update.Name),
 				),
 			},
 		},
@@ -61,7 +60,7 @@ func TestAccLoadBalancer(t *testing.T) {
 
 func testAccLoadBalancerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

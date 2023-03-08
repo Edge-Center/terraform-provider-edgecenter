@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -18,62 +18,28 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-func checkInstanceAttrs(resourceName string, opts *instances.CreateOpts) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if s.Empty() == true {
-			return fmt.Errorf("State not updated")
-		}
-
-		checksStore := []resource.TestCheckFunc{
-			resource.TestCheckResourceAttr(resourceName, "name", opts.Names[0]),
-			resource.TestCheckResourceAttr(resourceName, "flavor_id", opts.Flavor),
-			resource.TestCheckResourceAttr(resourceName, "keypair_name", opts.Keypair),
-			resource.TestCheckResourceAttr(resourceName, "password", opts.Password),
-			resource.TestCheckResourceAttr(resourceName, "username", opts.Username),
-		}
-
-		// todo add check for interfaces/volumes/secgroups
-		for i, md := range opts.Metadata.Metadata {
-			checksStore = append(checksStore,
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`metadata.%d.key`, i), md.Key),
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`metadata.%d.value`, i), md.Value),
-			)
-		}
-
-		for i, cfg := range opts.Configuration.Metadata {
-			checksStore = append(checksStore,
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`configuration.%d.key`, i), cfg.Key),
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`configuration.%d.value`, i), cfg.Value),
-			)
-		}
-
-		return resource.ComposeTestCheckFunc(checksStore...)(s)
-	}
-}
-
 func TestAccInstance(t *testing.T) {
-	t.Skip()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientImage, err := CreateTestClient(cfg.Provider, edgecenter.ImagesPoint, edgecenter.VersionPointV1)
+	clientImage, err := createTestClient(cfg.Provider, edgecenter.ImagesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientNet, err := CreateTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	clientNet, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientSubnet, err := CreateTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	clientSubnet, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientSec, err := CreateTestClient(cfg.Provider, edgecenter.SecurityGroupPoint, edgecenter.VersionPointV1)
+	clientSec, err := createTestClient(cfg.Provider, edgecenter.SecurityGroupPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,13 +51,13 @@ func TestAccInstance(t *testing.T) {
 
 	var img images.Image
 	for _, i := range imgs {
-		if i.OsDistro == testOsDistro {
+		if i.OsDistro == osDistroTest {
 			img = i
 			break
 		}
 	}
 	if img.ID == "" {
-		t.Fatalf("images with os_distro='%s' does not exist", testOsDistro)
+		t.Fatalf("images with os_distro='%s' does not exist", osDistroTest)
 	}
 
 	opts := networks.CreateOpts{
@@ -110,7 +76,7 @@ func TestAccInstance(t *testing.T) {
 		NetworkID: networkID,
 	}
 
-	subnetID, err := CreateTestSubnet(clientSubnet, optsSubnet)
+	subnetID, err := createTestSubnet(clientSubnet, optsSubnet)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +98,7 @@ func TestAccInstance(t *testing.T) {
 			SubnetID:  subnetID,
 		},
 	}}
-	update_interfaces := []instances.InterfaceInstanceCreateOpts{{
+	updateInterfaces := []instances.InterfaceInstanceCreateOpts{{
 		InterfaceOpts: instances.InterfaceOpts{
 			Type:     "subnet",
 			SubnetID: subnetID,
@@ -145,7 +111,7 @@ func TestAccInstance(t *testing.T) {
 	}
 
 	secgroups := []edgecloud.ItemID{{ID: sgs[0].ID}}
-	update_sg := []edgecloud.ItemID{
+	updateSg := []edgecloud.ItemID{
 		{
 			ID: "someid",
 		},
@@ -157,8 +123,8 @@ func TestAccInstance(t *testing.T) {
 			Value: "somevalue",
 		},
 	}
-	update_metadata := instances.MetadataSetOpts{}
-	update_metadata.Metadata = []instances.MetadataOpts{
+	updateMetadata := instances.MetadataSetOpts{}
+	updateMetadata.Metadata = []instances.MetadataOpts{
 		{
 			Key:   "newsomekey",
 			Value: "newsomevalue",
@@ -179,15 +145,15 @@ func TestAccInstance(t *testing.T) {
 		Configuration:  &metadata,
 	}
 
-	update_interfaceFixt := createFixt
-	update_interfaceFixt.Interfaces = update_interfaces
+	updateInterfacefixt := createFixt
+	updateInterfacefixt.Interfaces = updateInterfaces
 
-	update_interfaceFixt.SecurityGroups = update_sg
+	updateInterfacefixt.SecurityGroups = updateSg
 
 	updateFixt := createFixt
 	updateFixt.Flavor = "g1-standard-2-8"
-	updateFixt.Metadata = &update_metadata
-	updateFixt.Configuration = &update_metadata
+	updateFixt.Metadata = &updateMetadata
+	updateFixt.Configuration = &updateMetadata
 
 	type Params struct {
 		Name           []string
@@ -204,16 +170,13 @@ func TestAccInstance(t *testing.T) {
 	}
 
 	create := Params{
-		Name:     []string{"create_instance"},
-		Flavor:   "g1-standard-2-4",
-		Password: "password",
-		Username: "user",
-		Keypair:  "acctest",
-		Publickey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC1bdbQYquD/swsZpFPXagY9KvhlNUTKYMdhRNtlGglAMgRxJS3Q0V74BNElJtP+UU/" +
-			"AbZD4H2ZAwW3PLLD/maclnLlrA48xg/ez9IhppBop0WADZ/nB4EcvQfR/Db7nHDTZERW6EiiGhV6CkHVasK2sY/WNRXqPveeWUlwCqtSnU90l/" +
-			"s9kQCoEfkM2auO6ppJkVrXbs26vcRclS8KL7Cff4HwdVpV7b+edT5seZdtrFUCbkEof9D9nGpahNvg8mYWf0ofx4ona4kaXm1NdPID+ljvE/" +
-			"dbYUX8WZRmyLjMvVQS+VxDJtsiDQIVtwbC4w+recqwDvHhLWwoeczsbEsp ondi@ds",
-		Image: img.ID,
+		Name:      []string{"create_instance"},
+		Flavor:    "g1-standard-2-4",
+		Password:  "password",
+		Username:  "user",
+		Keypair:   "acctest",
+		Publickey: pkTest,
+		Image:     img.ID,
 		Interfaces: []map[string]string{
 			{"type": "subnet", "network_id": networkID, "subnet_id": subnetID},
 		},
@@ -222,8 +185,8 @@ func TestAccInstance(t *testing.T) {
 		Configuration:  []map[string]string{{"key": "somekey", "value": "somevalue"}},
 	}
 
-	update_interface := create
-	update_interface.Interfaces = []map[string]string{{"type": "subnet", "subnet_id": subnetID}}
+	updateInterface := create
+	updateInterface.Interfaces = []map[string]string{{"type": "subnet", "subnet_id": subnetID}}
 
 	update := create
 	update.Flavor = "g1-standard-2-8"
@@ -353,7 +316,7 @@ func TestAccInstance(t *testing.T) {
 		return template + "\n}"
 	}
 
-	fullName := "edgecenter_instance.acctest"
+	resourceName := "edgecenter_instance.acctest"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -363,15 +326,15 @@ func TestAccInstance(t *testing.T) {
 			{
 				Config: instanceTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					checkInstanceAttrs(fullName, &createFixt),
+					testAccCheckResourceExists(resourceName),
+					checkInstanceAttrs(resourceName, &createFixt),
 				),
 			},
 			{
-				Config: instanceTemplate(&update_interface),
+				Config: instanceTemplate(&updateInterface),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					checkInstanceAttrs(fullName, &update_interfaceFixt),
+					testAccCheckResourceExists(resourceName),
+					checkInstanceAttrs(resourceName, &updateInterfacefixt),
 				),
 			},
 		},
@@ -380,7 +343,7 @@ func TestAccInstance(t *testing.T) {
 
 func testAccInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}
@@ -391,9 +354,42 @@ func testAccInstanceDestroy(s *terraform.State) error {
 
 		_, err := instances.Get(client, rs.Primary.ID).Extract()
 		if err == nil {
-			return fmt.Errorf("Instance still exists")
+			return fmt.Errorf("instance still exists")
 		}
 	}
 
 	return nil
+}
+
+func checkInstanceAttrs(resourceName string, opts *instances.CreateOpts) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if s.Empty() == true {
+			return fmt.Errorf("state not updated")
+		}
+
+		checksStore := []resource.TestCheckFunc{
+			resource.TestCheckResourceAttr(resourceName, "name", opts.Names[0]),
+			resource.TestCheckResourceAttr(resourceName, "flavor_id", opts.Flavor),
+			resource.TestCheckResourceAttr(resourceName, "keypair_name", opts.Keypair),
+			resource.TestCheckResourceAttr(resourceName, "password", opts.Password),
+			resource.TestCheckResourceAttr(resourceName, "username", opts.Username),
+		}
+
+		// todo add check for interfaces/volumes/secgroups
+		for i, md := range opts.Metadata.Metadata {
+			checksStore = append(checksStore,
+				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`metadata.%d.key`, i), md.Key),
+				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`metadata.%d.value`, i), md.Value),
+			)
+		}
+
+		for i, cfg := range opts.Configuration.Metadata {
+			checksStore = append(checksStore,
+				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`configuration.%d.key`, i), cfg.Key),
+				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`configuration.%d.value`, i), cfg.Value),
+			)
+		}
+
+		return resource.ComposeTestCheckFunc(checksStore...)(s)
+	}
 }

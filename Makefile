@@ -43,11 +43,14 @@ linters:
 envs_reader:
 	go install github.com/joho/godotenv/cmd/godotenv@latest
 
-test_cloud: envs_reader
-	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud -short -timeout=10m -parallel=4
+test_cloud_data_source: envs_reader
+	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud_data_source -short -timeout=5m
+
+test_cloud_resource: envs_reader
+	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud_resource -short -timeout=10m
 
 test_not_cloud: envs_reader
-	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags dns storage cdn -v -timeout=5m  -parallel=4
+	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags dns storage cdn -v -timeout=5m
 
 # local test run (need to export VAULT_TOKEN env)
 jq:
@@ -66,8 +69,11 @@ envs:
 	vault login -method=token $(VAULT_TOKEN)
 	vault kv get -format=json  --field data /CLOUD/terraform | jq -r 'to_entries|map("\(.key)=\(.value)")|.[]' > .local.env
 
-test_local: envs_reader
-	godotenv -f .local.env go test $(TEST_DIR) -tags cloud -short -timeout=10m -parallel=4
+test_local_data_source: envs_reader
+	godotenv -f .local.env go test $(TEST_DIR) -tags cloud_data_source -short -timeout=3m -v
+
+test_local_resource: envs_reader
+	godotenv -f .local.env go test $(TEST_DIR) -tags cloud_resource -short -timeout=5m -v
 
 # DOCS
 docs_fmt:

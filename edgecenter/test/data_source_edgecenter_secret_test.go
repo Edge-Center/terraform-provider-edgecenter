@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -15,22 +15,23 @@ import (
 )
 
 func TestAccSecretDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.SecretPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.SecretPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	clientV2, err := CreateTestClient(cfg.Provider, edgecenter.SecretPoint, edgecenter.VersionPointV2)
+	clientV2, err := createTestClient(cfg.Provider, edgecenter.SecretPoint, edgecenter.VersionPointV2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	opts := secretsV2.CreateOpts{
-		Name: secretName,
+		Name: secretTestName,
 		Payload: secretsV2.PayloadOpts{
 			CertificateChain: certificateChain,
 			Certificate:      certificate,
@@ -60,14 +61,14 @@ func TestAccSecretDataSource(t *testing.T) {
 	}
 	defer secrets.Delete(client, secretID.(string))
 
-	fullName := "data.edgecenter_secret.acctest"
+	resourceName := "data.edgecenter_secret.acctest"
 	kpTemplate := fmt.Sprintf(`
 	data "edgecenter_secret" "acctest" {
 	  %s
       %s
       name = "%s"
 	}
-	`, projectInfo(), regionInfo(), secretName)
+	`, projectInfo(), regionInfo(), secretTestName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -76,8 +77,8 @@ func TestAccSecretDataSource(t *testing.T) {
 			{
 				Config: kpTemplate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", secretName),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", secretTestName),
 				),
 			},
 		},

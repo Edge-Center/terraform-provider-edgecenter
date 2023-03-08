@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -13,9 +13,8 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-const pkTest = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC1bdbQYquD/swsZpFPXagY9KvhlNUTKYMdhRNtlGglAMgRxJS3Q0V74BNElJtP+UU/AbZD4H2ZAwW3PLLD/maclnLlrA48xg/ez9IhppBop0WADZ/nB4EcvQfR/Db7nHDTZERW6EiiGhV6CkHVasK2sY/WNRXqPveeWUlwCqtSnU90l/s9kQCoEfkM2auO6ppJkVrXbs26vcRclS8KL7Cff4HwdVpV7b+edT5seZdtrFUCbkEof9D9nGpahNvg8mYWf0ofx4ona4kaXm1NdPID+ljvE/dbYUX8WZRmyLjMvVQS+VxDJtsiDQIVtwbC4w+recqwDvHhLWwoeczsbEsp ondi@ds`
-
 func TestAccKeyPair(t *testing.T) {
+	t.Parallel()
 	type Params struct {
 		Name string
 		PK   string
@@ -26,7 +25,7 @@ func TestAccKeyPair(t *testing.T) {
 		PK:   pkTest,
 	}
 
-	fullName := "edgecenter_keypair.acctest"
+	resourceName := "edgecenter_keypair.acctest"
 
 	kpTemplate := func(params *Params) string {
 		return fmt.Sprintf(`
@@ -46,9 +45,9 @@ func TestAccKeyPair(t *testing.T) {
 			{
 				Config: kpTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "sshkey_name", create.Name),
-					resource.TestCheckResourceAttr(fullName, "public_key", create.PK),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "sshkey_name", create.Name),
+					resource.TestCheckResourceAttr(resourceName, "public_key", create.PK),
 				),
 			},
 		},
@@ -57,7 +56,7 @@ func TestAccKeyPair(t *testing.T) {
 
 func testAccKeypairDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.KeypairsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.KeypairsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -14,12 +14,13 @@ import (
 )
 
 func TestAccFloatingIPDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.FloatingIPsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.FloatingIPsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +55,7 @@ func TestAccFloatingIPDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fullName := "data.edgecenter_floatingip.acctest"
+	resourceName := "data.edgecenter_floatingip.acctest"
 	tpl := func(ip string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_floatingip" "acctest" {
@@ -72,9 +73,9 @@ func TestAccFloatingIPDataSource(t *testing.T) {
 			{
 				Config: tpl(fip.FloatingIPAddress.String()),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "id", floatingIPID.(string)),
-					resource.TestCheckResourceAttr(fullName, "floating_ip_address", fip.FloatingIPAddress.String()),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", floatingIPID.(string)),
+					resource.TestCheckResourceAttr(resourceName, "floating_ip_address", fip.FloatingIPAddress.String()),
 				),
 			},
 		},

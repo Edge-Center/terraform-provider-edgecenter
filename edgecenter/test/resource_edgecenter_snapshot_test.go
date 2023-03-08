@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -16,20 +16,20 @@ import (
 )
 
 func TestAccSnapshot(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	opts := volumes.CreateOpts{
 		Name:     volumeTestName,
-		Size:     volumeTestSize,
+		Size:     volumeSizeTest,
 		Source:   volumes.NewVolume,
 		TypeName: volumes.Standard,
 	}
@@ -59,7 +59,7 @@ func TestAccSnapshot(t *testing.T) {
 		VolumeID: volumeID,
 	}
 
-	fullName := "edgecenter_snapshot.acctest"
+	resourceName := "edgecenter_snapshot.acctest"
 	importStateIDPrefix := fmt.Sprintf("%s:%s:", os.Getenv("TEST_PROJECT_ID"), os.Getenv("TEST_REGION_ID"))
 
 	SnapshotTemplate := func(params *Params) string {
@@ -83,20 +83,20 @@ func TestAccSnapshot(t *testing.T) {
 			{
 				Config: SnapshotTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "volume_id", create.VolumeID),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "volume_id", create.VolumeID),
 				),
 			},
 			{
 				Config: SnapshotTemplate(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "volume_id", update.VolumeID),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "volume_id", update.VolumeID),
 				),
 			},
 			{
 				ImportStateIdPrefix: importStateIDPrefix,
-				ResourceName:        fullName,
+				ResourceName:        resourceName,
 				ImportState:         true,
 			},
 		},
@@ -105,7 +105,7 @@ func TestAccSnapshot(t *testing.T) {
 
 func testAccSnapshotDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.SnapshotsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.SnapshotsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func testAccSnapshotDestroy(s *terraform.State) error {
 
 		_, err := networks.Get(client, rs.Primary.ID).Extract()
 		if err == nil {
-			return fmt.Errorf("Snapshot still exists")
+			return fmt.Errorf("snapshot still exists")
 		}
 	}
 

@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -12,25 +12,21 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-const (
-	securityGroup1TestName = "test-sg1"
-	securityGroup2TestName = "test-sg2"
-)
-
 func TestAccSecurityGroupDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.SecurityGroupPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.SecurityGroupPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	opts1 := securitygroups.CreateOpts{
 		SecurityGroup: securitygroups.CreateSecurityGroupOpts{
-			Name:               securityGroup1TestName,
+			Name:               "test-sg1",
 			SecurityGroupRules: []securitygroups.CreateSecurityGroupRuleOpts{},
 			Metadata:           map[string]interface{}{"key1": "val1", "key2": "val2"},
 		},
@@ -43,7 +39,7 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 
 	opts2 := securitygroups.CreateOpts{
 		SecurityGroup: securitygroups.CreateSecurityGroupOpts{
-			Name:               securityGroup2TestName,
+			Name:               "test-sg2",
 			SecurityGroupRules: []securitygroups.CreateSecurityGroupRuleOpts{},
 			Metadata:           map[string]interface{}{"key1": "val1", "key3": "val3"},
 		},
@@ -56,7 +52,7 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 	defer securitygroups.Delete(client, sg1.ID)
 	defer securitygroups.Delete(client, sg2.ID)
 
-	fullName := "data.edgecenter_securitygroup.acctest"
+	resourceName := "data.edgecenter_securitygroup.acctest"
 
 	tpl1 := func(name string) string {
 		return fmt.Sprintf(`
@@ -88,10 +84,10 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 			{
 				Config: tpl1(sg1.Name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", sg1.Name),
-					resource.TestCheckResourceAttr(fullName, "id", sg1.ID),
-					edgecenter.TestAccCheckMetadata(fullName, true, map[string]interface{}{
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", sg1.Name),
+					resource.TestCheckResourceAttr(resourceName, "id", sg1.ID),
+					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]interface{}{
 						"key1": "val1", "key2": "val2",
 					}),
 				),
@@ -99,10 +95,10 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 			{
 				Config: tpl2(sg2.Name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", sg2.Name),
-					resource.TestCheckResourceAttr(fullName, "id", sg2.ID),
-					edgecenter.TestAccCheckMetadata(fullName, true, map[string]interface{}{
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", sg2.Name),
+					resource.TestCheckResourceAttr(resourceName, "id", sg2.ID),
+					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]interface{}{
 						"key3": "val3",
 					}),
 				),

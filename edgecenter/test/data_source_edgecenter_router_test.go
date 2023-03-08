@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -14,17 +14,18 @@ import (
 )
 
 func TestAccRouterDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientNet, err := CreateTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	clientNet, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientRouter, err := CreateTestClient(cfg.Provider, edgecenter.RouterPoint, edgecenter.VersionPointV1)
+	clientRouter, err := createTestClient(cfg.Provider, edgecenter.RouterPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +47,7 @@ func TestAccRouterDataSource(t *testing.T) {
 	}
 	router := rs[0]
 
-	fullName := "data.edgecenter_router.acctest"
+	resourceName := "data.edgecenter_router.acctest"
 	tpl := func(name string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_router" "acctest" {
@@ -64,9 +65,9 @@ func TestAccRouterDataSource(t *testing.T) {
 			{
 				Config: tpl(router.Name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", router.Name),
-					resource.TestCheckResourceAttr(fullName, "id", router.ID),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", router.Name),
+					resource.TestCheckResourceAttr(resourceName, "id", router.ID),
 				),
 			},
 		},

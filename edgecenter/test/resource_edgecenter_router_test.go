@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -18,58 +18,19 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-func checkRouterAttrs(resourceName string, opts *routers.CreateOpts) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if s.Empty() == true {
-			return fmt.Errorf("State not updated")
-		}
-
-		checksStore := []resource.TestCheckFunc{
-			resource.TestCheckResourceAttr(resourceName, "name", opts.Name),
-		}
-
-		mapopts, _ := opts.ToRouterCreateMap()
-		_, ok := mapopts["external_gateway_info"]
-		if ok {
-			checksStore = append(checksStore,
-				resource.TestCheckResourceAttr(resourceName, "external_gateway_info.0.type", opts.ExternalGatewayInfo.Type.String()),
-				resource.TestCheckResourceAttr(resourceName, "external_gateway_info.0.enable_snat", strconv.FormatBool(*opts.ExternalGatewayInfo.EnableSNat)),
-			)
-		}
-
-		if len(opts.Interfaces) > 0 {
-			for i, iface := range opts.Interfaces {
-				checksStore = append(checksStore,
-					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`interfaces.%d.type`, i), iface.Type.String()),
-					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`interfaces.%d.subnet_id`, i), iface.SubnetID),
-				)
-			}
-		}
-
-		for i, r := range opts.Routes {
-			checksStore = append(checksStore,
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`routes.%d.destination`, i), r.Destination.String()),
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`routes.%d.nexthop`, i), r.NextHop.String()),
-			)
-		}
-
-		return resource.ComposeTestCheckFunc(checksStore...)(s)
-	}
-}
-
 func TestAccRouter(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientNet, err := CreateTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	clientNet, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientSubnet, err := CreateTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	clientSubnet, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +55,7 @@ func TestAccRouter(t *testing.T) {
 		GatewayIP:              &gw,
 	}
 
-	subnetID, err := CreateTestSubnet(clientSubnet, optsSubnet)
+	subnetID, err := createTestSubnet(clientSubnet, optsSubnet)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +63,7 @@ func TestAccRouter(t *testing.T) {
 	var dst1 edgecloud.CIDR
 	snat1 := true
 
-	_, netIPNet, _ := net.ParseCIDR(cidr)
+	_, netIPNet, _ := net.ParseCIDR(cidrTest)
 	dst1.IP = netIPNet.IP
 	dst1.Mask = netIPNet.Mask
 
@@ -213,7 +174,7 @@ func TestAccRouter(t *testing.T) {
 		return template + "\n}"
 	}
 
-	fullName := "edgecenter_router.acctest"
+	resourceName := "edgecenter_router.acctest"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -223,17 +184,56 @@ func TestAccRouter(t *testing.T) {
 			{
 				Config: RouterTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					checkRouterAttrs(fullName, &createFixt),
+					testAccCheckResourceExists(resourceName),
+					checkRouterAttrs(resourceName, &createFixt),
 				),
 			},
 		},
 	})
 }
 
+func checkRouterAttrs(resourceName string, opts *routers.CreateOpts) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if s.Empty() == true {
+			return fmt.Errorf("State not updated")
+		}
+
+		checksStore := []resource.TestCheckFunc{
+			resource.TestCheckResourceAttr(resourceName, "name", opts.Name),
+		}
+
+		mapopts, _ := opts.ToRouterCreateMap()
+		_, ok := mapopts["external_gateway_info"]
+		if ok {
+			checksStore = append(checksStore,
+				resource.TestCheckResourceAttr(resourceName, "external_gateway_info.0.type", opts.ExternalGatewayInfo.Type.String()),
+				resource.TestCheckResourceAttr(resourceName, "external_gateway_info.0.enable_snat", strconv.FormatBool(*opts.ExternalGatewayInfo.EnableSNat)),
+			)
+		}
+
+		if len(opts.Interfaces) > 0 {
+			for i, iface := range opts.Interfaces {
+				checksStore = append(checksStore,
+					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`interfaces.%d.type`, i), iface.Type.String()),
+					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`interfaces.%d.subnet_id`, i), iface.SubnetID),
+				)
+			}
+		}
+
+		for i, r := range opts.Routes {
+			checksStore = append(checksStore,
+				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`routes.%d.destination`, i), r.Destination.String()),
+				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`routes.%d.nexthop`, i), r.NextHop.String()),
+			)
+		}
+
+		return resource.ComposeTestCheckFunc(checksStore...)(s)
+	}
+}
+
 func testAccRouterDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.RouterPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.RouterPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

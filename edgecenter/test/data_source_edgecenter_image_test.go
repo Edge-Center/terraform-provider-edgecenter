@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -14,12 +14,13 @@ import (
 )
 
 func TestAccImageDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.ImagesPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.ImagesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +36,7 @@ func TestAccImageDataSource(t *testing.T) {
 
 	img := imgs[0]
 
-	fullName := "data.edgecenter_image.acctest"
+	resourceName := "data.edgecenter_image.acctest"
 	tpl := func(name string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_image" "acctest" {
@@ -53,13 +54,13 @@ func TestAccImageDataSource(t *testing.T) {
 			{
 				Config: tpl(img.Name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", img.Name),
-					resource.TestCheckResourceAttr(fullName, "id", img.ID),
-					resource.TestCheckResourceAttr(fullName, "min_disk", strconv.Itoa(img.MinDisk)),
-					resource.TestCheckResourceAttr(fullName, "min_ram", strconv.Itoa(img.MinRAM)),
-					resource.TestCheckResourceAttr(fullName, "os_distro", img.OsDistro),
-					resource.TestCheckResourceAttr(fullName, "os_version", img.OsVersion),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", img.Name),
+					resource.TestCheckResourceAttr(resourceName, "id", img.ID),
+					resource.TestCheckResourceAttr(resourceName, "min_disk", strconv.Itoa(img.MinDisk)),
+					resource.TestCheckResourceAttr(resourceName, "min_ram", strconv.Itoa(img.MinRAM)),
+					resource.TestCheckResourceAttr(resourceName, "os_distro", img.OsDistro),
+					resource.TestCheckResourceAttr(resourceName, "os_version", img.OsVersion),
 				),
 			},
 		},

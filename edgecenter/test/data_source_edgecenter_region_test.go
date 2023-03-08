@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -14,12 +14,13 @@ import (
 )
 
 func TestAccRegionDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.RegionPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.RegionPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +36,7 @@ func TestAccRegionDataSource(t *testing.T) {
 
 	region := rs[0]
 
-	fullName := "data.edgecenter_region.acctest"
+	resourceName := "data.edgecenter_region.acctest"
 	tpl := func(name string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_region" "acctest" {
@@ -51,9 +52,9 @@ func TestAccRegionDataSource(t *testing.T) {
 			{
 				Config: tpl(region.DisplayName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", region.DisplayName),
-					resource.TestCheckResourceAttr(fullName, "id", strconv.Itoa(region.ID)),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", region.DisplayName),
+					resource.TestCheckResourceAttr(resourceName, "id", strconv.Itoa(region.ID)),
 				),
 			},
 		},

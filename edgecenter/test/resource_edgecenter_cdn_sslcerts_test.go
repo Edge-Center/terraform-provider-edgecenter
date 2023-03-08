@@ -10,9 +10,8 @@ import (
 )
 
 func TestAccCDNCert(t *testing.T) {
-	t.Skip()
 	t.Parallel()
-	fullName := "edgecenter_cdn_sslcert.acctest"
+	resourceName := "edgecenter_cdn_sslcert.acctest"
 	template := fmt.Sprintf(`
 resource "edgecenter_cdn_sslcert" "acctest" {
   name = "Terraform acctest cert"
@@ -29,9 +28,9 @@ resource "edgecenter_cdn_sslcert" "acctest" {
 			{
 				Config: template,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", "Terraform acctest cert"),
-					resource.TestCheckResourceAttr(fullName, "has_related_resources", "false"),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", "Terraform acctest cert"),
+					resource.TestCheckResourceAttr(resourceName, "has_related_resources", "false"),
 				),
 			},
 		},
