@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -14,12 +14,13 @@ import (
 )
 
 func TestAccProjectDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.ProjectPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.ProjectPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +36,7 @@ func TestAccProjectDataSource(t *testing.T) {
 
 	project := prjs[0]
 
-	fullName := "data.edgecenter_project.acctest"
+	resourceName := "data.edgecenter_project.acctest"
 	tpl := func(name string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_project" "acctest" {
@@ -51,9 +52,9 @@ func TestAccProjectDataSource(t *testing.T) {
 			{
 				Config: tpl(project.Name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", project.Name),
-					resource.TestCheckResourceAttr(fullName, "id", strconv.Itoa(project.ID)),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", project.Name),
+					resource.TestCheckResourceAttr(resourceName, "id", strconv.Itoa(project.ID)),
 				),
 			},
 		},

@@ -184,7 +184,7 @@ func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	floatingIP, err := floatingips.Get(client, d.Id()).Extract()
 	if err != nil {
-		var errDefault404 *edgecloud.ErrDefault404
+		var errDefault404 edgecloud.ErrDefault404
 		if errors.As(err, &errDefault404) {
 			log.Printf("[WARN] Removing floating ip %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
@@ -272,7 +272,7 @@ func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m int
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete floating ip with ID: %s", id)
 		}
-		var errDefault404 *edgecloud.ErrDefault404
+		var errDefault404 edgecloud.ErrDefault404
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}

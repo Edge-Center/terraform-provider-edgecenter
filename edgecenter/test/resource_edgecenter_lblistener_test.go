@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -11,29 +11,24 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func TestAccLBListener(t *testing.T) {
-	t.Skip()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	lbFlavor := "lb1-1-2"
 	opts := loadbalancers.CreateOpts{
-		Name: lbTestName,
-		Listeners: []loadbalancers.CreateListenerOpts{{
-			Name:         lbListenerTestName,
-			ProtocolPort: 80,
-			Protocol:     types.ProtocolTypeHTTP,
-		}},
+		Name:   lbTestName,
+		Flavor: &lbFlavor,
 	}
 
 	lbID, err := createTestLoadBalancerWithListener(client, opts)
@@ -48,9 +43,9 @@ func TestAccLBListener(t *testing.T) {
 
 	create := Params{"test"}
 
-	update := Params{"test1"}
+	update := Params{"test_new_name"}
 
-	fullName := "edgecenter_lblistener.acctest"
+	resourceName := "edgecenter_lblistener.acctest"
 
 	ripTemplate := func(params *Params) string {
 		return fmt.Sprintf(`
@@ -73,15 +68,15 @@ func TestAccLBListener(t *testing.T) {
 			{
 				Config: ripTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", create.Name),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", create.Name),
 				),
 			},
 			{
 				Config: ripTemplate(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", update.Name),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", update.Name),
 				),
 			},
 		},
@@ -90,7 +85,7 @@ func TestAccLBListener(t *testing.T) {
 
 func testAccLBListenerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

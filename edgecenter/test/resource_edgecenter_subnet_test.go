@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -16,37 +16,8 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-func checkSubnetAttrs(resourceName string, opts *subnets.CreateOpts) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if s.Empty() == true {
-			return fmt.Errorf("State not updated")
-		}
-
-		checksStore := []resource.TestCheckFunc{
-			resource.TestCheckResourceAttr(resourceName, "name", opts.Name),
-			resource.TestCheckResourceAttr(resourceName, "cidr", opts.CIDR.String()),
-			resource.TestCheckResourceAttr(resourceName, "enable_dhcp", strconv.FormatBool(opts.EnableDHCP)),
-			resource.TestCheckResourceAttr(resourceName, "dns_nameservers.#", strconv.Itoa(len(opts.DNSNameservers))),
-			resource.TestCheckResourceAttr(resourceName, "host_routes.#", strconv.Itoa(len(opts.HostRoutes))),
-		}
-
-		if opts.GatewayIP == nil && !opts.EnableDHCP {
-			checksStore = append(checksStore, resource.TestCheckResourceAttr(resourceName, "gateway_ip", "disable"))
-		}
-
-		for i, hr := range opts.HostRoutes {
-			checksStore = append(checksStore,
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`host_routes.%d.destination`, i), hr.Destination.String()),
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`host_routes.%d.nexthop`, i), hr.NextHop.String()),
-			)
-		}
-
-		return resource.ComposeTestCheckFunc(checksStore...)(s)
-	}
-}
-
 func TestAccSubnet(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 	var dst1, dst2, cidr edgecloud.CIDR
 
 	_, netIPNet, _ := net.ParseCIDR("10.0.3.0/24")
@@ -150,7 +121,6 @@ func TestAccSubnet(t *testing.T) {
 
 		resource "edgecenter_network" "acctest" {
 			name = "create_network"
-  			mtu = 1450
   			type = "vxlan"
 			create_router = false
 			%[1]s
@@ -189,7 +159,7 @@ func TestAccSubnet(t *testing.T) {
 		return template + "\n}"
 	}
 
-	fullName := "edgecenter_subnet.acctest"
+	resourceName := "edgecenter_subnet.acctest"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -199,9 +169,9 @@ func TestAccSubnet(t *testing.T) {
 			{
 				Config: SubnetTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					checkSubnetAttrs(fullName, &createFixt),
-					edgecenter.TestAccCheckMetadata(fullName, true, map[string]interface{}{
+					testAccCheckResourceExists(resourceName),
+					checkSubnetAttrs(resourceName, &createFixt),
+					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]interface{}{
 						"key1": "val1",
 						"key2": "val2",
 					}),
@@ -210,17 +180,46 @@ func TestAccSubnet(t *testing.T) {
 			{
 				Config: SubnetTemplate(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					checkSubnetAttrs(fullName, &updateFixt),
+					testAccCheckResourceExists(resourceName),
+					checkSubnetAttrs(resourceName, &updateFixt),
 				),
 			},
 		},
 	})
 }
 
+func checkSubnetAttrs(resourceName string, opts *subnets.CreateOpts) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if s.Empty() == true {
+			return fmt.Errorf("State not updated")
+		}
+
+		checksStore := []resource.TestCheckFunc{
+			resource.TestCheckResourceAttr(resourceName, "name", opts.Name),
+			resource.TestCheckResourceAttr(resourceName, "cidr", opts.CIDR.String()),
+			resource.TestCheckResourceAttr(resourceName, "enable_dhcp", strconv.FormatBool(opts.EnableDHCP)),
+			resource.TestCheckResourceAttr(resourceName, "dns_nameservers.#", strconv.Itoa(len(opts.DNSNameservers))),
+			resource.TestCheckResourceAttr(resourceName, "host_routes.#", strconv.Itoa(len(opts.HostRoutes))),
+		}
+
+		if opts.GatewayIP == nil && !opts.EnableDHCP {
+			checksStore = append(checksStore, resource.TestCheckResourceAttr(resourceName, "gateway_ip", "disable"))
+		}
+
+		for i, hr := range opts.HostRoutes {
+			checksStore = append(checksStore,
+				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`host_routes.%d.destination`, i), hr.Destination.String()),
+				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`host_routes.%d.nexthop`, i), hr.NextHop.String()),
+			)
+		}
+
+		return resource.ComposeTestCheckFunc(checksStore...)(s)
+	}
+}
+
 func testAccSubnetDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}
@@ -231,7 +230,7 @@ func testAccSubnetDestroy(s *terraform.State) error {
 
 		_, err := subnets.Get(client, rs.Primary.ID).Extract()
 		if err == nil {
-			return fmt.Errorf("Subnet still exists")
+			return fmt.Errorf("subnet still exists")
 		}
 	}
 

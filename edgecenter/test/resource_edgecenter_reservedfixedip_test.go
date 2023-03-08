@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -14,7 +14,7 @@ import (
 )
 
 func TestAccReservedFixedIP(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 	type Params struct {
 		Type  string
 		IsVip bool
@@ -30,7 +30,7 @@ func TestAccReservedFixedIP(t *testing.T) {
 		IsVip: false,
 	}
 
-	fullName := "edgecenter_reservedfixedip.acctest"
+	resourceName := "edgecenter_reservedfixedip.acctest"
 
 	ripTemplateExternal := func(params *Params) string {
 		return fmt.Sprintf(`
@@ -51,17 +51,17 @@ func TestAccReservedFixedIP(t *testing.T) {
 			{
 				Config: ripTemplateExternal(&createExternal),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "type", createExternal.Type),
-					resource.TestCheckResourceAttr(fullName, "is_vip", fmt.Sprintf("%t", createExternal.IsVip)),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "type", createExternal.Type),
+					resource.TestCheckResourceAttr(resourceName, "is_vip", fmt.Sprintf("%t", createExternal.IsVip)),
 				),
 			},
 			{
 				Config: ripTemplateExternal(&updateExternal),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "type", updateExternal.Type),
-					resource.TestCheckResourceAttr(fullName, "is_vip", fmt.Sprintf("%t", updateExternal.IsVip)),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "type", updateExternal.Type),
+					resource.TestCheckResourceAttr(resourceName, "is_vip", fmt.Sprintf("%t", updateExternal.IsVip)),
 				),
 			},
 		},
@@ -70,7 +70,7 @@ func TestAccReservedFixedIP(t *testing.T) {
 
 func testAccReservedFixedIPDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.FloatingIPsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.FloatingIPsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

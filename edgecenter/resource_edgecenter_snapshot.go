@@ -243,7 +243,7 @@ func resourceSnapshotDelete(ctx context.Context, d *schema.ResourceData, m inter
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete snapshot with ID: %s", snapshotID)
 		}
-		var errDefault404 *edgecloud.ErrDefault404
+		var errDefault404 edgecloud.ErrDefault404
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}

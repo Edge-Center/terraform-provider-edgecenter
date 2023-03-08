@@ -293,7 +293,7 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete volume with ID: %s", volumeID)
 		}
-		var errDefault404 *edgecloud.ErrDefault404
+		var errDefault404 edgecloud.ErrDefault404
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}

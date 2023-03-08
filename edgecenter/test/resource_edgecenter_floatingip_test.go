@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -14,8 +14,8 @@ import (
 )
 
 func TestAccFloatingIP(t *testing.T) {
-	t.Skip()
-	fullName := "edgecenter_floatingip.acctest"
+	t.Parallel()
+	resourceName := "edgecenter_floatingip.acctest"
 
 	ipTemplate := fmt.Sprintf(`
 			resource "edgecenter_floatingip" "acctest" {
@@ -32,9 +32,9 @@ func TestAccFloatingIP(t *testing.T) {
 			{
 				Config: ipTemplate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "fixed_ip_address", ""),
-					resource.TestCheckResourceAttr(fullName, "port_id", ""),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "fixed_ip_address", ""),
+					resource.TestCheckResourceAttr(resourceName, "port_id", ""),
 				),
 			},
 		},
@@ -43,7 +43,7 @@ func TestAccFloatingIP(t *testing.T) {
 
 func testAccFloatingIPDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.FloatingIPsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.FloatingIPsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func testAccFloatingIPDestroy(s *terraform.State) error {
 
 		_, err := floatingips.Get(client, rs.Primary.ID).Extract()
 		if err == nil {
-			return fmt.Errorf("ReservedFixedIP still exists")
+			return fmt.Errorf("reservedFixedIP still exists")
 		}
 	}
 

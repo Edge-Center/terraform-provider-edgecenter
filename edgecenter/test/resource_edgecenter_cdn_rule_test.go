@@ -10,9 +10,8 @@ import (
 )
 
 func TestAccCDNRule(t *testing.T) {
-	t.Skip()
 	t.Parallel()
-	fullName := "edgecenter_cdn_rule.acctest"
+	resourceName := "edgecenter_cdn_rule.acctest"
 
 	type Params struct {
 		Name    string
@@ -58,18 +57,18 @@ resource "edgecenter_cdn_rule" "acctest" {
 			{
 				Config: template(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", create.Name),
-					resource.TestCheckResourceAttr(fullName, "rule", create.Pattern),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", create.Name),
+					resource.TestCheckResourceAttr(resourceName, "rule", create.Pattern),
 				),
 			},
 			{
 				Config: template(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", update.Name),
-					resource.TestCheckResourceAttr(fullName, "rule", update.Pattern),
-					resource.TestCheckResourceAttr(fullName, "options.0.host_header.0.value", "rule-host.com"),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", update.Name),
+					resource.TestCheckResourceAttr(resourceName, "rule", update.Pattern),
+					resource.TestCheckResourceAttr(resourceName, "options.0.host_header.0.value", "rule-host.com"),
 				),
 			},
 		},

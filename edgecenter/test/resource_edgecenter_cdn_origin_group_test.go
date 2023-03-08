@@ -12,9 +12,8 @@ import (
 )
 
 func TestAccOriginGroup(t *testing.T) {
-	t.Skip()
 	t.Parallel()
-	fullName := "edgecenter_cdn_origingroup.acctest"
+	resourceName := "edgecenter_cdn_origingroup.acctest"
 
 	type Params struct {
 		Source  string
@@ -52,30 +51,30 @@ func TestAccOriginGroup(t *testing.T) {
 			{
 				Config: template(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", "terraform_acctest_group"),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", "terraform_acctest_group"),
 					or(
-						resource.TestCheckResourceAttr(fullName, "origin.0.source", create.Source),
-						resource.TestCheckResourceAttr(fullName, "origin.1.source", create.Source),
+						resource.TestCheckResourceAttr(resourceName, "origin.0.source", create.Source),
+						resource.TestCheckResourceAttr(resourceName, "origin.1.source", create.Source),
 					),
 					or(
-						resource.TestCheckResourceAttr(fullName, "origin.0.enabled", create.Enabled),
-						resource.TestCheckResourceAttr(fullName, "origin.1.enabled", create.Enabled),
+						resource.TestCheckResourceAttr(resourceName, "origin.0.enabled", create.Enabled),
+						resource.TestCheckResourceAttr(resourceName, "origin.1.enabled", create.Enabled),
 					),
 				),
 			},
 			{
 				Config: template(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", "terraform_acctest_group"),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", "terraform_acctest_group"),
 					or(
-						resource.TestCheckResourceAttr(fullName, "origin.0.source", update.Source),
-						resource.TestCheckResourceAttr(fullName, "origin.1.source", update.Source),
+						resource.TestCheckResourceAttr(resourceName, "origin.0.source", update.Source),
+						resource.TestCheckResourceAttr(resourceName, "origin.1.source", update.Source),
 					),
 					or(
-						resource.TestCheckResourceAttr(fullName, "origin.0.enabled", update.Enabled),
-						resource.TestCheckResourceAttr(fullName, "origin.1.enabled", update.Enabled),
+						resource.TestCheckResourceAttr(resourceName, "origin.0.enabled", update.Enabled),
+						resource.TestCheckResourceAttr(resourceName, "origin.1.enabled", update.Enabled),
 					),
 				),
 			},

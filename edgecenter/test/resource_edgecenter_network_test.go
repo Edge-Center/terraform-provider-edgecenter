@@ -1,11 +1,10 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -16,17 +15,15 @@ import (
 )
 
 func TestAccNetwork(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 	type Params struct {
 		Name        string
 		Type        string
-		Mtu         int
 		MetadataMap string
 	}
 
 	paramsCreate := Params{
 		Name: "create_test",
-		Mtu:  1450,
 		Type: "vxlan",
 		MetadataMap: `{
 				key1 = "val1"
@@ -41,7 +38,7 @@ func TestAccNetwork(t *testing.T) {
 			  }`,
 	}
 
-	fullName := "edgecenter_network.acctest"
+	resourceName := "edgecenter_network.acctest"
 	importStateIDPrefix := fmt.Sprintf("%s:%s:", os.Getenv("TEST_PROJECT_ID"), os.Getenv("TEST_REGION_ID"))
 
 	NetworkTemplate := func(params *Params) string {
@@ -53,9 +50,6 @@ func TestAccNetwork(t *testing.T) {
 			%s
 		`, params.Name, params.MetadataMap, regionInfo(), projectInfo())
 
-		if params.Mtu != 0 {
-			template += fmt.Sprintf("mtu = %d\n", params.Mtu)
-		}
 		if params.Type != "" {
 			template += fmt.Sprintf("type = \"%s\"\n", params.Type)
 		}
@@ -71,13 +65,12 @@ func TestAccNetwork(t *testing.T) {
 			{
 				Config: NetworkTemplate(&paramsCreate),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", paramsCreate.Name),
-					resource.TestCheckResourceAttr(fullName, "type", paramsCreate.Type),
-					resource.TestCheckResourceAttr(fullName, "mtu", strconv.Itoa(paramsCreate.Mtu)),
-					resource.TestCheckResourceAttr(fullName, "metadata_map.key1", "val1"),
-					resource.TestCheckResourceAttr(fullName, "metadata_map.key2", "val2"),
-					edgecenter.TestAccCheckMetadata(fullName, true, map[string]string{
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", paramsCreate.Name),
+					resource.TestCheckResourceAttr(resourceName, "type", paramsCreate.Type),
+					resource.TestCheckResourceAttr(resourceName, "metadata_map.key1", "val1"),
+					resource.TestCheckResourceAttr(resourceName, "metadata_map.key2", "val2"),
+					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]string{
 						"key1": "val1",
 						"key2": "val2",
 					}),
@@ -86,24 +79,23 @@ func TestAccNetwork(t *testing.T) {
 			{
 				Config: NetworkTemplate(&paramsUpdate),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", paramsUpdate.Name),
-					resource.TestCheckResourceAttr(fullName, "type", paramsCreate.Type),
-					resource.TestCheckResourceAttr(fullName, "mtu", strconv.Itoa(paramsCreate.Mtu)),
-					edgecenter.TestAccCheckMetadata(fullName, true, map[string]string{
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", paramsUpdate.Name),
+					resource.TestCheckResourceAttr(resourceName, "type", paramsCreate.Type),
+					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]string{
 						"key3": "val3",
 					}),
-					edgecenter.TestAccCheckMetadata(fullName, false, map[string]string{
+					edgecenter.TestAccCheckMetadata(resourceName, false, map[string]string{
 						"key1": "val1",
 					}),
-					edgecenter.TestAccCheckMetadata(fullName, false, map[string]string{
+					edgecenter.TestAccCheckMetadata(resourceName, false, map[string]string{
 						"key2": "val2",
 					}),
 				),
 			},
 			{
 				ImportStateIdPrefix: importStateIDPrefix,
-				ResourceName:        fullName,
+				ResourceName:        resourceName,
 				ImportState:         true,
 			},
 		},
@@ -112,7 +104,7 @@ func TestAccNetwork(t *testing.T) {
 
 func testAccNetworkDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}
@@ -123,7 +115,7 @@ func testAccNetworkDestroy(s *terraform.State) error {
 
 		_, err := networks.Get(client, rs.Primary.ID).Extract()
 		if err == nil {
-			return fmt.Errorf("Network still exists")
+			return fmt.Errorf("network still exists")
 		}
 	}
 

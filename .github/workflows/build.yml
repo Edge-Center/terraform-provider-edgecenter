@@ -23,8 +23,14 @@ jobs:
       - name: Build
         run: go build -v ./...
 
-      - name: Tests
+      - name: Tests data_source
         env:
           EC_USERNAME: ${{ secrets.EC_USERNAME }}
           EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
-        run: make test_cloud
+        run: make test_cloud_data_source
+
+      - name: Tests resource
+        env:
+          EC_USERNAME: ${{ secrets.EC_USERNAME }}
+          EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
+        run: make test_cloud_resource

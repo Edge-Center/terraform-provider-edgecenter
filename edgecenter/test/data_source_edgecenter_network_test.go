@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -8,32 +8,24 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-const (
-	network1TestName = "test-network1"
-	network2TestName = "test-network2"
-	// Used in other modules
-	networkTestName = "test-network"
-)
-
 func TestAccNetworkDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	opts1 := networks.CreateOpts{
-		Name:     network1TestName,
+		Name:     "test-network1",
 		Metadata: map[string]string{"key1": "val1", "key2": "val2"},
 	}
 
@@ -42,7 +34,7 @@ func TestAccNetworkDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	opts2 := networks.CreateOpts{
-		Name:     network2TestName,
+		Name:     "test-network2",
 		Metadata: map[string]string{"key1": "val1", "key3": "val3"},
 	}
 
@@ -54,7 +46,7 @@ func TestAccNetworkDataSource(t *testing.T) {
 	defer deleteTestNetwork(client, network1ID)
 	defer deleteTestNetwork(client, network2ID)
 
-	fullName := "data.edgecenter_network.acctest"
+	resourceName := "data.edgecenter_network.acctest"
 	tpl1 := func(name string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_network" "acctest" {
@@ -84,10 +76,10 @@ func TestAccNetworkDataSource(t *testing.T) {
 			{
 				Config: tpl1(opts1.Name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", opts1.Name),
-					resource.TestCheckResourceAttr(fullName, "id", network1ID),
-					edgecenter.TestAccCheckMetadata(fullName, true, map[string]string{
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", opts1.Name),
+					resource.TestCheckResourceAttr(resourceName, "id", network1ID),
+					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]string{
 						"key1": "val1", "key2": "val2",
 					}),
 				),
@@ -95,60 +87,14 @@ func TestAccNetworkDataSource(t *testing.T) {
 			{
 				Config: tpl2(opts2.Name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", opts2.Name),
-					resource.TestCheckResourceAttr(fullName, "id", network2ID),
-					edgecenter.TestAccCheckMetadata(fullName, true, map[string]string{
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", opts2.Name),
+					resource.TestCheckResourceAttr(resourceName, "id", network2ID),
+					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]string{
 						"key3": "val3",
 					}),
 				),
 			},
 		},
 	})
-}
-
-func createTestNetwork(client *edgecloud.ServiceClient, opts networks.CreateOpts) (string, error) {
-	res, err := networks.Create(client, opts).Extract()
-	if err != nil {
-		return "", err
-	}
-
-	taskID := res.Tasks[0]
-	networkID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.NetworkCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		networkID, err := networks.ExtractNetworkIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve network ID from task info: %w", err)
-		}
-		return networkID, nil
-	},
-	)
-	if err != nil {
-		return "", err
-	}
-	return networkID.(string), nil
-}
-
-func deleteTestNetwork(client *edgecloud.ServiceClient, networkID string) error {
-	results, err := networks.Delete(client, networkID).Extract()
-	if err != nil {
-		return err
-	}
-	taskID := results.Tasks[0]
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.NetworkDeleting, func(task tasks.TaskID) (interface{}, error) {
-		_, err := networks.Get(client, networkID).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete network with ID: %s", networkID)
-		}
-		switch err.(type) {
-		case edgecloud.ErrDefault404:
-			return nil, nil
-		default:
-			return nil, err
-		}
-	})
-	return err
 }

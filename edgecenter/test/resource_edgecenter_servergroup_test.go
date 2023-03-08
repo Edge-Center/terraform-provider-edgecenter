@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccServerGroupResource(t *testing.T) {
+	t.Parallel()
 	type Params struct {
 		Name   string
 		Policy string
@@ -24,7 +25,7 @@ func TestAccServerGroupResource(t *testing.T) {
 		Policy: servergroups.AntiAffinityPolicy.String(),
 	}
 
-	fullName := "edgecenter_servergroup.acctest"
+	resourceName := "edgecenter_servergroup.acctest"
 
 	kpTemplate := func(params *Params) string {
 		return fmt.Sprintf(`
@@ -45,9 +46,9 @@ func TestAccServerGroupResource(t *testing.T) {
 			{
 				Config: kpTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", create.Name),
-					resource.TestCheckResourceAttr(fullName, "policy", create.Policy),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", create.Name),
+					resource.TestCheckResourceAttr(resourceName, "policy", create.Policy),
 				),
 			},
 		},
@@ -56,7 +57,7 @@ func TestAccServerGroupResource(t *testing.T) {
 
 func testAccServerGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.ServerGroupsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.ServerGroupsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

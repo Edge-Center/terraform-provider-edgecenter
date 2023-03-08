@@ -744,7 +744,7 @@ func ServerV2StateRefreshFunc(client *edgecloud.ServiceClient, instanceID string
 	return func() (interface{}, string, error) {
 		s, err := instances.Get(client, instanceID).Extract()
 		if err != nil {
-			var errDefault404 *edgecloud.ErrDefault404
+			var errDefault404 edgecloud.ErrDefault404
 			if errors.As(err, &errDefault404) {
 				return s, "DELETED", nil
 			}

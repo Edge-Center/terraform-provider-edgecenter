@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -18,28 +18,26 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-const (
-	lbPoolTestName = "test-lb-pool"
-)
-
 func TestAccLBMember(t *testing.T) {
-	t.Skip()
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientListener, err := CreateTestClient(cfg.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
+	clientListener, err := createTestClient(cfg.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientPool, err := CreateTestClient(cfg.Provider, edgecenter.LBPoolsPoint, edgecenter.VersionPointV1)
+	clientPool, err := createTestClient(cfg.Provider, edgecenter.LBPoolsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +64,7 @@ func TestAccLBMember(t *testing.T) {
 	listener := ls[0]
 
 	poolsOpts := lbpools.CreateOpts{
-		Name:            lbPoolTestName,
+		Name:            poolTestName,
 		Protocol:        types.ProtocolTypeHTTP,
 		LBPoolAlgorithm: types.LoadBalancerAlgorithmRoundRobin,
 		LoadBalancerID:  lbID,
@@ -87,7 +85,7 @@ func TestAccLBMember(t *testing.T) {
 
 	update := Params{"10.10.2.16", "8081", "5"}
 
-	fullName := "edgecenter_lbmember.acctest"
+	resourceName := "edgecenter_lbmember.acctest"
 
 	tpl := func(params *Params) string {
 		return fmt.Sprintf(`
@@ -110,19 +108,19 @@ func TestAccLBMember(t *testing.T) {
 			{
 				Config: tpl(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "address", create.Address),
-					resource.TestCheckResourceAttr(fullName, "protocol_port", create.Port),
-					resource.TestCheckResourceAttr(fullName, "weight", create.Weight),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "address", create.Address),
+					resource.TestCheckResourceAttr(resourceName, "protocol_port", create.Port),
+					resource.TestCheckResourceAttr(resourceName, "weight", create.Weight),
 				),
 			},
 			{
 				Config: tpl(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "address", update.Address),
-					resource.TestCheckResourceAttr(fullName, "protocol_port", update.Port),
-					resource.TestCheckResourceAttr(fullName, "weight", update.Weight),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "address", update.Address),
+					resource.TestCheckResourceAttr(resourceName, "protocol_port", update.Port),
+					resource.TestCheckResourceAttr(resourceName, "weight", update.Weight),
 				),
 			},
 		},
@@ -131,7 +129,7 @@ func TestAccLBMember(t *testing.T) {
 
 func testAccLBMemberDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.LBPoolsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.LBPoolsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

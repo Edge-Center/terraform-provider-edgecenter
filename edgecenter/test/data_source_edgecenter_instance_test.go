@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -17,24 +17,19 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-const (
-	flavorID         = "g1-standard-1-2"
-	instanceTestName = "test-vm"
-	testOsDistro     = "ubuntu"
-)
-
 func TestAccInstanceDataSource(t *testing.T) {
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientVolume, err := CreateTestClient(cfg.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
+	clientVolume, err := createTestClient(cfg.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientImage, err := CreateTestClient(cfg.Provider, edgecenter.ImagesPoint, edgecenter.VersionPointV1)
+	clientImage, err := createTestClient(cfg.Provider, edgecenter.ImagesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,18 +41,18 @@ func TestAccInstanceDataSource(t *testing.T) {
 
 	var img images.Image
 	for _, i := range imgs {
-		if i.OsDistro == testOsDistro {
+		if i.OsDistro == osDistroTest {
 			img = i
 			break
 		}
 	}
 	if img.ID == "" {
-		t.Fatalf("images with os_distro='%s' does not exist", testOsDistro)
+		t.Fatalf("images with os_distro='%s' does not exist", osDistroTest)
 	}
 
 	optsV := volumes.CreateOpts{
 		Name:     volumeTestName,
-		Size:     volumeTestSize * 5,
+		Size:     volumeSizeTest * 5,
 		Source:   volumes.Image,
 		TypeName: volumes.Standard,
 		ImageID:  img.ID,
@@ -67,19 +62,19 @@ func TestAccInstanceDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV2)
+	client, err := createTestClient(cfg.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientV1, err := CreateTestClient(cfg.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV1)
+	clientV1, err := createTestClient(cfg.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	opts := instances.CreateOpts{
 		Names:  []string{instanceTestName},
-		Flavor: flavorID,
+		Flavor: flavorTest,
 		Volumes: []instances.CreateVolumeOpts{{
 			Source:    types.ExistingVolume,
 			BootIndex: 0,
@@ -117,7 +112,7 @@ func TestAccInstanceDataSource(t *testing.T) {
 
 	defer instances.Delete(clientV1, instanceID.(string), instances.DeleteOpts{Volumes: []string{volumeID}})
 
-	fullName := "data.edgecenter_instance.acctest"
+	resourceName := "data.edgecenter_instance.acctest"
 	tpl := func(name string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_instance" "acctest" {
@@ -135,9 +130,9 @@ func TestAccInstanceDataSource(t *testing.T) {
 			{
 				Config: tpl(instanceTestName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", instanceTestName),
-					resource.TestCheckResourceAttr(fullName, "id", instanceID.(string)),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", instanceTestName),
+					resource.TestCheckResourceAttr(resourceName, "id", instanceID.(string)),
 				),
 			},
 		},

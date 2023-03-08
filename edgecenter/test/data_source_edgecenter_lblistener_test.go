@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_data_source
 
 package edgecenter_test
 
@@ -15,18 +15,18 @@ import (
 )
 
 func TestAccLBListenerDataSource(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := CreateTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientListener, err := CreateTestClient(cfg.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
+	clientListener, err := createTestClient(cfg.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestAccLBListenerDataSource(t *testing.T) {
 	}
 	listener := ls[0]
 
-	fullName := "data.edgecenter_lblistener.acctest"
+	resourceName := "data.edgecenter_lblistener.acctest"
 	tpl := func(name string) string {
 		return fmt.Sprintf(`
 			data "edgecenter_lblistener" "acctest" {
@@ -70,9 +70,9 @@ func TestAccLBListenerDataSource(t *testing.T) {
 			{
 				Config: tpl(lbListenerTestName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "name", lbListenerTestName),
-					resource.TestCheckResourceAttr(fullName, "id", listener.ID),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", lbListenerTestName),
+					resource.TestCheckResourceAttr(resourceName, "id", listener.ID),
 				),
 			},
 		},

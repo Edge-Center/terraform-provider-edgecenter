@@ -1,4 +1,4 @@
-//go:build cloud
+//go:build cloud_resource
 
 package edgecenter_test
 
@@ -16,7 +16,7 @@ import (
 )
 
 func TestAccVolume(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 	type Params struct {
 		Name       string
 		Size       int
@@ -38,7 +38,7 @@ func TestAccVolume(t *testing.T) {
 		Type: "ssd_hiiops",
 	}
 
-	fullName := "edgecenter_volume.acctest"
+	resourceName := "edgecenter_volume.acctest"
 	importStateIDPrefix := fmt.Sprintf("%s:%s:", os.Getenv("TEST_PROJECT_ID"), os.Getenv("TEST_REGION_ID"))
 
 	VolumeTemplate := func(params *Params) string {
@@ -69,24 +69,24 @@ func TestAccVolume(t *testing.T) {
 			{
 				Config: VolumeTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "size", strconv.Itoa(create.Size)),
-					resource.TestCheckResourceAttr(fullName, "type_name", create.Type),
-					resource.TestCheckResourceAttr(fullName, "name", create.Name),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "size", strconv.Itoa(create.Size)),
+					resource.TestCheckResourceAttr(resourceName, "type_name", create.Type),
+					resource.TestCheckResourceAttr(resourceName, "name", create.Name),
 				),
 			},
 			{
 				Config: VolumeTemplate(&update),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckResourceExists(fullName),
-					resource.TestCheckResourceAttr(fullName, "size", strconv.Itoa(update.Size)),
-					resource.TestCheckResourceAttr(fullName, "type_name", update.Type),
-					resource.TestCheckResourceAttr(fullName, "name", update.Name),
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "size", strconv.Itoa(update.Size)),
+					resource.TestCheckResourceAttr(resourceName, "type_name", update.Type),
+					resource.TestCheckResourceAttr(resourceName, "name", update.Name),
 				),
 			},
 			{
 				ImportStateIdPrefix: importStateIDPrefix,
-				ResourceName:        fullName,
+				ResourceName:        resourceName,
 				ImportState:         true,
 			},
 		},
@@ -95,7 +95,7 @@ func TestAccVolume(t *testing.T) {
 
 func testAccVolumeDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := CreateTestClient(config.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func testAccVolumeDestroy(s *terraform.State) error {
 
 		_, err := networks.Get(client, rs.Primary.ID).Extract()
 		if err == nil {
-			return fmt.Errorf("Volume still exists")
+			return fmt.Errorf("volume still exists")
 		}
 	}
 
