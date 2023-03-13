@@ -36,7 +36,7 @@ err_check:
 	@sh -c "'$(PROJECT_DIR)/scripts/errcheck.sh'"
 
 linters:
-	@test -f $(BUILD_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.51.1
+	@test -f $(BUILD_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.51.2
 	@$(BUILD_DIR)/golangci-lint run
 
 # TESTS
@@ -80,8 +80,8 @@ docs_fmt:
 	terraform fmt -recursive ./examples/
 
 docs: docs_fmt
-	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.13.0
+	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.14.1
 	make tidy
-	tfplugindocs --tf-version=1.3.8 --website-source-dir=templates
+	tfplugindocs --tf-version=1.4.0 --website-source-dir=templates
 
-.PHONY: tidy vendor build build_debug err_check linters envs_reader test_cloud test_not_cloud docs_fmt docs
+.PHONY: tidy vendor build build_debug err_check linters envs_reader test_cloud_data_source test_cloud_resource test_not_cloud jq vault envs test_local_data_source test_local_resource docs_fmt docs

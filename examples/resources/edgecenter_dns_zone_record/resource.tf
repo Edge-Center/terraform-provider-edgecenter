@@ -1,4 +1,4 @@
-provider edgecenter {
+provider "edgecenter" {
   permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
@@ -16,7 +16,7 @@ resource "edgecenter_dns_zone" "examplezone0" {
 
 resource "edgecenter_dns_zone_record" "example_rrset0" {
   zone   = edgecenter_dns_zone.examplezone0.name
-  domain = "${edgecenter_dns_zone.examplezone0.name}"
+  domain = edgecenter_dns_zone.examplezone0.name
   type   = "A"
   ttl    = 100
 
