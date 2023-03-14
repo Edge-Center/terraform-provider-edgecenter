@@ -1,11 +1,11 @@
-provider edgecenter {
+provider "edgecenter" {
   permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
 resource "edgecenter_router" "router" {
   name = "router_example"
 
-  dynamic external_gateway_info {
+  dynamic "external_gateway_info" {
     iterator = egi
     for_each = var.external_gateway_info
     content {
@@ -15,7 +15,7 @@ resource "edgecenter_router" "router" {
     }
   }
 
-  dynamic interfaces {
+  dynamic "interfaces" {
     iterator = ifaces
     for_each = var.interfaces
     content {
@@ -24,7 +24,7 @@ resource "edgecenter_router" "router" {
     }
   }
 
-  dynamic routes {
+  dynamic "routes" {
     iterator = rs
     for_each = var.routes
     content {

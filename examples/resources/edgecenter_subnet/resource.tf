@@ -1,4 +1,4 @@
-provider edgecenter {
+provider "edgecenter" {
   permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
@@ -16,7 +16,7 @@ resource "edgecenter_subnet" "subnet" {
   network_id      = edgecenter_network.network.id
   dns_nameservers = var.dns_nameservers
 
-  dynamic host_routes {
+  dynamic "host_routes" {
     iterator = hr
     for_each = var.host_routes
     content {

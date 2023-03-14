@@ -82,6 +82,10 @@ Local: execute the command `make test_local_data_source` and `make test_local_re
 * Run `make envs` to automatically fill the envs from Vault (don't forget to export `VAULT_TOKEN` to terminal).
 * `make envs` requires the installation of `jq` and the `vault` binary. You can install them with the `make vault` and `make jq` commands, respectively.
 
+Docs generating
+------------------
+To generate Terraform documentation, use the command `make docs`. This command uses the `terraform-plugin-docs` library to create provider documentation with examples and places it in the `docs` folder. These docs can be viewed on the provider registry page.
+
 Debugging
 ------------------
 There are two ways to debug the provider:

@@ -1,4 +1,4 @@
-provider edgecenter {
+provider "edgecenter" {
   permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
@@ -12,7 +12,7 @@ resource "edgecenter_lifecyclepolicy" "lp" {
     id = "fe93bfdd-4ce3-4041-b89b-4f10d0d49498"
   }
   schedule {
-    max_quantity           = 4
+    max_quantity = 4
     interval {
       weeks   = 1
       days    = 2

@@ -1,4 +1,4 @@
-provider edgecenter {
+provider "edgecenter" {
   permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
@@ -60,22 +60,12 @@ resource "edgecenter_instance" "instance" {
   }
 
   interface {
-    type       = "subnet"
-    network_id = edgecenter_network.network.id
-    subnet_id  = edgecenter_subnet.subnet.id
+    type            = "subnet"
+    network_id      = edgecenter_network.network.id
+    subnet_id       = edgecenter_subnet.subnet.id
     security_groups = ["d75db0b2-58f1-4a11-88c6-a932bb897310"]
   }
-    //port_id = null
-    //ip_address = null
-    //fip_source = null
-    //existing_fip_id = null
-  }
 
-  //deprecated, use metadata_map instead
-  //metadata {
-  //  key = "some_key"
-  //  value = "some_data"
-  //}
   metadata_map = {
     some_key = "some_value"
     stage    = "dev"

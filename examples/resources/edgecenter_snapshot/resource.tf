@@ -1,4 +1,4 @@
-provider edgecenter {
+provider "edgecenter" {
   permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
@@ -8,7 +8,7 @@ resource "edgecenter_snapshot" "snapshot" {
   name        = "snapshot example"
   volume_id   = "28e9edcb-1593-41fe-971b-da729c6ec301"
   description = "snapshot example description"
-  metadata    = {
+  metadata = {
     env = "test"
   }
 }
