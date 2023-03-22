@@ -22,6 +22,9 @@ resource "edgecenter_loadbalancerv2" "lb" {
   region_id  = 1
   name       = "test"
   flavor     = "lb1-1-2"
+  metadata_map = {
+    tag1 = "tag1_value"
+  }
 }
 ```
 
@@ -36,6 +39,7 @@ resource "edgecenter_loadbalancerv2" "lb" {
 
 - `flavor` (String)
 - `last_updated` (String)
+- `metadata_map` (Map of String)
 - `project_id` (Number)
 - `project_name` (String)
 - `region_id` (Number)
@@ -48,6 +52,7 @@ resource "edgecenter_loadbalancerv2" "lb" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
 - `security_group_id` (String) Load balancer security group ID
 - `vip_address` (String) Load balancer IP address
 
@@ -58,6 +63,16 @@ Optional:
 
 - `create` (String)
 - `delete` (String)
+
+
+<a id="nestedatt--metadata_read_only"></a>
+### Nested Schema for `metadata_read_only`
+
+Read-Only:
+
+- `key` (String)
+- `read_only` (Boolean)
+- `value` (String)
 
 ## Import
 
