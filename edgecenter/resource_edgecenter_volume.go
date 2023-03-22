@@ -12,6 +12,8 @@ import (
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 )
 
@@ -121,6 +123,34 @@ func resourceVolume() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"metadata_map": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"metadata_read_only": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"read_only": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -197,6 +227,16 @@ func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface
 	d.Set("region_id", volume.RegionID)
 	d.Set("project_id", volume.ProjectID)
 
+	metadataMap, metadataReadOnly := PrepareMetadata(volume.Metadata)
+
+	if err = d.Set("metadata_map", metadataMap); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("metadata_read_only", metadataReadOnly); err != nil {
+		return diag.FromErr(err)
+	}
+
 	fields := []string{"image_id", "snapshot_id"}
 	revertState(d, &fields)
 
@@ -257,6 +297,20 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		_, err = volumes.Retype(client, volumeID, opts).Extract()
 		if err != nil {
 			return diag.FromErr(err)
+		}
+	}
+
+	if d.HasChange("metadata_map") {
+		_, nmd := d.GetChange("metadata_map")
+
+		meta, err := utils.MapInterfaceToMapString(nmd.(map[string]interface{}))
+		if err != nil {
+			return diag.Errorf("cannot get metadata. Error: %s", err)
+		}
+
+		err = metadata.MetadataReplace(client, d.Id(), meta).Err
+		if err != nil {
+			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
 	}
 
@@ -337,6 +391,15 @@ func getVolumeData(d *schema.ResourceData) (*volumes.CreateOpts, error) {
 			return nil, fmt.Errorf("checking Volume validation error: %w", err)
 		}
 		volumeData.TypeName = *modifiedTypeName
+	}
+
+	if metadataRaw, ok := d.GetOk("metadata_map"); ok {
+		meta, err := utils.MapInterfaceToMapString(metadataRaw)
+		if err != nil {
+			return nil, fmt.Errorf("volume metadata error: %w", err)
+		}
+
+		volumeData.Metadata = meta
 	}
 
 	return &volumeData, nil

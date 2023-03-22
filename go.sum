@@ -8,8 +8,8 @@ github.com/Edge-Center/edgecenter-storage-sdk-go v0.1.0 h1:5iKvDZsdkrvcQDIsh+tBS
 github.com/Edge-Center/edgecenter-storage-sdk-go v0.1.0/go.mod h1:3Y8B9zGwtXhjIWMyjWHcr7F9aXTzfOvq+VfcHZkYGfg=
 github.com/Edge-Center/edgecentercdn-go v0.1.0 h1:vPd7UMDhlNTRLD0xdWxvsUKRpYnnJ7vmnBmnq70r2s0=
 github.com/Edge-Center/edgecentercdn-go v0.1.0/go.mod h1:RwEyxwPAmxor1mZKUTa2bIU2p5qM6kcAofUkaE4O1V4=
-github.com/Edge-Center/edgecentercloud-go v0.1.1 h1:B08+JMovdgBxoBiVEml0E2+8ivGxujkOPCEsAbcG+GU=
-github.com/Edge-Center/edgecentercloud-go v0.1.1/go.mod h1:Z1c8cEGb/MrtBmP0fFIPEpOQEAL04f1GVaEibSlqx/E=
+github.com/Edge-Center/edgecentercloud-go v0.1.2 h1:ZPsA11DS08SpqAE/5UogvhLk2UMEqTTqP2LhfZYexOc=
+github.com/Edge-Center/edgecentercloud-go v0.1.2/go.mod h1:Z1c8cEGb/MrtBmP0fFIPEpOQEAL04f1GVaEibSlqx/E=
 github.com/Masterminds/goutils v1.1.1/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
 github.com/Masterminds/sprig/v3 v3.2.1/go.mod h1:UoaO7Yp8KlPnJIYWTFkMaqPUYKTfGFPhxNuwnnxkKlk=

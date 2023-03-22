@@ -60,6 +60,37 @@ func dataSourceVolume() *schema.Resource {
 				Computed:    true,
 				Description: "Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'. Defaults to standard",
 			},
+			"metadata_k": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"metadata_kv": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"metadata_read_only": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"read_only": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -76,7 +107,20 @@ func dataSourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	name := d.Get("name").(string)
-	vols, err := volumes.ListAll(client, volumes.ListOpts{})
+	volumeOpts := &volumes.ListOpts{}
+	if metadataK, ok := d.GetOk("metadata_k"); ok {
+		volumeOpts.MetadataK = metadataK.(string)
+	}
+
+	if metadataRaw, ok := d.GetOk("metadata_kv"); ok {
+		typedMetadataKV := make(map[string]string, len(metadataRaw.(map[string]interface{})))
+		for k, v := range metadataRaw.(map[string]interface{}) {
+			typedMetadataKV[k] = v.(string)
+		}
+		volumeOpts.MetadataKV = typedMetadataKV
+	}
+
+	vols, err := volumes.ListAll(client, volumeOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -101,6 +145,11 @@ func dataSourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("type_name", volume.VolumeType)
 	d.Set("region_id", volume.RegionID)
 	d.Set("project_id", volume.ProjectID)
+
+	metadataReadOnly := PrepareMetadataReadonly(volume.Metadata)
+	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
+		return diag.FromErr(err)
+	}
 
 	log.Println("[DEBUG] Finish Volume reading")
 

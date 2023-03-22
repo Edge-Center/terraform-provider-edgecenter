@@ -173,17 +173,7 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 	d.Set("external", rawNetwork["external"])
 	d.Set("shared", rawNetwork["shared"])
 
-	metadataReadOnly := make([]map[string]interface{}, 0, len(network.Metadata))
-	if len(network.Metadata) > 0 {
-		for _, metadataItem := range network.Metadata {
-			metadataReadOnly = append(metadataReadOnly, map[string]interface{}{
-				"key":       metadataItem.Key,
-				"value":     metadataItem.Value,
-				"read_only": metadataItem.ReadOnly,
-			})
-		}
-	}
-
+	metadataReadOnly := PrepareMetadataReadonly(network.Metadata)
 	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}

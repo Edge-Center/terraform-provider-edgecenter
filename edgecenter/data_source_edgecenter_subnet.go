@@ -181,17 +181,7 @@ func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("cidr", subnet.CIDR.String())
 	d.Set("network_id", subnet.NetworkID)
 
-	metadataReadOnly := make([]map[string]interface{}, 0, len(subnet.Metadata))
-	if len(subnet.Metadata) > 0 {
-		for _, metadataItem := range subnet.Metadata {
-			metadataReadOnly = append(metadataReadOnly, map[string]interface{}{
-				"key":       metadataItem.Key,
-				"value":     metadataItem.Value,
-				"read_only": metadataItem.ReadOnly,
-			})
-		}
-	}
-
+	metadataReadOnly := PrepareMetadataReadonly(subnet.Metadata)
 	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}

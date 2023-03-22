@@ -148,7 +148,6 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	createOpts := networks.CreateOpts{
 		Name:         d.Get("name").(string),
-		Mtu:          d.Get("mtu").(int),
 		Type:         d.Get("type").(string),
 		CreateRouter: d.Get("create_router").(bool),
 	}
@@ -220,24 +219,13 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("region_id", network.RegionID)
 	d.Set("project_id", network.ProjectID)
 
-	metadataMap := make(map[string]string)
-	metadataReadOnly := make([]map[string]interface{}, 0, len(network.Metadata))
+	metadataMap, metadataReadOnly := PrepareMetadata(network.Metadata)
 
-	if len(network.Metadata) > 0 {
-		for _, metadataItem := range network.Metadata {
-			metadataMap[metadataItem.Key] = metadataItem.Value
-			metadataReadOnly = append(metadataReadOnly, map[string]interface{}{
-				"key":       metadataItem.Key,
-				"value":     metadataItem.Value,
-				"read_only": metadataItem.ReadOnly,
-			})
-		}
-	}
-
-	if err := d.Set("metadata_map", metadataMap); err != nil {
+	if err = d.Set("metadata_map", metadataMap); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
+
+	if err = d.Set("metadata_read_only", metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}
 
