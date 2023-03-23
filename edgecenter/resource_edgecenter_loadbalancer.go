@@ -16,6 +16,8 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 )
 
 const (
@@ -193,6 +195,33 @@ func resourceLoadBalancer() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"metadata_map": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"metadata_read_only": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"read_only": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -257,6 +286,16 @@ func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 	if err := d.Set("listener", []interface{}{currentL}); err != nil {
 		diag.FromErr(err)
+	}
+
+	metadataMap, metadataReadOnly := PrepareMetadata(lb.Metadata)
+
+	if err = d.Set("metadata_map", metadataMap); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("metadata_read_only", metadataReadOnly); err != nil {
+		return diag.FromErr(err)
 	}
 
 	log.Println("[DEBUG] Finish LoadBalancer reading")
@@ -372,6 +411,20 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 			if _, err := listeners.Update(client, listenerID, opts).Extract(); err != nil {
 				return diag.FromErr(err)
 			}
+		}
+	}
+
+	if d.HasChange("metadata_map") {
+		_, nmd := d.GetChange("metadata_map")
+
+		meta, err := utils.MapInterfaceToMapString(nmd.(map[string]interface{}))
+		if err != nil {
+			return diag.Errorf("cannot get metadata. Error: %s", err)
+		}
+
+		err = metadata.MetadataReplace(client, d.Id(), meta).Err
+		if err != nil {
+			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
 	}
 

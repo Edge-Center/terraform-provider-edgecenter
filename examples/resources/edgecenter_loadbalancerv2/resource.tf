@@ -7,4 +7,7 @@ resource "edgecenter_loadbalancerv2" "lb" {
   region_id  = 1
   name       = "test"
   flavor     = "lb1-1-2"
+  metadata_map = {
+    tag1 = "tag1_value"
+  }
 }

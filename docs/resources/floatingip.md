@@ -20,6 +20,9 @@ provider "edgecenter" {
 resource "edgecenter_floatingip" "floating_ip" {
   project_id = 1
   region_id  = 1
+  metadata_map = {
+    tag1 = "tag1_value"
+  }
   //  fixed_ip_address = "192.168.10.39" // instance`s interface ip
   //  port_id = "5c992875-f653-4b7b-af5b-1dc3019e5ffa" //instance`s interface port_id
 }
@@ -32,6 +35,7 @@ resource "edgecenter_floatingip" "floating_ip" {
 
 - `fixed_ip_address` (String)
 - `last_updated` (String)
+- `metadata_map` (Map of String)
 - `port_id` (String)
 - `project_id` (Number)
 - `project_name` (String)
@@ -43,9 +47,19 @@ resource "edgecenter_floatingip" "floating_ip" {
 - `created_at` (String)
 - `floating_ip_address` (String)
 - `id` (String) The ID of this resource.
+- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
 - `router_id` (String)
 - `status` (String)
 - `updated_at` (String)
+
+<a id="nestedatt--metadata_read_only"></a>
+### Nested Schema for `metadata_read_only`
+
+Read-Only:
+
+- `key` (String)
+- `read_only` (Boolean)
+- `value` (String)
 
 ## Import
 

@@ -8,4 +8,7 @@ resource "edgecenter_volume" "volume" {
   size       = 1
   region_id  = 1
   project_id = 1
+  metadata_map = {
+    tag1 = "tag1_value"
+  }
 }

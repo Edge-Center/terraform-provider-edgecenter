@@ -326,23 +326,13 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 		d.Set("gateway_ip", disable)
 	}
 
-	metadataMap := make(map[string]string)
-	metadataReadOnly := make([]map[string]interface{}, 0, len(subnet.Metadata))
-	if len(subnet.Metadata) > 0 {
-		for _, metadataItem := range subnet.Metadata {
-			metadataMap[metadataItem.Key] = metadataItem.Value
-			metadataReadOnly = append(metadataReadOnly, map[string]interface{}{
-				"key":       metadataItem.Key,
-				"value":     metadataItem.Value,
-				"read_only": metadataItem.ReadOnly,
-			})
-		}
-	}
+	metadataMap, metadataReadOnly := PrepareMetadata(subnet.Metadata)
 
-	if err := d.Set("metadata_map", metadataMap); err != nil {
+	if err = d.Set("metadata_map", metadataMap); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
+
+	if err = d.Set("metadata_read_only", metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}
 

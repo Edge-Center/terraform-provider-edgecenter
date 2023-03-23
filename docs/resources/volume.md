@@ -23,6 +23,9 @@ resource "edgecenter_volume" "volume" {
   size       = 1
   region_id  = 1
   project_id = 1
+  metadata_map = {
+    tag1 = "tag1_value"
+  }
 }
 ```
 
@@ -37,6 +40,7 @@ resource "edgecenter_volume" "volume" {
 
 - `image_id` (String) Mandatory if volume is created from image
 - `last_updated` (String)
+- `metadata_map` (Map of String)
 - `project_id` (Number)
 - `project_name` (String)
 - `region_id` (Number)
@@ -48,6 +52,16 @@ resource "edgecenter_volume" "volume" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
+
+<a id="nestedatt--metadata_read_only"></a>
+### Nested Schema for `metadata_read_only`
+
+Read-Only:
+
+- `key` (String)
+- `read_only` (Boolean)
+- `value` (String)
 
 ## Import
 
