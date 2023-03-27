@@ -139,7 +139,7 @@ func dataSourceRouter() *schema.Resource {
 	}
 }
 
-func dataSourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceRouterRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Router reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)

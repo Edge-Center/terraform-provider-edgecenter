@@ -115,7 +115,7 @@ func dataSourceFloatingIP() *schema.Resource {
 	}
 }
 
-func dataSourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceFloatingIPRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)

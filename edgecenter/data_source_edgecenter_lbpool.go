@@ -145,7 +145,7 @@ func dataSourceLBPool() *schema.Resource {
 	}
 }
 
-func dataSourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBPool reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)

@@ -273,7 +273,7 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBPool reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -398,7 +398,7 @@ func resourceLBPoolUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	return resourceLBPoolRead(ctx, d, m)
 }
 
-func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBPoolDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBPool deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

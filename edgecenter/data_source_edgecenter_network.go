@@ -104,7 +104,7 @@ func dataSourceNetwork() *schema.Resource {
 	}
 }
 
-func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceNetworkRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Network reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)

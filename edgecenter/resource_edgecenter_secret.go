@@ -217,7 +217,7 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSecretRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start secret reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -250,7 +250,7 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 	return diags
 }
 
-func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSecretDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start secret deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

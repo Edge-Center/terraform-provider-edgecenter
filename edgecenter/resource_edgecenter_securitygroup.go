@@ -280,7 +280,7 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	return diags
 }
 
-func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSecurityGroupRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start SecurityGroup reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -460,7 +460,7 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 	return resourceSecurityGroupRead(ctx, d, m)
 }
 
-func resourceSecurityGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSecurityGroupDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start SecurityGroup deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

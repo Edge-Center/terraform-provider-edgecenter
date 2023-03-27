@@ -23,7 +23,7 @@ func dataSourceProject() *schema.Resource {
 	}
 }
 
-func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceProjectRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Project reading")
 	name := d.Get("name").(string)
 	config := m.(*Config)

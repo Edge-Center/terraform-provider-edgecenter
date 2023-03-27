@@ -157,7 +157,7 @@ func resourceSnapshotCreate(ctx context.Context, d *schema.ResourceData, m inter
 	return diags
 }
 
-func resourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSnapshotRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start snapshot reading")
 	log.Printf("[DEBUG] Start snapshot reading %s", d.State())
 	var diags diag.Diagnostics
@@ -219,7 +219,7 @@ func resourceSnapshotUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	return resourceSnapshotRead(ctx, d, m)
 }
 
-func resourceSnapshotDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSnapshotDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start snapshot deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
