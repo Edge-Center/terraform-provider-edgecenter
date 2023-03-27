@@ -4,6 +4,7 @@ package edgecenter_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -40,6 +41,20 @@ func TestAccLoadBalancer(t *testing.T) {
 		ProviderFactories: testAccProviders,
 		CheckDestroy:      testAccLoadBalancerDestroy,
 		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "edgecenter_loadbalancerv2" "acctest" {
+	%s
+	%s
+	name = "%s"
+	flavor = "lb1-1-2"
+	vip_port_id = "%s"
+	vip_network_id = "%s"
+}`, projectInfo(), regionInfo(), create.Name, "vip_port_id_123", "vip_network_id_123"),
+				ExpectError: regexp.MustCompile("Conflicting configuration arguments"),
+				PlanOnly:    true,
+				Destroy:     false,
+			},
 			{
 				Config: ripTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(

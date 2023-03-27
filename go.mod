@@ -7,7 +7,7 @@ require (
 	github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.0
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.1.0
 	github.com/Edge-Center/edgecentercdn-go v0.1.0
-	github.com/Edge-Center/edgecentercloud-go v0.1.2
+	github.com/Edge-Center/edgecentercloud-go v0.1.3
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform v1.4.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.25.0
