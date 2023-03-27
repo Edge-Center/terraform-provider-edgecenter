@@ -104,7 +104,7 @@ func dataSourceReservedFixedIP() *schema.Resource {
 	}
 }
 
-func dataSourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceReservedFixedIPRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)

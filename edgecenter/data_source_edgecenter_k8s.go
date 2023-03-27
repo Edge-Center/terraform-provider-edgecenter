@@ -207,7 +207,7 @@ func dataSourceK8s() *schema.Resource {
 	}
 }
 
-func dataSourceK8sRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceK8sRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start K8s reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)

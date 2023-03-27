@@ -380,7 +380,7 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 	return diags
 }
 
-func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceBmInstanceRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Baremetal Instance reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -737,7 +737,7 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 	return resourceBmInstanceRead(ctx, d, m)
 }
 
-func resourceBmInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceBmInstanceDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Baremetal Instance deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

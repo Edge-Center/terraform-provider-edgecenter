@@ -208,7 +208,7 @@ func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m int
 	return diags
 }
 
-func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceFloatingIPRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -310,7 +310,7 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 	return resourceFloatingIPRead(ctx, d, m)
 }
 
-func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceFloatingIPDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

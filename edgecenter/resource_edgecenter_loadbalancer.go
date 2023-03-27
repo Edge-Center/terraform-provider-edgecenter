@@ -226,11 +226,11 @@ func resourceLoadBalancer() *schema.Resource {
 	}
 }
 
-func resourceLoadBalancerCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLoadBalancerCreate(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("use edgecenter_loadbalancerv2 resource instead"))
 }
 
-func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLoadBalancerRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -433,7 +433,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceLoadBalancerRead(ctx, d, m)
 }
 
-func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLoadBalancerDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

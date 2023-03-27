@@ -202,7 +202,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceVolumeRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start volume reading")
 	log.Printf("[DEBUG] Start volume reading%s", d.State())
 	var diags diag.Diagnostics
@@ -320,7 +320,7 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	return resourceVolumeRead(ctx, d, m)
 }
 
-func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceVolumeDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start volume deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

@@ -258,7 +258,7 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func resourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRouterRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start router reading")
 	log.Printf("[DEBUG] Start router reading%s", d.State())
 	var diags diag.Diagnostics
@@ -430,7 +430,7 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	return resourceRouterRead(ctx, d, m)
 }
 
-func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRouterDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start router deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

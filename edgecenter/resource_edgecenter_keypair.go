@@ -92,7 +92,7 @@ func resourceKeypairCreate(ctx context.Context, d *schema.ResourceData, m interf
 	return diags
 }
 
-func resourceKeypairRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceKeypairRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start KeyPair reading")
 
 	var diags diag.Diagnostics
@@ -121,7 +121,7 @@ func resourceKeypairRead(ctx context.Context, d *schema.ResourceData, m interfac
 	return diags
 }
 
-func resourceKeypairDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceKeypairDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start KeyPair deleting")
 
 	var diags diag.Diagnostics

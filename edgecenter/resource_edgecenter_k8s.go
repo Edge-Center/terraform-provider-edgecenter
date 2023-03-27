@@ -348,7 +348,7 @@ func resourceK8sCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	return diags
 }
 
-func resourceK8sRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start K8s reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -509,7 +509,7 @@ func resourceK8sUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 	return resourceK8sRead(ctx, d, m)
 }
 
-func resourceK8sDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start K8s deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

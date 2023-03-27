@@ -231,7 +231,7 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 	return diags
 }
 
-func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBListenerRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -317,7 +317,7 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 	return resourceLBListenerRead(ctx, d, m)
 }
 
-func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBListenerDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

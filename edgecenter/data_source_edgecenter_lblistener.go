@@ -80,7 +80,7 @@ func dataSourceLBListener() *schema.Resource {
 	}
 }
 
-func dataSourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceLBListenerRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)

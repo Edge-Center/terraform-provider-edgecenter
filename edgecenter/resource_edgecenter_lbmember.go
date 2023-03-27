@@ -189,7 +189,7 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 	return diags
 }
 
-func resourceLBMemberRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBMemberRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBMember reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -292,7 +292,7 @@ func resourceLBMemberUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	return resourceLBMemberRead(ctx, d, m)
 }
 
-func resourceLBMemberDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBMemberDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBMember deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

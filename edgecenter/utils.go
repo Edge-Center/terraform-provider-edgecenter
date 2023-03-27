@@ -581,7 +581,7 @@ func secGroupUniqueID(i interface{}) int {
 	return int(binary.BigEndian.Uint64(h.Sum(nil)))
 }
 
-func validatePortRange(v interface{}, path cty.Path) diag.Diagnostics {
+func validatePortRange(v interface{}, _ cty.Path) diag.Diagnostics {
 	val := v.(int)
 	if val >= minPort && val <= maxPort {
 		return nil

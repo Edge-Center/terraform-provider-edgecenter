@@ -118,7 +118,7 @@ func dataSourceImage() *schema.Resource {
 	}
 }
 
-func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceImageRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Image reading")
 	name := d.Get("name").(string)
 

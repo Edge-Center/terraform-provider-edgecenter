@@ -276,7 +276,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSubnetRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start subnet reading")
 	log.Printf("[DEBUG] Start subnet reading%s", d.State())
 	var diags diag.Diagnostics
@@ -412,7 +412,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	return resourceSubnetRead(ctx, d, m)
 }
 
-func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSubnetDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start subnet deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
