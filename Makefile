@@ -82,6 +82,6 @@ docs_fmt:
 docs: docs_fmt
 	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.14.1
 	make tidy
-	tfplugindocs --tf-version=1.4.0 --website-source-dir=templates
+	tfplugindocs --tf-version=1.4.2 --provider-name=edgecenter
 
 .PHONY: tidy vendor build build_debug err_check linters envs_reader test_cloud_data_source test_cloud_resource test_not_cloud jq vault envs test_local_data_source test_local_resource docs_fmt docs
