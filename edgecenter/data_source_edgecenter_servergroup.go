@@ -78,7 +78,7 @@ func dataSourceServerGroup() *schema.Resource {
 	}
 }
 
-func dataSourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceServerGroupRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ServerGroup reading")
 	config := m.(*Config)
 	provider := config.Provider

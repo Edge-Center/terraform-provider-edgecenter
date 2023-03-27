@@ -130,7 +130,7 @@ func dataSourceSubnet() *schema.Resource {
 	}
 }
 
-func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceSubnetRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Subnet reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)

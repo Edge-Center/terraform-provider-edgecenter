@@ -89,7 +89,7 @@ func dataSourceSecret() *schema.Resource {
 	}
 }
 
-func dataSourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceSecretRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start secret reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)

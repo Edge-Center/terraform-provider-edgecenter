@@ -23,7 +23,7 @@ func dataSourceRegion() *schema.Resource {
 	}
 }
 
-func dataSourceRegionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceRegionRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Region reading")
 
 	name := d.Get("name").(string)

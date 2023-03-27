@@ -238,7 +238,7 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 	return diags
 }
 
-func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceReservedFixedIPRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -336,7 +336,7 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 	return resourceReservedFixedIPRead(ctx, d, m)
 }
 
-func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceReservedFixedIPDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

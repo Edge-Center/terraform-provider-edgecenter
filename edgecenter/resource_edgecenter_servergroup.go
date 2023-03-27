@@ -132,7 +132,7 @@ func resourceServerGroupCreate(ctx context.Context, d *schema.ResourceData, m in
 	return diags
 }
 
-func resourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceServerGroupRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ServerGroup reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -169,7 +169,7 @@ func resourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m inte
 	return diags
 }
 
-func resourceServerGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceServerGroupDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ServerGroup deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

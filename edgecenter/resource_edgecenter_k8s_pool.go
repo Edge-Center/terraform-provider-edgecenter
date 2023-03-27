@@ -188,7 +188,7 @@ func resourceK8sPoolCreate(ctx context.Context, d *schema.ResourceData, m interf
 	return diags
 }
 
-func resourceK8sPoolRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sPoolRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start K8s pool reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
@@ -285,7 +285,7 @@ func resourceK8sPoolUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	return resourceK8sPoolRead(ctx, d, m)
 }
 
-func resourceK8sPoolDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sPoolDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start K8s deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)

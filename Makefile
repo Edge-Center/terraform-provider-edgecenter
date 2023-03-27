@@ -36,7 +36,7 @@ err_check:
 	@sh -c "'$(PROJECT_DIR)/scripts/errcheck.sh'"
 
 linters:
-	@test -f $(BUILD_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.51.2
+	@test -f $(BUILD_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.52.2
 	@$(BUILD_DIR)/golangci-lint run
 
 # TESTS

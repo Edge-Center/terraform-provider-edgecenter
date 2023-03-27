@@ -194,7 +194,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	return diags
 }
 
-func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceNetworkRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start network reading")
 	log.Printf("[DEBUG] Start network reading%s", d.State())
 	var diags diag.Diagnostics
@@ -275,7 +275,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	return resourceNetworkRead(ctx, d, m)
 }
 
-func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceNetworkDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start network deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
