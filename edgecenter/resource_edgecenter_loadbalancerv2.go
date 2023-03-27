@@ -87,15 +87,25 @@ func resourceLoadBalancerV2() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"vip_port_id": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"vip_network_id"},
+				Description:   "Attaches the created reserved IP.",
+			},
 			"vip_network_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"vip_port_id"},
+				Description:   "Attaches the created network.",
 			},
 			"vip_subnet_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				RequiredWith: []string{"vip_network_id"},
 			},
 			"vip_address": {
 				Type:        schema.TypeString,
@@ -161,6 +171,7 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 
 	opts := loadbalancers.CreateOpts{
 		Name:         d.Get("name").(string),
+		VipPortID:    d.Get("vip_port_id").(string),
 		VipNetworkID: d.Get("vip_network_id").(string),
 		VipSubnetID:  d.Get("vip_subnet_id").(string),
 	}
@@ -233,7 +244,7 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 	return diags
 }
 
-func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)

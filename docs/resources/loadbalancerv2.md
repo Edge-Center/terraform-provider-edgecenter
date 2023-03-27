@@ -46,7 +46,8 @@ resource "edgecenter_loadbalancerv2" "lb" {
 - `region_name` (String)
 - `security_group` (String) Creates a new security group with the specified name
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `vip_network_id` (String)
+- `vip_network_id` (String) Attaches the created network.
+- `vip_port_id` (String) Attaches the created reserved IP.
 - `vip_subnet_id` (String)
 
 ### Read-Only
