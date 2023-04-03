@@ -19,9 +19,6 @@ import (
 const (
 	SecurityGroupPoint      = "securitygroups"
 	securityGroupRulesPoint = "securitygrouprules"
-
-	minPort = 0
-	maxPort = 65535
 )
 
 func resourceSecurityGroup() *schema.Resource {

@@ -70,7 +70,7 @@ func TestAccNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "type", paramsCreate.Type),
 					resource.TestCheckResourceAttr(resourceName, "metadata_map.key1", "val1"),
 					resource.TestCheckResourceAttr(resourceName, "metadata_map.key2", "val2"),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]string{
+					testAccCheckMetadata(t, resourceName, true, map[string]string{
 						"key1": "val1",
 						"key2": "val2",
 					}),
@@ -82,13 +82,13 @@ func TestAccNetwork(t *testing.T) {
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", paramsUpdate.Name),
 					resource.TestCheckResourceAttr(resourceName, "type", paramsCreate.Type),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]string{
+					testAccCheckMetadata(t, resourceName, true, map[string]string{
 						"key3": "val3",
 					}),
-					edgecenter.TestAccCheckMetadata(resourceName, false, map[string]string{
+					testAccCheckMetadata(t, resourceName, false, map[string]string{
 						"key1": "val1",
 					}),
-					edgecenter.TestAccCheckMetadata(resourceName, false, map[string]string{
+					testAccCheckMetadata(t, resourceName, false, map[string]string{
 						"key2": "val2",
 					}),
 				),

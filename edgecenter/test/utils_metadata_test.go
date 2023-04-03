@@ -1,9 +1,12 @@
-package edgecenter
+//go:build cloud_data_source || cloud_resource
+
+package edgecenter_test
 
 import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -104,7 +107,8 @@ func checkMapInMap(srcMap map[string]interface{}, dstMap map[string]interface{})
 	return reflect.DeepEqual(srcMap, slicedMap)
 }
 
-func TestAccCheckMetadata(name string, isMetaExists bool, metadataForCheck interface{}) resource.TestCheckFunc {
+func testAccCheckMetadata(t *testing.T, name string, isMetaExists bool, metadataForCheck interface{}) resource.TestCheckFunc {
+	t.Helper()
 	return func(s *terraform.State) error {
 		// retrieve the resource by name from state
 		ms := s.RootModule()
