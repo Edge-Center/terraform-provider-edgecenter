@@ -98,7 +98,7 @@ func TestAccSubnetDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", optsSubnet1.Name),
 					resource.TestCheckResourceAttr(resourceName, "id", subnet1ID),
 					resource.TestCheckResourceAttr(resourceName, "network_id", networkID),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]string{
+					testAccCheckMetadata(t, resourceName, true, map[string]string{
 						"key1": "val1", "key2": "val2",
 					}),
 				),
@@ -110,7 +110,7 @@ func TestAccSubnetDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", optsSubnet2.Name),
 					resource.TestCheckResourceAttr(resourceName, "id", subnet2ID),
 					// resource.TestCheckResourceAttr(resourceName, "network_id", networkID),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]string{
+					testAccCheckMetadata(t, resourceName, true, map[string]string{
 						"key3": "val3",
 					}),
 				),

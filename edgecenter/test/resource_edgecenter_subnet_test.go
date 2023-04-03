@@ -171,7 +171,7 @@ func TestAccSubnet(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
 					checkSubnetAttrs(resourceName, &createFixt),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]interface{}{
+					testAccCheckMetadata(t, resourceName, true, map[string]interface{}{
 						"key1": "val1",
 						"key2": "val2",
 					}),
