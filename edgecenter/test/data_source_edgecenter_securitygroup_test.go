@@ -87,7 +87,7 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", sg1.Name),
 					resource.TestCheckResourceAttr(resourceName, "id", sg1.ID),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]interface{}{
+					testAccCheckMetadata(t, resourceName, true, map[string]interface{}{
 						"key1": "val1", "key2": "val2",
 					}),
 				),
@@ -98,7 +98,7 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", sg2.Name),
 					resource.TestCheckResourceAttr(resourceName, "id", sg2.ID),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]interface{}{
+					testAccCheckMetadata(t, resourceName, true, map[string]interface{}{
 						"key3": "val3",
 					}),
 				),

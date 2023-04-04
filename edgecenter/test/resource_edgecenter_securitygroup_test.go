@@ -61,7 +61,7 @@ func TestAccSecurityGroup(t *testing.T) {
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "metadata_map.key1", "val1"),
 					resource.TestCheckResourceAttr(resourceName, "metadata_map.key2", "val2"),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]interface{}{
+					testAccCheckMetadata(t, resourceName, true, map[string]interface{}{
 						"key1": "val1",
 						"key2": "val2",
 					}),
@@ -72,13 +72,13 @@ func TestAccSecurityGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "metadata_map.key3", "val3"),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]interface{}{
+					testAccCheckMetadata(t, resourceName, true, map[string]interface{}{
 						"key3": "val3",
 					}),
-					edgecenter.TestAccCheckMetadata(resourceName, false, map[string]interface{}{
+					testAccCheckMetadata(t, resourceName, false, map[string]interface{}{
 						"key1": "val1",
 					}),
-					edgecenter.TestAccCheckMetadata(resourceName, false, map[string]interface{}{
+					testAccCheckMetadata(t, resourceName, false, map[string]interface{}{
 						"key2": "val2",
 					}),
 				),

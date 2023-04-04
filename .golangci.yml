@@ -20,7 +20,7 @@ issues:
     - text: lifecyclepolicy.CreateScheduleOpts
       linters:
         - ireturn
-    - path: utils.go|_test
+    - path: utils|_test
       linters:
         - wrapcheck
 

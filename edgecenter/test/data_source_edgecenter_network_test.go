@@ -79,7 +79,7 @@ func TestAccNetworkDataSource(t *testing.T) {
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", opts1.Name),
 					resource.TestCheckResourceAttr(resourceName, "id", network1ID),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]string{
+					testAccCheckMetadata(t, resourceName, true, map[string]string{
 						"key1": "val1", "key2": "val2",
 					}),
 				),
@@ -90,7 +90,7 @@ func TestAccNetworkDataSource(t *testing.T) {
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", opts2.Name),
 					resource.TestCheckResourceAttr(resourceName, "id", network2ID),
-					edgecenter.TestAccCheckMetadata(resourceName, true, map[string]string{
+					testAccCheckMetadata(t, resourceName, true, map[string]string{
 						"key3": "val3",
 					}),
 				),
