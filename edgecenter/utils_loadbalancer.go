@@ -15,22 +15,26 @@ import (
 
 // ImportStringParserExtended parses a string containing project ID, region ID, and two other fields,
 // and returns them as separate values along with any error encountered.
-func ImportStringParserExtended(infoStr string) (int, int, string, string, error) {
+func ImportStringParserExtended(infoStr string) (projectID int, regionID int, id3 string, id4 string, err error) { //nolint: nonamedreturns
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 4 {
-		return 0, 0, "", "", fmt.Errorf("failed import: wrong input id: %s", infoStr)
-	}
-	projectID, err := strconv.Atoi(infoStrings[0])
-	if err != nil {
-		return 0, 0, "", "", err
-	}
-	regionID, err := strconv.Atoi(infoStrings[1])
-	if err != nil {
-		return 0, 0, "", "", err
+		err = fmt.Errorf("failed import: wrong input id: %s", infoStr)
+		return
 	}
 
-	return projectID, regionID, infoStrings[2], infoStrings[3], nil
+	id1, id2, id3, id4 := infoStrings[0], infoStrings[1], infoStrings[2], infoStrings[3]
+
+	projectID, err = strconv.Atoi(id1)
+	if err != nil {
+		return
+	}
+	regionID, err = strconv.Atoi(id2)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 // extractSessionPersistenceMap creates a session persistence options struct from the data in the given ResourceData.
