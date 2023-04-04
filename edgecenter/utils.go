@@ -45,22 +45,26 @@ func MapStructureDecoder(strct interface{}, v *map[string]interface{}, config *m
 
 // ImportStringParser parses a string containing project ID, region ID, and another field,
 // and returns them as separate values along with any error encountered.
-func ImportStringParser(infoStr string) (int, int, string, error) {
+func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string, err error) { //nolint: nonamedreturns
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 3 {
-		return 0, 0, "", fmt.Errorf("failed import: wrong input id: %s", infoStr)
-	}
-	projectID, err := strconv.Atoi(infoStrings[0])
-	if err != nil {
-		return 0, 0, "", err
-	}
-	regionID, err := strconv.Atoi(infoStrings[1])
-	if err != nil {
-		return 0, 0, "", err
+		err = fmt.Errorf("failed import: wrong input id: %s", infoStr)
+		return
 	}
 
-	return projectID, regionID, infoStrings[2], nil
+	id1, id2, id3 := infoStrings[0], infoStrings[1], infoStrings[2]
+
+	projectID, err = strconv.Atoi(id1)
+	if err != nil {
+		return
+	}
+	regionID, err = strconv.Atoi(id2)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 // CreateClient creates a new edgecloud.ServiceClient.
