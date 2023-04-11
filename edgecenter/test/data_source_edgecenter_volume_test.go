@@ -14,7 +14,6 @@ import (
 )
 
 func TestAccVolumeDataSource(t *testing.T) {
-	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)

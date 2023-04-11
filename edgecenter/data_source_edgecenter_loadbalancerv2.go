@@ -9,6 +9,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 )
 
 func dataSourceLoadBalancerV2() *schema.Resource {
@@ -151,6 +152,26 @@ func dataSourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m i
 	d.Set("name", lb.Name)
 	d.Set("vip_address", lb.VipAddress.String())
 	d.Set("vip_port_id", lb.VipPortID)
+
+	metadataList, err := metadata.MetadataListAll(client, d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	metadataReadOnly := make([]map[string]interface{}, 0, len(metadataList))
+	if len(metadataList) > 0 {
+		for _, metadataItem := range metadataList {
+			metadataReadOnly = append(metadataReadOnly, map[string]interface{}{
+				"key":       metadataItem.Key,
+				"value":     metadataItem.Value,
+				"read_only": metadataItem.ReadOnly,
+			})
+		}
+	}
+
+	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
+		return diag.FromErr(err)
+	}
 
 	sgInfo, err := loadbalancers.ListCustomSecurityGroup(client, d.Id()).Extract()
 	if err != nil {
