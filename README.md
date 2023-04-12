@@ -80,7 +80,7 @@ Remote: Tests are run with provided secrets envs in the GitHub repository.
 Local: execute the command `make test_local_data_source` and `make test_local_resource`. For this command to work, you need to:
 * Create a `.local.env` file and fill it with the necessary envs. 
 * Run `make envs` to automatically fill the envs from Vault (don't forget to export `VAULT_TOKEN` to terminal).
-* `make envs` requires the installation of `jq` and the `vault` binary. You can install them with the `make vault` and `make jq` commands, respectively.
+* `make envs` requires the installation of `jq` and the `vault` binary. You can install them with the `make install_vault` and `make install_jq` commands, respectively.
 
 Docs generating
 ------------------

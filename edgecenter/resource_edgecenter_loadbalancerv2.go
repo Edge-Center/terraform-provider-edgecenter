@@ -271,7 +271,11 @@ func resourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m int
 	fields := []string{"vip_network_id", "vip_subnet_id"}
 	revertState(d, &fields)
 
-	metadataMap, metadataReadOnly := PrepareMetadata(lb.Metadata)
+	metadataList, err := metadata.MetadataListAll(client, d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	metadataMap, metadataReadOnly := PrepareMetadata(metadataList)
 
 	if err = d.Set("metadata_map", metadataMap); err != nil {
 		return diag.FromErr(err)
