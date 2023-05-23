@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform/version"
 
 	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
@@ -29,7 +28,7 @@ const (
 )
 
 func Provider() *schema.Provider {
-	return &schema.Provider{
+	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"user_name": {
 				Type:     schema.TypeString,
@@ -180,11 +179,20 @@ func Provider() *schema.Provider {
 			"edgecenter_k8s_pool":          dataSourceK8sPool(),
 			"edgecenter_secret":            dataSourceSecret(),
 		},
-		ConfigureContextFunc: providerConfigure,
 	}
+
+	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		terraformVersion := p.TerraformVersion
+		if terraformVersion == "" {
+			terraformVersion = "0.12+compatible"
+		}
+		return providerConfigure(ctx, d, terraformVersion)
+	}
+
+	return p
 }
 
-func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+func providerConfigure(_ context.Context, d *schema.ResourceData, terraformVersion string) (interface{}, diag.Diagnostics) {
 	username := d.Get("user_name").(string)
 	password := d.Get("password").(string)
 	permanentToken := d.Get(ProviderOptPermanentToken).(string)
@@ -261,7 +269,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		CDNClient: cdnService,
 	}
 
-	userAgent := fmt.Sprintf("terraform/%s", version.Version)
+	userAgent := fmt.Sprintf("terraform/%s", terraformVersion)
 	if storageAPI != "" {
 		stHost, stPath, err := ExtractHostAndPath(storageAPI)
 		if err != nil {

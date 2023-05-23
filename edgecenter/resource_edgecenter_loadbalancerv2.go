@@ -271,7 +271,7 @@ func resourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m int
 	fields := []string{"vip_network_id", "vip_subnet_id"}
 	revertState(d, &fields)
 
-	metadataList, err := metadata.MetadataListAll(client, d.Id())
+	metadataList, err := metadata.ResourceMetadataListAll(client, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -320,7 +320,7 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 			return diag.Errorf("cannot get metadata. Error: %s", err)
 		}
 
-		err = metadata.MetadataReplace(client, d.Id(), meta).Err
+		err = metadata.ResourceMetadataReplace(client, d.Id(), meta).Err
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}

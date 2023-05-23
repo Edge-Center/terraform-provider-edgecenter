@@ -412,7 +412,7 @@ func resourceLBPoolDelete(_ context.Context, d *schema.ResourceData, m interface
 	id := d.Id()
 	results, err := lbpools.Delete(client, id).Extract()
 	if err != nil {
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if !errors.As(err, &errDefault404) {
 			return diag.FromErr(err)
 		}
@@ -424,7 +424,7 @@ func resourceLBPoolDelete(_ context.Context, d *schema.ResourceData, m interface
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete LBPool with ID: %s", id)
 		}
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}

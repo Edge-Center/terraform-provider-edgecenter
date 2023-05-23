@@ -9,7 +9,7 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/mitchellh/mapstructure"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
@@ -261,11 +261,11 @@ func isInterfaceContains(verifiable map[string]interface{}, ifsSet []interface{}
 }
 
 // ServerV2StateRefreshFunc returns a StateRefreshFunc to track the state of an instance using its instanceID.
-func ServerV2StateRefreshFunc(client *edgecloud.ServiceClient, instanceID string) resource.StateRefreshFunc {
+func ServerV2StateRefreshFunc(client *edgecloud.ServiceClient, instanceID string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		s, err := instances.Get(client, instanceID).Extract()
 		if err != nil {
-			var errDefault404 edgecloud.ErrDefault404
+			var errDefault404 edgecloud.Default404Error
 			if errors.As(err, &errDefault404) {
 				return s, "DELETED", nil
 			}
@@ -329,7 +329,7 @@ func getMapDifference(iMapOld, iMapNew map[string]interface{}, uncheckedKeys []s
 func detachInterfaceFromInstance(client *edgecloud.ServiceClient, instanceID string, iface map[string]interface{}) error {
 	var opts instances.InterfaceOpts
 	opts.PortID = iface["port_id"].(string)
-	opts.IpAddress = iface["ip_address"].(string)
+	opts.IPAddress = iface["ip_address"].(string)
 
 	log.Printf("[DEBUG] detach interface: %+v", opts)
 	results, err := instances.DetachInterface(client, instanceID, opts).Extract()
@@ -362,7 +362,7 @@ func attachInterfaceToInstance(instanceClient *edgecloud.ServiceClient, instance
 		opts.SubnetID = iface["subnet_id"].(string)
 	case types.AnySubnetInterfaceType:
 		opts.NetworkID = iface["network_id"].(string)
-	case types.ReservedFixedIpType:
+	case types.ReservedFixedIPType:
 		opts.PortID = iface["port_id"].(string)
 	}
 	opts.SecurityGroups = getSecurityGroupsIDs(iface["security_groups"].([]interface{}))

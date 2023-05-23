@@ -153,7 +153,7 @@ func dataSourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m i
 	d.Set("vip_address", lb.VipAddress.String())
 	d.Set("vip_port_id", lb.VipPortID)
 
-	metadataList, err := metadata.MetadataListAll(client, d.Id())
+	metadataList, err := metadata.ResourceMetadataListAll(client, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}

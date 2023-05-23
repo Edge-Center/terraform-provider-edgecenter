@@ -130,7 +130,7 @@ func resourceBmInstance() *schema.Resource {
 						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", types.SubnetInterfaceType, types.AnySubnetInterfaceType, types.ExternalInterfaceType, types.ReservedFixedIpType),
+							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", types.SubnetInterfaceType, types.AnySubnetInterfaceType, types.ExternalInterfaceType, types.ReservedFixedIPType),
 						},
 						"is_parent": {
 							Type:        schema.TypeBool,
@@ -662,7 +662,7 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 			var opts instances.InterfaceOpts
 			opts.PortID = iface["port_id"].(string)
-			opts.IpAddress = iface["ip_address"].(string)
+			opts.IPAddress = iface["ip_address"].(string)
 
 			log.Printf("[DEBUG] detach interface: %+v", opts)
 			results, err := instances.DetachInterface(client, instanceID, opts).Extract()
@@ -706,7 +706,7 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 				opts.SubnetID = iface["subnet_id"].(string)
 			case types.AnySubnetInterfaceType:
 				opts.NetworkID = iface["network_id"].(string)
-			case types.ReservedFixedIpType:
+			case types.ReservedFixedIPType:
 				opts.PortID = iface["port_id"].(string)
 			case types.ExternalInterfaceType:
 			}
@@ -764,7 +764,7 @@ func resourceBmInstanceDelete(_ context.Context, d *schema.ResourceData, m inter
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete instance with ID: %s", instanceID)
 		}
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}
