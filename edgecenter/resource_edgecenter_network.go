@@ -264,7 +264,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			return diag.Errorf("cannot get metadata. Error: %s", err)
 		}
 
-		err = metadata.MetadataReplace(client, networkID, meta).Err
+		err = metadata.ResourceMetadataReplace(client, networkID, meta).Err
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
@@ -299,7 +299,7 @@ func resourceNetworkDelete(_ context.Context, d *schema.ResourceData, m interfac
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete network with ID: %s", networkID)
 		}
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}

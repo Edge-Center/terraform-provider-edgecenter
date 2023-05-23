@@ -400,7 +400,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		if err != nil {
 			return diag.Errorf("metadata wrong fmt. Error: %s", err)
 		}
-		err = metadata.MetadataReplace(client, subnetID, meta).Err
+		err = metadata.ResourceMetadataReplace(client, subnetID, meta).Err
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
@@ -436,7 +436,7 @@ func resourceSubnetDelete(_ context.Context, d *schema.ResourceData, m interface
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete subnet with ID: %s", subnetID)
 		}
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}

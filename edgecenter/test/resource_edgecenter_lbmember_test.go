@@ -141,7 +141,7 @@ func testAccLBMemberDestroy(s *terraform.State) error {
 		pl, err := lbpools.Get(client, EC_LBPOOL_ID).Extract()
 		if err != nil {
 			switch err.(type) {
-			case edgecloud.ErrDefault404:
+			case edgecloud.Default404Error:
 				return nil
 			default:
 				return err

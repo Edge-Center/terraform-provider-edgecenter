@@ -251,7 +251,7 @@ func resourceReservedFixedIPRead(_ context.Context, d *schema.ResourceData, m in
 
 	reservedFixedIP, err := reservedfixedips.Get(client, d.Id()).Extract()
 	if err != nil {
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			log.Printf("[WARN] Removing reserved fixed ip %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
@@ -356,7 +356,7 @@ func resourceReservedFixedIPDelete(_ context.Context, d *schema.ResourceData, m 
 	id := d.Id()
 	results, err := reservedfixedips.Delete(client, id).Extract()
 	if err != nil {
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			d.SetId("")
 			log.Printf("[DEBUG] Finish of ReservedFixedIP deleting")
@@ -371,7 +371,7 @@ func resourceReservedFixedIPDelete(_ context.Context, d *schema.ResourceData, m 
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete reserved fixed ip with ID: %s", id)
 		}
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}
