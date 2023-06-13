@@ -308,7 +308,7 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 			return diag.Errorf("cannot get metadata. Error: %s", err)
 		}
 
-		err = metadata.MetadataReplace(client, d.Id(), meta).Err
+		err = metadata.ResourceMetadataReplace(client, d.Id(), meta).Err
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
@@ -347,7 +347,7 @@ func resourceVolumeDelete(_ context.Context, d *schema.ResourceData, m interface
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete volume with ID: %s", volumeID)
 		}
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}

@@ -35,7 +35,7 @@ err_check:
 	@sh -c "'$(PROJECT_DIR)/scripts/errcheck.sh'"
 
 linters:
-	@test -f $(BIN_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.52.2
+	@test -f $(BIN_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.53.2
 	@$(BIN_DIR)/golangci-lint run
 
 # TESTS
@@ -43,10 +43,10 @@ envs_reader:
 	go install github.com/joho/godotenv/cmd/godotenv@latest
 
 test_cloud_data_source: envs_reader
-	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud_data_source -short -timeout=5m
+	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud_data_source -short -timeout=20m
 
 test_cloud_resource: envs_reader
-	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud_resource -short -timeout=10m
+	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags cloud_resource -short -timeout=20m
 
 test_not_cloud: envs_reader
 	godotenv -f $(ENV_TESTS_FILE) go test $(TEST_DIR) -tags dns storage cdn -v -timeout=5m
@@ -61,7 +61,7 @@ install_jq:
 	chmod +x $(BIN_DIR)/jq
 
 install_vault:
-	curl -L -o vault.zip https://releases.hashicorp.com/vault/1.12.3/vault_1.12.3_$(OS)_$(ARCH).zip
+	curl -L -o vault.zip https://releases.hashicorp.com/vault/1.13.3/vault_1.13.3_$(OS)_$(ARCH).zip
 	unzip vault.zip && rm -f vault.zip && chmod +x vault
 	mv vault $(BIN_DIR)/
 
@@ -70,18 +70,18 @@ download_env_file: envs_reader
 	godotenv -f $(ENV_TESTS_FILE) $(BIN_DIR)/vault kv get -format=json --field data /CLOUD/terraform | $(BIN_DIR)/jq -r 'to_entries|map("\(.key)=\(.value)")|.[]' >> $(ENV_TESTS_FILE)
 
 test_local_data_source: envs_reader
-	godotenv -f .local.env go test $(TEST_DIR) -tags cloud_data_source -short -timeout=3m -v
+	godotenv -f .local.env go test $(TEST_DIR) -tags cloud_data_source -short -timeout=5m -v
 
 test_local_resource: envs_reader
-	godotenv -f .local.env go test $(TEST_DIR) -tags cloud_resource -short -timeout=5m -v
+	godotenv -f .local.env go test $(TEST_DIR) -tags cloud_resource -short -timeout=10m -v
 
 # DOCS
 docs_fmt:
 	terraform fmt -recursive ./examples/
 
 docs: docs_fmt
-	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.14.1
+	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.15
 	make tidy
-	tfplugindocs --tf-version=1.4.2 --provider-name=edgecenter
+	tfplugindocs --tf-version=1.5.0 --provider-name=edgecenter
 
 .PHONY: tidy vendor build build_debug err_check linters envs_reader test_cloud_data_source test_cloud_resource test_not_cloud install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs

@@ -59,7 +59,7 @@ func deleteTestNetwork(client *edgecloud.ServiceClient, networkID string) error 
 			return fmt.Errorf("cannot delete network with ID: %s", networkID)
 		}
 
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			return nil
 		}
@@ -189,7 +189,7 @@ func deleteTestCluster(client *edgecloud.ServiceClient, clusterID string) error 
 			return fmt.Errorf("cannot delete k8s cluster with ID: %s", clusterID)
 		}
 
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			return nil
 		}

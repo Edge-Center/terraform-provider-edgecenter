@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -175,7 +175,7 @@ func resourceInstance() *schema.Resource {
 						"type": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", types.SubnetInterfaceType, types.AnySubnetInterfaceType, types.ExternalInterfaceType, types.ReservedFixedIpType),
+							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", types.SubnetInterfaceType, types.AnySubnetInterfaceType, types.ExternalInterfaceType, types.ReservedFixedIPType),
 						},
 						"order": {
 							Type:        schema.TypeInt,
@@ -507,7 +507,7 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 
 	instance, err := instances.Get(client, instanceID).Extract()
 	if err != nil {
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
@@ -974,7 +974,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			if _, err := instances.Start(client, instanceID).Extract(); err != nil {
 				return diag.FromErr(err)
 			}
-			startStateConf := &resource.StateChangeConf{
+			startStateConf := &retry.StateChangeConf{
 				Target:     []string{InstanceVMStateActive},
 				Refresh:    ServerV2StateRefreshFunc(client, instanceID),
 				Timeout:    d.Timeout(schema.TimeoutCreate),
@@ -989,7 +989,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			if _, err := instances.Stop(client, instanceID).Extract(); err != nil {
 				return diag.FromErr(err)
 			}
-			stopStateConf := &resource.StateChangeConf{
+			stopStateConf := &retry.StateChangeConf{
 				Target:     []string{InstanceVMStateStopped},
 				Refresh:    ServerV2StateRefreshFunc(client, instanceID),
 				Timeout:    d.Timeout(schema.TimeoutCreate),
@@ -1034,7 +1034,7 @@ func resourceInstanceDelete(_ context.Context, d *schema.ResourceData, m interfa
 		if err == nil {
 			return nil, fmt.Errorf("cannot delete instance with ID: %s", instanceID)
 		}
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			return nil, nil
 		}

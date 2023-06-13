@@ -58,6 +58,7 @@ linters:
     - maintidx
     - nestif
     - dupl
+    - depguard
 
 linters-settings:
   nlreturn:

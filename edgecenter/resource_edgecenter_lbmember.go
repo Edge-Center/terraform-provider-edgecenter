@@ -307,7 +307,7 @@ func resourceLBMemberDelete(_ context.Context, d *schema.ResourceData, m interfa
 	pid := d.Get("pool_id").(string)
 	results, err := lbpools.DeleteMember(client, pid, mid).Extract()
 	if err != nil {
-		var errDefault404 edgecloud.ErrDefault404
+		var errDefault404 edgecloud.Default404Error
 		if errors.As(err, &errDefault404) {
 			d.SetId("")
 			log.Printf("[DEBUG] Finish of LBMember deleting")
