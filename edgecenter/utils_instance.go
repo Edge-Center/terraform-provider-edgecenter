@@ -63,44 +63,72 @@ type OrderedInterfaceOpts struct {
 	Order int
 }
 
-// extractInstanceInterfaceIntoMap converts a slice of instance interfaces into a map of ordered interface options.
-func extractInstanceInterfaceIntoMap(interfaces []interface{}) (map[string]OrderedInterfaceOpts, error) {
-	ifaceMap := make(map[string]OrderedInterfaceOpts)
-	for _, iface := range interfaces {
-		if iface == nil {
-			continue
-		}
-		inter := iface.(map[string]interface{})
+// decodeInstanceInterfaceOpts decodes the interface and returns InterfaceOpts with FloatingIP.
+func decodeInstanceInterfaceOpts(iFaceMap map[string]interface{}) (instances.InterfaceOpts, error) {
+	var interfaceOpts instances.InterfaceOpts
+	err := MapStructureDecoder(&interfaceOpts, &iFaceMap, instanceDecoderConfig)
+	if err != nil {
+		return interfaceOpts, err
+	}
 
-		var instanceOpts instances.InterfaceOpts
-		err := MapStructureDecoder(&instanceOpts, &inter, instanceDecoderConfig)
+	if fipSource := iFaceMap["fip_source"].(string); fipSource != "" {
+		var fip instances.CreateNewInterfaceFloatingIPOpts
+		if existingFipID := iFaceMap["existing_fip_id"].(string); existingFipID != "" {
+			fip.Source = types.ExistingFloatingIP
+			fip.ExistingFloatingID = existingFipID
+		} else {
+			fip.Source = types.NewFloatingIP
+		}
+		interfaceOpts.FloatingIP = &fip
+	}
+
+	return interfaceOpts, nil
+}
+
+// extractInstanceInterfaceToListCreate creates a list of InterfaceInstanceCreateOpts objects from a list of interfaces.
+func extractInstanceInterfaceToListCreate(interfaces []interface{}) ([]instances.InterfaceInstanceCreateOpts, error) {
+	interfaceInstanceCreateOptsList := make([]instances.InterfaceInstanceCreateOpts, 0)
+	for _, iFace := range interfaces {
+		iFaceMap := iFace.(map[string]interface{})
+
+		interfaceOpts, err := decodeInstanceInterfaceOpts(iFaceMap)
 		if err != nil {
 			return nil, err
 		}
 
-		if fipSource := inter["fip_source"].(string); fipSource != "" {
-			var fip instances.CreateNewInterfaceFloatingIPOpts
-			if existingFipID := inter["existing_fip_id"].(string); existingFipID != "" {
-				fip.Source = types.ExistingFloatingIP
-				fip.ExistingFloatingID = existingFipID
-			} else {
-				fip.Source = types.NewFloatingIP
-			}
-			instanceOpts.FloatingIP = &fip
+		rawSgsID := iFaceMap["security_groups"].([]interface{})
+		sgs := make([]edgecloud.ItemID, len(rawSgsID))
+		for i, sgID := range rawSgsID {
+			sgs[i] = edgecloud.ItemID{ID: sgID.(string)}
 		}
-		o, _ := inter["order"].(int)
-		orderedInt := OrderedInterfaceOpts{instanceOpts, o}
 
-		keys := []string{instanceOpts.SubnetID, instanceOpts.NetworkID, instanceOpts.PortID}
-		if instanceOpts.Type == types.ExternalInterfaceType {
-			keys = append(keys, instanceOpts.Type.String())
+		interfaceInstanceCreateOpts := instances.InterfaceInstanceCreateOpts{
+			InterfaceOpts:  interfaceOpts,
+			SecurityGroups: sgs,
 		}
-		for _, key := range keys {
-			ifaceMap[key] = orderedInt
-		}
+		interfaceInstanceCreateOptsList = append(interfaceInstanceCreateOptsList, interfaceInstanceCreateOpts)
 	}
 
-	return ifaceMap, nil
+	return interfaceInstanceCreateOptsList, nil
+}
+
+// extractInstanceInterfaceToListRead creates a list of InterfaceOpts objects from a list of interfaces.
+func extractInstanceInterfaceToListRead(interfaces []interface{}) ([]instances.InterfaceOpts, error) {
+	interfaceOptsList := make([]instances.InterfaceOpts, 0)
+	for _, iFace := range interfaces {
+		if iFace == nil {
+			continue
+		}
+
+		iFaceMap := iFace.(map[string]interface{})
+		interfaceOpts, err := decodeInstanceInterfaceOpts(iFaceMap)
+		if err != nil {
+			return nil, err
+		}
+		interfaceOptsList = append(interfaceOptsList, interfaceOpts)
+	}
+
+	return interfaceOptsList, nil
 }
 
 // extractMetadataMap converts a map of metadata into a metadata set options structure.
@@ -130,44 +158,6 @@ func extractVolumesIntoMap(volumes []interface{}) map[string]map[string]interfac
 		result[vol["volume_id"].(string)] = vol
 	}
 	return result
-}
-
-// extractInstanceInterfacesMap takes a slice of instance interfaces and converts it into a slice of instances.InterfaceInstanceCreateOpts.
-func extractInstanceInterfacesMap(interfaces []interface{}) ([]instances.InterfaceInstanceCreateOpts, error) {
-	ifaceMap := make([]instances.InterfaceInstanceCreateOpts, len(interfaces))
-	for i, iface := range interfaces {
-		inter := iface.(map[string]interface{})
-
-		var instanceOpts instances.InterfaceOpts
-		err := MapStructureDecoder(&instanceOpts, &inter, instanceDecoderConfig)
-		if err != nil {
-			return nil, err
-		}
-
-		if fipSource := inter["fip_source"].(string); fipSource != "" {
-			var fip instances.CreateNewInterfaceFloatingIPOpts
-			if existingFipID := inter["existing_fip_id"].(string); existingFipID != "" {
-				fip.Source = types.ExistingFloatingIP
-				fip.ExistingFloatingID = existingFipID
-			} else {
-				fip.Source = types.NewFloatingIP
-			}
-			instanceOpts.FloatingIP = &fip
-		}
-
-		rawSgsID := inter["security_groups"].([]interface{})
-		sgs := make([]edgecloud.ItemID, len(rawSgsID))
-		for i, sgID := range rawSgsID {
-			sgs[i] = edgecloud.ItemID{ID: sgID.(string)}
-		}
-
-		ifaceMap[i] = instances.InterfaceInstanceCreateOpts{
-			InterfaceOpts:  instanceOpts,
-			SecurityGroups: sgs,
-		}
-	}
-
-	return ifaceMap, nil
 }
 
 // extractKeyValue takes a slice of metadata interfaces and converts it into an instances.MetadataSetOpts structure.
