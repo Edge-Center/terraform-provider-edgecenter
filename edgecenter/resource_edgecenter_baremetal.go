@@ -439,7 +439,9 @@ func resourceBmInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 
 			var interfaceOpts instances.InterfaceOpts
 			for _, interfaceExtracted := range interfacesListExtracted {
-				if interfaceExtracted.SubnetID == subnetID || interfaceExtracted.IPAddress == ipAddress || interfaceExtracted.PortID == portID {
+				if interfaceExtracted.SubnetID == subnetID ||
+					interfaceExtracted.IPAddress == ipAddress ||
+					interfaceExtracted.PortID == portID {
 					interfaceOpts = interfaceExtracted
 					break
 				}
@@ -469,7 +471,9 @@ func resourceBmInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 
 				var subPortInterfaceOpts instances.InterfaceOpts
 				for _, interfaceExtracted := range interfacesListExtracted {
-					if interfaceExtracted.SubnetID == assignmentSubnetID || interfaceExtracted.IPAddress == assignmentIPAddress || interfaceExtracted.PortID == subPortID {
+					if interfaceExtracted.SubnetID == assignmentSubnetID ||
+						interfaceExtracted.IPAddress == assignmentIPAddress ||
+						interfaceExtracted.PortID == subPortID {
 						subPortInterfaceOpts = interfaceExtracted
 						break
 					}
