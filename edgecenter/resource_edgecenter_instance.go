@@ -181,6 +181,7 @@ func resourceInstance() *schema.Resource {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Description: "Order of attaching interface",
+							Computed:    true,
 						},
 						"network_id": {
 							Type:        schema.TypeString,
@@ -374,22 +375,25 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	clientv1, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	clientv2, err := CreateClient(provider, d, InstancePoint, VersionPointV2)
+	clientV1, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	createOpts := instances.CreateOpts{SecurityGroups: []edgecloud.ItemID{}}
+	clientV2, err := CreateClient(provider, d, InstancePoint, VersionPointV2)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	createOpts.Flavor = d.Get("flavor_id").(string)
-	createOpts.Password = d.Get("password").(string)
-	createOpts.Username = d.Get("username").(string)
-	createOpts.Keypair = d.Get("keypair_name").(string)
-	createOpts.ServerGroupID = d.Get("server_group").(string)
+	createOpts := instances.CreateOpts{
+		Flavor:         d.Get("flavor_id").(string),
+		SecurityGroups: []edgecloud.ItemID{},
+		Keypair:        d.Get("keypair_name").(string),
+		Password:       d.Get("password").(string),
+		Username:       d.Get("username").(string),
+		ServerGroupID:  d.Get("server_group").(string),
+		AllowAppPorts:  d.Get("allow_app_ports").(bool),
+	}
 
 	if userData, ok := d.GetOk("userdata"); ok {
 		createOpts.UserData = userData.(string)
@@ -415,8 +419,6 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		createOpts.NameTemplates = []string{nameTemplate.(string)}
 	}
 
-	createOpts.AllowAppPorts = d.Get("allow_app_ports").(bool)
-
 	currentVols := d.Get("volume").(*schema.Set).List()
 	if len(currentVols) > 0 {
 		vs, err := extractVolumesMap(currentVols)
@@ -427,14 +429,12 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	ifs := d.Get("interface").([]interface{})
-	// sort interfaces by 'order' key to attach it in right order
-	sort.Sort(instanceInterfaces(ifs))
 	if len(ifs) > 0 {
-		ifaces, err := extractInstanceInterfacesMap(ifs)
+		interfacesList, err := extractInstanceInterfaceToListCreate(ifs)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		createOpts.Interfaces = ifaces
+		createOpts.Interfaces = interfacesList
 	}
 
 	if metadata, ok := d.GetOk("metadata"); ok {
@@ -459,16 +459,16 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		createOpts.Configuration = &conf
 	}
 
-	log.Printf("[DEBUG] Interface create options: %+v", createOpts)
-	results, err := instances.Create(clientv2, createOpts).Extract()
+	log.Printf("[DEBUG] Instance create options: %+v", createOpts)
+	results, err := instances.Create(clientV2, createOpts).Extract()
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	InstanceID, err := tasks.WaitTaskAndReturnResult(clientv1, taskID, true, InstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(clientv1, string(task)).Extract()
+	InstanceID, err := tasks.WaitTaskAndReturnResult(clientV1, taskID, true, InstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
+		taskInfo, err := tasks.Get(clientV1, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
 		}
@@ -559,56 +559,50 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	ifs, err := instances.ListInterfacesAll(client, instanceID)
+	interfacesListAPI, err := instances.ListInterfacesAll(client, instanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	interfaces, err := extractInstanceInterfaceIntoMap(d.Get("interface").([]interface{}))
+	ifs := d.Get("interface").([]interface{})
+	sort.Sort(instanceInterfaces(ifs))
+	interfacesListExtracted, err := extractInstanceInterfaceToListRead(ifs)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var cleanInterfaces []interface{}
-	for ifOrder, iface := range ifs {
-		if len(iface.IPAssignments) == 0 {
+	var interfacesList []interface{}
+	for order, iFace := range interfacesListAPI {
+		if len(iFace.IPAssignments) == 0 {
 			continue
 		}
 
-		for _, assignment := range iface.IPAssignments {
+		portID := iFace.PortID
+		for _, assignment := range iFace.IPAssignments {
 			subnetID := assignment.SubnetID
+			ipAddress := assignment.IPAddress.String()
 
-			// bad idea, but what to do
-			var iOpts instances.InterfaceOpts
-			var orderedIOpts OrderedInterfaceOpts
-			var ok bool
-			// we need to match our interfaces with api's interfaces
-			// but with don't have any unique value, that's why we use exactly that list of keys
-			for _, k := range []string{subnetID, iface.PortID, iface.NetworkID, types.ExternalInterfaceType.String()} {
-				if orderedIOpts, ok = interfaces[k]; ok {
-					iOpts = orderedIOpts.InterfaceOpts
+			var interfaceOpts instances.InterfaceOpts
+			for _, interfaceExtracted := range interfacesListExtracted {
+				if interfaceExtracted.SubnetID == subnetID || interfaceExtracted.IPAddress == ipAddress || interfaceExtracted.PortID == portID {
+					interfaceOpts = interfaceExtracted
 					break
 				}
 			}
 
 			i := make(map[string]interface{})
-			if !ok {
-				orderedIOpts = OrderedInterfaceOpts{Order: ifOrder}
-			} else {
-				i["type"] = iOpts.Type.String()
-			}
-
-			i["network_id"] = iface.NetworkID
+			i["type"] = interfaceOpts.Type.String()
+			i["order"] = order
+			i["network_id"] = iFace.NetworkID
 			i["subnet_id"] = subnetID
-			i["port_id"] = iface.PortID
-			i["order"] = orderedIOpts.Order
-			if iOpts.FloatingIP != nil {
-				i["fip_source"] = iOpts.FloatingIP.Source.String()
-				i["existing_fip_id"] = iOpts.FloatingIP.ExistingFloatingID
+			i["port_id"] = portID
+			if interfaceOpts.FloatingIP != nil {
+				i["fip_source"] = interfaceOpts.FloatingIP.Source.String()
+				i["existing_fip_id"] = interfaceOpts.FloatingIP.ExistingFloatingID
 			}
-			i["ip_address"] = assignment.IPAddress.String()
+			i["ip_address"] = ipAddress
 
-			if port, err := findInstancePort(iface.PortID, instancePorts); err == nil {
+			if port, err := findInstancePort(portID, instancePorts); err == nil {
 				sgs := make([]string, len(port.SecurityGroups))
 				for i, sg := range port.SecurityGroups {
 					sgs[i] = sg.ID
@@ -616,10 +610,10 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 				i["security_groups"] = sgs
 			}
 
-			cleanInterfaces = append(cleanInterfaces, i)
+			interfacesList = append(interfacesList, i)
 		}
 	}
-	if err := d.Set("interface", cleanInterfaces); err != nil {
+	if err := d.Set("interface", interfacesList); err != nil {
 		return diag.FromErr(err)
 	}
 

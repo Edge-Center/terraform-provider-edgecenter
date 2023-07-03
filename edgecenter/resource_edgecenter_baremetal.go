@@ -283,10 +283,10 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 	ifs := d.Get("interface").([]interface{})
 	// sort interfaces by 'is_parent' at first and by 'order' key to attach it in right order
 	sort.Sort(instanceInterfaces(ifs))
-	newInterface := make([]bminstances.InterfaceOpts, len(ifs))
-	for i, iface := range ifs {
-		raw := iface.(map[string]interface{})
-		newIface := bminstances.InterfaceOpts{
+	interfaceOptsList := make([]bminstances.InterfaceOpts, len(ifs))
+	for i, iFace := range ifs {
+		raw := iFace.(map[string]interface{})
+		interfaceOpts := bminstances.InterfaceOpts{
 			Type:      types.InterfaceType(raw["type"].(string)),
 			NetworkID: raw["network_id"].(string),
 			SubnetID:  raw["subnet_id"].(string),
@@ -296,15 +296,15 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 		fipSource := raw["fip_source"].(string)
 		fipID := raw["existing_fip_id"].(string)
 		if fipSource != "" {
-			newIface.FloatingIP = &bminstances.CreateNewInterfaceFloatingIPOpts{
+			interfaceOpts.FloatingIP = &bminstances.CreateNewInterfaceFloatingIPOpts{
 				Source:             types.FloatingIPSource(fipSource),
 				ExistingFloatingID: fipID,
 			}
 		}
-		newInterface[i] = newIface
+		interfaceOptsList[i] = interfaceOpts
 	}
 
-	log.Printf("[DEBUG] Baremetal interfaces: %+v", newInterface)
+	log.Printf("[DEBUG] Baremetal interfaces: %+v", interfaceOptsList)
 	opts := bminstances.CreateOpts{
 		Flavor:        d.Get("flavor_id").(string),
 		ImageID:       d.Get("image_id").(string),
@@ -314,7 +314,7 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 		Username:      d.Get("username").(string),
 		UserData:      d.Get("user_data").(string),
 		AppConfig:     d.Get("app_config").(map[string]interface{}),
-		Interfaces:    newInterface,
+		Interfaces:    interfaceOptsList,
 	}
 
 	name := d.Get("name").(string)
@@ -410,99 +410,94 @@ func resourceBmInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 	flavor["vcpus"] = strconv.Itoa(instance.Flavor.VCPUS)
 	d.Set("flavor", flavor)
 
-	ifs, err := instances.ListInterfacesAll(client, instanceID)
+	interfacesListAPI, err := instances.ListInterfacesAll(client, instanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	interfaces, err := extractInstanceInterfaceIntoMap(d.Get("interface").([]interface{}))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if len(ifs) == 0 {
+	if len(interfacesListAPI) == 0 {
 		return diag.Errorf("interface not found")
 	}
 
-	var cleanInterfaces []interface{}
-	for _, iface := range ifs {
-		for _, assignment := range iface.IPAssignments {
-			subnetID := assignment.SubnetID
+	ifs := d.Get("interface").([]interface{})
+	sort.Sort(instanceInterfaces(ifs))
+	interfacesListExtracted, err := extractInstanceInterfaceToListRead(ifs)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-			// bad idea, but what to do
-			var iOpts OrderedInterfaceOpts
-			var orderedIOpts OrderedInterfaceOpts
-			var ok bool
-			// we need to match our interfaces with api's interfaces
-			// but with don't have any unique value, that's why we use exactly that list of keys
-			for _, k := range []string{subnetID, iface.PortID, iface.NetworkID, types.ExternalInterfaceType.String()} {
-				if orderedIOpts, ok = interfaces[k]; ok {
-					iOpts = orderedIOpts
+	var interfacesList []interface{}
+	for order, iFace := range interfacesListAPI {
+		if len(iFace.IPAssignments) == 0 {
+			continue
+		}
+
+		portID := iFace.PortID
+		for _, assignment := range iFace.IPAssignments {
+			subnetID := assignment.SubnetID
+			ipAddress := assignment.IPAddress.String()
+
+			var interfaceOpts instances.InterfaceOpts
+			for _, interfaceExtracted := range interfacesListExtracted {
+				if interfaceExtracted.SubnetID == subnetID ||
+					interfaceExtracted.IPAddress == ipAddress ||
+					interfaceExtracted.PortID == portID {
+					interfaceOpts = interfaceExtracted
 					break
 				}
 			}
 
-			if !ok {
-				continue
-			}
-
 			i := make(map[string]interface{})
-
-			i["type"] = iOpts.Type.String()
-			i["network_id"] = iface.NetworkID
+			i["type"] = interfaceOpts.Type.String()
+			i["order"] = order
+			i["network_id"] = iFace.NetworkID
 			i["subnet_id"] = subnetID
-			i["port_id"] = iface.PortID
+			i["port_id"] = portID
 			i["is_parent"] = true
-			i["order"] = iOpts.Order
-			if iOpts.FloatingIP != nil {
-				i["fip_source"] = iOpts.FloatingIP.Source.String()
-				i["existing_fip_id"] = iOpts.FloatingIP.ExistingFloatingID
+			if interfaceOpts.FloatingIP != nil {
+				i["fip_source"] = interfaceOpts.FloatingIP.Source.String()
+				i["existing_fip_id"] = interfaceOpts.FloatingIP.ExistingFloatingID
 			}
-			i["ip_address"] = assignment.IPAddress.String()
+			i["ip_address"] = ipAddress
 
-			cleanInterfaces = append(cleanInterfaces, i)
+			interfacesList = append(interfacesList, i)
 		}
 
-		for _, iface1 := range iface.SubPorts {
-			for _, assignment := range iface1.IPAssignments {
-				subnetID := assignment.SubnetID
+		for _, iFaceSubPort := range iFace.SubPorts {
+			subPortID := iFaceSubPort.PortID
+			for _, assignmentSubPort := range iFaceSubPort.IPAssignments {
+				assignmentSubnetID := assignmentSubPort.SubnetID
+				assignmentIPAddress := assignmentSubPort.IPAddress.String()
 
-				// bad idea, but what to do
-				var iOpts OrderedInterfaceOpts
-				var orderedIOpts OrderedInterfaceOpts
-				var ok bool
-				// we need to match our interfaces with api's interfaces
-				// but with don't have any unique value, that's why we use exactly that list of keys
-				for _, k := range []string{subnetID, iface1.PortID, iface1.NetworkID, types.ExternalInterfaceType.String()} {
-					if orderedIOpts, ok = interfaces[k]; ok {
-						iOpts = orderedIOpts
+				var subPortInterfaceOpts instances.InterfaceOpts
+				for _, interfaceExtracted := range interfacesListExtracted {
+					if interfaceExtracted.SubnetID == assignmentSubnetID ||
+						interfaceExtracted.IPAddress == assignmentIPAddress ||
+						interfaceExtracted.PortID == subPortID {
+						subPortInterfaceOpts = interfaceExtracted
 						break
 					}
 				}
 
-				if !ok {
-					continue
-				}
-
 				i := make(map[string]interface{})
 
-				i["type"] = iOpts.Type.String()
-				i["network_id"] = iface1.NetworkID
-				i["subnet_id"] = subnetID
-				i["port_id"] = iface1.PortID
+				i["type"] = subPortInterfaceOpts.Type.String()
+				i["order"] = order
+				i["network_id"] = iFaceSubPort.NetworkID
+				i["subnet_id"] = assignmentSubnetID
+				i["port_id"] = subPortID
 				i["is_parent"] = false
-				i["order"] = iOpts.Order
-				if iOpts.FloatingIP != nil {
-					i["fip_source"] = iOpts.FloatingIP.Source.String()
-					i["existing_fip_id"] = iOpts.FloatingIP.ExistingFloatingID
+				if subPortInterfaceOpts.FloatingIP != nil {
+					i["fip_source"] = subPortInterfaceOpts.FloatingIP.Source.String()
+					i["existing_fip_id"] = subPortInterfaceOpts.FloatingIP.ExistingFloatingID
 				}
-				i["ip_address"] = assignment.IPAddress.String()
+				i["ip_address"] = assignmentIPAddress
 
-				cleanInterfaces = append(cleanInterfaces, i)
+				interfacesList = append(interfacesList, i)
 			}
 		}
 	}
-	if err := d.Set("interface", cleanInterfaces); err != nil {
+	if err := d.Set("interface", interfacesList); err != nil {
 		return diag.FromErr(err)
 	}
 
