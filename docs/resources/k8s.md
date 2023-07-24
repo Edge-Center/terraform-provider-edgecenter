@@ -43,9 +43,9 @@ resource "edgecenter_k8s" "v" {
 - `fixed_network` (String)
 - `fixed_subnet` (String) Subnet should has router
 - `keypair` (String)
-- `version` (String)
 - `name` (String)
 - `pool` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--pool))
+- `version` (String)
 
 ### Optional
 
