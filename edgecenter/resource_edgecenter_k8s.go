@@ -239,7 +239,7 @@ func resourceK8s() *schema.Resource {
 			},
 			"version": {
 				Type:     schema.TypeString,
-				Computed: true,
+				Required: true,
 			},
 			"updated_at": {
 				Type:     schema.TypeString,
@@ -271,6 +271,7 @@ func resourceK8sCreate(ctx context.Context, d *schema.ResourceData, m interface{
 
 	opts := clusters.CreateOpts{
 		Name:                      d.Get("name").(string),
+		Version:                   d.Get("version").(string),
 		FixedNetwork:              d.Get("fixed_network").(string),
 		FixedSubnet:               d.Get("fixed_subnet").(string),
 		KeyPair:                   d.Get("keypair").(string),
