@@ -302,14 +302,14 @@ func resourceK8sCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	optPool := pools.CreateOpts{
 		Name:         pool["name"].(string),
 		FlavorID:     pool["flavor_id"].(string),
-		NodeCount:    pool["node_count"].(int),
+		NodeCount:    pool["node_count"].(*int),
 		MinNodeCount: pool["min_node_count"].(int),
-		MaxNodeCount: pool["max_node_count"].(int),
+		MaxNodeCount: pool["max_node_count"].(*int),
 	}
 
 	dockerVolumeSize := pool["docker_volume_size"].(int)
 	if dockerVolumeSize != 0 {
-		optPool.DockerVolumeSize = dockerVolumeSize
+		optPool.DockerVolumeSize = &dockerVolumeSize
 	}
 
 	dockerVolumeType := pool["docker_volume_type"].(string)
@@ -486,7 +486,7 @@ func resourceK8sUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 
 		if d.HasChange("pool.0.node_count") {
 			resizeOpts := clusters.ResizeOpts{
-				NodeCount: pool["node_count"].(int),
+				NodeCount: pool["node_count"].(*int),
 			}
 			results, err := clusters.Resize(client, clusterID, poolID, resizeOpts).Extract()
 			if err != nil {
