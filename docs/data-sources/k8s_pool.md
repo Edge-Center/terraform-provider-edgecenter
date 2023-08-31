@@ -51,7 +51,9 @@ data "edgecenter_k8s_pool" "v" {
 - `max_node_count` (Number)
 - `min_node_count` (Number)
 - `name` (String)
+- `node_addresses` (List of String)
 - `node_count` (Number)
+- `node_names` (List of String)
 - `stack_id` (String)
 
 

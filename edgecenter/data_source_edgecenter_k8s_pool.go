@@ -97,6 +97,20 @@ func dataSourceK8sPool() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"node_addresses": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"node_names": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -132,6 +146,23 @@ func dataSourceK8sPoolRead(_ context.Context, d *schema.ResourceData, m interfac
 	d.Set("docker_volume_size", pool.DockerVolumeSize)
 	d.Set("stack_id", pool.StackID)
 	d.Set("created_at", pool.CreatedAt.Format(time.RFC850))
+
+	nodeAddresses := make([]string, len(pool.NodeAddresses))
+	for i, na := range pool.NodeAddresses {
+		nodeAddresses[i] = na.String()
+	}
+	d.Set("node_addresses", nodeAddresses)
+
+	poolInstances, err := pools.InstancesAll(client, clusterID, poolID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	nodeNames := make([]string, len(poolInstances))
+	for j, instance := range poolInstances {
+		nodeNames[j] = instance.Name
+	}
+	d.Set("node_names", nodeNames)
 
 	log.Println("[DEBUG] Finish K8s pool reading")
 

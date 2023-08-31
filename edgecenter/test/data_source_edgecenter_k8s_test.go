@@ -96,6 +96,9 @@ func TestAccK8sDataSource(t *testing.T) {
 	}
 	defer keypairs.Delete(kpClient, keyPair.ID)
 
+	nodeCountTestPtr := nodeCountTest
+	dockerVolumeSizeTestPtr := dockerVolumeSizeTest
+	maxNodeCountTestPtr := maxNodeCountTest
 	k8sOpts := clusters.CreateOpts{
 		Name:               clusterTestName,
 		FixedNetwork:       networkID,
@@ -106,11 +109,11 @@ func TestAccK8sDataSource(t *testing.T) {
 		Pools: []pools.CreateOpts{{
 			Name:             poolTestName,
 			FlavorID:         flavorTest,
-			NodeCount:        nodeCountTest,
-			DockerVolumeSize: dockerVolumeSizeTest,
+			NodeCount:        &nodeCountTestPtr,
+			DockerVolumeSize: &dockerVolumeSizeTestPtr,
 			DockerVolumeType: ockerVolumeTypeTest,
 			MinNodeCount:     minNodeCountTest,
-			MaxNodeCount:     maxNodeCountTest,
+			MaxNodeCount:     &maxNodeCountTestPtr,
 		}},
 	}
 	clusterID, err := createTestCluster(k8sClient, k8sOpts)
