@@ -203,6 +203,10 @@ func dataSourceK8s() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"certificate_authority_data": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -293,6 +297,21 @@ func dataSourceK8sRead(_ context.Context, d *schema.ResourceData, m interface{})
 
 	if err := d.Set("pool", []interface{}{p}); err != nil {
 		return diag.FromErr(err)
+	}
+
+	getConfigResult, err := clusters.GetConfig(client, clusterID).Extract()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	clusterConfig, err := parseK8sConfig(getConfigResult.Config)
+	if err != nil {
+		return diag.Errorf("failed to parse k8s config: %s", err)
+	}
+
+	certificateAuthorityData := clusterConfig.Clusters[0].Cluster.CertificateAuthorityData
+	if err := d.Set("certificate_authority_data", certificateAuthorityData); err != nil {
+		return diag.Errorf("couldn't get certificate_authority_data: %s", err)
 	}
 
 	log.Println("[DEBUG] Finish K8s reading")

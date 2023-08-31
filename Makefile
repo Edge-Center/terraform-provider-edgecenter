@@ -80,7 +80,7 @@ docs_fmt:
 	terraform fmt -recursive ./examples/
 
 docs: docs_fmt
-	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.15
+	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.16
 	make tidy
 	tfplugindocs --tf-version=1.5.0 --provider-name=edgecenter
 

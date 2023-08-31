@@ -177,6 +177,7 @@ func Provider() *schema.Provider {
 			"edgecenter_servergroup":       dataSourceServerGroup(),
 			"edgecenter_k8s":               dataSourceK8s(),
 			"edgecenter_k8s_pool":          dataSourceK8sPool(),
+			"edgecenter_k8s_client_config": dataSourceK8sClientConfig(),
 			"edgecenter_secret":            dataSourceSecret(),
 		},
 	}
