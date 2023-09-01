@@ -138,12 +138,14 @@ func resourceK8sPoolCreate(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
+	poolNodeCount := d.Get("node_count").(int)
+	maxNodeCount := d.Get("max_node_count").(int)
 	opts := pools.CreateOpts{
 		Name:         d.Get("name").(string),
 		FlavorID:     d.Get("flavor_id").(string),
-		NodeCount:    d.Get("node_count").(*int),
+		NodeCount:    &poolNodeCount,
 		MinNodeCount: d.Get("min_node_count").(int),
-		MaxNodeCount: d.Get("max_node_count").(*int),
+		MaxNodeCount: &maxNodeCount,
 	}
 
 	dockerVolumeSize := d.Get("docker_volume_size").(int)
