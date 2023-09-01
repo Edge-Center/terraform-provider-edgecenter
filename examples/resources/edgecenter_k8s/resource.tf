@@ -5,10 +5,11 @@ provider "edgecenter" {
 resource "edgecenter_k8s" "v" {
   project_id    = 1
   region_id     = 1
-  version       = "1.24.15"
+  version       = "1.25.11"
   name          = "tf-k8s"
   fixed_network = "6bf878c1-1ce4-47c3-a39b-6b5f1d79bf25"
   fixed_subnet  = "dc3a3ea9-86ae-47ad-a8e8-79df0ce04839"
+  keypair       = "tf-keypair"
   pool {
     name               = "tf-pool"
     flavor_id          = "g1-standard-1-2"

@@ -13,6 +13,7 @@ import (
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/pools"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/keypair/v2/keypairs"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 )
@@ -95,7 +96,7 @@ func resourceK8s() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Subnet should has router",
+				Description: "There must be a router on the subnet",
 			},
 			"auto_healing_enabled": {
 				Type:     schema.TypeBool,
@@ -120,8 +121,9 @@ func resourceK8s() *schema.Resource {
 				ForceNew: true,
 			},
 			"keypair": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the keypair",
 			},
 			"pool": {
 				Type:     schema.TypeList,
@@ -299,12 +301,14 @@ func resourceK8sCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	poolRaw := d.Get("pool").([]interface{})
 	pool := poolRaw[0].(map[string]interface{})
 
+	poolNodeCount := pool["node_count"].(int)
+	maxNodeCount := pool["max_node_count"].(int)
 	optPool := pools.CreateOpts{
 		Name:         pool["name"].(string),
 		FlavorID:     pool["flavor_id"].(string),
-		NodeCount:    pool["node_count"].(*int),
+		NodeCount:    &poolNodeCount,
 		MinNodeCount: pool["min_node_count"].(int),
-		MaxNodeCount: pool["max_node_count"].(*int),
+		MaxNodeCount: &maxNodeCount,
 	}
 
 	dockerVolumeSize := pool["docker_volume_size"].(int)
@@ -355,13 +359,13 @@ func resourceK8sRead(_ context.Context, d *schema.ResourceData, m interface{}) d
 	config := m.(*Config)
 	provider := config.Provider
 
-	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
+	clientK8S, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	clusterID := d.Id()
-	cluster, err := clusters.Get(client, clusterID).Extract()
+	cluster, err := clusters.Get(clientK8S, clusterID).Extract()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -371,10 +375,20 @@ func resourceK8sRead(_ context.Context, d *schema.ResourceData, m interface{}) d
 	d.Set("fixed_network", cluster.FixedNetwork)
 	d.Set("fixed_subnet", cluster.FixedSubnet)
 	d.Set("master_lb_floating_ip_enabled", cluster.FloatingIPEnabled)
-	d.Set("keypair", cluster.KeyPair)
 	d.Set("node_count", cluster.NodeCount)
 	d.Set("status", cluster.Status)
 	d.Set("status_reason", cluster.StatusReason)
+
+	clientKeypairs, err := CreateClient(provider, d, KeypairsPoint, VersionPointV2)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	keypairInfo, err := keypairs.Get(clientKeypairs, cluster.KeyPair).Extract()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.Set("keypair", keypairInfo.Name)
 
 	masterAddresses := make([]string, len(cluster.MasterAddresses))
 	for i, addr := range cluster.MasterAddresses {
