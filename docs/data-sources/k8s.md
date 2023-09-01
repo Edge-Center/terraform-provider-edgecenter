@@ -42,6 +42,7 @@ data "edgecenter_k8s" "v" {
 
 - `api_address` (String)
 - `auto_healing_enabled` (Boolean)
+- `certificate_authority_data` (String)
 - `cluster_template_id` (String)
 - `container_version` (String)
 - `created_at` (String)
