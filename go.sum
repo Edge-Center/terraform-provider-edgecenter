@@ -5,8 +5,8 @@ github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.0 h1:MDQr/60IhD1x7f5Bs20ljTQXG
 github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.0/go.mod h1:xWN2LYVokamADMRz1cPhOrYX/NlxiDJp9tjBumHU5G8=
 github.com/Edge-Center/edgecenter-storage-sdk-go v0.1.0 h1:5iKvDZsdkrvcQDIsh+tBSRnLMvrNHFECnheQkj0alFI=
 github.com/Edge-Center/edgecenter-storage-sdk-go v0.1.0/go.mod h1:3Y8B9zGwtXhjIWMyjWHcr7F9aXTzfOvq+VfcHZkYGfg=
-github.com/Edge-Center/edgecentercdn-go v0.1.0 h1:vPd7UMDhlNTRLD0xdWxvsUKRpYnnJ7vmnBmnq70r2s0=
-github.com/Edge-Center/edgecentercdn-go v0.1.0/go.mod h1:RwEyxwPAmxor1mZKUTa2bIU2p5qM6kcAofUkaE4O1V4=
+github.com/Edge-Center/edgecentercdn-go v0.1.1 h1:oRYPMYAA6EzwM8nD32waglmmOHyKfyRD5RxqJBYg7y0=
+github.com/Edge-Center/edgecentercdn-go v0.1.1/go.mod h1:RwEyxwPAmxor1mZKUTa2bIU2p5qM6kcAofUkaE4O1V4=
 github.com/Edge-Center/edgecentercloud-go v0.1.7 h1:t7iAHVFDhNXSrmuIs0sBZZXi3A1Jxc7Gfdiqfr5zL84=
 github.com/Edge-Center/edgecentercloud-go v0.1.7/go.mod h1:kmXGtx0lL1ib+SPfJe/uIAyDHamquAvqiftoLSyhxF8=
 github.com/Microsoft/go-winio v0.5.2 h1:a9IhgEQBCUEk6QCdml9CiJGhAws+YwffDHEMp1VMrpA=
