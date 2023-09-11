@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storages"
 )
 
 const (
@@ -120,17 +120,17 @@ func resourceStorageS3Create(ctx context.Context, d *schema.ResourceData, m inte
 	config := m.(*Config)
 	client := config.StorageClient
 
-	opts := []func(opt *storage.StorageCreateHTTPParams){
-		func(opt *storage.StorageCreateHTTPParams) { opt.Context = ctx },
-		func(opt *storage.StorageCreateHTTPParams) { opt.Body.Type = "s3" },
+	opts := []func(opt *storages.StorageCreateHTTPParams){
+		func(opt *storages.StorageCreateHTTPParams) { opt.Context = ctx },
+		func(opt *storages.StorageCreateHTTPParams) { opt.Body.Type = "s3" },
 	}
 	location := strings.TrimSpace(d.Get(StorageSchemaLocation).(string))
 	if location != "" {
-		opts = append(opts, func(opt *storage.StorageCreateHTTPParams) { opt.Body.Location = location })
+		opts = append(opts, func(opt *storages.StorageCreateHTTPParams) { opt.Body.Location = location })
 	}
 	name := strings.TrimSpace(d.Get(StorageSchemaName).(string))
 	if name != "" {
-		opts = append(opts, func(opt *storage.StorageCreateHTTPParams) { opt.Body.Name = name })
+		opts = append(opts, func(opt *storages.StorageCreateHTTPParams) { opt.Body.Name = name })
 	}
 
 	result, err := client.CreateStorage(opts...)
@@ -157,16 +157,16 @@ func resourceStorageS3Read(ctx context.Context, d *schema.ResourceData, m interf
 	config := m.(*Config)
 	client := config.StorageClient
 
-	opts := []func(opt *storage.StorageListHTTPV2Params){
-		func(opt *storage.StorageListHTTPV2Params) { opt.Context = ctx },
-		func(opt *storage.StorageListHTTPV2Params) { opt.ShowDeleted = new(bool) },
+	opts := []func(opt *storages.StorageListHTTPV2Params){
+		func(opt *storages.StorageListHTTPV2Params) { opt.Context = ctx },
+		func(opt *storages.StorageListHTTPV2Params) { opt.ShowDeleted = new(bool) },
 	}
 	if resourceID != "" {
-		opts = append(opts, func(opt *storage.StorageListHTTPV2Params) { opt.ID = &resourceID })
+		opts = append(opts, func(opt *storages.StorageListHTTPV2Params) { opt.ID = &resourceID })
 	}
 	name := d.Get(StorageSchemaName).(string)
 	if name != "" {
-		opts = append(opts, func(opt *storage.StorageListHTTPV2Params) { opt.Name = &name })
+		opts = append(opts, func(opt *storages.StorageListHTTPV2Params) { opt.Name = &name })
 	}
 	if resourceID == "" && name == "" {
 		return diag.Errorf("get storage: empty storage id/name")
@@ -216,9 +216,9 @@ func resourceStorageS3Delete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(fmt.Errorf("get resource id: %w", err))
 	}
 
-	opts := []func(opt *storage.StorageDeleteHTTPParams){
-		func(opt *storage.StorageDeleteHTTPParams) { opt.Context = ctx },
-		func(opt *storage.StorageDeleteHTTPParams) { opt.ID = id },
+	opts := []func(opt *storages.StorageDeleteHTTPParams){
+		func(opt *storages.StorageDeleteHTTPParams) { opt.Context = ctx },
+		func(opt *storages.StorageDeleteHTTPParams) { opt.ID = id },
 	}
 	err = client.DeleteStorage(opts...)
 	if err != nil {

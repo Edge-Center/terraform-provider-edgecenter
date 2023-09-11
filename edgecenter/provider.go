@@ -21,7 +21,7 @@ import (
 
 const (
 	ProviderOptPermanentToken    = "permanent_api_token"
-	ProviderOptSkipCredsAuthErr  = "ignore_creds_auth_error" //nolint: gosec
+	ProviderOptSkipCredsAuthErr  = "ignore_creds_auth_error" // nolint: gosec
 	ProviderOptSingleAPIEndpoint = "api_endpoint"
 
 	LifecyclePolicyResource = "edgecenter_lifecyclepolicy"
@@ -146,8 +146,6 @@ func Provider() *schema.Provider {
 			"edgecenter_storage_s3_bucket": resourceStorageS3Bucket(),
 			DNSZoneResource:                resourceDNSZone(),
 			DNSZoneRecordResource:          resourceDNSZoneRecord(),
-			"edgecenter_storage_sftp":      resourceStorageSFTP(),
-			"edgecenter_storage_sftp_key":  resourceStorageSFTPKey(),
 			"edgecenter_cdn_resource":      resourceCDNResource(),
 			"edgecenter_cdn_origingroup":   resourceCDNOriginGroup(),
 			"edgecenter_cdn_rule":          resourceCDNRule(),
@@ -171,8 +169,6 @@ func Provider() *schema.Provider {
 			"edgecenter_floatingip":        dataSourceFloatingIP(),
 			"edgecenter_storage_s3":        dataSourceStorageS3(),
 			"edgecenter_storage_s3_bucket": dataSourceStorageS3Bucket(),
-			"edgecenter_storage_sftp":      dataSourceStorageSFTP(),
-			"edgecenter_storage_sftp_key":  dataSourceStorageSFTPKey(),
 			"edgecenter_reservedfixedip":   dataSourceReservedFixedIP(),
 			"edgecenter_servergroup":       dataSourceServerGroup(),
 			"edgecenter_k8s":               dataSourceK8s(),

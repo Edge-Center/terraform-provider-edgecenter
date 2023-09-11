@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storages"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
@@ -49,9 +49,9 @@ resource "edgecenter_storage_s3_bucket" "terraform_test_%d_s3_bucket" {
 				if rs.Type != "edgecenter_storage_s3" {
 					continue
 				}
-				opts := []func(opt *storage.StorageListHTTPV2Params){
-					func(opt *storage.StorageListHTTPV2Params) { opt.Context = ctx },
-					func(opt *storage.StorageListHTTPV2Params) { opt.ID = &rs.Primary.ID },
+				opts := []func(opt *storages.StorageListHTTPV2Params){
+					func(opt *storages.StorageListHTTPV2Params) { opt.Context = ctx },
+					func(opt *storages.StorageListHTTPV2Params) { opt.ID = &rs.Primary.ID },
 				}
 				storages, err := config.StorageClient.StoragesList(opts...)
 				if err != nil {
