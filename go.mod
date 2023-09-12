@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/AlekSi/pointer v1.2.0
 	github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.0
-	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0-beta
+	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0
 	github.com/Edge-Center/edgecentercdn-go v0.1.1
 	github.com/Edge-Center/edgecentercloud-go v0.1.7
 	github.com/hashicorp/go-cty v1.4.1-0.20200723130312-85980079f637

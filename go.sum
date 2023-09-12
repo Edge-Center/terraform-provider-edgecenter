@@ -3,8 +3,8 @@ github.com/AlekSi/pointer v1.2.0/go.mod h1:gZGfd3dpW4vEc/UlyfKKi1roIqcCgwOIvb0tS
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.0 h1:MDQr/60IhD1x7f5Bs20ljTQXGXFp0Uwx2+VaxtFRaDk=
 github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.0/go.mod h1:xWN2LYVokamADMRz1cPhOrYX/NlxiDJp9tjBumHU5G8=
-github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0-beta h1:AAf8H7nrzqjyvwS0SROJE19f8tzdrQh9cErixYwPD5w=
-github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0-beta/go.mod h1:TcWO0BPvDsE6AGlPBqpKCZhoQ70rRlqmm85J32qcL8I=
+github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0 h1:1aPDpywWbaF7VEjP/GjVoSgcipxWTTzEPPZv5kOWE8A=
+github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0/go.mod h1:TcWO0BPvDsE6AGlPBqpKCZhoQ70rRlqmm85J32qcL8I=
 github.com/Edge-Center/edgecentercdn-go v0.1.1 h1:oRYPMYAA6EzwM8nD32waglmmOHyKfyRD5RxqJBYg7y0=
 github.com/Edge-Center/edgecentercdn-go v0.1.1/go.mod h1:RwEyxwPAmxor1mZKUTa2bIU2p5qM6kcAofUkaE4O1V4=
 github.com/Edge-Center/edgecentercloud-go v0.1.7 h1:t7iAHVFDhNXSrmuIs0sBZZXi3A1Jxc7Gfdiqfr5zL84=
