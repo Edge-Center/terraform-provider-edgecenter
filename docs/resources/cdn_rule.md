@@ -324,5 +324,3 @@ Required:
 Optional:
 
 - `enabled` (Boolean)
-
-

@@ -295,5 +295,3 @@ Required:
 Optional:
 
 - `enabled` (Boolean)
-
-

@@ -83,5 +83,3 @@ Read-Only:
 - `node_count` (Number)
 - `stack_id` (String)
 - `uuid` (String)
-
-

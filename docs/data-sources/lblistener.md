@@ -60,5 +60,3 @@ output "view" {
 - `protocol` (String) Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'
 - `protocol_port` (Number)
 - `provisioning_status` (String)
-
-
