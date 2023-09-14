@@ -34,5 +34,3 @@ resource "edgecenter_storage_s3_bucket" "example_s3_bucket" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-

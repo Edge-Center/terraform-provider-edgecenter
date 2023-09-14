@@ -46,5 +46,3 @@ output "kp" {
 - `fingerprint` (String)
 - `id` (String) The ID of this resource.
 - `sshkey_id` (String)
-
-

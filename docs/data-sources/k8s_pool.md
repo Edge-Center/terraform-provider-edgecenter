@@ -55,5 +55,3 @@ data "edgecenter_k8s_pool" "pool" {
 - `node_count` (Number)
 - `node_names` (List of String)
 - `stack_id` (String)
-
-

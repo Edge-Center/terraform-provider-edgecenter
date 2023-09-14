@@ -60,5 +60,3 @@ output "view" {
 - `id` (String) The ID of this resource.
 - `mode` (String)
 - `status` (String)
-
-

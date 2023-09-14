@@ -43,5 +43,3 @@ data "edgecenter_k8s_client_config" "cfg" {
 - `client_certificate_data` (String)
 - `client_key_data` (String)
 - `id` (String) The ID of this resource.
-
-

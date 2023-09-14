@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storage"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/buckets"
 )
 
 const (
@@ -62,15 +62,15 @@ func resourceStorageS3BucketCreate(ctx context.Context, d *schema.ResourceData, 
 	config := m.(*Config)
 	client := config.StorageClient
 
-	opts := []func(opt *storage.StorageBucketCreateHTTPParams){
-		func(opt *storage.StorageBucketCreateHTTPParams) {
+	opts := []func(opt *buckets.StorageBucketCreateHTTPParams){
+		func(opt *buckets.StorageBucketCreateHTTPParams) {
 			opt.Context = ctx
 			opt.ID = int64(id)
 		},
 	}
 	name := strings.TrimSpace(d.Get(StorageS3BucketSchemaName).(string))
 	if name != "" {
-		opts = append(opts, func(opt *storage.StorageBucketCreateHTTPParams) { opt.Name = name })
+		opts = append(opts, func(opt *buckets.StorageBucketCreateHTTPParams) { opt.Name = name })
 	}
 
 	err := client.CreateBucket(opts...)
@@ -90,9 +90,9 @@ func resourceStorageS3BucketRead(ctx context.Context, d *schema.ResourceData, m 
 	config := m.(*Config)
 	client := config.StorageClient
 
-	opts := []func(opt *storage.StorageListBucketsHTTPParams){
-		func(opt *storage.StorageListBucketsHTTPParams) { opt.Context = ctx },
-		func(opt *storage.StorageListBucketsHTTPParams) { opt.ID = int64(storageID) },
+	opts := []func(opt *buckets.StorageListBucketsHTTPParams){
+		func(opt *buckets.StorageListBucketsHTTPParams) { opt.Context = ctx },
+		func(opt *buckets.StorageListBucketsHTTPParams) { opt.ID = int64(storageID) },
 	}
 
 	result, err := client.BucketsList(opts...)
@@ -125,10 +125,10 @@ func resourceStorageS3BucketDelete(ctx context.Context, d *schema.ResourceData, 
 	config := m.(*Config)
 	client := config.StorageClient
 
-	opts := []func(opt *storage.StorageBucketRemoveHTTPParams){
-		func(opt *storage.StorageBucketRemoveHTTPParams) { opt.Context = ctx },
-		func(opt *storage.StorageBucketRemoveHTTPParams) { opt.ID = int64(storageID) },
-		func(opt *storage.StorageBucketRemoveHTTPParams) { opt.Name = bucketName },
+	opts := []func(opt *buckets.StorageBucketRemoveHTTPParams){
+		func(opt *buckets.StorageBucketRemoveHTTPParams) { opt.Context = ctx },
+		func(opt *buckets.StorageBucketRemoveHTTPParams) { opt.ID = int64(storageID) },
+		func(opt *buckets.StorageBucketRemoveHTTPParams) { opt.Name = bucketName },
 	}
 	err := client.DeleteBucket(opts...)
 	if err != nil {

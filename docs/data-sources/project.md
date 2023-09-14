@@ -32,5 +32,3 @@ data "edgecenter_project" "pr" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-
