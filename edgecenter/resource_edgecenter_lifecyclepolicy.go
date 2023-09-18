@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	LifecyclePolicyPoint = "lifecycle_policy"
+	LifecyclePolicyPoint = "lifecycle_policies"
 	// Maybe move to utils and use for other resources.
 	nameRegexString = `^[a-zA-Z0-9][a-zA-Z 0-9._\-]{1,61}[a-zA-Z0-9._]$`
 )
