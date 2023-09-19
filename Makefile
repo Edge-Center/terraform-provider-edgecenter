@@ -1,5 +1,18 @@
 # ENVS
-PROJECT_DIR = $(shell pwd)
+ifeq ($(OS),Windows_NT)
+	PROJECT_DIR = $(shell cd)
+	OS := windows
+	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+		ARCH := amd64
+	endif
+	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+		ARCH := 386
+	endif
+else
+	PROJECT_DIR = $(shell pwd)
+	OS := $(shell uname | tr '[:upper:]' '[:lower:]')
+    ARCH := $(shell uname -m)
+endif
 BIN_DIR = $(PROJECT_DIR)/bin
 TEST_DIR = $(PROJECT_DIR)/edgecenter/test
 ENV_TESTS_FILE = $(TEST_DIR)/.env
@@ -8,16 +21,11 @@ ENV_TESTS_FILE = $(TEST_DIR)/.env
 BINARY_NAME = terraform-provider-edgecenter
 TAG_PREFIX = "v"
 TAG = $(shell git describe --tags)
-VERSION = $(shell  git describe --tags $(LAST_TAG_COMMIT) | sed "s/^$(TAG_PREFIX)//")
-OS := $(shell uname | tr '[:upper:]' '[:lower:]')
-ARCH := $(shell uname -m)
+VERSION = $(shell git describe --tags $(LAST_TAG_COMMIT) | sed "s/^$(TAG_PREFIX)//")
 PLUGIN_PATH = ~/.terraform.d/plugins/local.edgecenter.ru/repo/edgecenter/$(VERSION)/$(OS)_$(ARCH)
 
 tidy:
 	go mod tidy
-
-vendor:
-	go mod vendor
 
 # BUILD
 build: tidy
@@ -35,8 +43,11 @@ err_check:
 	@sh -c "'$(PROJECT_DIR)/scripts/errcheck.sh'"
 
 linters:
-	@test -f $(BIN_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.53.2
+	@test -f $(BIN_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.54.2
 	@$(BIN_DIR)/golangci-lint run
+
+linters_docker: # for windows
+	docker run --rm -v $(PROJECT_DIR):/app -w /app golangci/golangci-lint:v1.54.2 golangci-lint run -v
 
 # TESTS
 envs_reader:
@@ -84,4 +95,4 @@ docs: docs_fmt
 	make tidy
 	tfplugindocs --tf-version=1.5.0 --provider-name=edgecenter
 
-.PHONY: tidy vendor build build_debug err_check linters envs_reader test_cloud_data_source test_cloud_resource test_not_cloud install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs
+.PHONY: tidy build build_debug err_check linters linters_docker envs_reader test_cloud_data_source test_cloud_resource test_not_cloud install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs
