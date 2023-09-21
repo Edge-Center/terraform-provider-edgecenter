@@ -29,17 +29,17 @@ data "edgecenter_k8s_client_config" "cfg" {
 
 ### Required
 
-- `cluster_id` (String)
+- `cluster_id` (String) The uuid of the Kubernetes cluster.
 
 ### Optional
 
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `client_certificate_data` (String)
-- `client_key_data` (String)
+- `client_certificate_data` (String) The client_certificate_data field from k8s config.
+- `client_key_data` (String) The client_key_data field from k8s config.
 - `id` (String) The ID of this resource.

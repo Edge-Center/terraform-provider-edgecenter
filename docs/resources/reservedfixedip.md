@@ -30,26 +30,26 @@ resource "edgecenter_reservedfixedip" "fixed_ip" {
 
 ### Required
 
-- `is_vip` (Boolean)
-- `type` (String) Available values is 'external', 'subnet', 'any_subnet', 'ip_address'
+- `is_vip` (Boolean) Flag to determine if the reserved fixed IP should be treated as a Virtual IP (VIP).
+- `type` (String) The type of reserved fixed IP. Valid values are 'external', 'subnet', 'any_subnet', and 'ip_address'
 
 ### Optional
 
-- `allowed_address_pairs` (Block List) Group of IP addresses that share the current IP as VIP (see [below for nested schema](#nestedblock--allowed_address_pairs))
-- `fixed_ip_address` (String)
-- `last_updated` (String)
-- `network_id` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
-- `subnet_id` (String)
+- `allowed_address_pairs` (Block List) Group of IP addresses that share the current IP as VIP. (see [below for nested schema](#nestedblock--allowed_address_pairs))
+- `fixed_ip_address` (String) The IP address that is associated with the reserved IP.
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `network_id` (String) ID of the network to which the reserved fixed IP is associated.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `subnet_id` (String) ID of the subnet from which the fixed IP should be reserved.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `port_id` (String) ID of the port_id underlying the reserved fixed IP
-- `status` (String)
+- `port_id` (String) ID of the port_id underlying the reserved fixed IP.
+- `status` (String) The current status of the reserved fixed IP.
 
 <a id="nestedblock--allowed_address_pairs"></a>
 ### Nested Schema for `allowed_address_pairs`

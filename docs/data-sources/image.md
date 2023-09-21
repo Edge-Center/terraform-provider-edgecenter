@@ -3,12 +3,12 @@
 page_title: "edgecenter_image Data Source - edgecenter"
 subcategory: ""
 description: |-
-  Represent image data
+  A cloud image is a pre-configured virtual machine template that you can use to create new instances.
 ---
 
 # edgecenter_image (Data Source)
 
-Represent image data
+A cloud image is a pre-configured virtual machine template that you can use to create new instances.
 
 ## Example Usage
 
@@ -41,27 +41,27 @@ output "view" {
 
 ### Required
 
-- `name` (String) use 'os-version', for example 'ubuntu-20.04'
+- `name` (String) The name of the image. Use 'os-version', for example 'ubuntu-20.04'.
 
 ### Optional
 
-- `is_baremetal` (Boolean) set to true if need to get baremetal image
-- `metadata_k` (String)
-- `metadata_kv` (Map of String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `is_baremetal` (Boolean) Set to true if need to get the baremetal image.
+- `metadata_k` (String) Filtration query opts (only key).
+- `metadata_kv` (Map of String) Filtration query opts, for example, {offset = "10", limit = "10"}.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `description` (String)
+- `description` (String) A detailed description of the image.
 - `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
-- `min_disk` (Number)
-- `min_ram` (Number)
-- `os_distro` (String)
-- `os_version` (String)
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
+- `min_disk` (Number) Minimum disk space (in GB) required to launch an instance using this image.
+- `min_ram` (Number) Minimum VM RAM (in MB) required to launch an instance using this image.
+- `os_distro` (String) The distribution of the OS present in the image, e.g. Debian, CentOS, Ubuntu etc.
+- `os_version` (String) The version of the OS present in the image. e.g. 19.04 (for Ubuntu) or 9.4 for Debian.
 
 <a id="nestedatt--metadata_read_only"></a>
 ### Nested Schema for `metadata_read_only`

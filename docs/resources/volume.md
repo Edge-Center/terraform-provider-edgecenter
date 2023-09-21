@@ -3,12 +3,14 @@
 page_title: "edgecenter_volume Resource - edgecenter"
 subcategory: ""
 description: |-
-  Represent volume. A volume is a file storage which is similar to SSD and HDD hard disks but located in the cloud
+  A volume is a detachable block storage device akin to a USB hard drive or SSD, but located remotely in the cloud.
+  Volumes can be attached to a virtual machine and manipulated like a physical hard drive.
 ---
 
 # edgecenter_volume (Resource)
 
-Represent volume. A volume is a file storage which is similar to SSD and HDD hard disks but located in the cloud
+A volume is a detachable block storage device akin to a USB hard drive or SSD, but located remotely in the cloud.
+Volumes can be attached to a virtual machine and manipulated like a physical hard drive.
 
 ## Example Usage
 
@@ -34,25 +36,25 @@ resource "edgecenter_volume" "volume" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the volume.
+- `size` (Number) The size of the volume, specified in gigabytes (GB).
 
 ### Optional
 
-- `image_id` (String) Mandatory if volume is created from image
-- `last_updated` (String)
-- `metadata_map` (Map of String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
-- `size` (Number)
-- `snapshot_id` (String) Mandatory if volume is created from a snapshot
-- `type_name` (String) Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'. Defaults to standard
+- `image_id` (String) (ForceNew) The ID of the image to create the volume from. This field is mandatory if creating a volume from an image.
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `metadata_map` (Map of String) A map containing metadata, for example tags.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `snapshot_id` (String) (ForceNew) The ID of the snapshot to create the volume from. This field is mandatory if creating a volume from a snapshot.
+- `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 
 <a id="nestedatt--metadata_read_only"></a>
 ### Nested Schema for `metadata_read_only`

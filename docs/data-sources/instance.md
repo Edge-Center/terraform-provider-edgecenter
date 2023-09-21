@@ -3,12 +3,12 @@
 page_title: "edgecenter_instance Data Source - edgecenter"
 subcategory: ""
 description: |-
-  Represent instance. Could be used with baremetal also
+  A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.
 ---
 
 # edgecenter_instance (Data Source)
 
-Represent instance. Could be used with baremetal also
+A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.
 
 ## Example Usage
 
@@ -41,27 +41,28 @@ output "view" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the instance.
 
 ### Optional
 
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `addresses` (List of Object) (see [below for nested schema](#nestedatt--addresses))
-- `flavor` (Map of String)
-- `flavor_id` (String)
+- `addresses` (List of Object) A list of network addresses associated with the instance, for example "pub_net": [...]. (see [below for nested schema](#nestedatt--addresses))
+- `flavor` (Map of String) A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.
+- `flavor_id` (String) The ID of the flavor to be used for the instance, determining its compute and memory, for example 'g1-standard-2-4'.
 - `id` (String) The ID of this resource.
-- `interface` (List of Object) (see [below for nested schema](#nestedatt--interface))
+- `interface` (List of Object) A list defining the network interfaces to be attached to the instance. (see [below for nested schema](#nestedatt--interface))
 - `metadata` (List of Object) (see [below for nested schema](#nestedatt--metadata))
-- `security_group` (List of Object) Firewalls list (see [below for nested schema](#nestedatt--security_group))
-- `status` (String)
-- `vm_state` (String)
-- `volume` (Set of Object) (see [below for nested schema](#nestedatt--volume))
+- `security_group` (List of Object) A list of firewall configurations applied to the instance, defined by their id and name. (see [below for nested schema](#nestedatt--security_group))
+- `status` (String) The current status of the instance. This is computed automatically and can be used to track the instance's state.
+- `vm_state` (String) The current virtual machine state of the instance, 
+allowing you to start or stop the VM. Possible values are stopped and active.
+- `volume` (Set of Object) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedatt--volume))
 
 <a id="nestedatt--addresses"></a>
 ### Nested Schema for `addresses`

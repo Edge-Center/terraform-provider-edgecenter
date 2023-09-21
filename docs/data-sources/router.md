@@ -41,22 +41,22 @@ output "view" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the load router.
 
 ### Optional
 
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `external_gateway_info` (List of Object) (see [below for nested schema](#nestedatt--external_gateway_info))
+- `external_gateway_info` (List of Object) Information related to the external gateway. (see [below for nested schema](#nestedatt--external_gateway_info))
 - `id` (String) The ID of this resource.
-- `interfaces` (List of Object) (see [below for nested schema](#nestedatt--interfaces))
-- `routes` (List of Object) (see [below for nested schema](#nestedatt--routes))
-- `status` (String)
+- `interfaces` (List of Object) Set of interfaces associated with the router. (see [below for nested schema](#nestedatt--interfaces))
+- `routes` (List of Object) List of static routes to be applied to the router. (see [below for nested schema](#nestedatt--routes))
+- `status` (String) The current status of the router resource.
 
 <a id="nestedatt--external_gateway_info"></a>
 ### Nested Schema for `external_gateway_info`

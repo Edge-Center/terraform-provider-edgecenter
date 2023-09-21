@@ -3,12 +3,14 @@
 page_title: "edgecenter_volume Data Source - edgecenter"
 subcategory: ""
 description: |-
-  Represent volume. A volume is a file storage which is similar to SSD and HDD hard disks
+  A volume is a detachable block storage device akin to a USB hard drive or SSD, but located remotely in the cloud.
+  Volumes can be attached to a virtual machine and manipulated like a physical hard drive.
 ---
 
 # edgecenter_volume (Data Source)
 
-Represent volume. A volume is a file storage which is similar to SSD and HDD hard disks
+A volume is a detachable block storage device akin to a USB hard drive or SSD, but located remotely in the cloud.
+Volumes can be attached to a virtual machine and manipulated like a physical hard drive.
 
 ## Example Usage
 
@@ -41,23 +43,23 @@ output "view" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the volume.
 
 ### Optional
 
-- `metadata_k` (String)
-- `metadata_kv` (Map of String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `metadata_k` (String) Filtration query opts (only key).
+- `metadata_kv` (Map of String) Filtration query opts, for example, {offset = "10", limit = "10"}
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
-- `size` (Number)
-- `type_name` (String) Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'. Defaults to standard
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
+- `size` (Number) The size of the volume, specified in gigabytes (GB).
+- `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.
 
 <a id="nestedatt--metadata_read_only"></a>
 ### Nested Schema for `metadata_read_only`

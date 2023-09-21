@@ -30,28 +30,28 @@ data "edgecenter_k8s_pool" "pool" {
 
 ### Required
 
-- `cluster_id` (String)
-- `pool_id` (String)
+- `cluster_id` (String) The uuid of the Kubernetes cluster this pool belongs to.
+- `pool_id` (String) The uuid of the Kubernetes pool within the cluster.
 
 ### Optional
 
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `created_at` (String)
-- `docker_volume_size` (Number)
-- `docker_volume_type` (String) Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'.
-- `flavor_id` (String)
+- `created_at` (String) The timestamp when the Kubernetes pool was created.
+- `docker_volume_size` (Number) The size of the volume used for Docker containers, in gigabytes.
+- `docker_volume_type` (String) The type of volume used for the Docker containers. Available values are 'standard', 'ssd_hiiops', 'cold', and 'ultra'.
+- `flavor_id` (String) The identifier of the flavor used for nodes in this pool.
 - `id` (String) The ID of this resource.
-- `is_default` (Boolean)
-- `max_node_count` (Number)
-- `min_node_count` (Number)
-- `name` (String)
-- `node_addresses` (List of String)
-- `node_count` (Number)
-- `node_names` (List of String)
-- `stack_id` (String)
+- `is_default` (Boolean) Indicates whether this pool is the default pool in the cluster.
+- `max_node_count` (Number) The maximum number of nodes the pool can scale to.
+- `min_node_count` (Number) The minimum number of nodes in the pool.
+- `name` (String) The name of the Kubernetes pool.
+- `node_addresses` (List of String) A list of IP addresses of nodes within the pool.
+- `node_count` (Number) The current number of nodes in the pool.
+- `node_names` (List of String) A list of names of nodes within the pool.
+- `stack_id` (String) The identifier of the underlying infrastructure stack used by this pool.

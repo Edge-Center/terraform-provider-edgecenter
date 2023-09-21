@@ -40,17 +40,17 @@ resource "edgecenter_loadbalancer" "lb" {
 ### Required
 
 - `listener` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--listener))
-- `name` (String)
+- `name` (String) The name of the load balancer.
 
 ### Optional
 
 - `flavor` (String)
-- `last_updated` (String)
-- `metadata_map` (Map of String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `metadata_map` (Map of String) A map containing metadata, for example tags.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `vip_network_id` (String)
 - `vip_subnet_id` (String)
@@ -58,7 +58,7 @@ resource "edgecenter_loadbalancer" "lb" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 - `vip_address` (String) Load balancer IP address
 
 <a id="nestedblock--listener"></a>

@@ -19,84 +19,84 @@ const (
 func dataSourceImage() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceImageRead,
-		Description: "Represent image data",
+		Description: "A cloud image is a pre-configured virtual machine template that you can use to create new instances.",
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
 				Type:        schema.TypeString,
-				Description: "use 'os-version', for example 'ubuntu-20.04'",
+				Description: "The name of the image. Use 'os-version', for example 'ubuntu-20.04'.",
 				Required:    true,
 			},
 			"is_baremetal": {
 				Type:        schema.TypeBool,
-				Description: "set to true if need to get baremetal image",
+				Description: "Set to true if need to get the baremetal image.",
 				Optional:    true,
 			},
 			"min_disk": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Minimum disk space (in GB) required to launch an instance using this image.",
 			},
 			"min_ram": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Minimum VM RAM (in MB) required to launch an instance using this image.",
 			},
 			"os_distro": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The distribution of the OS present in the image, e.g. Debian, CentOS, Ubuntu etc.",
 			},
 			"os_version": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The version of the OS present in the image. e.g. 19.04 (for Ubuntu) or 9.4 for Debian.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "A detailed description of the image.",
 			},
 			"metadata_k": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Filtration query opts (only key).",
 			},
 			"metadata_kv": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: `Filtration query opts, for example, {offset = "10", limit = "10"}.`,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 			"metadata_read_only": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: `A list of read-only metadata items, e.g. tags.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {

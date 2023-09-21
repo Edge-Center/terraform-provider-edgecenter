@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -14,52 +15,47 @@ import (
 func dataSourceInstance() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceInstanceRead,
-		Description: "Represent instance. Could be used with baremetal also",
+		Description: `A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.`,
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the instance.",
 			},
 			"flavor_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID of the flavor to be used for the instance, determining its compute and memory, for example 'g1-standard-2-4'.",
 			},
 			"volume": {
-				Type:     schema.TypeSet,
-				Computed: true,
-				Set:      volumeUniqueID,
+				Type:        schema.TypeSet,
+				Computed:    true,
+				Set:         volumeUniqueID,
+				Description: "A set defining the volumes to be attached to the instance.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"volume_id": {
@@ -74,8 +70,9 @@ func dataSourceInstance() *schema.Resource {
 				},
 			},
 			"interface": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "A list defining the network interfaces to be attached to the instance.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"network_id": {
@@ -100,7 +97,7 @@ func dataSourceInstance() *schema.Resource {
 			"security_group": {
 				Type:        schema.TypeList,
 				Computed:    true,
-				Description: "Firewalls list",
+				Description: "A list of firewall configurations applied to the instance, defined by their id and name.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
@@ -127,20 +124,25 @@ func dataSourceInstance() *schema.Resource {
 				},
 			},
 			"flavor": {
-				Type:     schema.TypeMap,
-				Computed: true,
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: `A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.`,
 			},
 			"status": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The current status of the instance. This is computed automatically and can be used to track the instance's state.",
 			},
 			"vm_state": {
 				Type:     schema.TypeString,
 				Computed: true,
+				Description: fmt.Sprintf(`The current virtual machine state of the instance, 
+allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceVMStateStopped, InstanceVMStateActive),
 			},
 			"addresses": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: `A list of network addresses associated with the instance, for example "pub_net": [...].`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"net": {

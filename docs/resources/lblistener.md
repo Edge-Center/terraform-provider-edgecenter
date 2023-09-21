@@ -39,29 +39,29 @@ resource "edgecenter_lblistener" "listener" {
 
 ### Required
 
-- `loadbalancer_id` (String)
-- `name` (String)
+- `loadbalancer_id` (String) The uuid for the load balancer.
+- `name` (String) The name of the load balancer listener.
 - `protocol` (String) Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS' and 'Terminated HTTPS'.
-- `protocol_port` (Number)
+- `protocol_port` (Number) The port on which the protocol is bound.
 
 ### Optional
 
 - `insert_x_forwarded` (Boolean) Insert *-forwarded headers
-- `last_updated` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
-- `secret_id` (String)
-- `sni_secret_id` (List of String)
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `secret_id` (String) The identifier for the associated secret, typically used for SSL configurations.
+- `sni_secret_id` (List of String) List of secret identifiers used for Server Name Indication (SNI).
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `operating_status` (String)
-- `pool_count` (Number)
-- `provisioning_status` (String)
+- `operating_status` (String) The current operational status of the load balancer.
+- `pool_count` (Number) Number of pools associated with the load balancer.
+- `provisioning_status` (String) The current provisioning status of the load balancer.
 
 <a id="nestedblock--timeouts"></a>
 ### Nested Schema for `timeouts`

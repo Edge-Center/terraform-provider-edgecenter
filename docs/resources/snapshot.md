@@ -34,24 +34,24 @@ resource "edgecenter_snapshot" "snapshot" {
 
 ### Required
 
-- `name` (String)
-- `volume_id` (String)
+- `name` (String) The name of the snapshot.
+- `volume_id` (String) The ID of the volume from which the snapshot was created.
 
 ### Optional
 
-- `description` (String)
-- `last_updated` (String)
+- `description` (String) A detailed description of the snapshot.
+- `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata` (Map of String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `size` (Number)
-- `status` (String)
+- `size` (Number) The size of the snapshot in GB.
+- `status` (String) The current status of the snapshot.
 
 ## Import
 

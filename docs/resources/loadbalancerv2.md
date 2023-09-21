@@ -33,27 +33,27 @@ resource "edgecenter_loadbalancerv2" "lb" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the load balancer.
 
 ### Optional
 
-- `flavor` (String)
-- `last_updated` (String)
-- `metadata_map` (Map of String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `flavor` (String) The flavor or specification of the load balancer to be created.
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `metadata_map` (Map of String) A map containing metadata, for example tags.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 - `security_group` (String) Creates a new security group with the specified name
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `vip_network_id` (String) Attaches the created network.
 - `vip_port_id` (String) Attaches the created reserved IP.
-- `vip_subnet_id` (String)
+- `vip_subnet_id` (String) The ID of the subnet in which to allocate the VIP address for the load balancer.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 - `security_group_id` (String) Load balancer security group ID
 - `vip_address` (String) Load balancer IP address
 

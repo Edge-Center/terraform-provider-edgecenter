@@ -51,28 +51,28 @@ resource "edgecenter_subnet" "subnet" {
 
 ### Required
 
-- `cidr` (String)
-- `name` (String)
-- `network_id` (String)
+- `cidr` (String) Represents the IP address range of the subnet.
+- `name` (String) The name of the subnet.
+- `network_id` (String) The ID of the network to which this subnet belongs.
 
 ### Optional
 
 - `connect_to_network_router` (Boolean) True if the network's router should get a gateway in this subnet. Must be explicitly 'false' when gateway_ip is null. Default true.
-- `dns_nameservers` (List of String)
-- `enable_dhcp` (Boolean)
-- `gateway_ip` (String)
-- `host_routes` (Block List) (see [below for nested schema](#nestedblock--host_routes))
-- `last_updated` (String)
-- `metadata_map` (Map of String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `dns_nameservers` (List of String) List of DNS name servers for the subnet.
+- `enable_dhcp` (Boolean) Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.
+- `gateway_ip` (String) The IP address of the gateway for this subnet.
+- `host_routes` (Block List) List of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedblock--host_routes))
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `metadata_map` (Map of String) A map containing metadata, for example tags.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 
 <a id="nestedblock--host_routes"></a>
 ### Nested Schema for `host_routes`

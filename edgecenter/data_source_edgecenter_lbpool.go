@@ -17,50 +17,33 @@ func dataSourceLBPool() *schema.Resource {
 		ReadContext: dataSourceLBPoolRead,
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"loadbalancer_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-			"listener_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the load balancer pool.",
 			},
 			"lb_algorithm": {
 				Type:        schema.TypeString,
@@ -72,9 +55,23 @@ func dataSourceLBPool() *schema.Resource {
 				Computed:    true,
 				Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP),
 			},
+			"loadbalancer_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The uuid for the load balancer.",
+			},
+			"listener_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The uuid for the load balancer listener.",
+			},
 			"health_monitor": {
 				Type:     schema.TypeList,
 				Computed: true,
+				Description: `Configuration for health checks to test the health and state of the backend members. 
+It determines how the load balancer identifies whether the backend members are healthy or unhealthy.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -120,6 +117,8 @@ func dataSourceLBPool() *schema.Resource {
 			"session_persistence": {
 				Type:     schema.TypeList,
 				Computed: true,
+				Description: `Configuration that enables the load balancer to bind a user's session to a specific backend member. 
+This ensures that all requests from the user during the session are sent to the same member.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
