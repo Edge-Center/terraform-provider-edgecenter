@@ -41,46 +41,46 @@ resource "edgecenter_k8s" "v" {
 
 ### Required
 
-- `fixed_network` (String)
-- `fixed_subnet` (String) There must be a router on the subnet
+- `fixed_network` (String) Fixed network (uuid) associated with the Kubernetes cluster.
+- `fixed_subnet` (String) Subnet (uuid) associated with the fixed network. Ensure there's a router on this subnet.
 - `keypair` (String) The name of the keypair
-- `name` (String)
-- `pool` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--pool))
-- `version` (String)
+- `name` (String) The name of the Kubernetes cluster.
+- `pool` (Block List, Min: 1, Max: 1) Configuration details of the node pool in the Kubernetes cluster. (see [below for nested schema](#nestedblock--pool))
+- `version` (String) The version of the Kubernetes cluster.
 
 ### Optional
 
-- `auto_healing_enabled` (Boolean)
-- `external_dns_enabled` (Boolean)
-- `last_updated` (String)
-- `master_lb_floating_ip_enabled` (Boolean)
-- `pods_ip_pool` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
-- `services_ip_pool` (String)
+- `auto_healing_enabled` (Boolean) Indicates whether auto-healing is enabled for the Kubernetes cluster. true by default.
+- `external_dns_enabled` (Boolean) Indicates whether external DNS is enabled for the Kubernetes cluster. false by default.
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `master_lb_floating_ip_enabled` (Boolean) Flag indicating if the master LoadBalancer should have a floating IP.
+- `pods_ip_pool` (String) IP pool to be used for pods within the Kubernetes cluster.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `services_ip_pool` (String) IP pool to be used for services within the Kubernetes cluster.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
-- `api_address` (String)
-- `cluster_template_id` (String)
-- `container_version` (String)
-- `created_at` (String)
-- `discovery_url` (String)
+- `api_address` (String) API endpoint address for the Kubernetes cluster.
+- `cluster_template_id` (String) Template identifier from which the Kubernetes cluster was instantiated.
+- `container_version` (String) The container runtime version used in the Kubernetes cluster.
+- `created_at` (String) The timestamp when the Kubernetes cluster was created.
+- `discovery_url` (String) URL used for node discovery within the Kubernetes cluster.
 - `faults` (Map of String)
-- `health_status` (String)
+- `health_status` (String) Overall health status of the Kubernetes cluster.
 - `health_status_reason` (Map of String)
 - `id` (String) The ID of this resource.
-- `master_addresses` (List of String)
-- `master_flavor_id` (String)
-- `node_addresses` (List of String)
-- `node_count` (Number)
-- `status` (String)
-- `status_reason` (String)
-- `updated_at` (String)
-- `user_id` (String)
+- `master_addresses` (List of String) List of IP addresses for master nodes in the Kubernetes cluster.
+- `master_flavor_id` (String) Identifier for the master node flavor in the Kubernetes cluster.
+- `node_addresses` (List of String) List of IP addresses for worker nodes in the Kubernetes cluster.
+- `node_count` (Number) Total number of nodes in the Kubernetes cluster.
+- `status` (String) The current status of the Kubernetes cluster.
+- `status_reason` (String) The reason for the current status of the Kubernetes cluster, if ERROR.
+- `updated_at` (String) The timestamp when the Kubernetes cluster was updated.
+- `user_id` (String) User identifier associated with the Kubernetes cluster.
 
 <a id="nestedblock--pool"></a>
 ### Nested Schema for `pool`

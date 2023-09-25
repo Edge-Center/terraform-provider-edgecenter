@@ -37,7 +37,7 @@ func resourceInstance() *schema.Resource {
 		ReadContext:   resourceInstanceRead,
 		UpdateContext: resourceInstanceUpdate,
 		DeleteContext: resourceInstanceDelete,
-		Description:   "Represent instance",
+		Description:   "A cloud instance is a virtual machine in a cloud environment.",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, InstanceID, err := ImportStringParser(d.Id())
@@ -54,50 +54,44 @@ func resourceInstance() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
-			},
-			"flavor_id": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The name of the instance.",
+			},
+			"flavor_id": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The ID of the flavor to be used for the instance, determining its compute and memory, for example 'g1-standard-2-4'.",
 			},
 			"name_templates": {
 				Type:          schema.TypeList,
 				Optional:      true,
-				Deprecated:    "Use name_template instead",
+				Deprecated:    "Use name_template instead.",
 				ConflictsWith: []string{"name_template"},
 				Elem:          &schema.Schema{Type: schema.TypeString},
 			},
@@ -105,16 +99,19 @@ func resourceInstance() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"name_templates"},
+				Description:   "A template used to generate the instance name. This field cannot be used with 'name_templates'.",
 			},
 			"volume": {
-				Type:     schema.TypeSet,
-				Required: true,
-				Set:      volumeUniqueID,
+				Type:        schema.TypeSet,
+				Required:    true,
+				Set:         volumeUniqueID,
+				Description: "A set defining the volumes to be attached to the instance.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The name assigned to the volume. Defaults to 'system'.",
 						},
 						"source": {
 							Type:        schema.TypeString,
@@ -134,17 +131,19 @@ func resourceInstance() *schema.Resource {
 							Optional:    true,
 						},
 						"type_name": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.",
 						},
 						"image_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"size": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Computed:    true,
+							Description: "The size of the volume, specified in gigabytes (GB).",
 						},
 						"volume_id": {
 							Type:     schema.TypeString,
@@ -168,8 +167,9 @@ func resourceInstance() *schema.Resource {
 				},
 			},
 			"interface": {
-				Type:     schema.TypeList,
-				Required: true,
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "A list defining the network interfaces to be attached to the instance.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
@@ -185,13 +185,13 @@ func resourceInstance() *schema.Resource {
 						},
 						"network_id": {
 							Type:        schema.TypeString,
-							Description: "required if type is 'subnet' or 'any_subnet'",
+							Description: "Required if type is 'subnet' or 'any_subnet'.",
 							Optional:    true,
 							Computed:    true,
 						},
 						"subnet_id": {
 							Type:        schema.TypeString,
-							Description: "required if type is 'subnet'",
+							Description: "Required if type is 'subnet'.",
 							Optional:    true,
 							Computed:    true,
 						},
@@ -225,38 +225,45 @@ func resourceInstance() *schema.Resource {
 				},
 			},
 			"keypair_name": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of the key pair to be associated with the instance for SSH access.",
 			},
 			"server_group": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The ID (uuid) of the server group to which the instance should belong.",
 			},
 			"security_group": {
 				Type:        schema.TypeList,
 				Computed:    true,
-				Description: "Firewalls list",
+				Description: "A list of firewall configurations applied to the instance, defined by their ID and name.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
 							Type:        schema.TypeString,
-							Description: "Firewall unique id",
+							Description: "Firewall unique id (uuid)",
 							Required:    true,
 						},
 						"name": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Description: "Firewall name",
+							Required:    true,
 						},
 					},
 				},
 			},
 			"password": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				RequiredWith: []string{"username"},
+				Description:  "The password to be used for accessing the instance. Required with username.",
 			},
 			"username": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				RequiredWith: []string{"password"},
+				Description:  "The username to be used for accessing the instance. Required with password.",
 			},
 			"metadata": {
 				Type:          schema.TypeList,
@@ -280,6 +287,7 @@ func resourceInstance() *schema.Resource {
 				Type:          schema.TypeMap,
 				Optional:      true,
 				ConflictsWith: []string{"metadata"},
+				Description:   "A map containing metadata, for example tags.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -287,6 +295,8 @@ func resourceInstance() *schema.Resource {
 			"configuration": {
 				Type:     schema.TypeList,
 				Optional: true,
+				Description: `A list of key-value pairs specifying configuration settings for the instance when created 
+from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."}`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {
@@ -311,34 +321,38 @@ func resourceInstance() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"userdata"},
+				Description:   "A field for specifying user data to be used for configuring the instance at launch time.",
 			},
 			"allow_app_ports": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "A boolean indicating whether to allow application ports on the instance.",
 			},
 			"flavor": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Computed:    true,
+				Description: `A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.`,
 			},
 			"status": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-			"vm_state": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: fmt.Sprintf("Current vm state, use %s to stop vm and %s to start", InstanceVMStateStopped, InstanceVMStateActive),
-				ValidateFunc: validation.StringInSlice([]string{
-					InstanceVMStateActive, InstanceVMStateStopped,
-				}, true),
+				Description: "The current status of the instance. This is computed automatically and can be used to track the instance's state.",
 			},
-			"addresses": {
-				Type:     schema.TypeList,
+			"vm_state": {
+				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				Description: fmt.Sprintf(`The current virtual machine state of the instance, 
+allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceVMStateStopped, InstanceVMStateActive),
+				ValidateFunc: validation.StringInSlice([]string{InstanceVMStateActive, InstanceVMStateStopped}, true),
+			},
+			"addresses": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
+				Description: `A list of network addresses associated with the instance, for example "pub_net": [...]`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"net": {
@@ -347,12 +361,14 @@ func resourceInstance() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"addr": {
-										Type:     schema.TypeString,
-										Required: true,
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The net ip address, for example '45.147.163.112'.",
 									},
 									"type": {
-										Type:     schema.TypeString,
-										Required: true,
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The net type, for example 'fixed'.",
 									},
 								},
 							},
@@ -361,9 +377,10 @@ func resourceInstance() *schema.Resource {
 				},
 			},
 			"last_updated": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The timestamp of the last update (use with update context).",
 			},
 		},
 	}

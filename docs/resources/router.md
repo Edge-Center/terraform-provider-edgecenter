@@ -58,18 +58,18 @@ resource "edgecenter_router" "router" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the router.
 
 ### Optional
 
-- `external_gateway_info` (Block List, Max: 1) (see [below for nested schema](#nestedblock--external_gateway_info))
-- `interfaces` (Block Set) (see [below for nested schema](#nestedblock--interfaces))
-- `last_updated` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
-- `routes` (Block List) (see [below for nested schema](#nestedblock--routes))
+- `external_gateway_info` (Block List, Max: 1) Information related to the external gateway. (see [below for nested schema](#nestedblock--external_gateway_info))
+- `interfaces` (Block Set) Set of interfaces associated with the router. (see [below for nested schema](#nestedblock--interfaces))
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `routes` (Block List) List of static routes to be applied to the router. (see [below for nested schema](#nestedblock--routes))
 
 ### Read-Only
 

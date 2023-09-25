@@ -3,12 +3,12 @@
 page_title: "edgecenter_instance Resource - edgecenter"
 subcategory: ""
 description: |-
-  Represent instance
+  A cloud instance is a virtual machine in a cloud environment.
 ---
 
 # edgecenter_instance (Resource)
 
-Represent instance
+A cloud instance is a virtual machine in a cloud environment.
 
 ## Example Usage
 
@@ -152,39 +152,41 @@ resource "edgecenter_instance" "v" {
 
 ### Required
 
-- `flavor_id` (String)
-- `interface` (Block List, Min: 1) (see [below for nested schema](#nestedblock--interface))
-- `volume` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--volume))
+- `flavor_id` (String) The ID of the flavor to be used for the instance, determining its compute and memory, for example 'g1-standard-2-4'.
+- `interface` (Block List, Min: 1) A list defining the network interfaces to be attached to the instance. (see [below for nested schema](#nestedblock--interface))
+- `volume` (Block Set, Min: 1) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedblock--volume))
 
 ### Optional
 
-- `addresses` (Block List) (see [below for nested schema](#nestedblock--addresses))
-- `allow_app_ports` (Boolean)
-- `configuration` (Block List) (see [below for nested schema](#nestedblock--configuration))
-- `flavor` (Map of String)
-- `keypair_name` (String)
-- `last_updated` (String)
+- `addresses` (Block List) A list of network addresses associated with the instance, for example "pub_net": [...] (see [below for nested schema](#nestedblock--addresses))
+- `allow_app_ports` (Boolean) A boolean indicating whether to allow application ports on the instance.
+- `configuration` (Block List) A list of key-value pairs specifying configuration settings for the instance when created 
+from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."} (see [below for nested schema](#nestedblock--configuration))
+- `flavor` (Map of String) A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.
+- `keypair_name` (String) The name of the key pair to be associated with the instance for SSH access.
+- `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata` (Block List, Deprecated) (see [below for nested schema](#nestedblock--metadata))
-- `metadata_map` (Map of String)
-- `name` (String)
-- `name_template` (String)
+- `metadata_map` (Map of String) A map containing metadata, for example tags.
+- `name` (String) The name of the instance.
+- `name_template` (String) A template used to generate the instance name. This field cannot be used with 'name_templates'.
 - `name_templates` (List of String, Deprecated)
-- `password` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
-- `server_group` (String)
-- `status` (String)
-- `user_data` (String)
+- `password` (String) The password to be used for accessing the instance. Required with username.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `server_group` (String) The ID (uuid) of the server group to which the instance should belong.
+- `status` (String) The current status of the instance. This is computed automatically and can be used to track the instance's state.
+- `user_data` (String) A field for specifying user data to be used for configuring the instance at launch time.
 - `userdata` (String, Deprecated) **Deprecated**
-- `username` (String)
-- `vm_state` (String) Current vm state, use stopped to stop vm and active to start
+- `username` (String) The username to be used for accessing the instance. Required with password.
+- `vm_state` (String) The current virtual machine state of the instance, 
+allowing you to start or stop the VM. Possible values are stopped and active.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `security_group` (List of Object) Firewalls list (see [below for nested schema](#nestedatt--security_group))
+- `security_group` (List of Object) A list of firewall configurations applied to the instance, defined by their ID and name. (see [below for nested schema](#nestedatt--security_group))
 
 <a id="nestedblock--interface"></a>
 ### Nested Schema for `interface`
@@ -194,11 +196,11 @@ Optional:
 - `existing_fip_id` (String)
 - `fip_source` (String)
 - `ip_address` (String)
-- `network_id` (String) required if type is 'subnet' or 'any_subnet'
+- `network_id` (String) Required if type is 'subnet' or 'any_subnet'.
 - `order` (Number) Order of attaching interface
 - `port_id` (String) required if type is  'reserved_fixed_ip'
 - `security_groups` (List of String) list of security group IDs
-- `subnet_id` (String) required if type is 'subnet'
+- `subnet_id` (String) Required if type is 'subnet'.
 - `type` (String) Available value is 'subnet', 'any_subnet', 'external', 'reserved_fixed_ip'
 
 
@@ -215,9 +217,9 @@ Optional:
 - `boot_index` (Number) If boot_index==0 volumes can not detached
 - `delete_on_termination` (Boolean)
 - `image_id` (String)
-- `name` (String)
-- `size` (Number)
-- `type_name` (String)
+- `name` (String) The name assigned to the volume. Defaults to 'system'.
+- `size` (Number) The size of the volume, specified in gigabytes (GB).
+- `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.
 - `volume_id` (String)
 
 Read-Only:
@@ -237,8 +239,8 @@ Required:
 
 Required:
 
-- `addr` (String)
-- `type` (String)
+- `addr` (String) The net ip address, for example '45.147.163.112'.
+- `type` (String) The net type, for example 'fixed'.
 
 
 

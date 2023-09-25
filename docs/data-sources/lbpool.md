@@ -41,24 +41,26 @@ output "view" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the load balancer pool.
 
 ### Optional
 
-- `listener_id` (String)
-- `loadbalancer_id` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `listener_id` (String) The uuid for the load balancer listener.
+- `loadbalancer_id` (String) The uuid for the load balancer.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `health_monitor` (List of Object) (see [below for nested schema](#nestedatt--health_monitor))
+- `health_monitor` (List of Object) Configuration for health checks to test the health and state of the backend members. 
+It determines how the load balancer identifies whether the backend members are healthy or unhealthy. (see [below for nested schema](#nestedatt--health_monitor))
 - `id` (String) The ID of this resource.
 - `lb_algorithm` (String) Available values is 'ROUND_ROBIN', 'LEAST_CONNECTIONS', 'SOURCE_IP', 'SOURCE_IP_PORT'
 - `protocol` (String) Available values is 'HTTP' (currently work, other do not work on ed-8), 'HTTPS', 'TCP', 'UDP'
-- `session_persistence` (List of Object) (see [below for nested schema](#nestedatt--session_persistence))
+- `session_persistence` (List of Object) Configuration that enables the load balancer to bind a user's session to a specific backend member. 
+This ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedatt--session_persistence))
 
 <a id="nestedatt--health_monitor"></a>
 ### Nested Schema for `health_monitor`

@@ -20,40 +20,46 @@ func dataSourceLoadBalancer() *schema.Resource {
 		DeprecationMessage: "!> **WARNING:** This data-source is deprecated and will be removed in the next major version. Use edgecenter_loadbalancerv2 data-source instead",
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the router.",
+			},
+			"metadata_k": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Filtration query opts (only key).",
+			},
+			"metadata_kv": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: `Filtration query opts, for example, {offset = "10", limit = "10"}`,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"vip_address": {
 				Type:     schema.TypeString,
@@ -88,20 +94,10 @@ func dataSourceLoadBalancer() *schema.Resource {
 					},
 				},
 			},
-			"metadata_k": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"metadata_kv": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
 			"metadata_read_only": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: `A list of read-only metadata items, e.g. tags.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {

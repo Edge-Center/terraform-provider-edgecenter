@@ -16,48 +16,43 @@ func dataSourceK8sClientConfig() *schema.Resource {
 		Description: "Represent k8s cluster with one default pool.",
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"cluster_id": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The uuid of the Kubernetes cluster.",
 			},
 			"client_certificate_data": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The client_certificate_data field from k8s config.",
 			},
 			"client_key_data": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The client_key_data field from k8s config.",
 			},
 		},
 	}
@@ -89,13 +84,13 @@ func dataSourceK8sReadClientConfig(_ context.Context, d *schema.ResourceData, m 
 	}
 
 	clientCertificateData := clusterConfig.Users[0].User.ClientCertificateData
-	if err := d.Set("client_key_data", clientCertificateData); err != nil {
-		return diag.Errorf("couldn't get client_key_data: %s", err)
+	if err := d.Set("client_certificate_data", clientCertificateData); err != nil {
+		return diag.Errorf("couldn't get client_certificate_data: %s", err)
 	}
 
 	clientKeyData := clusterConfig.Users[0].User.ClientKeyData
-	if err := d.Set("client_certificate_data", clientKeyData); err != nil {
-		return diag.Errorf("couldn't get client_certificate_data: %s", err)
+	if err := d.Set("client_key_data", clientKeyData); err != nil {
+		return diag.Errorf("couldn't get client_key_data: %s", err)
 	}
 
 	log.Println("[DEBUG] Finish K8s client config reading")

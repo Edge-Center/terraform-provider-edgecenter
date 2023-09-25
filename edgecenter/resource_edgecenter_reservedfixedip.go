@@ -47,46 +47,34 @@ func resourceReservedFixedIP() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"type": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s'", reservedfixedips.External, reservedfixedips.Subnet, reservedfixedips.AnySubnet, reservedfixedips.IPAddress),
+				Description: fmt.Sprintf("The type of reserved fixed IP. Valid values are '%s', '%s', '%s', and '%s'", reservedfixedips.External, reservedfixedips.Subnet, reservedfixedips.AnySubnet, reservedfixedips.IPAddress),
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					switch reservedfixedips.ReservedFixedIPType(v) {
@@ -97,14 +85,16 @@ func resourceReservedFixedIP() *schema.Resource {
 				},
 			},
 			"status": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The current status of the reserved fixed IP.",
 			},
 			"fixed_ip_address": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "The IP address that is associated with the reserved IP.",
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					ip := net.ParseIP(v)
@@ -116,30 +106,33 @@ func resourceReservedFixedIP() *schema.Resource {
 				},
 			},
 			"subnet_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "ID of the subnet from which the fixed IP should be reserved.",
 			},
 			"network_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "ID of the network to which the reserved fixed IP is associated.",
 			},
 			"is_vip": {
-				Type:     schema.TypeBool,
-				Required: true,
+				Type:        schema.TypeBool,
+				Required:    true,
+				Description: "Flag to determine if the reserved fixed IP should be treated as a Virtual IP (VIP).",
 			},
 			"port_id": {
 				Type:        schema.TypeString,
-				Description: "ID of the port_id underlying the reserved fixed IP",
+				Description: "ID of the port_id underlying the reserved fixed IP.",
 				Computed:    true,
 			},
 			"allowed_address_pairs": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "Group of IP addresses that share the current IP as VIP",
+				Description: "Group of IP addresses that share the current IP as VIP.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ip_address": {
@@ -154,9 +147,10 @@ func resourceReservedFixedIP() *schema.Resource {
 				},
 			},
 			"last_updated": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The timestamp of the last update (use with update context).",
 			},
 		},
 	}

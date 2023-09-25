@@ -30,7 +30,8 @@ func resourceFloatingIP() *schema.Resource {
 		ReadContext:   resourceFloatingIPRead,
 		UpdateContext: resourceFloatingIPUpdate,
 		DeleteContext: resourceFloatingIPDelete,
-		Description:   "A floating IP is a static IP address that points to one of your Instances. It allows you to redirect network traffic to any of your Instances in the same datacenter.",
+		Description: `A floating IP is a static IP address that can be associated with one of your instances or loadbalancers, 
+allowing it to have a static public IP address. The floating IP can be re-associated to any other instance in the same datacenter.`,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, fipID, err := ImportStringParser(d.Id())
@@ -47,45 +48,50 @@ func resourceFloatingIP() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
+			},
+			"floating_ip_address": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The floating IP address assigned to the resource.",
+			},
+			"port_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The ID (uuid) of the network port that the floating IP is associated with.",
 			},
 			"status": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The current status of the floating IP. Can be 'DOWN' or 'ACTIVE'.",
 			},
 			"fixed_ip_address": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The fixed (reserved) IP address that is associated with the floating IP.",
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					ip := net.ParseIP(v)
@@ -96,42 +102,31 @@ func resourceFloatingIP() *schema.Resource {
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
 			},
-			"floating_ip_address": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"router_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"port_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-			"updated_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID (uuid) of the router that the floating IP is associated with.",
 			},
 			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The timestamp when the floating IP was created.",
+			},
+			"updated_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The timestamp when the floating IP was updated.",
 			},
 			"last_updated": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-			"metadata_map": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The timestamp of the last update (use with update context).",
 			},
 			"metadata_read_only": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: `A list of read-only metadata items, e.g. tags.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {

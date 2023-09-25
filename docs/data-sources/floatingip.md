@@ -3,12 +3,14 @@
 page_title: "edgecenter_floatingip Data Source - edgecenter"
 subcategory: ""
 description: |-
-  A floating IP is a static IP address that points to one of your Instances. It allows you to redirect network traffic to any of your Instances in the same datacenter.
+  A floating IP is a static IP address that can be associated with one of your instances or loadbalancers,
+  allowing it to have a static public IP address. The floating IP can be re-associated to any other instance in the same datacenter.
 ---
 
 # edgecenter_floatingip (Data Source)
 
-A floating IP is a static IP address that points to one of your Instances. It allows you to redirect network traffic to any of your Instances in the same datacenter.
+A floating IP is a static IP address that can be associated with one of your instances or loadbalancers, 
+allowing it to have a static public IP address. The floating IP can be re-associated to any other instance in the same datacenter.
 
 ## Example Usage
 
@@ -41,25 +43,25 @@ output "view" {
 
 ### Required
 
-- `floating_ip_address` (String)
+- `floating_ip_address` (String) The floating IP address assigned to the resource. It must be a valid IP address.
 
 ### Optional
 
-- `metadata_k` (String)
-- `metadata_kv` (Map of String)
-- `port_id` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `metadata_k` (String) Filtration query opts (only key).
+- `metadata_kv` (Map of String) Filtration query opts, for example, {offset = "10", limit = "10"}.
+- `port_id` (String) The ID (uuid) of the network port that the floating IP is associated with.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `fixed_ip_address` (String)
+- `fixed_ip_address` (String) The fixed (reserved) IP address that is associated with the floating IP.
 - `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
-- `router_id` (String)
-- `status` (String)
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
+- `router_id` (String) The ID (uuid) of the router that the floating IP is associated with.
+- `status` (String) The current status of the floating IP resource. Can be 'DOWN' or 'ACTIVE'.
 
 <a id="nestedatt--metadata_read_only"></a>
 ### Nested Schema for `metadata_read_only`

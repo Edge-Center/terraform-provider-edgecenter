@@ -15,68 +15,80 @@ func dataSourceSubnet() *schema.Resource {
 		ReadContext: dataSourceSubnetRead,
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the subnet.",
+			},
+			"metadata_k": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Filtration query opts (only key).",
+			},
+			"metadata_kv": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: `Filtration query opts, for example, {offset = "10", limit = "10"}`,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"network_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+				Description: "The ID of the network to which this subnet belongs.",
 			},
 			"enable_dhcp": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.",
 			},
 			"cidr": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Represents the IP address range of the subnet.",
 			},
 			"connect_to_network_router": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "True if the network's router should get a gateway in this subnet. Must be explicitly 'false' when gateway_ip is null.",
 			},
 			"dns_nameservers": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "List of DNS name servers for the subnet.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 			"host_routes": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "List of additional routes to be added to instances that are part of this subnet.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"destination": {
@@ -92,23 +104,14 @@ func dataSourceSubnet() *schema.Resource {
 				},
 			},
 			"gateway_ip": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"metadata_k": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"metadata_kv": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The IP address of the gateway for this subnet.",
 			},
 			"metadata_read_only": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: `A list of read-only metadata items, e.g. tags.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {

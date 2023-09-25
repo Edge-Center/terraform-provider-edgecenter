@@ -35,29 +35,29 @@ resource "edgecenter_k8s_pool" "v" {
 
 ### Required
 
-- `cluster_id` (String)
-- `flavor_id` (String)
-- `max_node_count` (Number)
-- `min_node_count` (Number)
-- `name` (String)
-- `node_count` (Number)
+- `cluster_id` (String) The uuid of the Kubernetes cluster this pool belongs to.
+- `flavor_id` (String) The identifier of the flavor used for nodes in this pool, e.g. g1-standard-2-4.
+- `max_node_count` (Number) The maximum number of nodes the pool can scale to.
+- `min_node_count` (Number) The minimum number of nodes in the pool.
+- `name` (String) The name of the Kubernetes pool.
+- `node_count` (Number) The current number of nodes in the pool.
 
 ### Optional
 
-- `docker_volume_size` (Number)
-- `docker_volume_type` (String) Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'.
-- `last_updated` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `docker_volume_size` (Number) The size of the volume used for Docker containers, in gigabytes.
+- `docker_volume_type` (String) The type of volume used for the Docker containers. Available values are 'standard', 'ssd_hiiops', 'cold', and 'ultra'.
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
-- `created_at` (String)
+- `created_at` (String) The timestamp when the Kubernetes pool was created.
 - `id` (String) The ID of this resource.
-- `stack_id` (String)
+- `stack_id` (String) The identifier of the underlying infrastructure stack used by this pool.
 
 <a id="nestedblock--timeouts"></a>
 ### Nested Schema for `timeouts`

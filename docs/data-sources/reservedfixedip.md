@@ -41,24 +41,24 @@ output "view" {
 
 ### Required
 
-- `fixed_ip_address` (String)
+- `fixed_ip_address` (String) The IP address that is associated with the reserved IP.
 
 ### Optional
 
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `allowed_address_pairs` (List of Object) (see [below for nested schema](#nestedatt--allowed_address_pairs))
+- `allowed_address_pairs` (List of Object) Group of IP addresses that share the current IP as VIP. (see [below for nested schema](#nestedatt--allowed_address_pairs))
 - `id` (String) The ID of this resource.
-- `is_vip` (Boolean)
-- `network_id` (String)
+- `is_vip` (Boolean) Flag to determine if the reserved fixed IP should be treated as a Virtual IP (VIP).
+- `network_id` (String) ID of the network to which the reserved fixed IP is associated.
 - `port_id` (String) ID of the port_id underlying the reserved fixed IP
-- `status` (String)
-- `subnet_id` (String)
+- `status` (String) The current status of the reserved fixed IP.
+- `subnet_id` (String) ID of the subnet from which the fixed IP should be reserved.
 
 <a id="nestedatt--allowed_address_pairs"></a>
 ### Nested Schema for `allowed_address_pairs`

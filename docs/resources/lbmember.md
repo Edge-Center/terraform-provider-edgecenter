@@ -64,26 +64,26 @@ resource "edgecenter_lbmember" "lbm" {
 
 ### Required
 
-- `address` (String)
-- `pool_id` (String)
-- `protocol_port` (Number)
+- `address` (String) The IP address of the load balancer pool member.
+- `pool_id` (String) The uuid for the load balancer pool.
+- `protocol_port` (Number) The port on which the member listens for requests.
 
 ### Optional
 
-- `instance_id` (String)
-- `last_updated` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
-- `subnet_id` (String)
+- `instance_id` (String) The uuid of the instance (amphora) associated with the pool member.
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `subnet_id` (String) The uuid of the subnet in which the pool member is located.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `weight` (Number) Value between 0 and 256
+- `weight` (Number) A weight value between 0 and 256, determining the distribution of requests among the members of the pool.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `operating_status` (String)
+- `operating_status` (String) The current operating status of the pool member.
 
 <a id="nestedblock--timeouts"></a>
 ### Nested Schema for `timeouts`

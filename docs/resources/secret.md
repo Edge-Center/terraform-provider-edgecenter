@@ -36,26 +36,26 @@ resource "edgecenter_secret" "lb_https" {
 
 - `certificate` (String) SSL certificate in PEM format
 - `certificate_chain` (String) SSL certificate chain of intermediates and root certificates in PEM format
-- `name` (String)
+- `name` (String) The name of the secret.
 - `private_key` (String) SSL private key in PEM format
 
 ### Optional
 
 - `expiration` (String) Datetime when the secret will expire. The format is 2025-12-28T19:14:44
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `algorithm` (String)
-- `bit_length` (Number)
-- `content_types` (Map of String)
+- `algorithm` (String) The encryption algorithm used for the secret.
+- `bit_length` (Number) The bit length of the encryption algorithm.
+- `content_types` (Map of String) The content types associated with the secret's payload.
 - `created` (String) Datetime when the secret was created. The format is 2025-12-28T19:14:44.180394
 - `id` (String) The ID of this resource.
-- `mode` (String)
-- `status` (String)
+- `mode` (String) The mode of the encryption algorithm.
+- `status` (String) The current status of the secret.
 
 ## Import
 

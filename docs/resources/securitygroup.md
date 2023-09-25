@@ -51,23 +51,23 @@ resource "edgecenter_securitygroup" "sg" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the security group.
 - `security_group_rules` (Block Set, Min: 1) Firewall rules control what inbound(ingress) and outbound(egress) traffic is allowed to enter or leave a Instance. At least one 'egress' rule should be set (see [below for nested schema](#nestedblock--security_group_rules))
 
 ### Optional
 
-- `description` (String)
-- `last_updated` (String)
-- `metadata_map` (Map of String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `description` (String) A detailed description of the security group.
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `metadata_map` (Map of String) A map containing metadata, for example tags.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 
 <a id="nestedblock--security_group_rules"></a>
 ### Nested Schema for `security_group_rules`

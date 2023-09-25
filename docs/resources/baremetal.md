@@ -54,17 +54,17 @@ resource "edgecenter_baremetal" "bm" {
 - `apptemplate_id` (String)
 - `image_id` (String)
 - `keypair_name` (String)
-- `last_updated` (String)
+- `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata` (Block List, Deprecated) (see [below for nested schema](#nestedblock--metadata))
-- `metadata_map` (Map of String)
-- `name` (String)
+- `metadata_map` (Map of String) A map containing metadata, for example tags.
+- `name` (String) The name of the baremetal instance.
 - `name_template` (String)
 - `name_templates` (List of String, Deprecated)
 - `password` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `user_data` (String)
 - `username` (String)

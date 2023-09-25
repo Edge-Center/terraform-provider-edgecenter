@@ -42,21 +42,21 @@ output "view" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the load balancer listener.
 
 ### Optional
 
-- `loadbalancer_id` (String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `loadbalancer_id` (String) The uuid for the load balancer.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `operating_status` (String)
-- `pool_count` (Number)
+- `operating_status` (String) The current operational status of the load balancer.
+- `pool_count` (Number) Number of pools associated with the load balancer.
 - `protocol` (String) Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'
-- `protocol_port` (Number)
-- `provisioning_status` (String)
+- `protocol_port` (Number) The port on which the protocol is bound.
+- `provisioning_status` (String) The current provisioning status of the load balancer.

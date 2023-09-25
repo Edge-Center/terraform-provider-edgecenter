@@ -30,7 +30,8 @@ func resourceVolume() *schema.Resource {
 		ReadContext:   resourceVolumeRead,
 		UpdateContext: resourceVolumeUpdate,
 		DeleteContext: resourceVolumeDelete,
-		Description:   "Represent volume. A volume is a file storage which is similar to SSD and HDD hard disks but located in the cloud",
+		Description: `A volume is a detachable block storage device akin to a USB hard drive or SSD, but located remotely in the cloud.
+Volumes can be attached to a virtual machine and manipulated like a physical hard drive.`,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, volumeID, err := ImportStringParser(d.Id())
@@ -61,79 +62,75 @@ func resourceVolume() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the volume.",
 			},
 			"size": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:        schema.TypeInt,
+				Required:    true,
+				Description: "The size of the volume, specified in gigabytes (GB).",
 			},
 			"type_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				// todo add validation
-				Description: "Available value is 'standard', 'ssd_hiiops', 'cold', 'ultra'. Defaults to standard",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.",
 			},
 			"image_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
-				Description: "Mandatory if volume is created from image",
+				Description: "(ForceNew) The ID of the image to create the volume from. This field is mandatory if creating a volume from an image.",
 			},
 			"snapshot_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
-				Description: "Mandatory if volume is created from a snapshot",
+				Description: "(ForceNew) The ID of the snapshot to create the volume from. This field is mandatory if creating a volume from a snapshot.",
 			},
 			"last_updated": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The timestamp of the last update (use with update context).",
 			},
 			"metadata_map": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Computed:    true,
+				Description: "A map containing metadata, for example tags.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 			"metadata_read_only": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: `A list of read-only metadata items, e.g. tags.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {

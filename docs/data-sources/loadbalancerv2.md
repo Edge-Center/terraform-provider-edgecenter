@@ -41,24 +41,24 @@ output "view" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the load balancer.
 
 ### Optional
 
-- `metadata_k` (String)
-- `metadata_kv` (Map of String)
-- `project_id` (Number)
-- `project_name` (String)
-- `region_id` (Number)
-- `region_name` (String)
+- `metadata_k` (String) Filtration query opts (only key).
+- `metadata_kv` (Map of String) Filtration query opts, for example, {offset = "10", limit = "10"}
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) (see [below for nested schema](#nestedatt--metadata_read_only))
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 - `security_group_id` (String) Load balancer security group ID
-- `vip_address` (String)
-- `vip_port_id` (String)
+- `vip_address` (String) Load balancer IP address
+- `vip_port_id` (String) Attached reserved IP.
 
 <a id="nestedatt--metadata_read_only"></a>
 ### Nested Schema for `metadata_read_only`

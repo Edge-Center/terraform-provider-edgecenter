@@ -33,16 +33,16 @@ output "kp" {
 
 ### Required
 
-- `public_key` (String)
-- `sshkey_name` (String)
+- `public_key` (String) The public portion of the SSH key pair.
+- `sshkey_name` (String) The name assigned to the SSH key pair, used for identification purposes.
 
 ### Optional
 
-- `project_id` (Number)
-- `project_name` (String)
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 
 ### Read-Only
 
-- `fingerprint` (String)
+- `fingerprint` (String) A fingerprint of the SSH public key, used to verify the integrity of the key.
 - `id` (String) The ID of this resource.
-- `sshkey_id` (String)
+- `sshkey_id` (String) The unique identifier assigned by the provider to the SSH key pair.

@@ -53,77 +53,35 @@ func resourceBmInstance() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"project_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
-			},
-			"region_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"project_id",
-					"project_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{"project_id", "project_name"},
+			},
+			"region_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"region_id",
-					"region_name",
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"flavor_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-			"name_templates": {
-				Type:          schema.TypeList,
-				Optional:      true,
-				Deprecated:    "Use name_template instead",
-				ConflictsWith: []string{"name_template"},
-				Elem:          &schema.Schema{Type: schema.TypeString},
-			},
-			"name_template": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"name_templates"},
-			},
-			"image_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"image_id",
-					"apptemplate_id",
-				},
-			},
-			"apptemplate_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ExactlyOneOf: []string{
-					"image_id",
-					"apptemplate_id",
-				},
-			},
 			"interface": {
-				Type: schema.TypeList,
-				// Set:      interfaceUniqueID,
+				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -178,6 +136,40 @@ func resourceBmInstance() *schema.Resource {
 					},
 				},
 			},
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The name of the baremetal instance.",
+			},
+			"name_templates": {
+				Type:          schema.TypeList,
+				Optional:      true,
+				Deprecated:    "Use name_template instead",
+				ConflictsWith: []string{"name_template"},
+				Elem:          &schema.Schema{Type: schema.TypeString},
+			},
+			"name_template": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"name_templates"},
+			},
+			"image_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ExactlyOneOf: []string{
+					"image_id",
+					"apptemplate_id",
+				},
+			},
+			"apptemplate_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ExactlyOneOf: []string{
+					"image_id",
+					"apptemplate_id",
+				},
+			},
 			"keypair_name": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -212,6 +204,7 @@ func resourceBmInstance() *schema.Resource {
 				Type:          schema.TypeMap,
 				Optional:      true,
 				ConflictsWith: []string{"metadata"},
+				Description:   "A map containing metadata, for example tags.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -224,6 +217,8 @@ func resourceBmInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+
+			// computed
 			"flavor": {
 				Type:     schema.TypeMap,
 				Computed: true,
@@ -261,9 +256,10 @@ func resourceBmInstance() *schema.Resource {
 				},
 			},
 			"last_updated": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The timestamp of the last update (use with update context).",
 			},
 		},
 	}
