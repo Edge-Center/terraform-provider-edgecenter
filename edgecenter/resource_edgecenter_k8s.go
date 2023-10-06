@@ -97,11 +97,6 @@ func resourceK8s() *schema.Resource {
 				Optional:    true,
 				Description: "Indicates whether auto-healing is enabled for the Kubernetes cluster. true by default.",
 			},
-			"external_dns_enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Indicates whether external DNS is enabled for the Kubernetes cluster. false by default.",
-			},
 			"master_lb_floating_ip_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -294,7 +289,6 @@ func resourceK8sCreate(ctx context.Context, d *schema.ResourceData, m interface{
 		FixedSubnet:               d.Get("fixed_subnet").(string),
 		KeyPair:                   d.Get("keypair").(string),
 		AutoHealingEnabled:        d.Get("auto_healing_enabled").(bool),
-		ExternalDNSEnabled:        d.Get("external_dns_enabled").(bool),
 		MasterLBFloatingIPEnabled: d.Get("master_lb_floating_ip_enabled").(bool),
 	}
 
@@ -387,7 +381,6 @@ func resourceK8sRead(_ context.Context, d *schema.ResourceData, m interface{}) d
 	}
 
 	d.Set("name", cluster.Name)
-	d.Set("external_dns_enabled", cluster.ExternalDNSEnabled)
 	d.Set("fixed_network", cluster.FixedNetwork)
 	d.Set("fixed_subnet", cluster.FixedSubnet)
 	d.Set("master_lb_floating_ip_enabled", cluster.FloatingIPEnabled)

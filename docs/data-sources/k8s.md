@@ -47,7 +47,6 @@ data "edgecenter_k8s" "cluster" {
 - `container_version` (String) The container runtime version used in the Kubernetes cluster.
 - `created_at` (String) The timestamp when the Kubernetes cluster was created.
 - `discovery_url` (String) URL used for node discovery within the Kubernetes cluster.
-- `external_dns_enabled` (Boolean) Indicates whether external DNS is enabled for the Kubernetes cluster.
 - `faults` (Map of String)
 - `fixed_network` (String) Fixed network (uuid) associated with the Kubernetes cluster.
 - `fixed_subnet` (String) Subnet (uuid) associated with the fixed network.
@@ -83,3 +82,5 @@ Read-Only:
 - `node_count` (Number)
 - `stack_id` (String)
 - `uuid` (String)
+
+

@@ -32,3 +32,5 @@ data "edgecenter_region" "rg" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+

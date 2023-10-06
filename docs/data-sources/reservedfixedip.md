@@ -67,3 +67,5 @@ Read-Only:
 
 - `ip_address` (String)
 - `mac_address` (String)
+
+
