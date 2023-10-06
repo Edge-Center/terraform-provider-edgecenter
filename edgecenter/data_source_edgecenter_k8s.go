@@ -66,11 +66,6 @@ func dataSourceK8s() *schema.Resource {
 				Computed:    true,
 				Description: "Indicates whether auto-healing is enabled for the Kubernetes cluster.",
 			},
-			"external_dns_enabled": {
-				Type:        schema.TypeBool,
-				Computed:    true,
-				Description: "Indicates whether external DNS is enabled for the Kubernetes cluster.",
-			},
 			"master_lb_floating_ip_enabled": {
 				Type:        schema.TypeBool,
 				Computed:    true,
@@ -254,7 +249,6 @@ func dataSourceK8sRead(_ context.Context, d *schema.ResourceData, m interface{})
 	d.Set("node_count", cluster.NodeCount)
 	d.Set("status", cluster.Status)
 	d.Set("status_reason", cluster.StatusReason)
-	d.Set("external_dns_enabled", cluster.ExternalDNSEnabled)
 
 	masterAddresses := make([]string, len(cluster.MasterAddresses))
 	for i, addr := range cluster.MasterAddresses {

@@ -51,7 +51,6 @@ resource "edgecenter_k8s" "v" {
 ### Optional
 
 - `auto_healing_enabled` (Boolean) Indicates whether auto-healing is enabled for the Kubernetes cluster. true by default.
-- `external_dns_enabled` (Boolean) Indicates whether external DNS is enabled for the Kubernetes cluster. false by default.
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `master_lb_floating_ip_enabled` (Boolean) Flag indicating if the master LoadBalancer should have a floating IP.
 - `pods_ip_pool` (String) IP pool to be used for pods within the Kubernetes cluster.

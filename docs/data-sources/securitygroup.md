@@ -84,3 +84,5 @@ Read-Only:
 - `protocol` (String)
 - `remote_ip_prefix` (String)
 - `updated_at` (String)
+
+
