@@ -12,17 +12,31 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
+	dnssdk "github.com/bioidiad/edgecenter-dns-sdk-go"
 )
 
 const (
 	DNSZoneRecordResource = "edgecenter_dns_zone_record"
 
-	DNSZoneRecordSchemaZone   = "zone"
-	DNSZoneRecordSchemaDomain = "domain"
-	DNSZoneRecordSchemaType   = "type"
-	DNSZoneRecordSchemaTTL    = "ttl"
-	DNSZoneRecordSchemaFilter = "filter"
+	DNSZoneRecordSchemaZone      = "zone"
+	DNSZoneRecordSchemaDomain    = "domain"
+	DNSZoneRecordSchemaType      = "type"
+	DNSZoneRecordSchemaTTL       = "ttl"
+	DNSZoneRecordSchemaRRSetMeta = "meta"
+	DNSZoneRecordSchemaFailover  = "failover"
+	DNSZoneRecordSchemaFilter    = "filter"
+
+	DNSZoneRecordSchemaFailoverProtocol       = "protocol"
+	DNSZoneRecordSchemaFailoverFrequency      = "frequency"
+	DNSZoneRecordSchemaFailoverHost           = "host"
+	DNSZoneRecordSchemaFailoverHttpStatusCode = "http_status_code"
+	DNSZoneRecordSchemaFailoverMethod         = "method"
+	DNSZoneRecordSchemaFailoverPort           = "port"
+	DNSZoneRecordSchemaFailoverRegexp         = "regexp"
+	DNSZoneRecordSchemaFailoverTimeout        = "timeout"
+	DNSZoneRecordSchemaFailoverTls            = "tls"
+	DNSZoneRecordSchemaFailoverUrl            = "url"
+	DNSZoneRecordSchemaFailoverVerify         = "verify"
 
 	DNSZoneRecordSchemaFilterLimit  = "limit"
 	DNSZoneRecordSchemaFilterType   = "type"
@@ -99,6 +113,87 @@ func resourceDNSZoneRecord() *schema.Resource {
 				},
 				Description: "A ttl of DNS Zone Record resource.",
 			},
+			DNSZoneRecordSchemaRRSetMeta: {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						DNSZoneRecordSchemaFailover: {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									DNSZoneRecordSchemaFailoverProtocol: {
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateDiagFunc: func(i interface{}, path cty.Path) diag.Diagnostics {
+											val := strings.TrimSpace(i.(string))
+											types := []string{"TCP", "UDP", "HTTP", "ICMP"}
+											for _, t := range types {
+												if strings.EqualFold(t, val) {
+													return nil
+												}
+											}
+											return diag.Errorf("dns failover protocol type should be one of %v", types)
+										},
+										Description: "A failover protocol of DNS Zone Record resource.",
+									},
+									DNSZoneRecordSchemaFailoverFrequency: {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "A failover frequency of DNS Zone Record resource.",
+									},
+									DNSZoneRecordSchemaFailoverHost: {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "A failover host of DNS Zone Record resource.",
+									},
+									DNSZoneRecordSchemaFailoverHttpStatusCode: {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "A failover http status code of DNS Zone Record resource.",
+									},
+									DNSZoneRecordSchemaFailoverMethod: {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "A failover method of DNS Zone Record resource.",
+									},
+									DNSZoneRecordSchemaFailoverPort: {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "A failover port of DNS Zone Record resource.",
+									},
+									DNSZoneRecordSchemaFailoverRegexp: {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "A failover regexp of DNS Zone Record resource.",
+									},
+									DNSZoneRecordSchemaFailoverTimeout: {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "A failover timeout of DNS Zone Record resource.",
+									},
+									DNSZoneRecordSchemaFailoverTls: {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "A failover tls of DNS Zone Record resource.",
+									},
+									DNSZoneRecordSchemaFailoverUrl: {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "A failover url of DNS Zone Record resource.",
+									},
+									DNSZoneRecordSchemaFailoverVerify: {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "A failover verify of DNS Zone Record resource.",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			DNSZoneRecordSchemaFilter: {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -118,7 +213,7 @@ func resourceDNSZoneRecord() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ValidateDiagFunc: func(i interface{}, path cty.Path) diag.Diagnostics {
-								names := []string{"geodns", "geodistance", "default", "first_n"}
+								names := []string{"geodns", "geodistance", "default", "first_n", "is_healthy"}
 								name := i.(string)
 								for _, n := range names {
 									if n == name {
@@ -262,7 +357,8 @@ func resourceDNSZoneRecordCreate(ctx context.Context, d *schema.ResourceData, m 
 	defer log.Printf("[DEBUG] Finish DNS Zone Record Resource creating (id=%s %s %s)\n", zone, domain, rType)
 
 	ttl := d.Get(DNSZoneRecordSchemaTTL).(int)
-	rrSet := dnssdk.RRSet{TTL: ttl, Records: make([]dnssdk.ResourceRecord, 0)}
+	meta := d.Get(DNSZoneRecordSchemaRRSetMeta).(dnssdk.Meta)
+	rrSet := dnssdk.RRSet{TTL: ttl, Records: make([]dnssdk.ResourceRecord, 0), Meta: meta}
 	err := fillRRSet(d, rType, &rrSet)
 	if err != nil {
 		return diag.FromErr(err)
@@ -497,6 +593,10 @@ func fillRRSet(d *schema.ResourceData, rType string, rrSet *dnssdk.RRSet) error 
 		}
 		rrSet.Records = append(rrSet.Records, *rr)
 	}
+
+	//if rrSet.Meta. {
+	//	rrSet.AddMeta(meta)
+	//}
 
 	return nil
 }
