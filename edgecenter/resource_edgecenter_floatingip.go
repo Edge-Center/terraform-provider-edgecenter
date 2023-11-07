@@ -123,6 +123,14 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 				Computed:    true,
 				Description: "The timestamp of the last update (use with update context).",
 			},
+			"metadata_map": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "A map containing metadata, for example tags.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"metadata_read_only": {
 				Type:        schema.TypeList,
 				Computed:    true,
