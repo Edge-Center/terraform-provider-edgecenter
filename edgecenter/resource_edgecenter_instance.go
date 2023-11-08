@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -412,10 +413,10 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		AllowAppPorts:  d.Get("allow_app_ports").(bool),
 	}
 
-	if userData, ok := d.GetOk("userdata"); ok {
-		createOpts.UserData = userData.(string)
-	} else if userData, ok := d.GetOk("user_data"); ok {
-		createOpts.UserData = userData.(string)
+	if userData, ok := d.GetOk("user_data"); ok {
+		createOpts.UserData = base64.StdEncoding.EncodeToString([]byte(userData.(string)))
+	} else if userData, ok := d.GetOk("userdata"); ok {
+		createOpts.UserData = base64.StdEncoding.EncodeToString([]byte(userData.(string)))
 	}
 
 	name := d.Get("name").(string)
