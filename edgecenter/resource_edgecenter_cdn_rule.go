@@ -13,6 +13,170 @@ import (
 	"github.com/Edge-Center/edgecentercdn-go/rules"
 )
 
+func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
+	if len(l) == 0 {
+		return nil
+	}
+
+	var opts cdn.LocationOptions
+	fields := l[0].(map[string]interface{})
+	if opt, ok := getOptByName(fields, "edge_cache_settings"); ok {
+		rawCustomVals := opt["custom_values"].(map[string]interface{})
+		customVals := make(map[string]string, len(rawCustomVals))
+		for key, value := range rawCustomVals {
+			customVals[key] = value.(string)
+		}
+
+		opts.EdgeCacheSettings = &cdn.EdgeCacheSettings{
+			Enabled:      opt["enabled"].(bool),
+			Value:        opt["value"].(string),
+			CustomValues: customVals,
+			Default:      opt["default"].(string),
+		}
+	}
+	if opt, ok := getOptByName(fields, "browser_cache_settings"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.BrowserCacheSettings = &cdn.BrowserCacheSettings{
+			Enabled: enabled,
+			Value:   opt["value"].(string),
+		}
+	}
+	if opt, ok := getOptByName(fields, "host_header"); ok {
+		opts.HostHeader = &cdn.HostHeader{
+			Enabled: opt["enabled"].(bool),
+			Value:   opt["value"].(string),
+		}
+	}
+	if opt, ok := getOptByName(fields, "redirect_http_to_https"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.RedirectHttpToHttps = &cdn.RedirectHttpToHttps{
+			Enabled: enabled,
+			Value:   opt["value"].(bool),
+		}
+	}
+	if opt, ok := getOptByName(fields, "gzip_on"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.GzipOn = &cdn.GzipOn{
+			Enabled: enabled,
+			Value:   opt["value"].(bool),
+		}
+	}
+	if opt, ok := getOptByName(fields, "cors"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.Cors = &cdn.Cors{
+			Enabled: enabled,
+		}
+		for _, v := range opt["value"].(*schema.Set).List() {
+			opts.Cors.Value = append(opts.Cors.Value, v.(string))
+		}
+	}
+	if opt, ok := getOptByName(fields, "rewrite"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.Rewrite = &cdn.Rewrite{
+			Enabled: enabled,
+			Body:    opt["body"].(string),
+			Flag:    opt["flag"].(string),
+		}
+	}
+	if opt, ok := getOptByName(fields, "sni"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.SNI = &cdn.SNIOption{
+			Enabled:        enabled,
+			SNIType:        opt["sni_type"].(string),
+			CustomHostname: opt["custom_hostname"].(string),
+		}
+	}
+	if opt, ok := getOptByName(fields, "ignore_query_string"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.IgnoreQueryString = &cdn.IgnoreQueryString{
+			Enabled: enabled,
+			Value:   opt["value"].(bool),
+		}
+	}
+	if opt, ok := getOptByName(fields, "query_params_whitelist"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.QueryParamsWhitelist = &cdn.QueryParamsWhitelist{
+			Enabled: enabled,
+		}
+		for _, v := range opt["value"].(*schema.Set).List() {
+			opts.QueryParamsWhitelist.Value = append(opts.QueryParamsWhitelist.Value, v.(string))
+		}
+	}
+	if opt, ok := getOptByName(fields, "query_params_blacklist"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.QueryParamsBlacklist = &cdn.QueryParamsBlacklist{
+			Enabled: enabled,
+		}
+		for _, v := range opt["value"].(*schema.Set).List() {
+			opts.QueryParamsBlacklist.Value = append(opts.QueryParamsBlacklist.Value, v.(string))
+		}
+	}
+	if opt, ok := getOptByName(fields, "static_request_headers"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.StaticRequestHeaders = &cdn.StaticRequestHeaders{
+			Enabled: enabled,
+			Value:   map[string]string{},
+		}
+		for k, v := range opt["value"].(map[string]interface{}) {
+			opts.StaticRequestHeaders.Value[k] = v.(string)
+		}
+	}
+	if opt, ok := getOptByName(fields, "static_headers"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.StaticHeaders = &cdn.StaticHeaders{
+			Enabled: enabled,
+			Value:   map[string]string{},
+		}
+		for k, v := range opt["value"].(map[string]interface{}) {
+			opts.StaticHeaders.Value[k] = v.(string)
+		}
+	}
+	if opt, ok := getOptByName(fields, "websockets"); ok {
+		enabled := true
+		if _, ok := opt["enabled"]; ok {
+			enabled = opt["enabled"].(bool)
+		}
+		opts.WebSockets = &cdn.WebSockets{
+			Enabled: enabled,
+			Value:   opt["value"].(bool),
+		}
+	}
+	return &opts
+}
+
 func resourceCDNRule() *schema.Resource {
 	return &schema.Resource{
 		Importer: &schema.ResourceImporter{
@@ -72,7 +236,7 @@ func resourceCDNRuleCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	resourceID := d.Get("resource_id").(int)
 
-	req.Options = listToOptions(d.Get("options").([]interface{}))
+	req.LocationOptions = listToLocationOptions(d.Get("options").([]interface{}))
 
 	result, err := client.Rules().Create(ctx, int64(resourceID), &req)
 	if err != nil {
@@ -141,7 +305,7 @@ func resourceCDNRuleUpdate(ctx context.Context, d *schema.ResourceData, m interf
 		req.OverrideOriginProtocol = pointer.ToString(d.Get("origin_protocol").(string))
 	}
 
-	req.Options = listToOptions(d.Get("options").([]interface{}))
+	req.Options = listToLocationOptions(d.Get("options").([]interface{}))
 
 	resourceID := d.Get("resource_id").(int)
 

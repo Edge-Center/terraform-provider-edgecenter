@@ -491,7 +491,7 @@ func resourceCDNResourceCreate(ctx context.Context, d *schema.ResourceData, m in
 		req.IssueLECert = d.Get("issue_le_cert").(bool)
 	}
 
-	req.Options = listToOptions(d.Get("options").([]interface{}))
+	req.Options = listToResourceOptions(d.Get("options").([]interface{}))
 
 	for _, hostname := range d.Get("secondary_hostnames").(*schema.Set).List() {
 		req.SecondaryHostnames = append(req.SecondaryHostnames, hostname.(string))
@@ -563,7 +563,7 @@ func resourceCDNResourceUpdate(ctx context.Context, d *schema.ResourceData, m in
 	req.SSlEnabled = d.Get("ssl_enabled").(bool)
 	req.SSLData = d.Get("ssl_data").(int)
 	req.OriginProtocol = resources.Protocol(d.Get("origin_protocol").(string))
-	req.Options = listToOptions(d.Get("options").([]interface{}))
+	req.ResourceOptions = listToResourceOptions(d.Get("options").([]interface{}))
 	for _, hostname := range d.Get("secondary_hostnames").(*schema.Set).List() {
 		req.SecondaryHostnames = append(req.SecondaryHostnames, hostname.(string))
 	}
@@ -598,7 +598,7 @@ func resourceCDNResourceDelete(ctx context.Context, d *schema.ResourceData, m in
 	return nil
 }
 
-func listToOptions(l []interface{}) *cdn.ResourceOptions {
+func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 	if len(l) == 0 {
 		return nil
 	}
