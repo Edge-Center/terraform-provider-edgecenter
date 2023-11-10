@@ -33,11 +33,6 @@ func resourceCDNRule() *schema.Resource {
 				Required:    true,
 				Description: "A pattern that defines when the rule is triggered. By default, we add a leading forward slash to any rule pattern. Specify a pattern without a forward slash.",
 			},
-			"rule_type": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Type of rule. The rule is applied if the requested URI matches the rule pattern. It has two possible values: Type 0 — RegEx. Must start with '^/' or '/'. Type 1 — RegEx. Legacy type. Note that for this rule type we automatically add / to each rule pattern before your regular expression. Please use Type 0.",
-			},
 			"origin_group": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -66,7 +61,6 @@ func resourceCDNRuleCreate(ctx context.Context, d *schema.ResourceData, m interf
 	var req rules.CreateRequest
 	req.Name = d.Get("name").(string)
 	req.Rule = d.Get("rule").(string)
-	req.RuleType = d.Get("rule_type").(int)
 
 	if d.Get("origin_group") != nil && d.Get("origin_group").(int) > 0 {
 		req.OriginGroup = pointer.ToInt(d.Get("origin_group").(int))
@@ -113,7 +107,6 @@ func resourceCDNRuleRead(ctx context.Context, d *schema.ResourceData, m interfac
 
 	d.Set("name", result.Name)
 	d.Set("rule", result.Pattern)
-	d.Set("rule_type", result.Type)
 	d.Set("origin_group", result.OriginGroup)
 	d.Set("origin_protocol", result.OriginProtocol)
 	if err := d.Set("options", optionsToList(result.Options)); err != nil {
@@ -139,7 +132,6 @@ func resourceCDNRuleUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	var req rules.UpdateRequest
 	req.Name = d.Get("name").(string)
 	req.Rule = d.Get("rule").(string)
-	req.RuleType = d.Get("rule_type").(int)
 
 	if d.Get("origin_group") != nil && d.Get("origin_group").(int) > 0 {
 		req.OriginGroup = pointer.ToInt(d.Get("origin_group").(int))

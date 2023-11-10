@@ -598,12 +598,12 @@ func resourceCDNResourceDelete(ctx context.Context, d *schema.ResourceData, m in
 	return nil
 }
 
-func listToOptions(l []interface{}) *cdn.Options {
+func listToOptions(l []interface{}) *cdn.ResourceOptions {
 	if len(l) == 0 {
 		return nil
 	}
 
-	var opts cdn.Options
+	var opts cdn.ResourceOptions
 	fields := l[0].(map[string]interface{})
 	if opt, ok := getOptByName(fields, "edge_cache_settings"); ok {
 		rawCustomVals := opt["custom_values"].(map[string]interface{})
@@ -676,18 +676,6 @@ func listToOptions(l []interface{}) *cdn.Options {
 			Enabled: enabled,
 			Body:    opt["body"].(string),
 			Flag:    opt["flag"].(string),
-		}
-	}
-	if opt, ok := getOptByName(fields, "webp"); ok {
-		enabled := true
-		if _, ok := opt["enabled"]; ok {
-			enabled = opt["enabled"].(bool)
-		}
-		opts.Webp = &cdn.Webp{
-			Enabled:     enabled,
-			JPGQuality:  opt["jpg_quality"].(int),
-			PNGQuality:  opt["png_quality"].(int),
-			PNGLossless: opt["png_lossless"].(bool),
 		}
 	}
 	if opt, ok := getOptByName(fields, "sni"); ok {
@@ -809,7 +797,7 @@ func getOptByName(fields map[string]interface{}, name string) (map[string]interf
 	return opt, true
 }
 
-func optionsToList(options *cdn.Options) []interface{} {
+func optionsToList(options *cdn.ResourceOptions) []interface{} {
 	result := make(map[string][]interface{})
 	if options.EdgeCacheSettings != nil {
 		m := structToMap(options.EdgeCacheSettings)
@@ -838,10 +826,6 @@ func optionsToList(options *cdn.Options) []interface{} {
 	if options.Rewrite != nil {
 		m := structToMap(options.Rewrite)
 		result["rewrite"] = []interface{}{m}
-	}
-	if options.Webp != nil {
-		m := structToMap(options.Webp)
-		result["webp"] = []interface{}{m}
 	}
 	if options.SNI != nil {
 		m := structToMap(options.SNI)
