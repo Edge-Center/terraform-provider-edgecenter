@@ -1662,6 +1662,7 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 		m := structToMap(options.WebSockets)
 		result["websockets"] = []interface{}{m}
 	}
+
 	return []interface{}{result}
 }
 

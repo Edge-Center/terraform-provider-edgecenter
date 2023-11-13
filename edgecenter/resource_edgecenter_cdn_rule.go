@@ -1519,5 +1519,6 @@ func locationOptionsToList(options *cdn.LocationOptions) []interface{} {
 		m := structToMap(options.WebSockets)
 		result["websockets"] = []interface{}{m}
 	}
+
 	return []interface{}{result}
 }
