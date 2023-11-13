@@ -1336,15 +1336,15 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			Enabled: opt["enabled"].(bool),
 		}
 		for _, v := range opt["value"].([]interface{}) {
-			item_data := v.(map[string]interface{})
+			itemData := v.(map[string]interface{})
 			item := &cdn.StaticResponseHeadersItem{
-				Name: item_data["name"].(string),
+				Name: itemData["name"].(string),
 			}
-			for _, val := range item_data["value"].(*schema.Set).List() {
+			for _, val := range itemData["value"].(*schema.Set).List() {
 				item.Value = append(item.Value, val.(string))
 			}
-			if _, ok := item_data["always"]; ok {
-				item.Always = item_data["always"].(bool)
+			if _, ok := itemData["always"]; ok {
+				item.Always = itemData["always"].(bool)
 			}
 			opts.StaticResponseHeaders.Value = append(opts.StaticResponseHeaders.Value, *item)
 		}
