@@ -42,7 +42,6 @@ resource "edgecenter_cdn_rule" "acctest" {
   resource_id = %s
   name = "%s"
   rule = "%s"
-  rule_type = 0
   %s
 }
 		`, EC_CDN_RESOURCE_ID, params.Name, params.Pattern, params.RawPart)
