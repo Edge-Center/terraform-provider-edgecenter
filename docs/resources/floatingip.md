@@ -37,6 +37,7 @@ resource "edgecenter_floatingip" "floating_ip" {
 
 - `fixed_ip_address` (String) The fixed (reserved) IP address that is associated with the floating IP.
 - `last_updated` (String) The timestamp of the last update (use with update context).
+- `metadata_map` (Map of String) A map containing metadata, for example tags.
 - `port_id` (String) The ID (uuid) of the network port that the floating IP is associated with.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.

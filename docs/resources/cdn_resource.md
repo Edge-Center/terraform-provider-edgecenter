@@ -91,22 +91,69 @@ resource "edgecenter_cdn_resource" "cdn_example_com" {
 
 Optional:
 
+- `allowed_http_methods` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--allowed_http_methods))
+- `brotli_compression` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--brotli_compression))
 - `browser_cache_settings` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--browser_cache_settings))
+- `cache_http_headers` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--cache_http_headers))
 - `cors` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--cors))
+- `country_acl` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--country_acl))
+- `disable_proxy_force_ranges` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--disable_proxy_force_ranges))
 - `edge_cache_settings` (Block List, Max: 1) The cache expiration time for CDN servers. (see [below for nested schema](#nestedblock--options--edge_cache_settings))
+- `fetch_compressed` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--fetch_compressed))
+- `follow_origin_redirect` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--follow_origin_redirect))
+- `force_return` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--force_return))
+- `forward_host_header` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--forward_host_header))
 - `gzip_on` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--gzip_on))
 - `host_header` (Block List, Max: 1) Specify the Host header that CDN servers use when request content from an origin server. Your server must be able to process requests with the chosen header. If the option is in NULL state Host Header value is taken from the CNAME field. (see [below for nested schema](#nestedblock--options--host_header))
+- `http3_enabled` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--http3_enabled))
+- `ignore_cookie` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--ignore_cookie))
 - `ignore_query_string` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--ignore_query_string))
+- `image_stack` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--image_stack))
+- `ip_address_acl` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--ip_address_acl))
+- `limit_bandwidth` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--limit_bandwidth))
+- `proxy_cache_methods_set` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--proxy_cache_methods_set))
 - `query_params_blacklist` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--query_params_blacklist))
 - `query_params_whitelist` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--query_params_whitelist))
 - `redirect_http_to_https` (Block List, Max: 1) Sets redirect from HTTP protocol to HTTPS for all resource requests. (see [below for nested schema](#nestedblock--options--redirect_http_to_https))
+- `redirect_https_to_http` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--redirect_https_to_http))
+- `referrer_acl` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--referrer_acl))
+- `response_headers_hiding_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--response_headers_hiding_policy))
 - `rewrite` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--rewrite))
+- `secure_key` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--secure_key))
+- `slice` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--slice))
 - `sni` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--sni))
-- `static_headers` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--static_headers))
+- `stale` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--stale))
+- `static_headers` (Block List, Max: 1) Option has been deprecated. Use - static_response_headers. (see [below for nested schema](#nestedblock--options--static_headers))
 - `static_request_headers` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--static_request_headers))
+- `static_response_headers` (Block List, Max: 1) Specify custom HTTP Headers that a CDN server adds to a response. (see [below for nested schema](#nestedblock--options--static_response_headers))
 - `tls_versions` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--tls_versions))
-- `webp` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--webp))
+- `use_default_le_chain` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--use_default_le_chain))
+- `user_agent_acl` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--user_agent_acl))
 - `websockets` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--websockets))
+
+<a id="nestedblock--options--allowed_http_methods"></a>
+### Nested Schema for `options.allowed_http_methods`
+
+Required:
+
+- `value` (Set of String)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--brotli_compression"></a>
+### Nested Schema for `options.brotli_compression`
+
+Required:
+
+- `value` (Set of String)
+
+Optional:
+
+- `enabled` (Boolean)
+
 
 <a id="nestedblock--options--browser_cache_settings"></a>
 ### Nested Schema for `options.browser_cache_settings`
@@ -117,12 +164,50 @@ Optional:
 - `value` (String)
 
 
+<a id="nestedblock--options--cache_http_headers"></a>
+### Nested Schema for `options.cache_http_headers`
+
+Required:
+
+- `value` (Set of String)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
 <a id="nestedblock--options--cors"></a>
 ### Nested Schema for `options.cors`
 
 Required:
 
 - `value` (Set of String)
+
+Optional:
+
+- `always` (Boolean)
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--country_acl"></a>
+### Nested Schema for `options.country_acl`
+
+Required:
+
+- `excepted_values` (Set of String)
+- `policy_type` (String)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--disable_proxy_force_ranges"></a>
+### Nested Schema for `options.disable_proxy_force_ranges`
+
+Required:
+
+- `value` (Boolean)
 
 Optional:
 
@@ -138,6 +223,55 @@ Optional:
 - `default` (String) Content will be cached according to origin cache settings. The value applies for a response with codes 200, 201, 204, 206, 301, 302, 303, 304, 307, 308 if an origin server does not have caching HTTP headers. Responses with other codes will not be cached.
 - `enabled` (Boolean)
 - `value` (String) Caching time for a response with codes 200, 206, 301, 302. Responses with codes 4xx, 5xx will not be cached. Use '0s' disable to caching. Use custom_values field to specify a custom caching time for a response with specific codes.
+
+
+<a id="nestedblock--options--fetch_compressed"></a>
+### Nested Schema for `options.fetch_compressed`
+
+Required:
+
+- `value` (Boolean)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--follow_origin_redirect"></a>
+### Nested Schema for `options.follow_origin_redirect`
+
+Required:
+
+- `codes` (Set of Number)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--force_return"></a>
+### Nested Schema for `options.force_return`
+
+Required:
+
+- `code` (Number)
+
+Optional:
+
+- `body` (String)
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--forward_host_header"></a>
+### Nested Schema for `options.forward_host_header`
+
+Required:
+
+- `value` (Boolean)
+
+Optional:
+
+- `enabled` (Boolean)
 
 
 <a id="nestedblock--options--gzip_on"></a>
@@ -164,8 +298,86 @@ Optional:
 - `enabled` (Boolean)
 
 
+<a id="nestedblock--options--http3_enabled"></a>
+### Nested Schema for `options.http3_enabled`
+
+Required:
+
+- `value` (Boolean)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--ignore_cookie"></a>
+### Nested Schema for `options.ignore_cookie`
+
+Required:
+
+- `value` (Boolean)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
 <a id="nestedblock--options--ignore_query_string"></a>
 ### Nested Schema for `options.ignore_query_string`
+
+Required:
+
+- `value` (Boolean)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--image_stack"></a>
+### Nested Schema for `options.image_stack`
+
+Required:
+
+- `quality` (Number)
+
+Optional:
+
+- `avif_enabled` (Boolean)
+- `enabled` (Boolean)
+- `png_lossless` (Boolean)
+- `webp_enabled` (Boolean)
+
+
+<a id="nestedblock--options--ip_address_acl"></a>
+### Nested Schema for `options.ip_address_acl`
+
+Required:
+
+- `excepted_values` (Set of String)
+- `policy_type` (String)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--limit_bandwidth"></a>
+### Nested Schema for `options.limit_bandwidth`
+
+Required:
+
+- `limit_type` (String)
+
+Optional:
+
+- `buffer` (Number)
+- `enabled` (Boolean)
+- `speed` (Number)
+
+
+<a id="nestedblock--options--proxy_cache_methods_set"></a>
+### Nested Schema for `options.proxy_cache_methods_set`
 
 Required:
 
@@ -212,6 +424,44 @@ Optional:
 - `enabled` (Boolean)
 
 
+<a id="nestedblock--options--redirect_https_to_http"></a>
+### Nested Schema for `options.redirect_https_to_http`
+
+Required:
+
+- `value` (Boolean)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--referrer_acl"></a>
+### Nested Schema for `options.referrer_acl`
+
+Required:
+
+- `excepted_values` (Set of String)
+- `policy_type` (String) Possible values: allow, deny.
+
+Optional:
+
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--response_headers_hiding_policy"></a>
+### Nested Schema for `options.response_headers_hiding_policy`
+
+Required:
+
+- `excepted` (Set of String)
+- `mode` (String)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
 <a id="nestedblock--options--rewrite"></a>
 ### Nested Schema for `options.rewrite`
 
@@ -225,6 +475,31 @@ Optional:
 - `flag` (String)
 
 
+<a id="nestedblock--options--secure_key"></a>
+### Nested Schema for `options.secure_key`
+
+Required:
+
+- `key` (String)
+- `type` (Number)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
+<a id="nestedblock--options--slice"></a>
+### Nested Schema for `options.slice`
+
+Required:
+
+- `value` (Boolean)
+
+Optional:
+
+- `enabled` (Boolean)
+
+
 <a id="nestedblock--options--sni"></a>
 ### Nested Schema for `options.sni`
 
@@ -233,6 +508,18 @@ Optional:
 - `custom_hostname` (String) Required to set custom hostname in case sni-type='custom'
 - `enabled` (Boolean)
 - `sni_type` (String) Available values 'dynamic' or 'custom'
+
+
+<a id="nestedblock--options--stale"></a>
+### Nested Schema for `options.stale`
+
+Required:
+
+- `value` (Set of String)
+
+Optional:
+
+- `enabled` (Boolean)
 
 
 <a id="nestedblock--options--static_headers"></a>
@@ -259,6 +546,31 @@ Optional:
 - `enabled` (Boolean)
 
 
+<a id="nestedblock--options--static_response_headers"></a>
+### Nested Schema for `options.static_response_headers`
+
+Required:
+
+- `value` (Block List, Min: 1) (see [below for nested schema](#nestedblock--options--static_response_headers--value))
+
+Optional:
+
+- `enabled` (Boolean)
+
+<a id="nestedblock--options--static_response_headers--value"></a>
+### Nested Schema for `options.static_response_headers.value`
+
+Required:
+
+- `name` (String)
+- `value` (Set of String)
+
+Optional:
+
+- `always` (Boolean)
+
+
+
 <a id="nestedblock--options--tls_versions"></a>
 ### Nested Schema for `options.tls_versions`
 
@@ -271,18 +583,29 @@ Optional:
 - `enabled` (Boolean)
 
 
-<a id="nestedblock--options--webp"></a>
-### Nested Schema for `options.webp`
+<a id="nestedblock--options--use_default_le_chain"></a>
+### Nested Schema for `options.use_default_le_chain`
 
 Required:
 
-- `jpg_quality` (Number)
-- `png_quality` (Number)
+- `value` (Boolean)
 
 Optional:
 
 - `enabled` (Boolean)
-- `png_lossless` (Boolean)
+
+
+<a id="nestedblock--options--user_agent_acl"></a>
+### Nested Schema for `options.user_agent_acl`
+
+Required:
+
+- `excepted_values` (Set of String)
+- `policy_type` (String)
+
+Optional:
+
+- `enabled` (Boolean)
 
 
 <a id="nestedblock--options--websockets"></a>
