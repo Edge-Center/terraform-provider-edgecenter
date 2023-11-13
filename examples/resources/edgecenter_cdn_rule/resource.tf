@@ -6,7 +6,6 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_1" {
   resource_id = edgecenter_cdn_resource.cdn_example_com.id
   name        = "All PNG images"
   rule        = "/folder/images/*.png"
-  rule_type   = 0
 
   options {
     edge_cache_settings {
@@ -43,7 +42,6 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_2" {
   resource_id     = edgecenter_cdn_resource.cdn_example_com.id
   name            = "All JS scripts"
   rule            = "/folder/images/*.js"
-  rule_type       = 0
   origin_protocol = "HTTP"
 
   options {

@@ -21,7 +21,6 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_1" {
   resource_id = edgecenter_cdn_resource.cdn_example_com.id
   name        = "All PNG images"
   rule        = "/folder/images/*.png"
-  rule_type   = 0
 
   options {
     edge_cache_settings {
@@ -58,7 +57,6 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_2" {
   resource_id     = edgecenter_cdn_resource.cdn_example_com.id
   name            = "All JS scripts"
   rule            = "/folder/images/*.js"
-  rule_type       = 0
   origin_protocol = "HTTP"
 
   options {
@@ -103,7 +101,6 @@ resource "edgecenter_cdn_resource" "cdn_example_com" {
 - `name` (String) Rule name
 - `resource_id` (Number)
 - `rule` (String) A pattern that defines when the rule is triggered. By default, we add a leading forward slash to any rule pattern. Specify a pattern without a forward slash.
-- `rule_type` (Number) Type of rule. The rule is applied if the requested URI matches the rule pattern. It has two possible values: Type 0 — RegEx. Must start with '^/' or '/'. Type 1 — RegEx. Legacy type. Note that for this rule type we automatically add / to each rule pattern before your regular expression. Please use Type 0.
 
 ### Optional
 
