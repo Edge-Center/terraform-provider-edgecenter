@@ -51,6 +51,7 @@ output "view" {
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `shared_with_subnets` (Boolean) Get shared networks with details of subnets.
 
 ### Read-Only
 
@@ -59,6 +60,7 @@ output "view" {
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 - `mtu` (Number) Maximum Transmission Unit (MTU) for the network. It determines the maximum packet size that can be transmitted without fragmentation.
 - `shared` (Boolean)
+- `subnets` (Block List) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedblock--subnets))
 - `type` (String) 'vlan' or 'vxlan' network type is allowed. Default value is 'vxlan'
 
 <a id="nestedatt--metadata_read_only"></a>
@@ -69,5 +71,30 @@ Read-Only:
 - `key` (String)
 - `read_only` (Boolean)
 - `value` (String)
+
+
+<a id="nestedblock--subnets"></a>
+### Nested Schema for `subnets`
+
+Read-Only:
+
+- `available_ips` (Number) The number of available IPs in the subnet.
+- `cidr` (String) Represents the IP address range of the subnet.
+- `dns_nameservers` (List of String) List of DNS name servers for the subnet.
+- `enable_dhcp` (Boolean) Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.
+- `gateway_ip` (String) The IP address of the gateway for this subnet.
+- `has_router` (Boolean) Indicates whether the subnet has a router attached to it.
+- `host_routes` (List of Object) List of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedatt--subnets--host_routes))
+- `id` (String) The ID of the subnet.
+- `name` (String) The name of the subnet.
+- `total_ips` (Number) The total number of IPs in the subnet.
+
+<a id="nestedatt--subnets--host_routes"></a>
+### Nested Schema for `subnets.host_routes`
+
+Read-Only:
+
+- `destination` (String)
+- `nexthop` (String)
 
 

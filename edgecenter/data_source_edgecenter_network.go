@@ -9,6 +9,8 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/availablenetworks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 )
 
 func dataSourceNetwork() *schema.Resource {
@@ -45,6 +47,11 @@ func dataSourceNetwork() *schema.Resource {
 				Required:    true,
 				Description: "The name of the network.",
 			},
+			"shared_with_subnets": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Get shared networks with details of subnets.",
+			},
 			"mtu": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -62,6 +69,82 @@ func dataSourceNetwork() *schema.Resource {
 			"shared": {
 				Type:     schema.TypeBool,
 				Computed: true,
+			},
+			"subnets": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
+				Description: `A list of read-only metadata items, e.g. tags.`,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The ID of the subnet.",
+						},
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name of the subnet.",
+						},
+						"available_ips": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The number of available IPs in the subnet.",
+						},
+						"total_ips": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The total number of IPs in the subnet.",
+						},
+						"enable_dhcp": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.",
+						},
+						"has_router": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Indicates whether the subnet has a router attached to it.",
+						},
+						"cidr": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Represents the IP address range of the subnet.",
+						},
+						"dns_nameservers": {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "List of DNS name servers for the subnet.",
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+						"host_routes": {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "List of additional routes to be added to instances that are part of this subnet.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"destination": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"nexthop": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
+									},
+								},
+							},
+						},
+						"gateway_ip": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The IP address of the gateway for this subnet.",
+						},
+					},
+				},
 			},
 			"metadata_k": {
 				Type:        schema.TypeString,
@@ -131,31 +214,38 @@ func dataSourceNetworkRead(_ context.Context, d *schema.ResourceData, m interfac
 		metaOpts.MetadataKV = typedMetadataKV
 	}
 
-	nets, err := networks.ListAll(client, *metaOpts)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	var (
+		withDetails = d.Get("shared_with_subnets").(bool)
+		rawNetwork  map[string]interface{}
+		subs        []subnets.Subnet
+		meta        []metadata.Metadata
+	)
 
-	// todo refactor, also refactor inner func
-	var rawNetwork map[string]interface{}
-	network, found := findNetworkByName(name, nets)
-	if !found {
-		// trying to find among shared networks
-		nets, err := availablenetworks.ListAll(clientShared, nil)
+	if !withDetails {
+		nets, err := networks.ListAll(client, *metaOpts)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		network, found := findSharedNetworkByName(name, nets)
+		network, found := findNetworkByName(name, nets)
 		if !found {
-			return diag.Errorf("network with name %s not found", name)
+			return diag.Errorf("network with name %s not found. you can try to set 'shared_with_subnets' parameter", name)
 		}
-
+		meta = network.Metadata
 		rawNetwork, err = StructToMap(network)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	} else {
-		rawNetwork, err = StructToMap(network)
+		nets, err := availablenetworks.ListAll(clientShared, nil)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		sharedNetwork, found := findSharedNetworkByName(name, nets)
+		if !found {
+			return diag.Errorf("shared network with name %s not found", name)
+		}
+		subs = sharedNetwork.Subnets
+		rawNetwork, err = StructToMap(sharedNetwork)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -169,10 +259,17 @@ func dataSourceNetworkRead(_ context.Context, d *schema.ResourceData, m interfac
 	d.Set("project_id", rawNetwork["project_id"])
 	d.Set("external", rawNetwork["external"])
 	d.Set("shared", rawNetwork["shared"])
-
-	metadataReadOnly := PrepareMetadataReadonly(network.Metadata)
-	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
-		return diag.FromErr(err)
+	if withDetails {
+		if len(subs) > 0 {
+			if err := d.Set("subnets", prepareSubnets(subs)); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	} else {
+		metadataReadOnly := PrepareMetadataReadonly(meta)
+		if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	log.Println("[DEBUG] Finish Network reading")

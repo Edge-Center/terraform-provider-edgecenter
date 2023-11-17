@@ -189,20 +189,8 @@ func dataSourceSubnetRead(_ context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	dns := make([]string, len(subnet.DNSNameservers))
-	for i, ns := range subnet.DNSNameservers {
-		dns[i] = ns.String()
-	}
-	d.Set("dns_nameservers", dns)
-
-	hrs := make([]map[string]string, len(subnet.HostRoutes))
-	for i, hr := range subnet.HostRoutes {
-		hR := map[string]string{"destination": "", "nexthop": ""}
-		hR["destination"] = hr.Destination.String()
-		hR["nexthop"] = hr.NextHop.String()
-		hrs[i] = hR
-	}
-	d.Set("host_routes", hrs)
+	d.Set("dns_nameservers", dnsNameserversToStringList(subnet.DNSNameservers))
+	d.Set("host_routes", hostRoutesToListOfMaps(subnet.HostRoutes))
 	d.Set("region_id", subnet.RegionID)
 	d.Set("project_id", subnet.ProjectID)
 	d.Set("gateway_ip", subnet.GatewayIP.String())
