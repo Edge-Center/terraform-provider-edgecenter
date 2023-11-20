@@ -223,11 +223,12 @@ func dataSourceSecurityGroupRead(_ context.Context, d *schema.ResourceData, m in
 			r["protocol"] = sgr.Protocol.String()
 		}
 
-		r["port_range_max"] = 0
+		r["port_range_max"] = 65535
 		if sgr.PortRangeMax != nil {
 			r["port_range_max"] = *sgr.PortRangeMax
 		}
-		r["port_range_min"] = 0
+
+		r["port_range_min"] = 1
 		if sgr.PortRangeMin != nil {
 			r["port_range_min"] = *sgr.PortRangeMin
 		}
