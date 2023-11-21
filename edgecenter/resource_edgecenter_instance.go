@@ -20,6 +20,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	edgecloudMeta "github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 )
 
@@ -523,6 +524,11 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
+	clientV2, err := CreateClient(provider, d, InstancePoint, VersionPointV2)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	instance, err := instances.Get(client, instanceID).Extract()
 	if err != nil {
 		var errDefault404 edgecloud.Default404Error
@@ -654,7 +660,7 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 		metadata := d.Get("metadata_map").(map[string]interface{})
 		newMetadata := make(map[string]interface{}, len(metadata))
 		for k := range metadata {
-			md, err := instances.MetadataGet(client, instanceID, k).Extract()
+			md, err := edgecloudMeta.ResourceMetadataGet(clientV2, instanceID, k).Extract()
 			if err != nil {
 				return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
 			}
