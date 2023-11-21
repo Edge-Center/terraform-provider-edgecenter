@@ -6,16 +6,8 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
 	typesSG "github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
-)
-
-const (
-	minPort = 0
-	maxPort = 65535
 )
 
 // secGroupUniqueID generates a unique ID for a security group rule using its properties.
@@ -33,15 +25,6 @@ func secGroupUniqueID(i interface{}) int {
 	io.WriteString(h, e["remote_ip_prefix"].(string))
 
 	return int(binary.BigEndian.Uint64(h.Sum(nil)))
-}
-
-// validatePortRange checks if the provided port value is within the valid range.
-func validatePortRange(v interface{}, _ cty.Path) diag.Diagnostics {
-	val := v.(int)
-	if val >= minPort && val <= maxPort {
-		return nil
-	}
-	return diag.Errorf("available range %d-%d", minPort, maxPort)
 }
 
 // extractSecurityGroupRuleMap creates a security group rule from the provided map and security group ID.
