@@ -16,11 +16,9 @@ func main() {
 	flag.StringVar(&address, "address", "provider", "this value is used in the TF_REATTACH_PROVIDERS environment variable during debugging")
 	flag.Parse()
 
-	opts := &plugin.ServeOpts{
+	plugin.Serve(&plugin.ServeOpts{
 		Debug:        debug,
 		ProviderAddr: address,
 		ProviderFunc: edgecenter.Provider,
-	}
-
-	plugin.Serve(opts)
+	})
 }
