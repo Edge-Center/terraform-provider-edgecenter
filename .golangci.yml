@@ -44,6 +44,8 @@ linters:
     - cyclop           # Checks function and package cyclomatic complexity.
     - forcetypeassert  # finds forced type assertions
     - goerr113         # Golang linter to check the errors handling expressions
+    - funlen
+    - nestif
     # tests
     - testpackage      # Makes you use a separate _test package.
     - paralleltest     # Detects missing usage of t.Parallel() method in your Go test.
