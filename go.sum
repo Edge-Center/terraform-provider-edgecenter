@@ -1,5 +1,5 @@
-github.com/Edge-Center/edgecentercloud-go v0.2.2-0.20231122130207-80bd1dc9310b h1:gKnGj0ZY1uOOs8R/P6OZnnKuk9QiHp5UJGeuTxQGq9E=
-github.com/Edge-Center/edgecentercloud-go v0.2.2-0.20231122130207-80bd1dc9310b/go.mod h1:zfzX+BWQ1yHMMsDerql6dSUD5bjPp4POg6B7ptr8YHQ=
+github.com/Edge-Center/edgecentercloud-go v0.2.2-0.20231124160352-67d7a13f54b4 h1:Re7ChK4GT4tg5OTJzaPqUY/hVzPaUM88jsxVKPCMvfo=
+github.com/Edge-Center/edgecentercloud-go v0.2.2-0.20231124160352-67d7a13f54b4/go.mod h1:zfzX+BWQ1yHMMsDerql6dSUD5bjPp4POg6B7ptr8YHQ=
 github.com/agext/levenshtein v1.2.2 h1:0S/Yg6LYmFJ5stwQeRp6EeOcCbj7xiqQSdNelsXvaqE=
 github.com/agext/levenshtein v1.2.2/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
 github.com/apparentlymart/go-textseg/v12 v12.0.0/go.mod h1:S/4uRK2UtaQttw1GenVJEynmyUenKwP++x/+DdGV/Ec=

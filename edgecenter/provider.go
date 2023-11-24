@@ -31,7 +31,9 @@ func Provider() *schema.Provider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_floatingip": floatingip.DataSourceEdgeCenterFloatingIP(),
 		},
-		ResourcesMap: map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"edgecenter_floatingip": floatingip.ResourceEdgeCenterFloatingIP(),
+		},
 	}
 
 	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
