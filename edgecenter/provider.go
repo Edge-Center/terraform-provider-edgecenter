@@ -8,6 +8,7 @@ import (
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/config"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/floatingip"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/instance"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/volume"
 )
 
@@ -31,6 +32,7 @@ func Provider() *schema.Provider {
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_floatingip": floatingip.DataSourceEdgeCenterFloatingIP(),
+			"edgecenter_instance":   instance.DataSourceEdgeCenterInstance(),
 			"edgecenter_volume":     volume.DataSourceEdgeCenterVolume(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
