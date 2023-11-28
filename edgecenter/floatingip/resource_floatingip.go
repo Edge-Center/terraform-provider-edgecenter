@@ -20,7 +20,9 @@ func ResourceEdgeCenterFloatingIP() *schema.Resource {
 		ReadContext:   resourceEdgeCenterFloatingIPRead,
 		UpdateContext: resourceEdgeCenterFloatingIPUpdate,
 		DeleteContext: resourceEdgeCenterFloatingIPDelete,
-		Schema:        floatingIPSchema(),
+		Description: `A floating IP is a static IP address that can be associated with one of your instances or loadbalancers, 
+allowing it to have a static public IP address. The floating IP can be re-associated to any other instance in the same datacenter.`,
+		Schema: floatingIPSchema(),
 	}
 }
 
@@ -51,7 +53,6 @@ func resourceEdgeCenterFloatingIPCreate(ctx context.Context, d *schema.ResourceD
 		return diag.Errorf("error creating floating IP: %s", err)
 	}
 
-	// Assign the floating IP id
 	d.SetId(taskResult.FloatingIPs[0])
 
 	log.Printf("[INFO] Floating IP: %s", d.Id())
@@ -135,6 +136,7 @@ func resourceEdgeCenterFloatingIPDelete(ctx context.Context, d *schema.ResourceD
 	if err := util.DeleteResourceIfExist(ctx, client, client.Floatingips, d.Id()); err != nil {
 		return diag.Errorf("Error deleting firewall: %s", err)
 	}
+	d.SetId("")
 
 	return nil
 }
