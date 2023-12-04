@@ -15,7 +15,7 @@ import (
 func DataSourceEdgeCenterInstance() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceEdgeCenterInstanceRead,
-		Description: `A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.`,
+		Description: `A cloud instance is a virtual machine in a cloud environment`,
 
 		Schema: map[string]*schema.Schema{
 			"project_id": {
@@ -52,11 +52,6 @@ then the first one will be used. it is recommended to use "id"`,
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "name of the region",
-			},
-			"description": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "instance description",
 			},
 			"vm_state": {
 				Type:        schema.TypeString,
@@ -196,7 +191,6 @@ func dataSourceEdgeCenterInstanceRead(ctx context.Context, d *schema.ResourceDat
 
 	d.Set("status", foundInstance.Status)
 	d.Set("region", foundInstance.Region)
-	d.Set("description", foundInstance.Description)
 	d.Set("vm_state", foundInstance.VMState)
 	d.Set("keypair_name", foundInstance.KeypairName)
 

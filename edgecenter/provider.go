@@ -37,6 +37,7 @@ func Provider() *schema.Provider {
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"edgecenter_floatingip": floatingip.ResourceEdgeCenterFloatingIP(),
+			"edgecenter_instance":   instance.ResourceEdgeCenterInstance(),
 			"edgecenter_volume":     volume.ResourceEdgeCenterVolume(),
 		},
 	}
