@@ -68,11 +68,6 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 				Computed:    true,
 				Description: "Attached reserved IP.",
 			},
-			"security_group_id": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Load balancer security group ID",
-			},
 			"metadata_read_only": {
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -169,14 +164,6 @@ func dataSourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m i
 
 	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
 		return diag.FromErr(err)
-	}
-
-	sgInfo, err := loadbalancers.ListCustomSecurityGroup(client, d.Id()).Extract()
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	if len(sgInfo) > 0 {
-		d.Set("security_group_id", sgInfo[0].ID)
 	}
 
 	log.Println("[DEBUG] Finish LoadBalancer reading")

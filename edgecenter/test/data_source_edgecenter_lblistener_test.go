@@ -36,6 +36,7 @@ func TestAccLBListenerDataSource(t *testing.T) {
 			Name:         lbListenerTestName,
 			ProtocolPort: 80,
 			Protocol:     types.ProtocolTypeHTTP,
+			AllowedCIDRs: []string{"127.0.0.0/24"},
 		}},
 	}
 
