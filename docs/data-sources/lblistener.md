@@ -54,6 +54,7 @@ output "view" {
 
 ### Read-Only
 
+- `allowed_cidrs` (List of String) The allowed CIDRs for listener.
 - `id` (String) The ID of this resource.
 - `operating_status` (String) The current operational status of the load balancer.
 - `pool_count` (Number) Number of pools associated with the load balancer.

@@ -74,6 +74,12 @@ func dataSourceLBListener() *schema.Resource {
 				Computed:    true,
 				Description: "The current provisioning status of the load balancer.",
 			},
+			"allowed_cidrs": {
+				Type:        schema.TypeList,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Computed:    true,
+				Description: "The allowed CIDRs for listener.",
+			},
 		},
 	}
 }
@@ -102,10 +108,10 @@ func dataSourceLBListenerRead(_ context.Context, d *schema.ResourceData, m inter
 	}
 
 	var found bool
-	var lb listeners.Listener
+	var listener listeners.Listener
 	for _, l := range ls {
 		if l.Name == name {
-			lb = l
+			listener = l
 			found = true
 			break
 		}
@@ -115,16 +121,17 @@ func dataSourceLBListenerRead(_ context.Context, d *schema.ResourceData, m inter
 		return diag.Errorf("lb listener with name %s not found", name)
 	}
 
-	d.SetId(lb.ID)
-	d.Set("name", lb.Name)
-	d.Set("protocol", lb.Protocol.String())
-	d.Set("protocol_port", lb.ProtocolPort)
-	d.Set("pool_count", lb.PoolCount)
-	d.Set("operating_status", lb.OperationStatus.String())
-	d.Set("provisioning_status", lb.ProvisioningStatus.String())
+	d.SetId(listener.ID)
+	d.Set("name", listener.Name)
+	d.Set("protocol", listener.Protocol.String())
+	d.Set("protocol_port", listener.ProtocolPort)
+	d.Set("pool_count", listener.PoolCount)
+	d.Set("operating_status", listener.OperationStatus.String())
+	d.Set("provisioning_status", listener.ProvisioningStatus.String())
 	d.Set("loadbalancer_id", lbID)
 	d.Set("project_id", d.Get("project_id").(int))
 	d.Set("region_id", d.Get("region_id").(int))
+	d.Set("allowed_cidrs", listener.AllowedCIDRs)
 
 	log.Println("[DEBUG] Finish LBListener reading")
 

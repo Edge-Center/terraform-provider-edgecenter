@@ -141,6 +141,12 @@ func resourceLbListener() *schema.Resource {
 				Optional:    true,
 				Description: "List of secret identifiers used for Server Name Indication (SNI).",
 			},
+			"allowed_cidrs": {
+				Type:        schema.TypeList,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Optional:    true,
+				Description: "The allowed CIDRs for listener.",
+			},
 			"last_updated": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -203,6 +209,14 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 		return diag.Errorf("wrong protocol")
 	}
 
+	allowedCIRDsRaw := d.Get("allowed_cidrs").([]interface{})
+	if len(allowedCIRDsRaw) > 0 {
+		opts.AllowedCIDRs = make([]string, len(allowedCIRDsRaw))
+		for i, s := range allowedCIRDsRaw {
+			opts.AllowedCIDRs[i] = s.(string)
+		}
+	}
+
 	results, err := listeners.Create(client, opts).Extract()
 	if err != nil {
 		return diag.FromErr(err)
@@ -255,6 +269,7 @@ func resourceLBListenerRead(_ context.Context, d *schema.ResourceData, m interfa
 	d.Set("provisioning_status", lb.ProvisioningStatus.String())
 	d.Set("secret_id", lb.SecretID)
 	d.Set("sni_secret_id", lb.SNISecretID)
+	d.Set("allowed_cidrs", lb.AllowedCIDRs)
 
 	fields := []string{"project_id", "region_id", "loadbalancer_id", "insert_x_forwarded"}
 	revertState(d, &fields)
@@ -301,6 +316,16 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 			sniSecretID[i] = s.(string)
 		}
 		opts.SNISecretID = sniSecretID
+		changed = true
+	}
+
+	if d.HasChange("allowed_cidrs") {
+		allowedCIDRsRaw := d.Get("allowed_cidrs").([]interface{})
+		allowedCIDRs := make([]string, len(allowedCIDRsRaw))
+		for i, s := range allowedCIDRsRaw {
+			allowedCIDRs[i] = s.(string)
+		}
+		opts.AllowedCIDRs = allowedCIDRs
 		changed = true
 	}
 

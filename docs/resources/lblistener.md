@@ -30,6 +30,7 @@ resource "edgecenter_lblistener" "listener" {
   name            = "test"
   protocol        = "TCP"
   protocol_port   = 36621
+  allowed_cidrs   = ["127.0.0.0/24", "192.168.0.0/24"]
   loadbalancer_id = edgecenter_loadbalancerv2.lb.id
 }
 ```
@@ -46,6 +47,7 @@ resource "edgecenter_lblistener" "listener" {
 
 ### Optional
 
+- `allowed_cidrs` (List of String) The allowed CIDRs for listener.
 - `insert_x_forwarded` (Boolean) Insert *-forwarded headers
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.

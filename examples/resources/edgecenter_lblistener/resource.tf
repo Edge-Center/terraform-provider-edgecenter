@@ -15,5 +15,6 @@ resource "edgecenter_lblistener" "listener" {
   name            = "test"
   protocol        = "TCP"
   protocol_port   = 36621
+  allowed_cidrs   = ["127.0.0.0/24", "192.168.0.0/24"]
   loadbalancer_id = edgecenter_loadbalancerv2.lb.id
 }
