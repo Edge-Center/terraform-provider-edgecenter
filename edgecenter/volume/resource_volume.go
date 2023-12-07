@@ -49,8 +49,7 @@ func resourceEdgeCenterVolumeCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if v, ok := d.GetOk("metadata"); ok {
-		metadata := converter.MapInterfaceToMapString(v.(map[string]interface{}))
-		opts.Metadata = metadata
+		opts.Metadata = converter.MapInterfaceToMapString(v.(map[string]interface{}))
 	}
 
 	source := d.Get("source").(string)
@@ -144,8 +143,7 @@ func resourceEdgeCenterVolumeUpdate(ctx context.Context, d *schema.ResourceData,
 
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
-		_, _, err := client.Volumes.Rename(ctx, d.Id(), &edgecloud.Name{Name: newName})
-		if err != nil {
+		if _, _, err := client.Volumes.Rename(ctx, d.Id(), &edgecloud.Name{Name: newName}); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -195,8 +193,7 @@ func resourceEdgeCenterVolumeUpdate(ctx context.Context, d *schema.ResourceData,
 	if d.HasChange("metadata") {
 		metadata := edgecloud.Metadata(converter.MapInterfaceToMapString(d.Get("metadata").(map[string]interface{})))
 
-		_, err := client.Volumes.MetadataUpdate(ctx, d.Id(), &metadata)
-		if err != nil {
+		if _, err := client.Volumes.MetadataUpdate(ctx, d.Id(), &metadata); err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
 	}
@@ -222,7 +219,7 @@ func resourceEdgeCenterVolumeDelete(ctx context.Context, d *schema.ResourceData,
 	}
 
 	log.Printf("[INFO] Deleting volume: %s", d.Id())
-	if err := util.DeleteResourceIfExist(ctx, client, client.Volumes, d.Id()); err != nil {
+	if err = util.DeleteResourceIfExist(ctx, client, client.Volumes, d.Id()); err != nil {
 		return diag.Errorf("Error deleting volume: %s", err)
 	}
 	d.SetId("")

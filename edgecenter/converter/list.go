@@ -1,8 +1,6 @@
 package converter
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 )
 
@@ -24,22 +22,25 @@ func ListInterfaceToListInstanceInterface(interfaces []interface{}) ([]edgecloud
 	ifs := make([]edgecloud.InstanceInterface, len(interfaces))
 	for idx, i := range interfaces {
 		inter := i.(map[string]interface{})
-		var I edgecloud.InstanceInterface
-		if err := MapStructureDecoder(&I, &inter, decoderConfig); err != nil {
-			return nil, err
+		I := edgecloud.InstanceInterface{
+			Type:      edgecloud.InterfaceType(inter["type"].(string)),
+			NetworkID: inter["network_id"].(string),
+			PortID:    inter["port_id"].(string),
+			SubnetID:  inter["subnet_id"].(string),
 		}
 
-		floatingIPList := inter["floating_ip"].(*schema.Set).List()
-		if len(floatingIPList) > 0 {
-			fip := floatingIPList[0].(map[string]interface{})
-			if fip["source"].(string) == "new" {
-				I.FloatingIP.Source = edgecloud.NewFloatingIP
-			} else {
-				I.FloatingIP = &edgecloud.InterfaceFloatingIP{
-					Source:             edgecloud.ExistingFloatingIP,
-					ExistingFloatingID: fip["existing_floating_id"].(string),
-				}
+		switch inter["floating_ip_source"].(string) {
+		case "new":
+			I.FloatingIP = &edgecloud.InterfaceFloatingIP{
+				Source: edgecloud.NewFloatingIP,
 			}
+		case "existing":
+			I.FloatingIP = &edgecloud.InterfaceFloatingIP{
+				Source:             edgecloud.ExistingFloatingIP,
+				ExistingFloatingID: inter["floating_ip"].(string),
+			}
+		default:
+			I.FloatingIP = nil
 		}
 
 		sgList := inter["security_groups"].([]interface{})
@@ -49,6 +50,8 @@ func ListInterfaceToListInstanceInterface(interfaces []interface{}) ([]edgecloud
 				sgs = append(sgs, edgecloud.ID{ID: sg.(string)})
 			}
 			I.SecurityGroups = sgs
+		} else {
+			I.SecurityGroups = []edgecloud.ID{}
 		}
 
 		ifs[idx] = I

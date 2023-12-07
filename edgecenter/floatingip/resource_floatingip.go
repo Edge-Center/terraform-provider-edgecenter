@@ -108,8 +108,7 @@ func resourceEdgeCenterFloatingIPUpdate(ctx context.Context, d *schema.ResourceD
 				FixedIPAddress: net.ParseIP(newFixedIPAddress.(string)),
 			}
 
-			_, _, err := client.Floatingips.Assign(ctx, d.Id(), assignFloatingIPRequest)
-			if err != nil {
+			if _, _, err := client.Floatingips.Assign(ctx, d.Id(), assignFloatingIPRequest); err != nil {
 				return diag.FromErr(err)
 			}
 		}
@@ -118,8 +117,7 @@ func resourceEdgeCenterFloatingIPUpdate(ctx context.Context, d *schema.ResourceD
 	if d.HasChange("metadata") {
 		metadata := edgecloud.Metadata(converter.MapInterfaceToMapString(d.Get("metadata").(map[string]interface{})))
 
-		_, err := client.Floatingips.MetadataUpdate(ctx, d.Id(), &metadata)
-		if err != nil {
+		if _, err := client.Floatingips.MetadataUpdate(ctx, d.Id(), &metadata); err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
 	}
