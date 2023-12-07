@@ -106,7 +106,7 @@ func resourceEdgeCenterInstanceCreate(ctx context.Context, d *schema.ResourceDat
 	volumes := d.Get("volume").([]interface{})
 	instanceVolumeCreateList, err := converter.ListInterfaceToListInstanceVolumeCreate(volumes)
 	if err != nil {
-		return diag.Errorf("error creating volume config: %s", err)
+		return diag.Errorf("error creating instance volume config: %s", err)
 	}
 	opts.Volumes = instanceVolumeCreateList
 
@@ -118,7 +118,7 @@ func resourceEdgeCenterInstanceCreate(ctx context.Context, d *schema.ResourceDat
 	ifs := d.Get("interface").([]interface{})
 	interfaceInstanceCreateOptsList, err := converter.ListInterfaceToListInstanceInterface(ifs)
 	if err != nil {
-		return diag.Errorf("error creating interface config: %s", err)
+		return diag.Errorf("error creating instance interface config: %s", err)
 	}
 
 	if v, ok := d.GetOk("security_groups"); ok {
@@ -136,7 +136,7 @@ func resourceEdgeCenterInstanceCreate(ctx context.Context, d *schema.ResourceDat
 
 	taskResult, err := util.ExecuteAndExtractTaskResult(ctx, client.Instances.Create, opts, client)
 	if err != nil {
-		return diag.Errorf("error creating volume: %s", err)
+		return diag.Errorf("error creating instance: %s", err)
 	}
 
 	d.SetId(taskResult.Instances[0])
@@ -151,7 +151,7 @@ func resourceEdgeCenterInstanceRead(ctx context.Context, d *schema.ResourceData,
 	client.Region = d.Get("region_id").(int)
 	client.Project = d.Get("project_id").(int)
 
-	// Retrieve the volume properties for updating the state
+	// Retrieve the instance properties for updating the state
 	foundInstance, resp, err := client.Instances.Get(ctx, d.Id())
 	if err != nil {
 		// check if instance no longer exists.
@@ -169,69 +169,26 @@ func resourceEdgeCenterInstanceRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("vm_state", foundInstance.VMState)
 	d.Set("keypair_id", foundInstance.KeypairName)
 
-	// desc sorting: first volume is the last added
-	volumes, _, err := client.Volumes.List(ctx, &edgecloud.VolumeListOptions{InstanceID: d.Id()})
-	if err != nil {
-		return diag.Errorf("Error retrieving instance volumes: %s", err)
-	}
-
-	getID := func(name string, volumeList []edgecloud.Volume) string {
-		for _, volume := range volumeList {
-			if volume.Name == name {
-				return volume.ID
-			}
-		}
-
-		return ""
-	}
-
-	// asc sorting: first volume is the first added
-	currentVolumes := d.Get("volume").([]interface{})
-	for i, v := range currentVolumes {
-		volume := v.(map[string]interface{})
-		volumeID := getID(volume["name"].(string), volumes)
-		if volumeID == "" {
-			return diag.Errorf("Error during get volume id")
-		}
-		currentVolumes[i].(map[string]interface{})["id"] = volumeID
-	}
-
-	if err := d.Set("volume", currentVolumes); err != nil {
+	if err = setVolumes(ctx, d, client); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if len(foundInstance.MetadataDetailed) > 0 {
-		metadata := make([]map[string]interface{}, 0, len(foundInstance.MetadataDetailed))
-		for _, metadataItem := range foundInstance.MetadataDetailed {
-			metadata = append(metadata, map[string]interface{}{
-				"key":       metadataItem.Key,
-				"value":     metadataItem.Value,
-				"read_only": metadataItem.ReadOnly,
-			})
-		}
-		d.Set("metadata_detailed", metadata)
+	if err = setInterfaces(ctx, d, client); err != nil {
+		return diag.FromErr(err)
 	}
 
-	addresses := make([]map[string]string, 0, len(foundInstance.Addresses))
-	for networkName, networkInfo := range foundInstance.Addresses {
-		net := networkInfo[0]
-		address := map[string]string{
-			"network_name": networkName,
-			"type":         net.Type,
-			"addr":         net.Address.String(),
-			"subnet_id":    net.SubnetID,
-			"subnet_name":  net.SubnetName,
-		}
-		addresses = append(addresses, address)
+	if err = setAddresses(ctx, d, foundInstance); err != nil {
+		return diag.FromErr(err)
 	}
-	if err := d.Set("addresses", addresses); err != nil {
+
+	if err = setMetadataDetailed(ctx, d, foundInstance); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceEdgeCenterInstanceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics { //nolint: gocognit
+func resourceEdgeCenterInstanceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics { //nolint: gocognit, gocyclo
 	client := meta.(*config.CombinedConfig).EdgeCloudClient()
 	client.Region = d.Get("region_id").(int)
 	client.Project = d.Get("project_id").(int)
@@ -265,102 +222,119 @@ func resourceEdgeCenterInstanceUpdate(ctx context.Context, d *schema.ResourceDat
 	}
 
 	if d.HasChange("server_group_id") {
-		oldSgRaw, newSgRaw := d.GetChange("server_group_id")
-		oldSg, newSg := oldSgRaw.(string), newSgRaw.(string)
-
-		// delete old server group
-		if oldSg != "" {
-			task, _, err := client.Instances.RemoveFromServerGroup(ctx, d.Id())
-			if err != nil {
-				return diag.Errorf("Error when remove the instance from server group: %s", err)
-			}
-
-			if err = util.WaitForTaskComplete(ctx, client, task.Tasks[0]); err != nil {
-				return diag.Errorf("Error while waiting for instance remove from server group: %s", err)
-			}
-		}
-
-		// add new server group if needed
-		if newSg != "" {
-			instancePutIntoServerGroupRequest := &edgecloud.InstancePutIntoServerGroupRequest{ServerGroupID: newSg}
-			task, _, err := client.Instances.PutIntoServerGroup(ctx, d.Id(), instancePutIntoServerGroupRequest)
-			if err != nil {
-				return diag.Errorf("Error when put the instance to new server group: %s", err)
-			}
-
-			if err = util.WaitForTaskComplete(ctx, client, task.Tasks[0]); err != nil {
-				return diag.Errorf("Error while waiting for instance put to new server group: %s", err)
-			}
+		if err := changeServerGroup(ctx, d, client); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
 	if d.HasChange("volume") {
-		oldVolumesRaw, newVolumesRaw := d.GetChange("volume")
-		oldVolumes, newVolumes := oldVolumesRaw.([]interface{}), newVolumesRaw.([]interface{})
-
-		oldIDs := getVolumeIDsSet(oldVolumes)
-		newIDs := getVolumeIDsSet(newVolumes)
-
-		// detach volumes
-		for volumeID := range converter.MapLeftDiff(oldIDs, newIDs) {
-			volume := getVolumeInfoByID(volumeID, oldVolumes)
-			if volume["boot_index"].(int) == 0 {
-				return diag.Errorf("cannot detach primary boot device with boot_index=0. id: %s", volumeID)
-			}
-
-			volumeDetachRequest := &edgecloud.VolumeDetachRequest{InstanceID: d.Id()}
-			if _, _, err := client.Volumes.Detach(ctx, volumeID, volumeDetachRequest); err != nil {
-				return diag.Errorf("Error while detaching the volume: %s", err)
-			}
+		if err := changeVolumes(ctx, d, client); err != nil {
+			return diag.FromErr(err)
 		}
+	}
 
-		// attach volumes
-		for volumeID := range converter.MapLeftDiff(newIDs, oldIDs) {
-			volume := getVolumeInfoByID(volumeID, newVolumes)
-			attachmentTag := volume["attachment_tag"].(string)
+	if d.HasChange("interface") {
+		iOldRaw, iNewRaw := d.GetChange("interface")
+		ifsOldSlice, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
 
-			switch volume["source"].(string) {
-			case "image":
-				return diag.Errorf("cannot attach image-source volume, required 'existing-volume' or 'new-volume' source")
-			case "existing-volume":
-				volumeAttachRequest := &edgecloud.VolumeAttachRequest{
-					InstanceID:    d.Id(),
-					AttachmentTag: attachmentTag,
+		switch {
+		// the same number of interfaces
+		case len(ifsOldSlice) == len(ifsNewSlice):
+			for idx, item := range ifsOldSlice {
+				iOld := item.(map[string]interface{})
+				iNew := ifsNewSlice[idx].(map[string]interface{})
+
+				sgsIDsOld := getSecurityGroupsIDs(iOld["security_groups"].([]interface{}))
+				sgsIDsNew := getSecurityGroupsIDs(iNew["security_groups"].([]interface{}))
+				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
+					portID := iOld["port_id"].(string)
+					unAssignSGs := getSecurityGroupsDifference(sgsIDsNew, sgsIDsOld)
+					assignSGs := getSecurityGroupsDifference(sgsIDsOld, sgsIDsNew)
+					if err := updateInterfaceSecurityGroups(ctx, d, client, portID, unAssignSGs, assignSGs); err != nil {
+						return diag.FromErr(err)
+					}
 				}
-				if _, _, err := client.Volumes.Attach(ctx, volume["volume_id"].(string), volumeAttachRequest); err != nil {
-					return diag.Errorf("cannot attach existing-volume: %s. Error: %s", volumeID, err)
-				}
-			case "new-volume":
-				volumeCreateRequest := &edgecloud.VolumeCreateRequest{
-					AttachmentTag:        attachmentTag,
-					Source:               "new-volume",
-					InstanceIDToAttachTo: d.Id(),
-					Name:                 volume["name"].(string),
-					Size:                 volume["size"].(int),
-					TypeName:             edgecloud.VolumeType(volume["type_name"].(string)),
-				}
-				task, _, err := client.Volumes.Create(ctx, volumeCreateRequest)
-				if err != nil {
-					return diag.Errorf("Error when creating a new instance volume: %s", err)
-				}
-				if err = util.WaitForTaskComplete(ctx, client, task.Tasks[0]); err != nil {
-					return diag.Errorf("Error while waiting for instance volume create: %s", err)
+
+				differentFields := converter.MapDifference(iOld, iNew, []string{"security_groups"})
+				if len(differentFields) > 0 {
+					if err := detachInterface(ctx, d, client, iOld); err != nil {
+						return diag.FromErr(err)
+					}
+
+					if err := attachInterface(ctx, d, client, iNew); err != nil {
+						return diag.FromErr(err)
+					}
 				}
 			}
-		}
 
-		// resize the same volume
-		for volumeID := range converter.MapsIntersection(newIDs, oldIDs) {
-			volumeOld := getVolumeInfoByID(volumeID, oldVolumes)
-			volumeNew := getVolumeInfoByID(volumeID, newVolumes)
+		// new interfaces > old interfaces - need to attach new
+		case len(ifsOldSlice) < len(ifsNewSlice):
+			for idx, item := range ifsOldSlice {
+				iOld := item.(map[string]interface{})
+				iNew := ifsNewSlice[idx].(map[string]interface{})
 
-			if volumeOld["size"].(int) != volumeNew["size"].(int) {
-				volumeExtendSizeRequest := &edgecloud.VolumeExtendSizeRequest{Size: volumeNew["size"].(int)}
-				task, _, err := client.Volumes.Extend(ctx, volumeID, volumeExtendSizeRequest)
-				if err != nil {
+				sgsIDsOld := getSecurityGroupsIDs(iOld["security_groups"].([]interface{}))
+				sgsIDsNew := getSecurityGroupsIDs(iNew["security_groups"].([]interface{}))
+				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
+					portID := iOld["port_id"].(string)
+					unAssignSGs := getSecurityGroupsDifference(sgsIDsNew, sgsIDsOld)
+					assignSGs := getSecurityGroupsDifference(sgsIDsOld, sgsIDsNew)
+					if err := updateInterfaceSecurityGroups(ctx, d, client, portID, unAssignSGs, assignSGs); err != nil {
+						return diag.FromErr(err)
+					}
+				}
+
+				differentFields := converter.MapDifference(iOld, iNew, []string{"security_groups"})
+				if len(differentFields) > 0 {
+					if err := detachInterface(ctx, d, client, iOld); err != nil {
+						return diag.FromErr(err)
+					}
+
+					if err := attachInterface(ctx, d, client, iNew); err != nil {
+						return diag.FromErr(err)
+					}
+				}
+			}
+
+			for _, item := range ifsNewSlice[len(ifsOldSlice):] {
+				iNew := item.(map[string]interface{})
+				if err := attachInterface(ctx, d, client, iNew); err != nil {
 					return diag.FromErr(err)
 				}
-				if err = util.WaitForTaskComplete(ctx, client, task.Tasks[0]); err != nil {
+			}
+
+			// old interfaces > new interfaces - need to detach old
+		case len(ifsOldSlice) > len(ifsNewSlice):
+			for idx, item := range ifsOldSlice[:len(ifsNewSlice)] {
+				iOld := item.(map[string]interface{})
+				iNew := ifsNewSlice[idx].(map[string]interface{})
+
+				sgsIDsOld := getSecurityGroupsIDs(iOld["security_groups"].([]interface{}))
+				sgsIDsNew := getSecurityGroupsIDs(iNew["security_groups"].([]interface{}))
+				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
+					portID := iOld["port_id"].(string)
+					unAssignSGs := getSecurityGroupsDifference(sgsIDsNew, sgsIDsOld)
+					assignSGs := getSecurityGroupsDifference(sgsIDsOld, sgsIDsNew)
+					if err := updateInterfaceSecurityGroups(ctx, d, client, portID, unAssignSGs, assignSGs); err != nil {
+						return diag.FromErr(err)
+					}
+				}
+
+				differentFields := converter.MapDifference(iOld, iNew, []string{"security_groups"})
+				if len(differentFields) > 0 {
+					if err := detachInterface(ctx, d, client, iOld); err != nil {
+						return diag.FromErr(err)
+					}
+
+					if err := attachInterface(ctx, d, client, iNew); err != nil {
+						return diag.FromErr(err)
+					}
+				}
+			}
+
+			for _, item := range ifsOldSlice[len(ifsNewSlice):] {
+				iOld := item.(map[string]interface{})
+				if err := detachInterface(ctx, d, client, iOld); err != nil {
 					return diag.FromErr(err)
 				}
 			}
@@ -392,35 +366,4 @@ func resourceEdgeCenterInstanceDelete(ctx context.Context, d *schema.ResourceDat
 	d.SetId("")
 
 	return nil
-}
-
-func getVolumeIDsSet(volumes []interface{}) map[string]struct{} {
-	ids := make(map[string]struct{}, len(volumes))
-	for _, volumeRaw := range volumes {
-		volume := volumeRaw.(map[string]interface{})
-		ids[volume["id"].(string)] = struct{}{}
-	}
-
-	return ids
-}
-
-func getVolumeInfoByID(id string, volumeList []interface{}) map[string]interface{} {
-	for _, volumeRaw := range volumeList {
-		volume := volumeRaw.(map[string]interface{})
-		if volume["id"].(string) == id {
-			return volume
-		}
-	}
-
-	return nil
-}
-
-func getVolumesBootIndexList(volumes []interface{}) []int {
-	idxList := make([]int, 0, len(volumes))
-	for _, volumeRaw := range volumes {
-		volume := volumeRaw.(map[string]interface{})
-		idxList = append(idxList, volume["boot_index"].(int))
-	}
-
-	return idxList
 }

@@ -2,6 +2,7 @@ package converter
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -52,4 +53,41 @@ func MapsIntersection(left, right map[string]struct{}) map[string]struct{} {
 	}
 
 	return out
+}
+
+// contains check if slice contains the element.
+func contains[K comparable](slice []K, elm K) bool {
+	for _, s := range slice {
+		if s == elm {
+			return true
+		}
+	}
+
+	return false
+}
+
+func MapDifference(iMapOld, iMapNew map[string]interface{}, uncheckedKeys []string) map[string]interface{} {
+	differentFields := make(map[string]interface{})
+
+	for oldMapK, oldMapV := range iMapOld {
+		if contains(uncheckedKeys, oldMapK) {
+			continue
+		}
+
+		if newMapV, ok := iMapNew[oldMapK]; !ok || !reflect.DeepEqual(newMapV, oldMapV) {
+			differentFields[oldMapK] = oldMapV
+		}
+	}
+
+	for newMapK, newMapV := range iMapNew {
+		if contains(uncheckedKeys, newMapK) {
+			continue
+		}
+
+		if _, ok := iMapOld[newMapK]; !ok {
+			differentFields[newMapK] = newMapV
+		}
+	}
+
+	return differentFields
 }

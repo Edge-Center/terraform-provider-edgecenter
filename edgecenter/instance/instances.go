@@ -61,12 +61,14 @@ func instanceSchema() map[string]*schema.Schema {
 					"security_groups": {
 						Type:        schema.TypeList,
 						Optional:    true,
+						Computed:    true,
 						Description: "list of security group IDs",
 						Elem:        &schema.Schema{Type: schema.TypeString},
 					},
 					"network_id": {
 						Type:         schema.TypeString,
 						Optional:     true,
+						Computed:     true,
 						ValidateFunc: validation.IsUUID,
 						Description: fmt.Sprintf(
 							"ID of the network that the subnet belongs to, required if type is '%s' or '%s'",
@@ -77,33 +79,33 @@ func instanceSchema() map[string]*schema.Schema {
 					"subnet_id": {
 						Type:         schema.TypeString,
 						Optional:     true,
+						Computed:     true,
 						ValidateFunc: validation.IsUUID,
 						Description:  fmt.Sprintf("required if type is '%s'", edgecloud.SubnetInterfaceType),
 					},
-					"floating_ip": {
-						Type:        schema.TypeSet,
+					"floating_ip_source": {
+						Type:        schema.TypeString,
 						Optional:    true,
-						Description: "floating IP for this subnet attachment",
-						MaxItems:    1,
-						Elem: &schema.Resource{
-							Schema: map[string]*schema.Schema{
-								"source": {
-									Type:     schema.TypeString,
-									Required: true,
-								},
-								"existing_floating_id": {
-									Type:         schema.TypeString,
-									ValidateFunc: validation.IsUUID,
-									Optional:     true,
-								},
-							},
-						},
+						Description: "floating IP type: 'existing' or 'new'",
+					},
+					"floating_ip": {
+						Type:         schema.TypeString,
+						ValidateFunc: validation.IsUUID,
+						Optional:     true,
+						Computed:     true,
+						Description:  "floating IP for this subnet attachment",
 					},
 					"port_id": {
 						Type:         schema.TypeString,
 						Optional:     true,
+						Computed:     true,
 						ValidateFunc: validation.IsUUID,
 						Description:  fmt.Sprintf("required if type is '%s'", edgecloud.ReservedFixedIPType),
+					},
+					"ip_address": {
+						Type:     schema.TypeString,
+						Optional: true,
+						Computed: true,
 					},
 				},
 			},

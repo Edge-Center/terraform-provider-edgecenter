@@ -2,13 +2,14 @@ package instance
 
 import (
 	"context"
-	"strconv"
+	"errors"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
+	"github.com/Edge-Center/edgecentercloud-go/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/config"
 )
 
@@ -63,7 +64,7 @@ then the first one will be used. it is recommended to use "id"`,
 				Computed:    true,
 				Description: "name of the keypair",
 			},
-			"metadata": {
+			"metadata_detailed": {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "metadata in detailed format",
@@ -132,6 +133,11 @@ then the first one will be used. it is recommended to use "id"`,
 					},
 				},
 			},
+			"server_group_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "UUID of the anti-affinity or affinity server group (placement groups)",
+			},
 		},
 	}
 }
@@ -163,6 +169,36 @@ func dataSourceEdgeCenterInstanceRead(ctx context.Context, d *schema.ResourceDat
 
 	d.SetId(foundInstance.ID)
 	d.Set("name", foundInstance.Name)
+	d.Set("status", foundInstance.Status)
+	d.Set("region", foundInstance.Region)
+	d.Set("vm_state", foundInstance.VMState)
+	d.Set("keypair_name", foundInstance.KeypairName)
+
+	if err := setSecurityGroups(ctx, d, foundInstance); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := setMetadataDetailed(ctx, d, foundInstance); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := setFlavor(ctx, d, foundInstance); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := setAddresses(ctx, d, foundInstance); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if len(foundInstance.Volumes) > 0 {
+		volumes := make([]string, 0, len(foundInstance.Volumes))
+		for _, v := range foundInstance.Volumes {
+			volumes = append(volumes, v.ID)
+		}
+		if err := d.Set("volumes", volumes); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 
 	ifs, _, err := client.Instances.InterfaceList(ctx, d.Id())
 	if err != nil {
@@ -185,71 +221,19 @@ func dataSourceEdgeCenterInstanceRead(ctx context.Context, d *schema.ResourceDat
 			cleanInterfaces = append(cleanInterfaces, i)
 		}
 	}
-	if err := d.Set("interface", cleanInterfaces); err != nil {
+	if err = d.Set("interface", cleanInterfaces); err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.Set("status", foundInstance.Status)
-	d.Set("region", foundInstance.Region)
-	d.Set("vm_state", foundInstance.VMState)
-	d.Set("keypair_name", foundInstance.KeypairName)
-
-	if len(foundInstance.SecurityGroups) > 0 {
-		securityGroups := make([]string, 0, len(foundInstance.SecurityGroups))
-		for _, sg := range foundInstance.SecurityGroups {
-			securityGroups = append(securityGroups, sg.Name)
-		}
-		if err := d.Set("security_groups", securityGroups); err != nil {
-			return diag.FromErr(err)
+	sg, err := util.ServerGroupGetByInstance(ctx, client, d.Id())
+	if err != nil {
+		if !errors.Is(err, util.ErrServerGroupNotFound) {
+			return diag.Errorf("Error retrieving instance server groups: %s", err)
 		}
 	}
 
-	if len(foundInstance.Volumes) > 0 {
-		volumes := make([]string, 0, len(foundInstance.Volumes))
-		for _, v := range foundInstance.Volumes {
-			volumes = append(volumes, v.ID)
-		}
-		if err := d.Set("volumes", volumes); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	if len(foundInstance.MetadataDetailed) > 0 {
-		metadata := make([]map[string]interface{}, 0, len(foundInstance.MetadataDetailed))
-		for _, metadataItem := range foundInstance.MetadataDetailed {
-			metadata = append(metadata, map[string]interface{}{
-				"key":       metadataItem.Key,
-				"value":     metadataItem.Value,
-				"read_only": metadataItem.ReadOnly,
-			})
-		}
-		d.Set("metadata", metadata)
-	}
-
-	flavor := map[string]interface{}{
-		"flavor_name": foundInstance.Flavor.FlavorName,
-		"vcpus":       strconv.Itoa(foundInstance.Flavor.VCPUS),
-		"ram":         strconv.Itoa(foundInstance.Flavor.RAM),
-		"flavor_id":   foundInstance.Flavor.FlavorID,
-	}
-	if err := d.Set("flavor", flavor); err != nil {
-		return diag.FromErr(err)
-	}
-
-	addresses := make([]map[string]string, 0, len(foundInstance.Addresses))
-	for networkName, networkInfo := range foundInstance.Addresses {
-		net := networkInfo[0]
-		address := map[string]string{
-			"network_name": networkName,
-			"type":         net.Type,
-			"addr":         net.Address.String(),
-			"subnet_id":    net.SubnetID,
-			"subnet_name":  net.SubnetName,
-		}
-		addresses = append(addresses, address)
-	}
-	if err := d.Set("addresses", addresses); err != nil {
-		return diag.FromErr(err)
+	if sg != nil {
+		d.Set("server_group_id", sg.ID)
 	}
 
 	return nil
