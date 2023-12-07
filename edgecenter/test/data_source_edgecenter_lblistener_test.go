@@ -4,6 +4,7 @@ package edgecenter_test
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -73,6 +74,7 @@ func TestAccLBListenerDataSource(t *testing.T) {
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", lbListenerTestName),
 					resource.TestCheckResourceAttr(resourceName, "id", listener.ID),
+					resource.TestCheckResourceAttr(resourceName, "allowed_cidrs.#", strconv.Itoa(len(listener.AllowedCIDRs))),
 				),
 			},
 		},
