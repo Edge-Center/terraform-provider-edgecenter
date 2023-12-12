@@ -217,7 +217,7 @@ func resourceEdgeCenterInstanceUpdate(ctx context.Context, d *schema.ResourceDat
 		metadata := edgecloud.Metadata(converter.MapInterfaceToMapString(d.Get("metadata").(map[string]interface{})))
 
 		if _, err := client.Instances.MetadataUpdate(ctx, d.Id(), &metadata); err != nil {
-			return diag.Errorf("cannot update metadata. Error: %s", err)
+			return diag.Errorf("cannot update metadata. error: %s", err)
 		}
 	}
 

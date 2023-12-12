@@ -59,7 +59,7 @@ func changeVolumes(ctx context.Context, d *schema.ResourceData, client *edgeclou
 
 		volumeDetachRequest := &edgecloud.VolumeDetachRequest{InstanceID: d.Id()}
 		if _, _, err := client.Volumes.Detach(ctx, volumeID, volumeDetachRequest); err != nil {
-			return fmt.Errorf("уrror while detaching the volume: %w", err)
+			return fmt.Errorf("еrror while detaching the volume: %w", err)
 		}
 	}
 
