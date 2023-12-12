@@ -110,8 +110,3 @@ func loadbalancerSchema() map[string]*schema.Schema {
 		},
 	}
 }
-
-/*
-   "listeners": [],
-   "floating_ips": [],
-*/

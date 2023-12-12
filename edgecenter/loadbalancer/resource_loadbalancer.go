@@ -65,7 +65,7 @@ func resourceEdgeCenterLoadbalancerCreate(ctx context.Context, d *schema.Resourc
 		return diag.Errorf("error creating loadbalancer: %s", err)
 	}
 
-	d.SetId(taskResult.LoadBalancers[0])
+	d.SetId(taskResult.Loadbalancers[0])
 
 	log.Printf("[INFO] Loadbalancer: %s", d.Id())
 

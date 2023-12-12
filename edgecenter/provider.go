@@ -9,6 +9,7 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/config"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/floatingip"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/instance"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/lblistener"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/loadbalancer"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/volume"
 )
@@ -34,12 +35,14 @@ func Provider() *schema.Provider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_floatingip":   floatingip.DataSourceEdgeCenterFloatingIP(),
 			"edgecenter_instance":     instance.DataSourceEdgeCenterInstance(),
+			"edgecenter_lblistener":   lblistener.DataSourceEdgeCenterLbListener(),
 			"edgecenter_loadbalancer": loadbalancer.DataSourceEdgeCenterLoadbalancer(),
 			"edgecenter_volume":       volume.DataSourceEdgeCenterVolume(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"edgecenter_floatingip":   floatingip.ResourceEdgeCenterFloatingIP(),
 			"edgecenter_instance":     instance.ResourceEdgeCenterInstance(),
+			"edgecenter_lblistener":   lblistener.ResourceEdgeCenterLbListener(),
 			"edgecenter_loadbalancer": loadbalancer.ResourceEdgeCenterLoadbalancer(),
 			"edgecenter_volume":       volume.ResourceEdgeCenterVolume(),
 		},
