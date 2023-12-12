@@ -6,6 +6,12 @@ github.com/Edge-Center/edgecentercloud-go v0.2.3-0.20231205112003-4fe2bad3733f h
 github.com/Edge-Center/edgecentercloud-go v0.2.3-0.20231205112003-4fe2bad3733f/go.mod h1:zfzX+BWQ1yHMMsDerql6dSUD5bjPp4POg6B7ptr8YHQ=
 github.com/Edge-Center/edgecentercloud-go v0.2.3-0.20231206130326-c1422c27bd33 h1:2nVwnXPLZrD0p50/PZNAu8xkN8sj6B1qsDiQd5LAOlw=
 github.com/Edge-Center/edgecentercloud-go v0.2.3-0.20231206130326-c1422c27bd33/go.mod h1:zfzX+BWQ1yHMMsDerql6dSUD5bjPp4POg6B7ptr8YHQ=
+github.com/Edge-Center/edgecentercloud-go v1.0.0 h1:FgsGJO1VAJCKgfSjL1bH3/qED8gtYJiqFUkOonhg9AU=
+github.com/Edge-Center/edgecentercloud-go v1.0.0/go.mod h1:zfzX+BWQ1yHMMsDerql6dSUD5bjPp4POg6B7ptr8YHQ=
+github.com/Edge-Center/edgecentercloud-go v1.0.1-0.20231211064511-3d1d7887164b h1:lSdXS+fa+8+A4zX1fpbuelRcjK17MBthiD/IQmWU1Pw=
+github.com/Edge-Center/edgecentercloud-go v1.0.1-0.20231211064511-3d1d7887164b/go.mod h1:zfzX+BWQ1yHMMsDerql6dSUD5bjPp4POg6B7ptr8YHQ=
+github.com/Edge-Center/edgecentercloud-go v1.0.1-0.20231211065040-30ce69f0666f h1:XI9oMga3VVBMgMhSuIKYyjcqWAKKqEp/ZhI/acnfHYI=
+github.com/Edge-Center/edgecentercloud-go v1.0.1-0.20231211065040-30ce69f0666f/go.mod h1:zfzX+BWQ1yHMMsDerql6dSUD5bjPp4POg6B7ptr8YHQ=
 github.com/agext/levenshtein v1.2.2 h1:0S/Yg6LYmFJ5stwQeRp6EeOcCbj7xiqQSdNelsXvaqE=
 github.com/agext/levenshtein v1.2.2/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
 github.com/apparentlymart/go-textseg/v12 v12.0.0/go.mod h1:S/4uRK2UtaQttw1GenVJEynmyUenKwP++x/+DdGV/Ec=

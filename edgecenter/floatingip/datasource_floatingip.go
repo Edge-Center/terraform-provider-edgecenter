@@ -187,7 +187,7 @@ func dataSourceEdgeCenterFloatingIPRead(ctx context.Context, d *schema.ResourceD
 		loadbalancer := map[string]string{
 			"id":                  foundFloatingIP.Loadbalancer.ID,
 			"provisioning_status": string(foundFloatingIP.Loadbalancer.ProvisioningStatus),
-			"operating_status":    string(foundFloatingIP.Loadbalancer.OperationStatus),
+			"operating_status":    string(foundFloatingIP.Loadbalancer.OperatingStatus),
 			"name":                foundFloatingIP.Loadbalancer.Name,
 			"vip_address":         foundFloatingIP.Loadbalancer.VipAddress.String(),
 			"vip_port_id":         foundFloatingIP.Loadbalancer.VipPortID,
