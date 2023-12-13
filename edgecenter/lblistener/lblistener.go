@@ -1,6 +1,8 @@
 package lblistener
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -33,10 +35,14 @@ func lblistenerSchema() map[string]*schema.Schema {
 			ValidateFunc: validation.IsUUID,
 		},
 		"protocol": {
-			Type:        schema.TypeString,
-			Required:    true,
-			ForceNew:    true,
-			Description: "Available values are 'HTTP', 'HTTPS', 'TCP', 'UDP' and 'Terminated HTTPS'",
+			Type:     schema.TypeString,
+			Required: true,
+			ForceNew: true,
+			Description: fmt.Sprintf(
+				"available values are '%s', '%s', '%s', '%s' and '%s'",
+				edgecloud.ListenerProtocolHTTP, edgecloud.ListenerProtocolHTTPS,
+				edgecloud.ListenerProtocolTCP, edgecloud.ListenerProtocolUDP, edgecloud.ListenerProtocolTerminatedHTTPS,
+			),
 			ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 				v := val.(string)
 				switch edgecloud.LoadbalancerListenerProtocol(v) {
@@ -44,7 +50,12 @@ func lblistenerSchema() map[string]*schema.Schema {
 					edgecloud.ListenerProtocolUDP, edgecloud.ListenerProtocolTerminatedHTTPS:
 					return diag.Diagnostics{}
 				default:
-					return diag.Errorf("wrong protocol %s, available values are 'HTTP', 'HTTPS', 'TCP', 'UDP' and 'Terminated HTTPS'", v)
+					return diag.Errorf(
+						"wrong protocol %s, available values are '%s', '%s', '%s', '%s', '%s'", v,
+						edgecloud.ListenerProtocolHTTP, edgecloud.ListenerProtocolHTTPS,
+						edgecloud.ListenerProtocolTCP, edgecloud.ListenerProtocolUDP,
+						edgecloud.ListenerProtocolTerminatedHTTPS,
+					)
 				}
 			},
 		},

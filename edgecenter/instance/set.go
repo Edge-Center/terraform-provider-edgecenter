@@ -65,7 +65,7 @@ func setInterfaces(ctx context.Context, d *schema.ResourceData, client *edgeclou
 		ifs := v.(map[string]interface{})
 		ifsType := edgecloud.InterfaceType(ifs["type"].(string))
 		switch ifsType { //nolint: exhaustive
-		case edgecloud.SubnetInterfaceType, edgecloud.AnySubnetInterfaceType:
+		case edgecloud.InterfaceTypeSubnet, edgecloud.InterfaceTypeAnySubnet:
 			currentInterfaces[i].(map[string]interface{})["subnet_id"] = ipAssignments[0].SubnetID
 		}
 		currentInterfaces[i].(map[string]interface{})["port_id"] = portID

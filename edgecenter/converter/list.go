@@ -1,6 +1,8 @@
 package converter
 
 import (
+	"net"
+
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 )
 
@@ -58,4 +60,79 @@ func ListInterfaceToListInstanceInterface(interfaces []interface{}) ([]edgecloud
 	}
 
 	return ifs, nil
+}
+
+// ListInterfaceToLoadbalancerSessionPersistence creates a session persistence options struct.
+func ListInterfaceToLoadbalancerSessionPersistence(sessionPersistence []interface{}) *edgecloud.LoadbalancerSessionPersistence {
+	var sp *edgecloud.LoadbalancerSessionPersistence
+
+	if len(sessionPersistence) > 0 {
+		sessionPersistenceMap := sessionPersistence[0].(map[string]interface{})
+		sp = &edgecloud.LoadbalancerSessionPersistence{
+			Type: edgecloud.SessionPersistence(sessionPersistenceMap["type"].(string)),
+		}
+
+		if granularity, ok := sessionPersistenceMap["persistence_granularity"].(string); ok {
+			sp.PersistenceGranularity = granularity
+		}
+
+		if timeout, ok := sessionPersistenceMap["persistence_timeout"].(int); ok {
+			sp.PersistenceTimeout = timeout
+		}
+
+		if cookieName, ok := sessionPersistenceMap["cookie_name"].(string); ok {
+			sp.CookieName = cookieName
+		}
+	}
+
+	return sp
+}
+
+// ListInterfaceToHealthMonitor creates a heath monitor options struct.
+func ListInterfaceToHealthMonitor(healthMonitor []interface{}) edgecloud.HealthMonitorCreateRequest {
+	var hm edgecloud.HealthMonitorCreateRequest
+
+	if len(healthMonitor) > 0 {
+		healthMonitorMap := healthMonitor[0].(map[string]interface{})
+		hm = edgecloud.HealthMonitorCreateRequest{
+			Timeout:    healthMonitorMap["timeout"].(int),
+			Delay:      healthMonitorMap["delay"].(int),
+			Type:       edgecloud.HealthMonitorType(healthMonitorMap["type"].(string)),
+			MaxRetries: healthMonitorMap["max_retries"].(int),
+		}
+
+		if httpMethod, ok := healthMonitorMap["http_method"].(string); ok {
+			hm.HTTPMethod = edgecloud.HTTPMethod(httpMethod)
+		}
+
+		if urlPath, ok := healthMonitorMap["url_path"].(string); ok {
+			hm.URLPath = urlPath
+		}
+
+		if maxRetriesDown, ok := healthMonitorMap["max_retries_down"].(int); ok {
+			hm.MaxRetriesDown = maxRetriesDown
+		}
+
+		if expectedCodes, ok := healthMonitorMap["expected_codes"].(string); ok {
+			hm.ExpectedCodes = expectedCodes
+		}
+	}
+
+	return hm
+}
+
+func ListInterfaceToListPoolMember(poolMembers []interface{}) ([]edgecloud.PoolMemberCreateRequest, error) {
+	members := make([]edgecloud.PoolMemberCreateRequest, len(poolMembers))
+	for i, member := range poolMembers {
+		m := member.(map[string]interface{})
+		address := m["address"].(string)
+		m["address"] = net.ParseIP(address)
+		var M edgecloud.PoolMemberCreateRequest
+		if err := MapStructureDecoder(&M, &m, decoderConfig); err != nil {
+			return nil, err
+		}
+		members[i] = M
+	}
+
+	return members, nil
 }

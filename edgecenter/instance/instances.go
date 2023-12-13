@@ -52,10 +52,8 @@ func instanceSchema() map[string]*schema.Schema {
 						Required: true,
 						Description: fmt.Sprintf(
 							"available values are '%s', '%s', '%s', '%s'",
-							edgecloud.SubnetInterfaceType,
-							edgecloud.AnySubnetInterfaceType,
-							edgecloud.ExternalInterfaceType,
-							edgecloud.ReservedFixedIPType,
+							edgecloud.InterfaceTypeSubnet, edgecloud.InterfaceTypeAnySubnet,
+							edgecloud.InterfaceTypeExternal, edgecloud.InterfaceTypeReservedFixedIP,
 						),
 					},
 					"security_groups": {
@@ -72,8 +70,8 @@ func instanceSchema() map[string]*schema.Schema {
 						ValidateFunc: validation.IsUUID,
 						Description: fmt.Sprintf(
 							"ID of the network that the subnet belongs to, required if type is '%s' or '%s'",
-							edgecloud.SubnetInterfaceType,
-							edgecloud.AnySubnetInterfaceType,
+							edgecloud.InterfaceTypeSubnet,
+							edgecloud.InterfaceTypeAnySubnet,
 						),
 					},
 					"subnet_id": {
@@ -81,7 +79,7 @@ func instanceSchema() map[string]*schema.Schema {
 						Optional:     true,
 						Computed:     true,
 						ValidateFunc: validation.IsUUID,
-						Description:  fmt.Sprintf("required if type is '%s'", edgecloud.SubnetInterfaceType),
+						Description:  fmt.Sprintf("required if type is '%s'", edgecloud.InterfaceTypeSubnet),
 					},
 					"floating_ip_source": {
 						Type:        schema.TypeString,
@@ -100,7 +98,7 @@ func instanceSchema() map[string]*schema.Schema {
 						Optional:     true,
 						Computed:     true,
 						ValidateFunc: validation.IsUUID,
-						Description:  fmt.Sprintf("required if type is '%s'", edgecloud.ReservedFixedIPType),
+						Description:  fmt.Sprintf("required if type is '%s'", edgecloud.InterfaceTypeReservedFixedIP),
 					},
 					"ip_address": {
 						Type:     schema.TypeString,

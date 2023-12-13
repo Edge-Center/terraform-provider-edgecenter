@@ -200,7 +200,7 @@ func resourceEdgeCenterLbListenerUpdate(ctx context.Context, d *schema.ResourceD
 		}
 
 		if err = util.WaitForTaskComplete(ctx, client, task.Tasks[0]); err != nil {
-			return diag.Errorf("Error while waiting for loadbalancer listener: %s", err)
+			return diag.Errorf("Error while waiting for loadbalancer listener update: %s", err)
 		}
 	}
 
