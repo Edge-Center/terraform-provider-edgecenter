@@ -182,11 +182,11 @@ func attachInterface(ctx context.Context, d *schema.ResourceData, client *edgecl
 	attachInterfaceRequest := &edgecloud.InstanceAttachInterfaceRequest{Type: iType}
 
 	switch iType { //nolint: exhaustive
-	case edgecloud.SubnetInterfaceType:
+	case edgecloud.InterfaceTypeSubnet:
 		attachInterfaceRequest.SubnetID = ifs["subnet_id"].(string)
-	case edgecloud.AnySubnetInterfaceType:
+	case edgecloud.InterfaceTypeAnySubnet:
 		attachInterfaceRequest.NetworkID = ifs["network_id"].(string)
-	case edgecloud.ReservedFixedIPType:
+	case edgecloud.InterfaceTypeReservedFixedIP:
 		attachInterfaceRequest.PortID = ifs["port_id"].(string)
 	}
 	attachInterfaceRequest.SecurityGroups = getSecurityGroupsIDs(ifs["security_groups"].([]interface{}))

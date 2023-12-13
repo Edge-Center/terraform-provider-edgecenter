@@ -86,7 +86,7 @@ then the first one will be used. it is recommended to use "id"`,
 			"allowed_cidrs": {
 				Type:        schema.TypeList,
 				Computed:    true,
-				Description: "allowed CIDRs for listener.",
+				Description: "allowed CIDRs for listener",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},
