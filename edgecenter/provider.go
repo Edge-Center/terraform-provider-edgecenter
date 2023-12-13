@@ -13,6 +13,7 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/lbmember"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/lbpool"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/loadbalancer"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/reservedfixedip"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/volume"
 )
 
@@ -35,21 +36,23 @@ func Provider() *schema.Provider {
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"edgecenter_floatingip":   floatingip.DataSourceEdgeCenterFloatingIP(),
-			"edgecenter_instance":     instance.DataSourceEdgeCenterInstance(),
-			"edgecenter_lblistener":   lblistener.DataSourceEdgeCenterLbListener(),
-			"edgecenter_lbpool":       lbpool.DataSourceEdgeCenterLbPool(),
-			"edgecenter_loadbalancer": loadbalancer.DataSourceEdgeCenterLoadbalancer(),
-			"edgecenter_volume":       volume.DataSourceEdgeCenterVolume(),
+			"edgecenter_floatingip":      floatingip.DataSourceEdgeCenterFloatingIP(),
+			"edgecenter_instance":        instance.DataSourceEdgeCenterInstance(),
+			"edgecenter_lblistener":      lblistener.DataSourceEdgeCenterLbListener(),
+			"edgecenter_loadbalancer":    loadbalancer.DataSourceEdgeCenterLoadbalancer(),
+			"edgecenter_volume":          volume.DataSourceEdgeCenterVolume(),
+			"edgecenter_lbpool":          lbpool.DataSourceEdgeCenterLbPool(),
+			"edgecenter_reservedfixedip": reservedfixedip.DataSourceReservedFixedIP(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"edgecenter_floatingip":   floatingip.ResourceEdgeCenterFloatingIP(),
-			"edgecenter_instance":     instance.ResourceEdgeCenterInstance(),
-			"edgecenter_lblistener":   lblistener.ResourceEdgeCenterLbListener(),
-			"edgecenter_lbpool":       lbpool.ResourceEdgeCenterLbPool(),
+			"edgecenter_floatingip":      floatingip.ResourceEdgeCenterFloatingIP(),
+			"edgecenter_instance":        instance.ResourceEdgeCenterInstance(),
+			"edgecenter_lblistener":      lblistener.ResourceEdgeCenterLbListener(),
+			"edgecenter_lbpool":          lbpool.ResourceEdgeCenterLbPool(),
 			"edgecenter_lbmember":     lbmember.ResourceEdgeCenterLbMember(),
-			"edgecenter_loadbalancer": loadbalancer.ResourceEdgeCenterLoadbalancer(),
-			"edgecenter_volume":       volume.ResourceEdgeCenterVolume(),
+			"edgecenter_loadbalancer":    loadbalancer.ResourceEdgeCenterLoadbalancer(),
+			"edgecenter_volume":          volume.ResourceEdgeCenterVolume(),
+			"edgecenter_reservedfixedip": reservedfixedip.ResourceEdgeCenterReservedFixedIP(),
 		},
 	}
 

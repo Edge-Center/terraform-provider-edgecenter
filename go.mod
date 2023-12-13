@@ -3,7 +3,7 @@ module github.com/Edge-Center/terraform-provider-edgecenter
 go 1.21
 
 require (
-	github.com/Edge-Center/edgecentercloud-go v1.0.1
+	github.com/Edge-Center/edgecentercloud-go v1.0.2-0.20231218113533-0c716a87e1b1
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.30.0
 	github.com/mitchellh/mapstructure v1.5.0
