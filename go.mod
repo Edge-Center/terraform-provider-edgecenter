@@ -3,9 +3,10 @@ module github.com/Edge-Center/terraform-provider-edgecenter
 go 1.21
 
 require (
-	github.com/Edge-Center/edgecentercloud-go v1.0.1-0.20231213140925-4fccd8fc8ae4
+	github.com/Edge-Center/edgecentercloud-go v1.0.1
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.30.0
+	github.com/mitchellh/mapstructure v1.5.0
 )
 
 require (
@@ -37,7 +38,6 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
