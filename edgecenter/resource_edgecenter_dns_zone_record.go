@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"strings"
 
@@ -114,13 +115,15 @@ func resourceDNSZoneRecord() *schema.Resource {
 				Description: "A ttl of DNS Zone Record resource.",
 			},
 			DNSZoneRecordSchemaRRSetMeta: {
-				Type:     schema.TypeSet,
-				Optional: true,
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "A meta of DNS Zone Record resource.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						DNSZoneRecordSchemaFailover: {
-							Type:     schema.TypeSet,
-							Optional: true,
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "A failover meta of DNS Zone Record resource.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									DNSZoneRecordSchemaFailoverProtocol: {
@@ -357,7 +360,10 @@ func resourceDNSZoneRecordCreate(ctx context.Context, d *schema.ResourceData, m 
 	defer log.Printf("[DEBUG] Finish DNS Zone Record Resource creating (id=%s %s %s)\n", zone, domain, rType)
 
 	ttl := d.Get(DNSZoneRecordSchemaTTL).(int)
-	meta := d.Get(DNSZoneRecordSchemaRRSetMeta).(dnssdk.Meta)
+	var meta map[string]interface{}
+	for _, resource := range d.Get(DNSZoneRecordSchemaRRSetMeta).(*schema.Set).List() {
+		meta = resource.(map[string]interface{})
+	}
 	rrSet := dnssdk.RRSet{TTL: ttl, Records: make([]dnssdk.ResourceRecord, 0), Meta: meta}
 	err := fillRRSet(d, rType, &rrSet)
 	if err != nil {
@@ -392,7 +398,11 @@ func resourceDNSZoneRecordUpdate(ctx context.Context, d *schema.ResourceData, m 
 	defer log.Printf("[DEBUG] Finish DNS Zone Record Resource updating (id=%s %s %s)\n", zone, domain, rType)
 
 	ttl := d.Get(DNSZoneRecordSchemaTTL).(int)
-	rrSet := dnssdk.RRSet{TTL: ttl, Records: make([]dnssdk.ResourceRecord, 0)}
+	var meta map[string]interface{}
+	for _, resource := range d.Get(DNSZoneRecordSchemaRRSetMeta).(*schema.Set).List() {
+		meta = resource.(map[string]interface{})
+	}
+	rrSet := dnssdk.RRSet{TTL: ttl, Records: make([]dnssdk.ResourceRecord, 0), Meta: meta}
 	err := fillRRSet(d, rType, &rrSet)
 	if err != nil {
 		return diag.FromErr(err)
@@ -438,6 +448,25 @@ func resourceDNSZoneRecordRead(ctx context.Context, d *schema.ResourceData, m in
 	_ = d.Set(DNSZoneRecordSchemaType, rType)
 	_ = d.Set(DNSZoneRecordSchemaTTL, result.TTL)
 
+	rrSetMeta := make(map[string]interface{})
+
+	if result.Meta[DNSZoneRecordSchemaFailover] != nil {
+		failover, err := result.Meta.Failover()
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		m := structToMap(failover)
+		rrSetMeta[DNSZoneRecordSchemaFailover] = schema.NewSet(failoverUniqueID, []interface{}{m})
+	}
+
+	if len(rrSetMeta) > 0 {
+		err = d.Set(DNSZoneRecordSchemaRRSetMeta, schema.NewSet(failoverUniqueID, []interface{}{rrSetMeta}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	filters := make([]map[string]interface{}, 0)
 	for _, f := range result.Filters {
 		filters = append(filters, map[string]interface{}{
@@ -469,6 +498,11 @@ func resourceDNSZoneRecordRead(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	return nil
+}
+
+// failoverUniqueID generates a unique ID for a failover rule using its properties.
+func failoverUniqueID(i interface{}) int {
+	return rand.Intn(1000)
 }
 
 func resourceDNSZoneRecordDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -594,9 +628,57 @@ func fillRRSet(d *schema.ResourceData, rType string, rrSet *dnssdk.RRSet) error 
 		rrSet.Records = append(rrSet.Records, *rr)
 	}
 
-	//if rrSet.Meta. {
-	//	rrSet.AddMeta(meta)
+	//if rrSet.Meta != nil {
+	//	failoverMeta, ok := rrSet.Meta["failover"].(dnssdk.FailoverMeta)
+	//	rrSet.AddFailoverMeta(rrSet.Meta)
 	//}
+	ok := rrSet.Meta.HasFailover()
+	if ok && (rType != "A" && rType != "AAAA" && rType != "CNAME") {
+		return fmt.Errorf("failover is not supported for %s records", rType)
+	}
+
+	flv, ok := rrSet.Meta["failover"]
+	if !ok {
+		return nil
+	}
+
+	failover, ok := flv.(*schema.Set)
+	if !ok {
+		return fmt.Errorf("failover is not (dnssdk.FailoverMeta)")
+	}
+
+	var failovermeta dnssdk.FailoverMeta
+	if ok {
+		for _, resource := range failover.List() {
+			data := resource.(map[string]interface{})
+			protocol := data[DNSZoneRecordSchemaFailoverProtocol].(string)
+			frequency := data[DNSZoneRecordSchemaFailoverFrequency].(int)
+			host := data[DNSZoneRecordSchemaFailoverHost].(string)
+			verify := data[DNSZoneRecordSchemaFailoverVerify].(bool)
+			tls := data[DNSZoneRecordSchemaFailoverTls].(bool)
+			timeout := data[DNSZoneRecordSchemaFailoverTimeout].(int)
+			port := data[DNSZoneRecordSchemaFailoverPort].(int)
+			method := data[DNSZoneRecordSchemaFailoverMethod].(string)
+			url := data[DNSZoneRecordSchemaFailoverUrl].(string)
+			regexp := data[DNSZoneRecordSchemaFailoverRegexp].(string)
+			httpStatusCode := data[DNSZoneRecordSchemaFailoverHttpStatusCode].(int)
+
+			failovermeta = dnssdk.FailoverMeta{
+				Protocol:       protocol,
+				Frequency:      frequency,
+				Host:           &host,
+				Verify:         &verify,
+				Tls:            &tls,
+				Timeout:        timeout,
+				Port:           port,
+				Method:         &method,
+				Url:            &url,
+				Regexp:         &regexp,
+				HTTPStatusCode: &httpStatusCode,
+			}
+			rrSet.Meta["failover"] = failovermeta
+		}
+	}
 
 	return nil
 }
