@@ -35,7 +35,7 @@ func volumeSchema() map[string]*schema.Schema {
 		"source": {
 			Type:         schema.TypeString,
 			Required:     true,
-			Description:  "volume source",
+			Description:  "volume source. valid values are 'new-volume', 'snapshot' or 'image'",
 			ValidateFunc: validation.StringInSlice([]string{"new-volume", "snapshot", "image"}, false),
 		},
 		"metadata": {
