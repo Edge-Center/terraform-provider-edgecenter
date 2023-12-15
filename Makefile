@@ -1,4 +1,5 @@
 PROJECT_DIR=$(shell pwd)
+GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 BIN_DIR=$(PROJECT_DIR)/bin
 
 # BINARY
@@ -26,6 +27,9 @@ lint:
 .PHONY: test
 test:
 	go test -v -timeout=2m
+
+fmt:
+	gofmt -s -w $(GOFMT_FILES)
 
 .PHONY: fmtcheck
 fmtcheck:
