@@ -1,22 +1,21 @@
-provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
+# Example 1
+data "edgecenter_floatingip" "fip1" {
+  region_id           = var.region_id
+  project_id          = var.project_id
+  floating_ip_address = "10.10.0.1"
 }
 
-data "edgecenter_project" "pr" {
-  name = "test"
+output "fip1" {
+  value = data.edgecenter_floatingip.fip1
 }
 
-data "edgecenter_region" "rg" {
-  name = "ED-10 Preprod"
+# Example 2
+data "edgecenter_floatingip" "fip2" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  id         = "00000000-0000-0000-0000-000000000000"
 }
 
-data "edgecenter_floatingip" "ip" {
-  floating_ip_address = "10.100.179.172"
-  region_id           = data.edgecenter_region.rg.id
-  project_id          = data.edgecenter_project.pr.id
+output "fip2" {
+  value = data.edgecenter_floatingip.fip2
 }
-
-output "view" {
-  value = data.edgecenter_floatingip.ip
-}
-

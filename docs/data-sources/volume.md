@@ -15,26 +15,26 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 ## Example Usage
 
 ```terraform
-provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
+# Example 1
+data "edgecenter_volume" "volume1" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  name       = "test-volume"
 }
 
-data "edgecenter_project" "pr" {
-  name = "test"
+output "volume1" {
+  value = data.edgecenter_volume.volume1
 }
 
-data "edgecenter_region" "rg" {
-  name = "ED-10 Preprod"
+# Example 2
+data "edgecenter_volume" "volume2" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  id         = "00000000-0000-0000-0000-000000000000"
 }
 
-data "edgecenter_volume" "tv" {
-  name       = "test-hd"
-  region_id  = data.edgecenter_region.rg.id
-  project_id = data.edgecenter_project.pr.id
-}
-
-output "view" {
-  value = data.edgecenter_volume.tv
+output "volume2" {
+  value = data.edgecenter_volume.volume2
 }
 ```
 
@@ -43,26 +43,38 @@ output "view" {
 
 ### Required
 
-- `name` (String) The name of the volume.
+- `project_id` (Number) uuid of the project
+- `region_id` (Number) uuid of the region
 
 ### Optional
 
-- `metadata_k` (String) Filtration query opts (only key).
-- `metadata_kv` (Map of String) Filtration query opts, for example, {offset = "10", limit = "10"}
-- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
-- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
-- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
-- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `id` (String) volume uuid
+- `name` (String) volume name. this parameter is not unique, if there is more than one volume with the same name, 
+then the first one will be used. it is recommended to use "id"
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
-- `size` (Number) The size of the volume, specified in gigabytes (GB).
-- `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.
+- `attachments` (List of Object) the attachment list (see [below for nested schema](#nestedatt--attachments))
+- `bootable` (Boolean) the bootable boolean flag
+- `limiter_stats` (Map of Number) the QoS parameters of this volume
+- `metadata` (List of Object) metadata in detailed format (see [below for nested schema](#nestedatt--metadata))
+- `region` (String) name of the region
+- `size` (Number) size of the volume, specified in gigabytes (GB)
+- `status` (String) current status of the volume resource
+- `volume_type` (String) volume type
 
-<a id="nestedatt--metadata_read_only"></a>
-### Nested Schema for `metadata_read_only`
+<a id="nestedatt--attachments"></a>
+### Nested Schema for `attachments`
+
+Read-Only:
+
+- `attachment_id` (String)
+- `server_id` (String)
+- `volume_id` (String)
+
+
+<a id="nestedatt--metadata"></a>
+### Nested Schema for `metadata`
 
 Read-Only:
 

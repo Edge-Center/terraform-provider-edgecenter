@@ -3,36 +3,36 @@
 page_title: "edgecenter_instance Data Source - edgecenter"
 subcategory: ""
 description: |-
-  A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.
+  A cloud instance is a virtual machine in a cloud environment
 ---
 
 # edgecenter_instance (Data Source)
 
-A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.
+A cloud instance is a virtual machine in a cloud environment
 
 ## Example Usage
 
 ```terraform
-provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
+# Example 1
+data "edgecenter_instance" "instance1" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  name       = "test-instance"
 }
 
-data "edgecenter_project" "pr" {
-  name = "test"
+output "instance1" {
+  value = data.edgecenter_instance.instance1
 }
 
-data "edgecenter_region" "rg" {
-  name = "ED-10 Preprod"
+# Example 2
+data "edgecenter_instance" "instance2" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  id         = "00000000-0000-0000-0000-000000000000"
 }
 
-data "edgecenter_instance" "vm" {
-  name       = "test-vm"
-  region_id  = data.edgecenter_region.rg.id
-  project_id = data.edgecenter_project.pr.id
-}
-
-output "view" {
-  value = data.edgecenter_instance.vm
+output "instance2" {
+  value = data.edgecenter_instance.instance2
 }
 ```
 
@@ -41,45 +41,28 @@ output "view" {
 
 ### Required
 
-- `name` (String) The name of the instance.
+- `project_id` (Number) uuid of the project
+- `region_id` (Number) uuid of the region
 
 ### Optional
 
-- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
-- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
-- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
-- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `id` (String) instance uuid
+- `name` (String) instance name. this parameter is not unique, if there is more than one instance with the same name, 
+then the first one will be used. it is recommended to use "id"
 
 ### Read-Only
 
-- `addresses` (List of Object) A list of network addresses associated with the instance, for example "pub_net": [...]. (see [below for nested schema](#nestedatt--addresses))
-- `flavor` (Map of String) A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.
-- `flavor_id` (String) The ID of the flavor to be used for the instance, determining its compute and memory, for example 'g1-standard-2-4'.
-- `id` (String) The ID of this resource.
-- `interface` (List of Object) A list defining the network interfaces to be attached to the instance. (see [below for nested schema](#nestedatt--interface))
-- `metadata` (List of Object) (see [below for nested schema](#nestedatt--metadata))
-- `security_group` (List of Object) A list of firewall configurations applied to the instance, defined by their id and name. (see [below for nested schema](#nestedatt--security_group))
-- `status` (String) The current status of the instance. This is computed automatically and can be used to track the instance's state.
-- `vm_state` (String) The current virtual machine state of the instance, 
-allowing you to start or stop the VM. Possible values are stopped and active.
-- `volume` (Set of Object) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedatt--volume))
-
-<a id="nestedatt--addresses"></a>
-### Nested Schema for `addresses`
-
-Read-Only:
-
-- `net` (List of Object) (see [below for nested schema](#nestedobjatt--addresses--net))
-
-<a id="nestedobjatt--addresses--net"></a>
-### Nested Schema for `addresses.net`
-
-Read-Only:
-
-- `addr` (String)
-- `type` (String)
-
-
+- `addresses` (List of Map of String) network addresses associated with the instance
+- `flavor` (Map of String) information about the flavor
+- `interface` (List of Object) network interfaces attached to the instance (see [below for nested schema](#nestedatt--interface))
+- `keypair_name` (String) name of the keypair
+- `metadata_detailed` (List of Object) metadata in detailed format (see [below for nested schema](#nestedatt--metadata_detailed))
+- `region` (String) name of the region
+- `security_groups` (List of String) list of security groups names
+- `server_group_id` (String) UUID of the anti-affinity or affinity server group (placement groups)
+- `status` (String) current status of the instance resource
+- `vm_state` (String) state of the virtual machine
+- `volumes` (List of String) list of volumes ID's
 
 <a id="nestedatt--interface"></a>
 ### Nested Schema for `interface`
@@ -92,29 +75,13 @@ Read-Only:
 - `subnet_id` (String)
 
 
-<a id="nestedatt--metadata"></a>
-### Nested Schema for `metadata`
+<a id="nestedatt--metadata_detailed"></a>
+### Nested Schema for `metadata_detailed`
 
 Read-Only:
 
 - `key` (String)
+- `read_only` (Boolean)
 - `value` (String)
-
-
-<a id="nestedatt--security_group"></a>
-### Nested Schema for `security_group`
-
-Read-Only:
-
-- `name` (String)
-
-
-<a id="nestedatt--volume"></a>
-### Nested Schema for `volume`
-
-Read-Only:
-
-- `delete_on_termination` (Boolean)
-- `volume_id` (String)
 
 

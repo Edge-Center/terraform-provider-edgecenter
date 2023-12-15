@@ -1,22 +1,21 @@
-provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
+# Example 1
+data "edgecenter_loadbalancer" "lb1" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  name       = "test-loadbalancer"
 }
 
-data "edgecenter_project" "pr" {
-  name = "test"
+output "lb1" {
+  value = data.edgecenter_loadbalancer.lb1
 }
 
-data "edgecenter_region" "rg" {
-  name = "ED-10 Preprod"
+# Example 2
+data "edgecenter_loadbalancer" "lb2" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  id         = "00000000-0000-0000-0000-000000000000"
 }
 
-data "edgecenter_loadbalancer" "lb" {
-  name       = "test-lb"
-  region_id  = data.edgecenter_region.rg.id
-  project_id = data.edgecenter_project.pr.id
+output "lb2" {
+  value = data.edgecenter_loadbalancer.lb2
 }
-
-output "view" {
-  value = data.edgecenter_loadbalancer.lb
-}
-

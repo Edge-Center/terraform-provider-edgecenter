@@ -15,26 +15,26 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 ## Example Usage
 
 ```terraform
-provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
+# Example 1
+data "edgecenter_floatingip" "fip1" {
+  region_id           = var.region_id
+  project_id          = var.project_id
+  floating_ip_address = "10.10.0.1"
 }
 
-data "edgecenter_project" "pr" {
-  name = "test"
+output "fip1" {
+  value = data.edgecenter_floatingip.fip1
 }
 
-data "edgecenter_region" "rg" {
-  name = "ED-10 Preprod"
+# Example 2
+data "edgecenter_floatingip" "fip2" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  id         = "00000000-0000-0000-0000-000000000000"
 }
 
-data "edgecenter_floatingip" "ip" {
-  floating_ip_address = "10.100.179.172"
-  region_id           = data.edgecenter_region.rg.id
-  project_id          = data.edgecenter_project.pr.id
-}
-
-output "view" {
-  value = data.edgecenter_floatingip.ip
+output "fip2" {
+  value = data.edgecenter_floatingip.fip2
 }
 ```
 
@@ -43,28 +43,28 @@ output "view" {
 
 ### Required
 
-- `floating_ip_address` (String) The floating IP address assigned to the resource. It must be a valid IP address.
+- `project_id` (Number) uuid of the project
+- `region_id` (Number) uuid of the region
 
 ### Optional
 
-- `metadata_k` (String) Filtration query opts (only key).
-- `metadata_kv` (Map of String) Filtration query opts, for example, {offset = "10", limit = "10"}.
-- `port_id` (String) The ID (uuid) of the network port that the floating IP is associated with.
-- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
-- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
-- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
-- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `floating_ip_address` (String) floating IP address assigned to the resource, must be a valid IP address
+- `id` (String) floating IP uuid
 
 ### Read-Only
 
-- `fixed_ip_address` (String) The fixed (reserved) IP address that is associated with the floating IP.
-- `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
-- `router_id` (String) The ID (uuid) of the router that the floating IP is associated with.
-- `status` (String) The current status of the floating IP resource. Can be 'DOWN' or 'ACTIVE'.
+- `fixed_ip_address` (String) fixed IP address
+- `instance` (Map of String) instance that the floating IP is attached to
+- `loadbalancer` (Map of String) load balancer that the floating IP is attached to
+- `metadata` (List of Object) metadata in detailed format (see [below for nested schema](#nestedatt--metadata))
+- `port_id` (String) network port uuid that the floating IP is associated with
+- `region` (String) name of the region
+- `router_id` (String) ID of the router
+- `status` (String) current status ('DOWN' or 'ACTIVE') of the floating IP resource
+- `subnet_id` (String) ID of the subnet
 
-<a id="nestedatt--metadata_read_only"></a>
-### Nested Schema for `metadata_read_only`
+<a id="nestedatt--metadata"></a>
+### Nested Schema for `metadata`
 
 Read-Only:
 

@@ -3,36 +3,44 @@
 page_title: "edgecenter_lbpool Data Source - edgecenter"
 subcategory: ""
 description: |-
-  
+  A pool is a list of virtual machines to which the listener will redirect incoming traffic
 ---
 
 # edgecenter_lbpool (Data Source)
 
-
+A pool is a list of virtual machines to which the listener will redirect incoming traffic
 
 ## Example Usage
 
 ```terraform
-provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
+resource "edgecenter_loadbalancer" "lb" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  // other fields
 }
 
-data "edgecenter_project" "pr" {
-  name = "test"
+# Example 1
+data "edgecenter_lblistener" "listener1" {
+  region_id       = var.region_id
+  project_id      = var.project_id
+  name            = "test-lblistener"
+  loadbalancer_id = edgecenter_loadbalancer.lb.id
 }
 
-data "edgecenter_region" "rg" {
-  name = "ED-10 Preprod"
+output "listener1" {
+  value = data.edgecenter_lblistener.listener1
 }
 
-data "edgecenter_lbpool" "pool" {
-  name       = "test-pool"
-  region_id  = data.edgecenter_region.rg.id
-  project_id = data.edgecenter_project.pr.id
+# Example 2
+data "edgecenter_lblistener" "listener2" {
+  region_id       = var.region_id
+  project_id      = var.project_id
+  id              = "00000000-0000-0000-0000-000000000000"
+  loadbalancer_id = edgecenter_loadbalancer.lb.id
 }
 
-output "view" {
-  value = data.edgecenter_lbpool.pool
+output "listener2" {
+  value = data.edgecenter_lblistener.listener2
 }
 ```
 
@@ -41,29 +49,34 @@ output "view" {
 
 ### Required
 
-- `name` (String) The name of the load balancer pool.
+- `loadbalancer_id` (String) ID of the load balancer
+- `project_id` (Number) uuid of the project
+- `region_id` (Number) uuid of the region
 
 ### Optional
 
-- `listener_id` (String) The uuid for the load balancer listener.
-- `loadbalancer_id` (String) The uuid for the load balancer.
-- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
-- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
-- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
-- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `id` (String) lb pool uuid
+- `name` (String) lb pool name. this parameter is not unique, if there is more than one lb pool with the same name, 
+then the first one will be used. it is recommended to use "id"
 
 ### Read-Only
 
-- `health_monitor` (List of Object) Configuration for health checks to test the health and state of the backend members. 
-It determines how the load balancer identifies whether the backend members are healthy or unhealthy. (see [below for nested schema](#nestedatt--health_monitor))
-- `id` (String) The ID of this resource.
-- `lb_algorithm` (String) Available values is 'ROUND_ROBIN', 'LEAST_CONNECTIONS', 'SOURCE_IP', 'SOURCE_IP_PORT'
-- `protocol` (String) Available values is 'HTTP' (currently work, other do not work on ed-8), 'HTTPS', 'TCP', 'UDP'
-- `session_persistence` (List of Object) Configuration that enables the load balancer to bind a user's session to a specific backend member. 
-This ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedatt--session_persistence))
+- `healthmonitor` (List of Object) configuration for health checks to test the health and state of the backend members. 
+it determines how the load balancer identifies whether the backend members are healthy or unhealthy (see [below for nested schema](#nestedatt--healthmonitor))
+- `lb_algorithm` (String) algorithm of the load balancer
+- `listener_id` (String) ID of the load balancer listener
+- `member` (List of Object) members of the Pool (see [below for nested schema](#nestedatt--member))
+- `operating_status` (String) operating status of the pool
+- `protocol` (String) protocol of the load balancer
+- `provisioning_status` (String) lifecycle status of the pool
+- `session_persistence` (List of Object) configuration that enables the load balancer to bind a user's session to a specific backend member. 
+this ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedatt--session_persistence))
+- `timeout_client_data` (Number) timeout for the frontend client inactivity (in milliseconds)
+- `timeout_member_connect` (Number) timeout for the backend member connection (in milliseconds)
+- `timeout_member_data` (Number) timeout for the backend member inactivity (in milliseconds)
 
-<a id="nestedatt--health_monitor"></a>
-### Nested Schema for `health_monitor`
+<a id="nestedatt--healthmonitor"></a>
+### Nested Schema for `healthmonitor`
 
 Read-Only:
 
@@ -76,6 +89,21 @@ Read-Only:
 - `timeout` (Number)
 - `type` (String)
 - `url_path` (String)
+
+
+<a id="nestedatt--member"></a>
+### Nested Schema for `member`
+
+Read-Only:
+
+- `address` (String)
+- `admin_state_up` (Boolean)
+- `id` (String)
+- `instance_id` (String)
+- `operating_status` (String)
+- `protocol_port` (Number)
+- `subnet_id` (String)
+- `weight` (Number)
 
 
 <a id="nestedatt--session_persistence"></a>

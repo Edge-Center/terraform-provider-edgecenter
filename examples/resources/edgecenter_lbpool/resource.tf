@@ -1,35 +1,25 @@
-provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
-}
-
 resource "edgecenter_loadbalancer" "lb" {
-  project_id = 1
-  region_id  = 1
-  name       = "test1"
-  flavor     = "lb1-1-2"
-  listener {
-    name          = "test"
-    protocol      = "HTTP"
-    protocol_port = 80
-  }
+  region_id  = var.region_id
+  project_id = var.project_id
+  // other_fields
 }
 
-resource "edgecenter_lbpool" "pl" {
-  project_id      = 1
-  region_id       = 1
-  name            = "test_pool1"
-  protocol        = "HTTP"
+resource "edgecenter_lblistener" "lis" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  // other_fields
+}
+
+resource "edgecenter_lbpool" "pool" {
+  region_id       = var.region_id
+  project_id      = var.project_id
+  name            = "test-lbpool"
   lb_algorithm    = "LEAST_CONNECTIONS"
+  protocol        = "HTTP"
   loadbalancer_id = edgecenter_loadbalancer.lb.id
-  listener_id     = edgecenter_loadbalancer.lb.listener.0.id
-  health_monitor {
-    type        = "PING"
-    delay       = 60
-    max_retries = 5
-    timeout     = 10
-  }
-  session_persistence {
-    type        = "APP_COOKIE"
-    cookie_name = "test_new_cookie"
+  listener_id     = edgecenter_lblistener.lis.id
+  healthmonitor {
+    type  = "TCP"
+    delay = 70
   }
 }

@@ -15,19 +15,40 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 ## Example Usage
 
 ```terraform
-provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
+# Example 1
+resource "edgecenter_volume" "volume1" {
+  region_id                = var.region_id
+  project_id               = var.project_id
+  name                     = "test-volume"
+  size                     = 20
+  source                   = "new-volume"
+  volume_type              = "ssd_hiiops"
+  instance_id_to_attach_to = "00000000-0000-0000-0000-000000000000"
+  attachment_tag           = "test-tag"
+  metadata = {
+    "key1" : "value1",
+    "key2" : "value2",
+  }
 }
 
-resource "edgecenter_volume" "volume" {
-  name       = "volume_example"
-  type_name  = "standard"
-  size       = 1
-  region_id  = 1
-  project_id = 1
-  metadata_map = {
-    tag1 = "tag1_value"
-  }
+# Example 2
+resource "edgecenter_volume" "volume_image" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  name       = "test-volume-image"
+  size       = 20
+  source     = "image"
+  image_id   = "00000000-0000-0000-0000-000000000000"
+}
+
+# Example 3
+resource "edgecenter_volume" "volume_snapshot" {
+  region_id   = var.region_id
+  project_id  = var.project_id
+  name        = "test-volume-snapshot"
+  size        = 20
+  source      = "snapshot"
+  snapshot_id = "00000000-0000-0000-0000-000000000000"
 }
 ```
 
@@ -36,40 +57,38 @@ resource "edgecenter_volume" "volume" {
 
 ### Required
 
-- `name` (String) The name of the volume.
-- `size` (Number) The size of the volume, specified in gigabytes (GB).
+- `name` (String) name of the volume
+- `project_id` (Number) uuid of the project
+- `region_id` (Number) uuid of the region
+- `size` (Number) size of the volume, specified in gigabytes (GB)
+- `source` (String) volume source. valid values are 'new-volume', 'snapshot' or 'image'
 
 ### Optional
 
-- `image_id` (String) (ForceNew) The ID of the image to create the volume from. This field is mandatory if creating a volume from an image.
-- `last_updated` (String) The timestamp of the last update (use with update context).
-- `metadata_map` (Map of String) A map containing metadata, for example tags.
-- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
-- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
-- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
-- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
-- `snapshot_id` (String) (ForceNew) The ID of the snapshot to create the volume from. This field is mandatory if creating a volume from a snapshot.
-- `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.
+- `attachment_tag` (String) the block device attachment tag (exposed in the metadata)
+- `image_id` (String) ID of the image. this field is mandatory if creating a volume from an image
+- `instance_id_to_attach_to` (String) VM’s instance_id to attach a newly created volume to
+- `metadata` (Map of String) map containing metadata, for example tags.
+- `snapshot_id` (String) ID of the snapshot. this field is mandatory if creating a volume from a snapshot
+- `volume_type` (String) volume type with valid values. defaults to 'standard'
 
 ### Read-Only
 
+- `attachments` (List of Object) the attachment list (see [below for nested schema](#nestedatt--attachments))
+- `bootable` (Boolean) the bootable boolean flag
 - `id` (String) The ID of this resource.
-- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
+- `limiter_stats` (Map of Number) the QoS parameters of this volume
+- `region` (String) name of the region
+- `snapshot_ids` (List of String) snapshots of the volume
+- `status` (String) status of the volume
 
-<a id="nestedatt--metadata_read_only"></a>
-### Nested Schema for `metadata_read_only`
+<a id="nestedatt--attachments"></a>
+### Nested Schema for `attachments`
 
 Read-Only:
 
-- `key` (String)
-- `read_only` (Boolean)
-- `value` (String)
+- `attachment_id` (String)
+- `server_id` (String)
+- `volume_id` (String)
 
-## Import
 
-Import is supported using the following syntax:
-
-```shell
-# import using <project_id>:<region_id>:<volume_id> format
-terraform import edgecenter_volume.volume1 1:6:447d2959-8ae0-4ca0-8d47-9f050a3637d7
-```

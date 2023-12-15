@@ -1,22 +1,21 @@
-provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
+# Example 1
+data "edgecenter_volume" "volume1" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  name       = "test-volume"
 }
 
-data "edgecenter_project" "pr" {
-  name = "test"
+output "volume1" {
+  value = data.edgecenter_volume.volume1
 }
 
-data "edgecenter_region" "rg" {
-  name = "ED-10 Preprod"
+# Example 2
+data "edgecenter_volume" "volume2" {
+  region_id  = var.region_id
+  project_id = var.project_id
+  id         = "00000000-0000-0000-0000-000000000000"
 }
 
-data "edgecenter_volume" "tv" {
-  name       = "test-hd"
-  region_id  = data.edgecenter_region.rg.id
-  project_id = data.edgecenter_project.pr.id
+output "volume2" {
+  value = data.edgecenter_volume.volume2
 }
-
-output "view" {
-  value = data.edgecenter_volume.tv
-}
-

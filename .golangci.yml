@@ -1,32 +1,19 @@
 run:
   timeout: 10m
-  go: "1.20"
+  go: "1.21.3"
 
 issues:
   max-per-linter: 0
   max-same-issues: 0
-  exclude:
-    # revive, stylecheck: ignore constants in all caps
-    - don't use ALL_CAPS in Go names; use CamelCase
-    - ST1003
-    # gosec
-    - G401
-    - G501
   exclude-rules:
-    - path: \.go
+    - path: (.+)_test.go
       linters:
-        - nolintlint
-      text: should be written without leading space
-    - text: lifecyclepolicy.CreateScheduleOpts
-      linters:
-        - ireturn
-    - path: utils|_test
-      linters:
-        - wrapcheck
+        - funlen
 
 linters:
   enable-all: true
   disable:
+    # deprecated
     - deadcode
     - maligned
     - varcheck
@@ -40,37 +27,38 @@ linters:
     - rowserrcheck
     - sqlclosecheck
     - wastedassign
-    # skip
-    - gochecknoglobals # check that no global variables exist
-    - nilnil           # Checks that there is no simultaneous return of nil error and an invalid value.
-    - gomnd            # An analyzer to detect magic numbers.
-    - goerr113         # Golang linter to check the errors handling expressions
-    - exhaustruct      # Checks if all structure fields are initialized
-    - lll              # Reports long lines
+    # skip: dubious benefit
+    - gochecknoglobals # Checks that no global variables exist.
+    - exhaustruct      # Checks if all structure fields are initialized.
+    - lll              # Reports long lines.
     - godox            # Tool for detection of FIXME, TODO and other comment keywords
     - wsl              # Whitespace Linter - Forces you to use empty lines!
+    - tagliatelle      # Checks the struct tags.
+    - nonamedreturns   # Reports all named returns.
+    - wrapcheck        # Checks that errors returned from external packages are wrapped.
+    - ireturn          # Accept Interfaces, Return Concrete Types.
+    - tagalign         # Checks that struct tags are well aligned
+    - depguard         # Checks if package imports are in a list of acceptable packages
+    - musttag          # Enforce field tags in (un)marshaled structs.
+    - dupl             # Tool for code clone detection.
+    - cyclop           # Checks function and package cyclomatic complexity.
     - forcetypeassert  # finds forced type assertions
-    # complexity: need to refactor
-    - cyclop
+    - goerr113         # Golang linter to check the errors handling expressions
     - funlen
-    - gocognit
-    - gocyclo
-    - maintidx
     - nestif
-    - dupl
-    - depguard
+    # tests
+    - testpackage      # Makes you use a separate _test package.
+    - paralleltest     # Detects missing usage of t.Parallel() method in your Go test.
 
 linters-settings:
   nlreturn:
-    block-size: 10
+    block-size: 5
   gci:
     sections:
       - standard # Standard section: captures all standard packages.
       - default # Default section: contains all imports that could not be matched to another section type.
       - prefix(github.com/Edge-Center)
   errcheck:
-    ignore: github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set,fmt:.*,io:Close,io:WriteString
-  nakedret:
-    max-func-lines: 40
+    ignore: github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set,fmt
   varnamelen:
     min-name-length: 1
