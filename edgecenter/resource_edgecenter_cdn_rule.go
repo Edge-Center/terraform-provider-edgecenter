@@ -247,6 +247,10 @@ var locationOptionsSchema = &schema.Schema{
 							Optional: true,
 							Default:  true,
 						},
+						"use_host": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
 						"codes": {
 							Type:        schema.TypeSet,
 							Elem:        &schema.Schema{Type: schema.TypeInt},
@@ -1148,6 +1152,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 	if opt, ok := getOptByName(fields, "follow_origin_redirect"); ok {
 		opts.FollowOriginRedirect = &cdn.FollowOriginRedirect{
 			Enabled: opt["enabled"].(bool),
+			UseHost: opt["use_host"].(bool),
 		}
 		for _, v := range opt["codes"].(*schema.Set).List() {
 			opts.FollowOriginRedirect.Codes = append(opts.FollowOriginRedirect.Codes, v.(int))

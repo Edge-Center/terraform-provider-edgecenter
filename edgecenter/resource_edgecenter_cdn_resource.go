@@ -247,6 +247,11 @@ var resourceOptionsSchema = &schema.Schema{
 							Optional: true,
 							Default:  true,
 						},
+						"use_host": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 						"codes": {
 							Type:        schema.TypeSet,
 							Elem:        &schema.Schema{Type: schema.TypeInt},
@@ -1015,6 +1020,11 @@ func resourceCDNResource() *schema.Resource {
 				Computed:    true,
 				Description: "Status of a CDN resource content availability. Possible values are: Active, Suspended, Processed.",
 			},
+			"ssl_le_enabled": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "",
+			},
 			"options": resourceOptionsSchema,
 		},
 		CreateContext: resourceCDNResourceCreate,
@@ -1089,6 +1099,7 @@ func resourceCDNResourceRead(ctx context.Context, d *schema.ResourceData, m inte
 	d.Set("ssl_automated", result.SSLAutomated)
 	d.Set("status", result.Status)
 	d.Set("active", result.Active)
+	d.Set("ssl_le_enabled", result.SSLLEEnabled)
 	if err := d.Set("options", resourceOptionsToList(result.Options)); err != nil {
 		return diag.FromErr(err)
 	}
@@ -1237,6 +1248,7 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 	if opt, ok := getOptByName(fields, "follow_origin_redirect"); ok {
 		opts.FollowOriginRedirect = &cdn.FollowOriginRedirect{
 			Enabled: opt["enabled"].(bool),
+			UseHost: opt["use_host"].(bool),
 		}
 		for _, v := range opt["codes"].(*schema.Set).List() {
 			opts.FollowOriginRedirect.Codes = append(opts.FollowOriginRedirect.Codes, v.(int))

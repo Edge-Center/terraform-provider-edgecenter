@@ -87,5 +87,3 @@ Read-Only:
 - `persistence_granularity` (String)
 - `persistence_timeout` (Number)
 - `type` (String)
-
-
