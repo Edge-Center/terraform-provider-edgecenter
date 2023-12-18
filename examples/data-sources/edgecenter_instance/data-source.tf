@@ -1,21 +1,22 @@
-# Example 1
-data "edgecenter_instance" "instance1" {
-  region_id  = var.region_id
-  project_id = var.project_id
-  name       = "test-instance"
+provider "edgecenter" {
+  permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
-output "instance1" {
-  value = data.edgecenter_instance.instance1
+data "edgecenter_project" "pr" {
+  name = "test"
 }
 
-# Example 2
-data "edgecenter_instance" "instance2" {
-  region_id  = var.region_id
-  project_id = var.project_id
-  id         = "00000000-0000-0000-0000-000000000000"
+data "edgecenter_region" "rg" {
+  name = "ED-10 Preprod"
 }
 
-output "instance2" {
-  value = data.edgecenter_instance.instance2
+data "edgecenter_instance" "vm" {
+  name       = "test-vm"
+  region_id  = data.edgecenter_region.rg.id
+  project_id = data.edgecenter_project.pr.id
 }
+
+output "view" {
+  value = data.edgecenter_instance.vm
+}
+

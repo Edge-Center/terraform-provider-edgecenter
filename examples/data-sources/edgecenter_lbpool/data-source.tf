@@ -1,29 +1,22 @@
-resource "edgecenter_loadbalancer" "lb" {
-  region_id  = var.region_id
-  project_id = var.project_id
-  // other fields
+provider "edgecenter" {
+  permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
-# Example 1
-data "edgecenter_lblistener" "listener1" {
-  region_id       = var.region_id
-  project_id      = var.project_id
-  name            = "test-lblistener"
-  loadbalancer_id = edgecenter_loadbalancer.lb.id
+data "edgecenter_project" "pr" {
+  name = "test"
 }
 
-output "listener1" {
-  value = data.edgecenter_lblistener.listener1
+data "edgecenter_region" "rg" {
+  name = "ED-10 Preprod"
 }
 
-# Example 2
-data "edgecenter_lblistener" "listener2" {
-  region_id       = var.region_id
-  project_id      = var.project_id
-  id              = "00000000-0000-0000-0000-000000000000"
-  loadbalancer_id = edgecenter_loadbalancer.lb.id
+data "edgecenter_lbpool" "pool" {
+  name       = "test-pool"
+  region_id  = data.edgecenter_region.rg.id
+  project_id = data.edgecenter_project.pr.id
 }
 
-output "listener2" {
-  value = data.edgecenter_lblistener.listener2
+output "view" {
+  value = data.edgecenter_lbpool.pool
 }
+

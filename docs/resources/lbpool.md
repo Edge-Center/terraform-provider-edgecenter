@@ -3,39 +3,49 @@
 page_title: "edgecenter_lbpool Resource - edgecenter"
 subcategory: ""
 description: |-
-  A pool is a list of virtual machines to which the listener will redirect incoming traffic
+  Represent load balancer listener pool. A pool is a list of virtual machines to which the listener will redirect incoming traffic
 ---
 
 # edgecenter_lbpool (Resource)
 
-A pool is a list of virtual machines to which the listener will redirect incoming traffic
+Represent load balancer listener pool. A pool is a list of virtual machines to which the listener will redirect incoming traffic
 
 ## Example Usage
 
 ```terraform
+provider "edgecenter" {
+  permanent_api_token = "251$d3361.............1b35f26d8"
+}
+
 resource "edgecenter_loadbalancer" "lb" {
-  region_id  = var.region_id
-  project_id = var.project_id
-  // other_fields
+  project_id = 1
+  region_id  = 1
+  name       = "test1"
+  flavor     = "lb1-1-2"
+  listener {
+    name          = "test"
+    protocol      = "HTTP"
+    protocol_port = 80
+  }
 }
 
-resource "edgecenter_lblistener" "lis" {
-  region_id  = var.region_id
-  project_id = var.project_id
-  // other_fields
-}
-
-resource "edgecenter_lbpool" "pool" {
-  region_id       = var.region_id
-  project_id      = var.project_id
-  name            = "test-lbpool"
-  lb_algorithm    = "LEAST_CONNECTIONS"
+resource "edgecenter_lbpool" "pl" {
+  project_id      = 1
+  region_id       = 1
+  name            = "test_pool1"
   protocol        = "HTTP"
+  lb_algorithm    = "LEAST_CONNECTIONS"
   loadbalancer_id = edgecenter_loadbalancer.lb.id
-  listener_id     = edgecenter_lblistener.lis.id
-  healthmonitor {
-    type  = "TCP"
-    delay = 70
+  listener_id     = edgecenter_loadbalancer.lb.listener.0.id
+  health_monitor {
+    type        = "PING"
+    delay       = 60
+    max_retries = 5
+    timeout     = 10
+  }
+  session_persistence {
+    type        = "APP_COOKIE"
+    cookie_name = "test_new_cookie"
   }
 }
 ```
@@ -45,45 +55,44 @@ resource "edgecenter_lbpool" "pool" {
 
 ### Required
 
-- `healthmonitor` (Block List, Min: 1, Max: 1) configuration for health checks to test the health and state of the backend members. 
-it determines how the load balancer identifies whether the backend members are healthy or unhealthy. (see [below for nested schema](#nestedblock--healthmonitor))
-- `lb_algorithm` (String) algorithm of the load balancer. available values are 'ROUND_ROBIN', 'LEAST_CONNECTIONS', 'SOURCE_IP', 'SOURCE_IP_PORT'
-- `listener_id` (String) ID of the load balancer listener
-- `loadbalancer_id` (String) ID of the load balancer
-- `name` (String) lb pool name
-- `project_id` (Number) uuid of the project
-- `protocol` (String) available values are 'HTTP', 'HTTPS', 'TCP', 'UDP' and 'PROXY'
-- `region_id` (Number) uuid of the region
+- `lb_algorithm` (String) Available values is 'ROUND_ROBIN', 'LEAST_CONNECTIONS', 'SOURCE_IP', 'SOURCE_IP_PORT'
+- `name` (String) The name of the load balancer listener pool.
+- `protocol` (String) Available values is 'HTTP' (currently work, other do not work on ed-8), 'HTTPS', 'TCP', 'UDP'
 
 ### Optional
 
-- `session_persistence` (Block List, Max: 1) configuration that enables the load balancer to bind a user's session to a specific backend member. 
-this ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedblock--session_persistence))
-- `timeout_client_data` (Number) timeout for the frontend client inactivity (in milliseconds)
-- `timeout_member_connect` (Number) timeout for the backend member connection (in milliseconds)
-- `timeout_member_data` (Number) timeout for the backend member inactivity (in milliseconds)
+- `health_monitor` (Block List, Max: 1) Configuration for health checks to test the health and state of the backend members. 
+It determines how the load balancer identifies whether the backend members are healthy or unhealthy. (see [below for nested schema](#nestedblock--health_monitor))
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `listener_id` (String) The uuid for the load balancer listener.
+- `loadbalancer_id` (String) The uuid for the load balancer.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `session_persistence` (Block List, Max: 1) Configuration that enables the load balancer to bind a user's session to a specific backend member. 
+This ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedblock--session_persistence))
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
-- `id` (String) lb pool uuid
-- `operating_status` (String) operating status of the pool
-- `provisioning_status` (String) lifecycle status of the pool
+- `id` (String) The ID of this resource.
 
-<a id="nestedblock--healthmonitor"></a>
-### Nested Schema for `healthmonitor`
+<a id="nestedblock--health_monitor"></a>
+### Nested Schema for `health_monitor`
 
 Required:
 
-- `type` (String) available values are 'HTTP', 'HTTPS', 'PING', 'TCP', 'TLS-HELLO', 'UDP-CONNECT
+- `delay` (Number)
+- `max_retries` (Number)
+- `timeout` (Number)
+- `type` (String) Available values is 'HTTP', 'HTTPS', 'PING', 'TCP', 'TLS-HELLO', 'UDP-CONNECT
 
 Optional:
 
-- `delay` (Number) check interval (in sec)
 - `expected_codes` (String)
 - `http_method` (String)
-- `max_retries` (Number) healthy thresholds
-- `max_retries_down` (Number) unhealthy thresholds
-- `timeout` (Number) Response time (in sec)
+- `max_retries_down` (Number)
 - `url_path` (String)
 
 Read-Only:
@@ -105,3 +114,19 @@ Optional:
 - `persistence_timeout` (Number)
 
 
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# import using <project_id>:<region_id>:<lbpool_id> format
+terraform import edgecenter_lbpool.lbpool1 1:6:447d2959-8ae0-4ca0-8d47-9f050a3637d7
+```

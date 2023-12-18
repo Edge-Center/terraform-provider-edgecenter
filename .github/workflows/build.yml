@@ -1,24 +1,34 @@
 name: build
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.21.3
+          go-version: 1.20.2
 
       - name: Linters
-        run: make lint
+        run: make linters
 
-      - name: Tests
-        run: make test
+      - name: Build
+        run: go build -v ./...
+
+      - name: Tests data_source
+        env:
+          EC_USERNAME: ${{ secrets.EC_USERNAME }}
+          EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
+        run: make test_cloud_data_source
+
+      - name: Tests resource
+        env:
+          EC_USERNAME: ${{ secrets.EC_USERNAME }}
+          EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
+        run: make test_cloud_resource

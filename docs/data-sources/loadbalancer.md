@@ -3,38 +3,36 @@
 page_title: "edgecenter_loadbalancer Data Source - edgecenter"
 subcategory: ""
 description: |-
-  A loadbalancer is a software service that distributes incoming network traffic
-  (e.g., web traffic, application requests) across multiple servers or resources.
+  
 ---
 
 # edgecenter_loadbalancer (Data Source)
 
-A loadbalancer is a software service that distributes incoming network traffic 
-(e.g., web traffic, application requests) across multiple servers or resources.
+
 
 ## Example Usage
 
 ```terraform
-# Example 1
-data "edgecenter_loadbalancer" "lb1" {
-  region_id  = var.region_id
-  project_id = var.project_id
-  name       = "test-loadbalancer"
+provider "edgecenter" {
+  permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
-output "lb1" {
-  value = data.edgecenter_loadbalancer.lb1
+data "edgecenter_project" "pr" {
+  name = "test"
 }
 
-# Example 2
-data "edgecenter_loadbalancer" "lb2" {
-  region_id  = var.region_id
-  project_id = var.project_id
-  id         = "00000000-0000-0000-0000-000000000000"
+data "edgecenter_region" "rg" {
+  name = "ED-10 Preprod"
 }
 
-output "lb2" {
-  value = data.edgecenter_loadbalancer.lb2
+data "edgecenter_loadbalancer" "lb" {
+  name       = "test-lb"
+  region_id  = data.edgecenter_region.rg.id
+  project_id = data.edgecenter_project.pr.id
+}
+
+output "view" {
+  value = data.edgecenter_loadbalancer.lb
 }
 ```
 
@@ -43,30 +41,38 @@ output "lb2" {
 
 ### Required
 
-- `project_id` (Number) uuid of the project
-- `region_id` (Number) uuid of the region
+- `name` (String) The name of the router.
 
 ### Optional
 
-- `id` (String) loadbalancer uuid
-- `name` (String) loadbalancer name. this parameter is not unique, if there is more than one loadbalancer with the same name, 
-then the first one will be used. it is recommended to use "id"
+- `metadata_k` (String) Filtration query opts (only key).
+- `metadata_kv` (Map of String) Filtration query opts, for example, {offset = "10", limit = "10"}
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `flavor` (Map of String) information about the flavor
-- `floating_ip` (Map of String) information about the assigned floating IP
-- `metadata_detailed` (List of Object) metadata in detailed format (see [below for nested schema](#nestedatt--metadata_detailed))
-- `operating_status` (String) operating status of the load balancer
-- `provisioning_status` (String) lifecycle status of the load balancer
-- `region` (String) name of the region
-- `vip_address` (String) loadbalancer IP address
-- `vip_network_id` (String) ID of the network that the subnet belongs to. the port will be plugged in this network
-- `vip_port_id` (String) IP port of the load balancer
-- `vrrp_ips` (List of String) list of VRRP IP addresses
+- `id` (String) The ID of this resource.
+- `listener` (List of Object) (see [below for nested schema](#nestedatt--listener))
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
+- `vip_address` (String)
+- `vip_port_id` (String)
 
-<a id="nestedatt--metadata_detailed"></a>
-### Nested Schema for `metadata_detailed`
+<a id="nestedatt--listener"></a>
+### Nested Schema for `listener`
+
+Read-Only:
+
+- `id` (String)
+- `name` (String)
+- `protocol` (String)
+- `protocol_port` (Number)
+
+
+<a id="nestedatt--metadata_read_only"></a>
+### Nested Schema for `metadata_read_only`
 
 Read-Only:
 

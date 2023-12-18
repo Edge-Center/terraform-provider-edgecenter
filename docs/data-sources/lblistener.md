@@ -3,44 +3,37 @@
 page_title: "edgecenter_lblistener Data Source - edgecenter"
 subcategory: ""
 description: |-
-  A listener is a process that checks for connection requests using the protocol and port that you configure.
+  
 ---
 
 # edgecenter_lblistener (Data Source)
 
-A listener is a process that checks for connection requests using the protocol and port that you configure.
+
 
 ## Example Usage
 
 ```terraform
-resource "edgecenter_loadbalancer" "lb" {
-  region_id  = var.region_id
-  project_id = var.project_id
-  // other fields
+provider "edgecenter" {
+  permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
-# Example 1
-data "edgecenter_lbpool" "pool1" {
-  region_id       = var.region_id
-  project_id      = var.project_id
-  name            = "test-lbpool"
-  loadbalancer_id = edgecenter_loadbalancer.lb.id
+data "edgecenter_project" "pr" {
+  name = "test"
 }
 
-output "pool1" {
-  value = data.edgecenter_lbpool.pool1
+data "edgecenter_region" "rg" {
+  name = "ED-10 Preprod"
 }
 
-# Example 2
-data "edgecenter_lbpool" "pool2" {
-  region_id       = var.region_id
-  project_id      = var.project_id
-  id              = "00000000-0000-0000-0000-000000000000"
-  loadbalancer_id = edgecenter_loadbalancer.lb.id
+data "edgecenter_lblistener" "l" {
+  name            = "test-listener"
+  loadbalancer_id = "59b2eabc-c0a8-4545-8081-979bd963c6ab" //optional
+  region_id       = data.edgecenter_region.rg.id
+  project_id      = data.edgecenter_project.pr.id
 }
 
-output "pool2" {
-  value = data.edgecenter_lbpool.pool2
+output "view" {
+  value = data.edgecenter_lblistener.l
 }
 ```
 
@@ -49,25 +42,24 @@ output "pool2" {
 
 ### Required
 
-- `loadbalancer_id` (String) ID of the load balancer
-- `project_id` (Number) uuid of the project
-- `region_id` (Number) uuid of the region
+- `name` (String) The name of the load balancer listener.
 
 ### Optional
 
-- `id` (String) listener uuid
-- `name` (String) listener name. this parameter is not unique, if there is more than one listener with the same name, 
-then the first one will be used. it is recommended to use "id"
+- `loadbalancer_id` (String) The uuid for the load balancer.
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 
 ### Read-Only
 
-- `allowed_cidrs` (List of String) allowed CIDRs for listener
-- `insert_headers` (Map of String) dictionary of additional header insertion into the HTTP headers. only used with the HTTP and TERMINATED_HTTPS protocols
-- `operating_status` (String) operating status of the listener
-- `pool_count` (Number) number of pools
-- `protocol` (String) protocol of the load balancer
-- `protocol_port` (Number) protocol port number of the resource
-- `provisioning_status` (String) lifecycle status of the listener
-- `secret_id` (String) ID of the secret where PKCS12 file is stored for the TERMINATED_HTTPS load balancer
+- `allowed_cidrs` (List of String) The allowed CIDRs for listener.
+- `id` (String) The ID of this resource.
+- `operating_status` (String) The current operational status of the load balancer.
+- `pool_count` (Number) Number of pools associated with the load balancer.
+- `protocol` (String) Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'
+- `protocol_port` (Number) The port on which the protocol is bound.
+- `provisioning_status` (String) The current provisioning status of the load balancer.
 
 

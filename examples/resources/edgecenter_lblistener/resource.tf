@@ -1,16 +1,20 @@
-resource "edgecenter_loadbalancer" "lb" {
-  region_id  = var.region_id
-  project_id = var.project_id
-  // other_fields
+provider "edgecenter" {
+  permanent_api_token = "251$d3361.............1b35f26d8"
+}
+
+resource "edgecenter_loadbalancerv2" "lb" {
+  project_id = 1
+  region_id  = 1
+  name       = "test"
+  flavor     = "lb1-1-2"
 }
 
 resource "edgecenter_lblistener" "listener" {
-  region_id          = var.region_id
-  project_id         = var.project_id
-  name               = "test-lblistener"
-  loadbalancer_id    = edgecenter_loadbalancer.lb.id
-  protocol_port      = 80
-  protocol           = "HTTP"
-  insert_x_forwarded = true
-  allowed_cidrs      = ["10.10.0.0/24"]
+  project_id      = 1
+  region_id       = 1
+  name            = "test"
+  protocol        = "TCP"
+  protocol_port   = 36621
+  allowed_cidrs   = ["127.0.0.0/24", "192.168.0.0/24"]
+  loadbalancer_id = edgecenter_loadbalancerv2.lb.id
 }

@@ -3,31 +3,59 @@
 page_title: "edgecenter_lbmember Resource - edgecenter"
 subcategory: ""
 description: |-
-  A Member node represents a physical server that acts as a provider of a service available to a load balancer.
-  Does not support concurrent update of multiple members. Update one at a time
+  Represent load balancer member
 ---
 
 # edgecenter_lbmember (Resource)
 
-A Member node represents a physical server that acts as a provider of a service available to a load balancer. 
-Does not support concurrent update of multiple members. Update one at a time
+Represent load balancer member
 
 ## Example Usage
 
 ```terraform
-resource "edgecenter_lbpool" "pool" {
-  region_id  = var.region_id
-  project_id = var.project_id
-  // other_fields
+provider "edgecenter" {
+  permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
-resource "edgecenter_lbmember" "member" {
-  region_id     = var.region_id
-  project_id    = var.project_id
-  pool_id       = edgecenter_lbpool.pool.id
-  address       = "10.10.0.7"
-  protocol_port = 9099
-  weight        = 20
+resource "edgecenter_loadbalancer" "lb" {
+  project_id = 1
+  region_id  = 1
+  name       = "test1"
+  flavor     = "lb1-1-2"
+  listeners {
+    name          = "test"
+    protocol      = "HTTP"
+    protocol_port = 80
+  }
+}
+
+resource "edgecenter_lbpool" "pl" {
+  project_id      = 1
+  region_id       = 1
+  name            = "test_pool1"
+  protocol        = "HTTP"
+  lb_algorithm    = "LEAST_CONNECTIONS"
+  loadbalancer_id = edgecenter_loadbalancer.lb.id
+  listener_id     = edgecenter_loadbalancer.lb.listeners.0.id
+  health_monitor {
+    type        = "PING"
+    delay       = 60
+    max_retries = 5
+    timeout     = 10
+  }
+  session_persistence {
+    type        = "APP_COOKIE"
+    cookie_name = "test_new_cookie"
+  }
+}
+
+resource "edgecenter_lbmember" "lbm" {
+  project_id    = 1
+  region_id     = 1
+  pool_id       = edgecenter_lbpool.pl.id
+  address       = "10.10.2.15"
+  protocol_port = 8081
+  weight        = 5
 }
 ```
 
@@ -36,22 +64,40 @@ resource "edgecenter_lbmember" "member" {
 
 ### Required
 
-- `address` (String) IP address of the load balancer pool member
-- `pool_id` (String) ID of the load balancer pool
-- `project_id` (Number) uuid of the project
-- `protocol_port` (Number) IP port on which the member listens for requests
-- `region_id` (Number) uuid of the region
+- `address` (String) The IP address of the load balancer pool member.
+- `pool_id` (String) The uuid for the load balancer pool.
+- `protocol_port` (Number) The port on which the member listens for requests.
 
 ### Optional
 
-- `admin_state_up` (Boolean) true if enabled. Defaults to true
-- `instance_id` (String) uuid of the instance (amphora) associated with the pool member.
-- `subnet_id` (String) uuid of the subnet in which the pool member is located.
-- `weight` (Number) weight value between 0 and 256, determining the distribution of requests among the members of the pool. defaults to 1
+- `instance_id` (String) The uuid of the instance (amphora) associated with the pool member.
+- `last_updated` (String) The timestamp of the last update (use with update context).
+- `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
+- `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
+- `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
+- `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
+- `subnet_id` (String) The uuid of the subnet in which the pool member is located.
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
+- `weight` (Number) A weight value between 0 and 256, determining the distribution of requests among the members of the pool.
 
 ### Read-Only
 
-- `id` (String) ID of the member must be provided if the existing member is being updated
-- `operating_status` (String) operating status of the pool
+- `id` (String) The ID of this resource.
+- `operating_status` (String) The current operating status of the pool member.
 
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
 
+Optional:
+
+- `create` (String)
+- `delete` (String)
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# import using <project_id>:<region_id>:<lbmember>:<pool_id> format
+terraform import edgecenter_lbmember.lbmember1 1:6:a775dd94-4e9c-4da7-9f0e-ffc9ae34446b:447d2959-8ae0-4ca0-8d47-9f050a3637d7
+```
