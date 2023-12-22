@@ -18,7 +18,7 @@ provider "edgecenter" {
 //
 variable "example_domain0" {
   type    = string
-  default = "examplezone.com"
+  default = "tftestzone2.com"
 }
 
 resource "edgecenter_dns_zone" "examplezone0" {
