@@ -15,6 +15,7 @@ import (
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/port/v1/ports"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
@@ -25,6 +26,13 @@ var instanceDecoderConfig = &mapstructure.DecoderConfig{
 }
 
 type instanceInterfaces []interface{}
+
+type InstancePortSecurityOpts struct {
+	PortID               string
+	PortSecurityDisabled bool
+	SubnetID             string
+	IPAddress            string
+}
 
 func (s instanceInterfaces) Len() int {
 	return len(s)
@@ -341,13 +349,13 @@ func detachInterfaceFromInstance(client *edgecloud.ServiceClient, instanceID str
 }
 
 // attachInterfaceToInstance attach interface to instance.
-func attachInterfaceToInstance(instanceClient *edgecloud.ServiceClient, instanceID string, iface map[string]interface{}) error {
+func attachInterfaceToInstance(instanceClient, portsClient *edgecloud.ServiceClient, instanceID string, iface map[string]interface{}) error {
 	iType := types.InterfaceType(iface["type"].(string))
 	opts := instances.InterfaceInstanceCreateOpts{
 		InterfaceOpts: instances.InterfaceOpts{Type: iType},
 	}
 
-	switch iType { //nolint: exhaustive
+	switch iType { // nolint: exhaustive
 	case types.SubnetInterfaceType:
 		opts.SubnetID = iface["subnet_id"].(string)
 	case types.AnySubnetInterfaceType:
@@ -380,6 +388,56 @@ func attachInterfaceToInstance(instanceClient *edgecloud.ServiceClient, instance
 	})
 	if err != nil {
 		return err
+	}
+
+	interfacesListAPI, err := instances.ListInterfacesAll(instanceClient, instanceID)
+	if err != nil {
+		return fmt.Errorf("error from getting instance interfaces: %w", err)
+	}
+
+	if err = adjustPortSecurityDisabledOpt(portsClient, interfacesListAPI, iface); err != nil {
+		return fmt.Errorf("cannot adjust port_security_disabled opt: %+v. Error: %w", iface, err)
+	}
+
+	return nil
+}
+
+// adjustPortSecurityDisabledOpt aligns the state of the interface (port_security_disabled) with what is specified in the
+// iface["port_security_disabled"].
+func adjustPortSecurityDisabledOpt(portsClient *edgecloud.ServiceClient, interfacesListAPI []instances.Interface, iface map[string]interface{}) error {
+	portSecurityDisabled := iface["port_security_disabled"].(bool)
+	IPAddress := iface["ip_address"].(string)
+	subnetID := iface["subnet_id"].(string)
+	ifacePortID := iface["port_id"].(string)
+
+LOOP:
+	for _, iFace := range interfacesListAPI {
+		if len(iFace.IPAssignments) == 0 {
+			continue
+		}
+
+		requestedIfacePortID := iFace.PortID
+		for _, assignment := range iFace.IPAssignments {
+			requestedIfaceSubnetID := assignment.SubnetID
+			requestedIfaceIPAddress := assignment.IPAddress.String()
+
+			if subnetID == requestedIfaceSubnetID || IPAddress == requestedIfaceIPAddress || ifacePortID == requestedIfacePortID {
+				if !iFace.PortSecurityEnabled != portSecurityDisabled {
+					switch portSecurityDisabled {
+					case true:
+						if _, err := ports.DisablePortSecurity(portsClient, requestedIfacePortID).Extract(); err != nil {
+							return err
+						}
+					case false:
+						if _, err := ports.EnablePortSecurity(portsClient, requestedIfacePortID).Extract(); err != nil {
+							return err
+						}
+					}
+				}
+
+				break LOOP
+			}
+		}
 	}
 
 	return nil
@@ -511,7 +569,7 @@ func getSecurityGroupsIDs(sgsRaw []interface{}) []edgecloud.ItemID {
 }
 
 // getSecurityGroupsDifference finds the difference between two slices of edgecloud.ItemID.
-func getSecurityGroupsDifference(sl1, sl2 []edgecloud.ItemID) (diff []edgecloud.ItemID) { //nolint: nonamedreturns
+func getSecurityGroupsDifference(sl1, sl2 []edgecloud.ItemID) (diff []edgecloud.ItemID) { // nolint: nonamedreturns
 	set := make(map[string]bool)
 	for _, item := range sl1 {
 		set[item.ID] = true

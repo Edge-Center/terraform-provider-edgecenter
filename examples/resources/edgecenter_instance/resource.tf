@@ -60,10 +60,11 @@ resource "edgecenter_instance" "instance" {
   }
 
   interface {
-    type            = "subnet"
-    network_id      = edgecenter_network.network.id
-    subnet_id       = edgecenter_subnet.subnet.id
-    security_groups = ["d75db0b2-58f1-4a11-88c6-a932bb897310"]
+    type                   = "subnet"
+    network_id             = edgecenter_network.network.id
+    subnet_id              = edgecenter_subnet.subnet.id
+    security_groups        = ["d75db0b2-58f1-4a11-88c6-a932bb897310"]
+    port_security_disabled = true
   }
 
   metadata_map = {

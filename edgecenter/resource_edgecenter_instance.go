@@ -28,6 +28,7 @@ const (
 	InstanceDeleting        int = 1200
 	InstanceCreatingTimeout int = 1200
 	InstancePoint               = "instances"
+	PortsPoint                  = "ports"
 
 	InstanceVMStateActive  = "active"
 	InstanceVMStateStopped = "stopped"
@@ -223,6 +224,11 @@ func resourceInstance() *schema.Resource {
 							Computed: true,
 							Optional: true,
 						},
+						"port_security_disabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -394,12 +400,12 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	config := m.(*Config)
 	provider := config.Provider
 
-	clientV1, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
+	instancesClientV1, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2, err := CreateClient(provider, d, InstancePoint, VersionPointV2)
+	instancesClientV2, err := CreateClient(provider, d, InstancePoint, VersionPointV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -449,11 +455,11 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	ifs := d.Get("interface").([]interface{})
 	if len(ifs) > 0 {
-		interfacesList, err := extractInstanceInterfaceToListCreate(ifs)
+		ifaceCreateOptsList, err := extractInstanceInterfaceToListCreate(ifs)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		createOpts.Interfaces = interfacesList
+		createOpts.Interfaces = ifaceCreateOptsList
 	}
 
 	if metadata, ok := d.GetOk("metadata"); ok {
@@ -479,15 +485,15 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	log.Printf("[DEBUG] Instance create options: %+v", createOpts)
-	results, err := instances.Create(clientV2, createOpts).Extract()
+	results, err := instances.Create(instancesClientV2, createOpts).Extract()
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	InstanceID, err := tasks.WaitTaskAndReturnResult(clientV1, taskID, true, InstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(clientV1, string(task)).Extract()
+	InstanceID, err := tasks.WaitTaskAndReturnResult(instancesClientV1, taskID, true, InstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
+		taskInfo, err := tasks.Get(instancesClientV1, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
 		}
@@ -498,10 +504,31 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		return Instance, nil
 	},
 	)
-	log.Printf("[DEBUG] Instance id (%s)", InstanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	instanceID := InstanceID.(string)
+
+	// Code below adjusts all interfaces PortSecurityDisabled opt
+	interfacesListAPI, err := instances.ListInterfacesAll(instancesClientV1, instanceID)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("error from getting instance interfaces: %w", err))
+	}
+
+	portsClientV1, err := CreateClient(provider, d, PortsPoint, VersionPointV1)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("error from creating ports client: %w", err))
+	}
+	for _, iface := range ifs {
+		ifaceMap := iface.(map[string]interface{})
+		err = adjustPortSecurityDisabledOpt(portsClientV1, interfacesListAPI, ifaceMap)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("error from port securtity disable option configuring. Interface: %#v, error: %w", ifaceMap, err))
+		}
+	}
+
+	log.Printf("[DEBUG] Instance id (%s)", InstanceID)
 
 	d.SetId(InstanceID.(string))
 	resourceInstanceRead(ctx, d, m)
@@ -620,6 +647,7 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 			i["network_id"] = iFace.NetworkID
 			i["subnet_id"] = subnetID
 			i["port_id"] = portID
+			i["port_security_disabled"] = !iFace.PortSecurityEnabled
 			if interfaceOpts.FloatingIP != nil {
 				i["fip_source"] = interfaceOpts.FloatingIP.Source.String()
 				i["existing_fip_id"] = interfaceOpts.FloatingIP.ExistingFloatingID
@@ -798,6 +826,10 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("interface") {
+		portsClientV1, err := CreateClient(provider, d, PortsPoint, VersionPointV1)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 		iOldRaw, iNewRaw := d.GetChange("interface")
 		ifsOldSlice, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
 		sort.Sort(instanceInterfaces(ifsOldSlice))
@@ -833,7 +865,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
 					}
-					if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+					if err := attachInterfaceToInstance(client, portsClientV1, instanceID, iNew); err != nil {
 						return diag.FromErr(err)
 					}
 				}
@@ -869,7 +901,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
 					}
-					if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+					if err := attachInterfaceToInstance(client, portsClientV1, instanceID, iNew); err != nil {
 						return diag.FromErr(err)
 					}
 				}
@@ -877,7 +909,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 			for _, item := range ifsNewSlice[len(ifsOldSlice):] {
 				iNew := item.(map[string]interface{})
-				if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+				if err := attachInterfaceToInstance(client, portsClientV1, instanceID, iNew); err != nil {
 					return diag.FromErr(err)
 				}
 			}
@@ -912,7 +944,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
 					}
-					if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+					if err := attachInterfaceToInstance(client, portsClientV1, instanceID, iNew); err != nil {
 						return diag.FromErr(err)
 					}
 				}
