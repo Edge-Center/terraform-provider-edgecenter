@@ -30,9 +30,9 @@ func MapStructureDecoder(strct interface{}, v *map[string]interface{}, config *m
 	return decoder.Decode(*v)
 }
 
-// ImportStringParser parses a string containing project ID, region ID, and another field,
+// ParseImportString parses a string containing project ID, region ID, and another field,
 // and returns them as separate values along with any error encountered.
-func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string, err error) { // nolint: nonamedreturns
+func ParseImportString(infoStr string) (projectID int, regionID int, id3 string, err error) { // nolint: nonamedreturns
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 3 {

@@ -5,7 +5,6 @@ import (
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/config"
-	"github.com/Edge-Center/terraform-provider-edgecenter/internal/utils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"log"
@@ -18,19 +17,6 @@ func ResourceEdgeCenterReservedFixedIP() *schema.Resource {
 		ReadContext:   resourceEdgeCenterReservedFixedIPRead,
 		UpdateContext: resourceEdgeCenterReservedFixedIPUpdate,
 		DeleteContext: resourceEdgeCenterReservedFixedIPDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				projectID, regionID, ipID, err := utils.ImportStringParser(d.Id())
-				if err != nil {
-					return nil, err
-				}
-				d.Set("project_id", projectID)
-				d.Set("region_id", regionID)
-				d.SetId(ipID)
-
-				return []*schema.ResourceData{d}, nil
-			},
-		},
 		Description: `A reserved fixed IP is an IP address within a specific network that is reserved for a particular
 purpose. Reserved fixed IPs are typically not automatically assigned to instances but are instead set aside for specific
 needs or configurations`,
