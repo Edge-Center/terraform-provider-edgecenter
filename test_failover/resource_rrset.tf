@@ -39,16 +39,9 @@ resource "edgecenter_dns_zone_record" "example_rrset0" {
   meta {
     failover {
         frequency = 10
-        host = "test.ru"
-        method = "GET"
         port = 443
-        protocol = "HTTP"
-        regexp = ""
+        protocol = "TCP"
         timeout = 10
-        tls = false
-        url = "/"
-        verify = false
-        http_status_code = 200
     }
   }
 
