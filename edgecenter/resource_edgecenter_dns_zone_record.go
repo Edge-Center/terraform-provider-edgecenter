@@ -716,14 +716,6 @@ func verifyFailoverMeta(meta dnssdk.Meta) error {
 	return nil
 }
 
-// RRSet dto as part of zone info from API
-//type RRSet struct {
-//	TTL     int              `json:"ttl"`
-//	Records []ResourceRecord `json:"resource_records"`
-//	Filters []RecordFilter   `json:"filters"`
-//	Meta    *Meta            `json:"meta,omitempty"`
-//}
-
 // RecordFilter describe Filters in RRSet
 type RecordFilter struct {
 	Limit  uint   `json:"limit"`
@@ -737,23 +729,3 @@ type ResourceRecord struct {
 	Meta    map[string]interface{} `json:"meta"`
 	Enabled bool                   `json:"enabled"`
 }
-
-// Meta dto to read meta
-//type Meta struct {
-//	Failover *FailoverMeta `json:"failover,omitempty"`
-//}
-//
-//// FailoverMeta
-//type FailoverMeta struct {
-//	Protocol       string `json:"protocol"`
-//	Port           int    `json:"port"`
-//	Frequency      int    `json:"frequency"`
-//	Timeout        int    `json:"timeout"`
-//	Method         string `json:"method,omitempty"`
-//	Url            string `json:"url,omitempty"`
-//	Tls            bool   `json:"tls,omitempty"`
-//	Regexp         string `json:"regexp,omitempty"`
-//	HTTPStatusCode int    `json:"http_status_code,omitempty"`
-//	Host           string `json:"host,omitempty"`
-//	Verify         bool   `json:"verify,omitempty"`
-//}

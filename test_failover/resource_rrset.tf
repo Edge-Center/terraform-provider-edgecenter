@@ -31,8 +31,19 @@ resource "edgecenter_dns_zone_record" "example_rrset0" {
   type   = "A"
   ttl    = 100
 
- meta {
- }
+  filter {
+    limit = 1
+    type   = "is_healthy"
+  }
+
+  meta {
+    failover {
+        frequency = 10
+        port = 443
+        protocol = "ICMP"
+        timeout = 10
+    }
+  }
 
   resource_record {
     content = "127.0.0.100"
