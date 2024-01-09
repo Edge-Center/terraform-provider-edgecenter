@@ -715,17 +715,3 @@ func verifyFailoverMeta(meta dnssdk.Meta) error {
 	}
 	return nil
 }
-
-// RecordFilter describe Filters in RRSet
-type RecordFilter struct {
-	Limit  uint   `json:"limit"`
-	Type   string `json:"type"`
-	Strict bool   `json:"strict"`
-}
-
-// ResourceRecord dto describe records in RRSet
-type ResourceRecord struct {
-	Content []interface{}          `json:"content"`
-	Meta    map[string]interface{} `json:"meta"`
-	Enabled bool                   `json:"enabled"`
-}
