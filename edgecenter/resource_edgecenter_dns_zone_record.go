@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
 	"net"
 	"strings"
 
@@ -117,8 +116,7 @@ func resourceDNSZoneRecord() *schema.Resource {
 			DNSZoneRecordSchemaRRSetMeta: {
 				Type:        schema.TypeList,
 				MaxItems:    1,
-				Optional:    true,
-				Computed:    true,
+				Required:    true,
 				Description: "A meta of DNS Zone Record resource.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -126,7 +124,6 @@ func resourceDNSZoneRecord() *schema.Resource {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Computed:    true,
 							Description: "A failover meta of DNS Zone Record resource.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -364,19 +361,10 @@ func resourceDNSZoneRecordCreate(ctx context.Context, d *schema.ResourceData, m 
 	defer log.Printf("[DEBUG] Finish DNS Zone Record Resource creating (id=%s %s %s)\n", zone, domain, rType)
 
 	ttl := d.Get(DNSZoneRecordSchemaTTL).(int)
-	//var meta map[string]interface{}
-	//for _, resource := range d.Get(DNSZoneRecordSchemaRRSetMeta).(*schema.Set).List() {
-	//	meta = resource.(map[string]interface{})
-	//	failover, ok := meta["failover"]
-	//	if !ok {
-	//		return diag.Errorf("failover is %v", failover)
-	//	}
-	//	for _, res := range failover.(*schema.Set).List() {
-	//		meta["failover"] = res.(map[string]interface{})
-	//	}
-	//}
-
-	meta := listToMeta(d.Get(DNSZoneRecordSchemaRRSetMeta).([]interface{}))
+	meta := listToFailoverMeta(d.Get(DNSZoneRecordSchemaRRSetMeta).([]interface{}))
+	if err := verifyFailoverMeta(meta); err != nil {
+		return diag.FromErr(err)
+	}
 	rrSet := dnssdk.RRSet{TTL: ttl, Records: make([]dnssdk.ResourceRecord, 0), Meta: &meta}
 
 	err := fillRRSet(d, rType, &rrSet)
@@ -412,9 +400,9 @@ func resourceDNSZoneRecordUpdate(ctx context.Context, d *schema.ResourceData, m 
 	defer log.Printf("[DEBUG] Finish DNS Zone Record Resource updating (id=%s %s %s)\n", zone, domain, rType)
 
 	ttl := d.Get(DNSZoneRecordSchemaTTL).(int)
-	var meta dnssdk.Meta
-	for _, resource := range d.Get(DNSZoneRecordSchemaRRSetMeta).(*schema.Set).List() {
-		meta = resource.(dnssdk.Meta)
+	meta := listToFailoverMeta(d.Get(DNSZoneRecordSchemaRRSetMeta).([]interface{}))
+	if err := verifyFailoverMeta(meta); err != nil {
+		return diag.FromErr(err)
 	}
 	rrSet := dnssdk.RRSet{TTL: ttl, Records: make([]dnssdk.ResourceRecord, 0), Meta: &meta}
 	err := fillRRSet(d, rType, &rrSet)
@@ -425,6 +413,7 @@ func resourceDNSZoneRecordUpdate(ctx context.Context, d *schema.ResourceData, m 
 	config := m.(*Config)
 	client := config.DNSClient
 
+	log.Println("[DEBUG] Start DNS Zone Record Resource updating ", rrSet)
 	err = client.UpdateRRSet(ctx, zone, domain, rType, rrSet)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("update zone rrset: %w", err))
@@ -463,7 +452,7 @@ func resourceDNSZoneRecordRead(ctx context.Context, d *schema.ResourceData, m in
 	_ = d.Set(DNSZoneRecordSchemaTTL, result.TTL)
 
 	if result.Meta != nil {
-		rrsetMeta := metaToList(result.Meta)
+		rrsetMeta := failoverMetaToList(result.Meta)
 		if len(rrsetMeta) > 0 {
 			err = d.Set(DNSZoneRecordSchemaRRSetMeta, rrsetMeta)
 			if err != nil {
@@ -503,11 +492,6 @@ func resourceDNSZoneRecordRead(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	return nil
-}
-
-// failoverUniqueID generates a unique ID for a failover rule using its properties.
-func failoverUniqueID(i interface{}) int {
-	return rand.Intn(1000)
 }
 
 func resourceDNSZoneRecordDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -633,34 +617,14 @@ func fillRRSet(d *schema.ResourceData, rType string, rrSet *dnssdk.RRSet) error 
 		rrSet.Records = append(rrSet.Records, *rr)
 	}
 
-	//rrSet.Meta = listToMeta(d.Get("meta").([]interface{}))
-	//
-	//if rrSet.Meta != nil {
-	//	for _, resource := range d.Get(DNSZoneRecordSchemaRRSetMeta).(*schema.Set).List() {
-	//		failover := dnssdk.FailoverMeta{}
-	//		failoverMeta := resource.(map[string]interface{})
-	//		meta := failoverMeta[DNSZoneRecordSchemaFailover].(map[string]interface{})
-	//		failover.Protocol = meta[DNSZoneRecordSchemaFailoverProtocol].(string)
-	//		failover.Port = meta[DNSZoneRecordSchemaFailoverPort].(int)
-	//		failover.Tls = meta[DNSZoneRecordSchemaFailoverTls].(*bool)
-	//		failover.Verify = meta[DNSZoneRecordSchemaFailoverVerify].(*bool)
-	//		failover.HTTPStatusCode = meta[DNSZoneRecordSchemaFailoverHttpStatusCode].(*int)
-	//		failover.Timeout = meta[DNSZoneRecordSchemaFailoverTimeout].(int)
-	//		failover.Frequency = meta[DNSZoneRecordSchemaFailoverFrequency].(int)
-	//		failover.Host = meta[DNSZoneRecordSchemaFailoverHost].(*string)
-	//		failover.Method = meta[DNSZoneRecordSchemaFailoverMethod].(*string)
-	//		failover.Port = meta[DNSZoneRecordSchemaFailoverPort].(int)
-	//		failover.Regexp = meta[DNSZoneRecordSchemaFailoverRegexp].(*string)
-	//		failover.Url = meta[DNSZoneRecordSchemaFailoverUrl].(*string)
-	//		rrSet.Meta.Failover = &failover
-	//	}
-	//}
-
 	return nil
 }
 
-func listToMeta(m []interface{}) dnssdk.Meta {
+func listToFailoverMeta(m []interface{}) dnssdk.Meta {
 	var meta dnssdk.Meta
+	if len(m) == 0 {
+		return meta
+	}
 	fields := m[0].(map[string]interface{})
 	if props, ok := getOptByName(fields, "failover"); ok {
 		meta.Failover = &dnssdk.FailoverMeta{
@@ -694,35 +658,102 @@ func listToMeta(m []interface{}) dnssdk.Meta {
 	return meta
 }
 
-func metaToList(meta *dnssdk.Meta) []interface{} {
+func failoverMetaToList(meta *dnssdk.Meta) []interface{} {
 	result := make(map[string][]interface{})
 	if meta.Failover != nil {
-		m := structToMap(meta.Failover)
+		var m = make(map[string]interface{})
+		if meta.Failover.Protocol != "" {
+			m["protocol"] = meta.Failover.Protocol
+		}
+		if meta.Failover.Port != 0 {
+			m["port"] = meta.Failover.Port
+		}
+		if meta.Failover.Frequency != 0 {
+			m["frequency"] = meta.Failover.Frequency
+		}
+		if meta.Failover.Timeout != 0 {
+			m["timeout"] = meta.Failover.Timeout
+		}
+		if meta.Failover.Method != "" {
+			m["method"] = meta.Failover.Method
+		}
+		if meta.Failover.Url != "" {
+			m["url"] = meta.Failover.Url
+		}
+		if meta.Failover.Tls {
+			m["tls"] = meta.Failover.Tls
+			m["verify"] = meta.Failover.Verify
+		}
+		if meta.Failover.Regexp != "" {
+			m["regexp"] = meta.Failover.Regexp
+		}
+		if meta.Failover.HTTPStatusCode != 0 {
+			m["http_status_code"] = meta.Failover.HTTPStatusCode
+		}
+		if meta.Failover.Host != "" {
+			m["host"] = meta.Failover.Host
+		}
 		result["failover"] = []interface{}{m}
 	}
 	return []interface{}{result}
 }
 
-// FailoverMeta
-type FailoverMeta struct {
-	Protocol       string `json:"protocol"`
-	Port           int    `json:"port"`
-	Frequency      int    `json:"frequency"`
-	Timeout        int    `json:"timeout"`
-	Method         string `json:"method"`
-	Url            string `json:"url"`
-	Tls            bool   `json:"tls"`
-	Regexp         string `json:"regexp"`
-	HTTPStatusCode int    `json:"http_status_code"`
-	Host           string `json:"host"`
-	Verify         bool   `json:"verify"`
+func verifyFailoverMeta(meta dnssdk.Meta) error {
+	if meta.Failover != nil && meta.Failover.Protocol != "HTTP" {
+		if meta.Failover.Url != "" {
+			return fmt.Errorf("failover URL can only be set along with HTTP protocol")
+		}
+		if meta.Failover.Host != "" {
+			return fmt.Errorf("failover host can only be set along with HTTP protocol")
+		}
+		if meta.Failover.Regexp != "" {
+			return fmt.Errorf("failover regexp can only be set along with HTTP protocol")
+		}
+		if meta.Failover.Method != "" {
+			return fmt.Errorf("failover method can only be set along with HTTP protocol")
+		}
+	}
+	return nil
 }
 
-//func AddFilter(failover dnssdk.FailoverMeta) map[string]interface{}{
-//	meta := make(map[string]interface{}, 0)
-//	flv, ok := failover.map
-//	for k, v := range failover {
-//		meta[k] = v
-//	}
-//	return meta
+// RRSet dto as part of zone info from API
+//type RRSet struct {
+//	TTL     int              `json:"ttl"`
+//	Records []ResourceRecord `json:"resource_records"`
+//	Filters []RecordFilter   `json:"filters"`
+//	Meta    *Meta            `json:"meta,omitempty"`
+//}
+
+// RecordFilter describe Filters in RRSet
+type RecordFilter struct {
+	Limit  uint   `json:"limit"`
+	Type   string `json:"type"`
+	Strict bool   `json:"strict"`
+}
+
+// ResourceRecord dto describe records in RRSet
+type ResourceRecord struct {
+	Content []interface{}          `json:"content"`
+	Meta    map[string]interface{} `json:"meta"`
+	Enabled bool                   `json:"enabled"`
+}
+
+// Meta dto to read meta
+//type Meta struct {
+//	Failover *FailoverMeta `json:"failover,omitempty"`
+//}
+//
+//// FailoverMeta
+//type FailoverMeta struct {
+//	Protocol       string `json:"protocol"`
+//	Port           int    `json:"port"`
+//	Frequency      int    `json:"frequency"`
+//	Timeout        int    `json:"timeout"`
+//	Method         string `json:"method,omitempty"`
+//	Url            string `json:"url,omitempty"`
+//	Tls            bool   `json:"tls,omitempty"`
+//	Regexp         string `json:"regexp,omitempty"`
+//	HTTPStatusCode int    `json:"http_status_code,omitempty"`
+//	Host           string `json:"host,omitempty"`
+//	Verify         bool   `json:"verify,omitempty"`
 //}

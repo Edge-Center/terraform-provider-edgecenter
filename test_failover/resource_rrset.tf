@@ -18,7 +18,7 @@ provider "edgecenter" {
 //
 variable "example_domain0" {
   type    = string
-  default = "tftestzone2.com"
+  default = "tftestzone3.com"
 }
 
 resource "edgecenter_dns_zone" "examplezone0" {
@@ -31,19 +31,8 @@ resource "edgecenter_dns_zone_record" "example_rrset0" {
   type   = "A"
   ttl    = 100
 
-    filter {
-      limit = 1
-      type   = "is_healthy"
-    }
-
-  meta {
-    failover {
-        frequency = 10
-        port = 443
-        protocol = "TCP"
-        timeout = 10
-    }
-  }
+ meta {
+ }
 
   resource_record {
     content = "127.0.0.100"
