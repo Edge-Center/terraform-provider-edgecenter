@@ -1023,8 +1023,6 @@ func resourceCDNResource() *schema.Resource {
 			},
 			"ssl_le_enabled": {
 				Type:        schema.TypeBool,
-				Required:    false,
-				Optional:    false,
 				Computed:    true,
 				Description: "",
 			},
