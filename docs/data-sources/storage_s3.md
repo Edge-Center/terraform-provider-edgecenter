@@ -38,5 +38,3 @@ data "edgecenter_storage_s3" "example_s3" {
 - `generated_s3_endpoint` (String) A s3 endpoint for new storage resource.
 - `id` (String) The ID of this resource.
 - `location` (String) A location of new storage resource. One of (s-dt2)
-
-

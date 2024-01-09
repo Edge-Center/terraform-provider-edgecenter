@@ -46,5 +46,3 @@ output "kp" {
 - `fingerprint` (String) A fingerprint of the SSH public key, used to verify the integrity of the key.
 - `id` (String) The ID of this resource.
 - `sshkey_id` (String) The unique identifier assigned by the provider to the SSH key pair.
-
-

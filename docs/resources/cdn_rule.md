@@ -272,6 +272,7 @@ Required:
 Optional:
 
 - `enabled` (Boolean)
+- `use_host` (Boolean)
 
 
 <a id="nestedblock--options--force_return"></a>
@@ -607,5 +608,3 @@ Required:
 Optional:
 
 - `enabled` (Boolean)
-
-
