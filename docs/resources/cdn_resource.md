@@ -84,6 +84,7 @@ resource "edgecenter_cdn_resource" "cdn_example_com" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `ssl_le_enabled` (Boolean)
 - `status` (String) Status of a CDN resource content availability. Possible values are: Active, Suspended, Processed.
 
 <a id="nestedblock--options"></a>
@@ -247,6 +248,7 @@ Required:
 Optional:
 
 - `enabled` (Boolean)
+- `use_host` (Boolean)
 
 
 <a id="nestedblock--options--force_return"></a>
@@ -618,5 +620,3 @@ Required:
 Optional:
 
 - `enabled` (Boolean)
-
-

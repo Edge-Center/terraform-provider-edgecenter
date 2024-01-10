@@ -61,5 +61,3 @@ output "view" {
 - `protocol` (String) Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'
 - `protocol_port` (Number) The port on which the protocol is bound.
 - `provisioning_status` (String) The current provisioning status of the load balancer.
-
-

@@ -48,5 +48,3 @@ resource "edgecenter_cdn_sslcert" "cdnopt_cert" {
 - `automated` (Boolean) The way SSL certificate was issued.
 - `has_related_resources` (Boolean) It shows if the SSL certificate is used by a CDN resource.
 - `id` (String) The ID of this resource.
-
-
