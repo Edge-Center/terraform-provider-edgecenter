@@ -1,10 +1,7 @@
-//go:build cloud_data_source || cloud_resource || dns || storage || cdn
-
 package edgecenter_test
 
 import (
 	"fmt"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,11 +19,12 @@ import (
 	eccdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
+//nolint:unused
 const (
 	instanceTestName   = "test-vm"
 	clusterTestName    = "test-cluster"
@@ -114,6 +112,7 @@ var (
 	EC_CLUSTER_POOL_ID    = getEnv(EC_CLUSTER_POOL_ID_VAR)
 )
 
+//nolint:unused
 var varsMap = map[VarName]string{
 	EC_USERNAME_VAR:           EC_USERNAME,
 	EC_PASSWORD_VAR:           EC_PASSWORD,
@@ -138,6 +137,7 @@ var varsMap = map[VarName]string{
 	EC_CLUSTER_POOL_ID_VAR:    EC_CLUSTER_POOL_ID,
 }
 
+//nolint:unused
 func testAccPreCheckVars(t *testing.T, vars ...VarName) {
 	t.Helper()
 	for _, name := range vars {
@@ -147,6 +147,7 @@ func testAccPreCheckVars(t *testing.T, vars ...VarName) {
 	}
 }
 
+//nolint:unused
 func testAccPreCheck(t *testing.T) {
 	t.Helper()
 	vars := map[string]interface{}{
@@ -163,6 +164,7 @@ func testAccPreCheck(t *testing.T) {
 	checkNameAndID(t, "REGION")
 }
 
+//nolint:unused
 func checkNameAndID(t *testing.T, resourceType string) {
 	// resourceType is a word in capital letters
 	t.Helper()
@@ -178,14 +180,17 @@ func checkNameAndID(t *testing.T, resourceType string) {
 	}
 }
 
+//nolint:unused
 func regionInfo() string {
 	return objectInfo("REGION")
 }
 
+//nolint:unused
 func projectInfo() string {
 	return objectInfo("PROJECT")
 }
 
+//nolint:unused
 func objectInfo(resourceType string) string {
 	// resourceType is a word in capital letters
 	keyID := fmt.Sprintf("TEST_%s_ID", resourceType)
@@ -196,6 +201,7 @@ func objectInfo(resourceType string) string {
 	return fmt.Sprintf(`%s_name = "%s"`, strings.ToLower(resourceType), os.Getenv(keyName))
 }
 
+//nolint:unused
 func createTestClient(provider *edgecloud.ProviderClient, endpoint, version string) (*edgecloud.ServiceClient, error) {
 	projectID := 0
 	var err error
@@ -236,7 +242,8 @@ func createTestClient(provider *edgecloud.ProviderClient, endpoint, version stri
 	return client, nil
 }
 
-func getRegionIdAndProjectId() (int, int, error) {
+//nolint:unused
+func getRegionIDAndProjectID() (int, int, error) {
 	projectID := 0
 	regionID := 0
 	var err error
@@ -252,9 +259,11 @@ func getRegionIdAndProjectId() (int, int, error) {
 			return 0, 0, err
 		}
 	}
+
 	return regionID, projectID, nil
 }
 
+//nolint:unused
 func createTestConfig() (*edgecenter.Config, error) {
 	provider, err := ec.AuthenticatedClient(edgecloud.AuthOptions{
 		APIURL:      os.Getenv("EC_API"),
@@ -276,7 +285,7 @@ func createTestConfig() (*edgecenter.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	cloudClient.Region, cloudClient.Project, err = getRegionIdAndProjectId()
+	cloudClient.Region, cloudClient.Project, err = getRegionIDAndProjectID()
 
 	if err != nil {
 		return nil, err
@@ -317,6 +326,7 @@ func createTestConfig() (*edgecenter.Config, error) {
 	return &config, nil
 }
 
+//nolint:unused
 func testAccCheckResourceExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// retrieve the resource by name from state
