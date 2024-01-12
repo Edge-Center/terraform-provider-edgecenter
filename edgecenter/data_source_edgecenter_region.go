@@ -23,13 +23,13 @@ func dataSourceRegion() *schema.Resource {
 	}
 }
 
-func dataSourceRegionRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceRegionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Region reading")
 
 	name := d.Get("name").(string)
 	config := m.(*Config)
-	provider := config.Provider
-	regionID, err := GetRegion(provider, 0, name)
+	clientV2 := config.CloudClient
+	regionID, err := GetRegion(ctx, clientV2, 0, name)
 	if err != nil {
 		return diag.FromErr(err)
 	}
