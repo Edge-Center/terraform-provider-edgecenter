@@ -1,17 +1,16 @@
 package edgecenter
 
 import (
+	"context"
 	"fmt"
 	"log"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/region/v1/regions"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 // findRegionByName searches for a region with the specified name in the provided region slice.
 // Returns the region ID if found, otherwise returns an error.
-func findRegionByName(arr []regions.Region, name string) (int, error) {
+func findRegionByName(arr []edgecloudV2.Region, name string) (int, error) {
 	for _, el := range arr {
 		if el.DisplayName == name {
 			return el.ID, nil
@@ -24,21 +23,12 @@ func findRegionByName(arr []regions.Region, name string) (int, error) {
 // If the regionID is provided, it will be returned directly.
 // If regionName is provided instead, the function will search for the region by name and return its ID.
 // Returns an error if the region is not found or there is an issue with the client.
-func GetRegion(provider *edgecloud.ProviderClient, regionID int, regionName string) (int, error) {
+func GetRegion(ctx context.Context, client *edgecloudV2.Client, regionID int, regionName string) (int, error) {
 	if regionID != 0 {
 		return regionID, nil
 	}
-	client, err := edgecenter.ClientServiceFromProvider(provider, edgecloud.EndpointOpts{
-		Name:    RegionPoint,
-		Region:  0,
-		Project: 0,
-		Version: VersionPointV1,
-	})
-	if err != nil {
-		return 0, err
-	}
 
-	rs, err := regions.ListAll(client)
+	rs, _, err := client.Regions.List(ctx, nil)
 	if err != nil {
 		return 0, err
 	}

@@ -12,6 +12,7 @@ import (
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/region/v1/regions"
 )
 
 const (
@@ -57,6 +58,45 @@ func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string
 	return
 }
 
+// findRegionByNameLegacy to support backwards compatibility.
+func findRegionByNameLegacy(arr []regions.Region, name string) (int, error) {
+	for _, el := range arr {
+		if el.DisplayName == name {
+			return el.ID, nil
+		}
+	}
+	return 0, fmt.Errorf("region with name %s not found", name)
+}
+
+// GetRegionLegacy to support backwards compatibility.
+func GetRegionLegacy(provider *edgecloud.ProviderClient, regionID int, regionName string) (int, error) {
+	if regionID != 0 {
+		return regionID, nil
+	}
+	client, err := edgecenter.ClientServiceFromProvider(provider, edgecloud.EndpointOpts{
+		Name:    RegionPoint,
+		Region:  0,
+		Project: 0,
+		Version: VersionPointV1,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	rs, err := regions.ListAll(client)
+	if err != nil {
+		return 0, err
+	}
+	log.Printf("[DEBUG] Regions: %v", rs)
+	regionID, err = findRegionByNameLegacy(rs, regionName)
+	if err != nil {
+		return 0, err
+	}
+	log.Printf("[DEBUG] The attempt to get the region is successful: regionID=%d", regionID)
+
+	return regionID, nil
+}
+
 // CreateClient creates a new edgecloud.ServiceClient.
 func CreateClient(provider *edgecloud.ProviderClient, d *schema.ResourceData, endpoint string, version string) (*edgecloud.ServiceClient, error) {
 	projectID, err := GetProject(provider, d.Get("project_id").(int), d.Get("project_name").(string))
@@ -68,8 +108,9 @@ func CreateClient(provider *edgecloud.ProviderClient, d *schema.ResourceData, en
 
 	rawRegionID := d.Get("region_id")
 	rawRegionName := d.Get("region_name")
+
 	if rawRegionID != nil && rawRegionName != nil {
-		regionID, err = GetRegion(provider, rawRegionID.(int), rawRegionName.(string))
+		regionID, err = GetRegionLegacy(provider, rawRegionID.(int), rawRegionName.(string))
 		if err != nil {
 			return nil, fmt.Errorf("failed to get region: %w", err)
 		}
