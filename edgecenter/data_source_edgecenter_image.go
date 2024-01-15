@@ -2,18 +2,18 @@ package edgecenter
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/image/v1/images"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
-	ImagesPoint   = "images"
-	bmImagesPoint = "bmimages"
+	ImagesPoint = "images"
 )
 
 func dataSourceImage() *schema.Resource {
@@ -118,23 +118,17 @@ func dataSourceImage() *schema.Resource {
 	}
 }
 
-func dataSourceImageRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Image reading")
 	name := d.Get("name").(string)
 
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	point := ImagesPoint
-	if isBm, _ := d.Get("is_baremetal").(bool); isBm {
-		point = bmImagesPoint
-	}
-	client, err := CreateClient(provider, d, point, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	clientV2.Region = d.Get("region_id").(int)
+	clientV2.Project = d.Get("project_id").(int)
 
-	listOpts := &images.ListOpts{}
+	listOpts := &edgecloudV2.ImageListOptions{}
 
 	if metadataK, ok := d.GetOk("metadata_k"); ok {
 		listOpts.MetadataK = metadataK.(string)
@@ -145,16 +139,27 @@ func dataSourceImageRead(_ context.Context, d *schema.ResourceData, m interface{
 		for k, v := range metadataRaw.(map[string]interface{}) {
 			typedMetadataKV[k] = v.(string)
 		}
-		listOpts.MetadataKV = typedMetadataKV
+		typedMetadataKVJson, err := json.Marshal(typedMetadataKV)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		listOpts.MetadataKV = string(typedMetadataKVJson)
+	}
+	var allImages []edgecloudV2.Image
+
+	var err error
+	if isBm, _ := d.Get("is_baremetal").(bool); isBm {
+		allImages, _, err = clientV2.Images.ImagesBaremetalList(ctx, listOpts)
+	} else {
+		allImages, _, err = clientV2.Images.List(ctx, nil)
 	}
 
-	allImages, err := images.ListAll(client, *listOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var image images.Image
+	var image edgecloudV2.Image
 	for _, img := range allImages {
 		if strings.HasPrefix(strings.ToLower(img.Name), strings.ToLower(name)) {
 			image = img
@@ -172,11 +177,11 @@ func dataSourceImageRead(_ context.Context, d *schema.ResourceData, m interface{
 	d.Set("region_id", d.Get("region_id").(int))
 	d.Set("min_disk", image.MinDisk)
 	d.Set("min_ram", image.MinRAM)
-	d.Set("os_distro", image.OsDistro)
-	d.Set("os_version", image.OsVersion)
+	d.Set("os_distro", image.OSDistro)
+	d.Set("os_version", image.OSVersion)
 	d.Set("description", image.Description)
 
-	metadataReadOnly := PrepareMetadataReadonly(image.Metadata)
+	metadataReadOnly := PrepareMetadataReadonly(image.MetadataDetailed)
 	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}
