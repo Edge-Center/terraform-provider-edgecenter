@@ -10,9 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 
-	dnsSDK "github.com/Edge-Center/edgecenter-dns-sdk-go"
-	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
-	cdn "github.com/Edge-Center/edgecentercdn-go"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
 )
@@ -24,13 +21,6 @@ const (
 	ProjectPoint = "projects"
 	RegionPoint  = "regions"
 )
-
-type Config struct {
-	Provider      *edgecloud.ProviderClient
-	CDNClient     cdn.ClientService
-	StorageClient *storageSDK.SDK
-	DNSClient     *dnsSDK.Client
-}
 
 // MapStructureDecoder decodes the given map into the provided structure using the specified decoder configuration.
 func MapStructureDecoder(strct interface{}, v *map[string]interface{}, config *mapstructure.DecoderConfig) error {
@@ -45,7 +35,7 @@ func MapStructureDecoder(strct interface{}, v *map[string]interface{}, config *m
 
 // ImportStringParser parses a string containing project ID, region ID, and another field,
 // and returns them as separate values along with any error encountered.
-func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string, err error) { //nolint: nonamedreturns
+func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string, err error) { //nolint:nonamedreturns
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 3 {

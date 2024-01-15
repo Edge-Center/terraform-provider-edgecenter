@@ -17,6 +17,7 @@ import (
 	eccdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
@@ -227,16 +228,30 @@ func providerConfigure(_ context.Context, d *schema.ResourceData, terraformVersi
 	}
 
 	clientID := d.Get("edgecenter_client_id").(string)
+	userAgent := fmt.Sprintf("terraform/%s", terraformVersion)
 
 	var diags diag.Diagnostics
 
 	var err error
 	var provider *edgecloud.ProviderClient
+	var cloudClient *edgecloudV2.Client
+
 	if permanentToken != "" {
 		provider, err = ec.APITokenClient(edgecloud.APITokenOptions{
 			APIURL:   cloudAPI,
 			APIToken: permanentToken,
 		})
+		if err != nil {
+			return nil, diag.FromErr(fmt.Errorf("edgecloud provider client create error: %w", err))
+		}
+		cloudClient, err = edgecloudV2.NewWithRetries(nil,
+			edgecloudV2.SetUserAgent(userAgent),
+			edgecloudV2.SetAPIKey(permanentToken),
+			edgecloudV2.SetBaseURL(cloudAPI),
+		)
+		if err != nil {
+			return nil, diag.FromErr(fmt.Errorf("edgecloud client create error: %w", err))
+		}
 	} else {
 		provider, err = ec.AuthenticatedClient(edgecloud.AuthOptions{
 			APIURL:      cloudAPI,
@@ -262,11 +277,11 @@ func providerConfigure(_ context.Context, d *schema.ResourceData, terraformVersi
 	cdnService := cdn.NewService(cdnProvider)
 
 	config := Config{
-		Provider:  provider,
-		CDNClient: cdnService,
+		CloudClient: cloudClient,
+		Provider:    provider,
+		CDNClient:   cdnService,
 	}
 
-	userAgent := fmt.Sprintf("terraform/%s", terraformVersion)
 	if storageAPI != "" {
 		stHost, stPath, err := ExtractHostAndPath(storageAPI)
 		if err != nil {
