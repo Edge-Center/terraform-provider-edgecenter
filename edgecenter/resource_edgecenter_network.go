@@ -2,19 +2,15 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
@@ -136,16 +132,15 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	log.Println("[DEBUG] Start Network creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	clientV2.Region = d.Get("region_id").(int)
+	clientV2.Project = d.Get("project_id").(int)
 
-	createOpts := networks.CreateOpts{
+	networkType := d.Get("type").(string)
+	createOpts := &edgecloudV2.NetworkCreateRequest{
 		Name:         d.Get("name").(string),
-		Type:         d.Get("type").(string),
+		Type:         edgecloudV2.NetworkType(networkType),
 		CreateRouter: d.Get("create_router").(bool),
 	}
 
@@ -159,31 +154,30 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	log.Printf("Create network ops: %+v", createOpts)
-	results, err := networks.Create(client, createOpts).Extract()
+
+	results, _, err := clientV2.Networks.Create(ctx, createOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	networkID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, NetworkCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		NetworkID, err := networks.ExtractNetworkIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve Network ID from task info: %w", err)
-		}
-		return NetworkID, nil
-	},
-	)
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	createdNetworks, ok := taskInfo.CreatedResources["networks"]
+	networkIDs := createdNetworks.([]interface{})
+	if !ok || len(networkIDs) == 0 {
+		return diag.Errorf("cannot retrieve Network ID from task info: %s", taskID)
+	}
+	networkID := networkIDs[0].(string)
 	log.Printf("[DEBUG] Network id (%s)", networkID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(networkID.(string))
+	d.SetId(networkID)
 	resourceNetworkRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Network creating (%s)", networkID)
@@ -191,21 +185,20 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	return diags
 }
 
-func resourceNetworkRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start network reading")
 	log.Printf("[DEBUG] Start network reading%s", d.State())
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
+
+	clientV2.Region = d.Get("region_id").(int)
+	clientV2.Project = d.Get("project_id").(int)
+
 	networkID := d.Id()
 	log.Printf("[DEBUG] Network id = %s", networkID)
 
-	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	network, err := networks.Get(client, networkID).Extract()
+	network, _, err := clientV2.Networks.Get(ctx, networkID)
 	if err != nil {
 		return diag.Errorf("cannot get network with ID: %s. Error: %s", networkID, err)
 	}
@@ -238,16 +231,18 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	log.Println("[DEBUG] Start network updating")
 	networkID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", networkID)
+
 	config := m.(*Config)
-	provider := config.Provider
-	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	clientV2 := config.CloudClient
+
+	clientV2.Region = d.Get("region_id").(int)
+	clientV2.Project = d.Get("project_id").(int)
 
 	if d.HasChange("name") {
-		newName := d.Get("name").(string)
-		_, err := networks.Update(client, networkID, networks.UpdateOpts{Name: newName}).Extract()
+		newName := &edgecloudV2.Name{
+			Name: d.Get("name").(string),
+		}
+		_, _, err := clientV2.Networks.UpdateName(ctx, networkID, newName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -256,12 +251,12 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("metadata_map") {
 		_, nmd := d.GetChange("metadata_map")
 
-		meta, err := utils.MapInterfaceToMapString(nmd.(map[string]interface{}))
+		meta, err := MapInterfaceToMapString(nmd.(map[string]interface{}))
 		if err != nil {
 			return diag.Errorf("cannot get metadata. Error: %s", err)
 		}
 
-		err = metadata.ResourceMetadataReplace(client, networkID, meta).Err
+		_, err = clientV2.Networks.MetadataUpdate(ctx, networkID, meta)
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
@@ -272,38 +267,32 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	return resourceNetworkRead(ctx, d, m)
 }
 
-func resourceNetworkDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start network deleting")
-	var diags diag.Diagnostics
-	config := m.(*Config)
-	provider := config.Provider
 	networkID := d.Id()
 	log.Printf("[DEBUG] Network id = %s", networkID)
+	var diags diag.Diagnostics
+	config := m.(*Config)
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
+	clientV2.Region = d.Get("region_id").(int)
+	clientV2.Project = d.Get("project_id").(int)
+
+	results, _, err := clientV2.Networks.Delete(ctx, networkID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	results, err := networks.Delete(client, networkID).Extract()
-	if err != nil {
-		return diag.FromErr(err)
-	}
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, NetworkDeleting, func(task tasks.TaskID) (interface{}, error) {
-		_, err := networks.Get(client, networkID).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete network with ID: %s", networkID)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting Network resource error: %w", err)
-	})
+
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if task.State == edgecloudV2.TaskStateError {
+		return diag.Errorf("cannot delete network with ID: %s", networkID)
 	}
 
 	d.SetId("")
