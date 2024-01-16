@@ -10,8 +10,6 @@ github.com/Edge-Center/edgecentercdn-go v0.1.5 h1:142aCMrAngvrlLSHyyPM4ZCztcvdRt
 github.com/Edge-Center/edgecentercdn-go v0.1.5/go.mod h1:RwEyxwPAmxor1mZKUTa2bIU2p5qM6kcAofUkaE4O1V4=
 github.com/Edge-Center/edgecentercloud-go v0.1.11 h1:00h5o/71lEoSdU1B4AWmviuOfO28P6nsRP+afjIsW80=
 github.com/Edge-Center/edgecentercloud-go v0.1.11/go.mod h1:kmXGtx0lL1ib+SPfJe/uIAyDHamquAvqiftoLSyhxF8=
-github.com/Edge-Center/edgecentercloud-go/v2 v2.0.2 h1:ayJpHjijK7Cm7j7WWLoXyg4n+9dzGj0R1lWWXlsthTs=
-github.com/Edge-Center/edgecentercloud-go/v2 v2.0.2/go.mod h1:2b+MKa93GhFzShQDjHHc5bUWVhL0g6pSwGbFmeywI7U=
 github.com/Edge-Center/edgecentercloud-go/v2 v2.0.3 h1:AxKGadO6OlGvLeNBUu1+SdHV8fGzG5Fas6ADRmVSQGA=
 github.com/Edge-Center/edgecentercloud-go/v2 v2.0.3/go.mod h1:2b+MKa93GhFzShQDjHHc5bUWVhL0g6pSwGbFmeywI7U=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
@@ -28,6 +26,8 @@ github.com/apparentlymart/go-textseg/v15 v15.0.0/go.mod h1:K8XmNZdhEBkdlyDdvbmms
 github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 h1:DklsrG3dyBCFEj5IhUbnKptjxatkF07cF2ak3yi77so=
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
+github.com/avast/retry-go/v4 v4.5.1 h1:AxIx0HGi4VZ3I02jr78j5lZ3M6x1E0Ivxa6b0pUUh7o=
+github.com/avast/retry-go/v4 v4.5.1/go.mod h1:/sipNsvNB3RRuT5iNcb6h73nw3IBmXJ/H3XrCQYSOpc=
 github.com/bufbuild/protocompile v0.4.0 h1:LbFKd2XowZvQ/kajzguUp2DC9UEIQhIq77fZZlaQsNA=
 github.com/bwesterb/go-ristretto v1.2.3/go.mod h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0=
 github.com/cloudflare/circl v1.3.3 h1:fE/Qz0QdIGqeWfnwq0RE0R7MI51s0M2E4Ga9kq5AEMs=
