@@ -14,9 +14,9 @@ import (
 )
 
 func TestAccSecurityGroup(t *testing.T) {
+	t.Skip()
 	t.Parallel()
 	// TODO: https://tracker.yandex.ru/CLOUDDEV-473
-	t.Skip()
 	resourceName := "edgecenter_securitygroup.acctest"
 
 	ipTemplate1 := fmt.Sprintf(`
