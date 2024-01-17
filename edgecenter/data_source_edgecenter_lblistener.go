@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceLBListener() *schema.Resource {
@@ -84,31 +84,29 @@ func dataSourceLBListener() *schema.Resource {
 	}
 }
 
-func dataSourceLBListenerRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	clientV2.Region = d.Get("region_id").(int)
+	clientV2.Project = d.Get("project_id").(int)
 
-	var opts listeners.ListOpts
+	var opts edgecloudV2.ListenerListOptions
 	name := d.Get("name").(string)
 	lbID := d.Get("loadbalancer_id").(string)
 	if lbID != "" {
-		opts.LoadBalancerID = &lbID
+		opts.LoadbalancerID = lbID
 	}
 
-	ls, err := listeners.ListAll(client, opts)
+	ls, _, err := clientV2.Loadbalancers.ListenerList(ctx, &opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var listener listeners.Listener
+	var listener edgecloudV2.Listener
 	for _, l := range ls {
 		if l.Name == name {
 			listener = l
@@ -123,11 +121,11 @@ func dataSourceLBListenerRead(_ context.Context, d *schema.ResourceData, m inter
 
 	d.SetId(listener.ID)
 	d.Set("name", listener.Name)
-	d.Set("protocol", listener.Protocol.String())
+	d.Set("protocol", listener.Protocol)
 	d.Set("protocol_port", listener.ProtocolPort)
 	d.Set("pool_count", listener.PoolCount)
-	d.Set("operating_status", listener.OperationStatus.String())
-	d.Set("provisioning_status", listener.ProvisioningStatus.String())
+	d.Set("operating_status", listener.OperatingStatus)
+	d.Set("provisioning_status", listener.ProvisioningStatus)
 	d.Set("loadbalancer_id", lbID)
 	d.Set("project_id", d.Get("project_id").(int))
 	d.Set("region_id", d.Get("region_id").(int))
