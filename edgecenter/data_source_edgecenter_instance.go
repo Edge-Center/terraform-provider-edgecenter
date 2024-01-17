@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceInstance() *schema.Resource {
@@ -168,25 +168,24 @@ allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceV
 	}
 }
 
-func dataSourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Instance reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	clientV2.Region = d.Get("region_id").(int)
+	clientV2.Project = d.Get("project_id").(int)
 
 	name := d.Get("name").(string)
-	insts, err := instances.ListAll(client, instances.ListOpts{Name: name})
+
+	insts, _, err := clientV2.Instances.List(ctx, &edgecloudV2.InstanceListOptions{Name: name})
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var instance instances.Instance
+	var instance edgecloudV2.Instance
 	for _, l := range insts {
 		if l.Name == name {
 			instance = l
@@ -201,7 +200,6 @@ func dataSourceInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId(instance.ID)
 	d.Set("name", instance.Name)
-
 	d.Set("flavor_id", instance.Flavor.FlavorID)
 	d.Set("status", instance.Status)
 	d.Set("vm_state", instance.VMState)
@@ -225,7 +223,7 @@ func dataSourceInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	ifs, err := instances.ListInterfacesAll(client, instance.ID)
+	ifs, _, err := clientV2.Instances.InterfaceList(ctx, instance.ID)
 	log.Printf("instance data source interfaces: %+v", ifs)
 	if err != nil {
 		return diag.FromErr(err)
@@ -280,7 +278,7 @@ func dataSourceInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 		netd := make([]map[string]string, len(data))
 		for i, iaddr := range data {
 			ndata := make(map[string]string, 2)
-			ndata["type"] = iaddr.Type.String()
+			ndata["type"] = iaddr.Type
 			ndata["addr"] = iaddr.Address.String()
 			netd[i] = ndata
 		}
