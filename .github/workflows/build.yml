@@ -6,6 +6,17 @@ on:
 
 jobs:
   build:
+    env:
+      EC_USERNAME: ${{ secrets.EC_USERNAME }}
+      EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
+      EC_API: ${{ secrets.EC_API }}
+      EC_CDN_URL: ${{ secrets.EC_CDN_URL }}
+      EC_DNS_API: ${{ secrets.EC_DNS_API }}
+      EC_PLATFORM: ${{ secrets.EC_PLATFORM }}
+      EC_STORAGE_API: ${{ secrets.EC_STORAGE_API }}
+      TEST_PROJECT_ID: ${{ secrets.TEST_PROJECT_ID }}
+      TEST_REGION_ID: ${{ secrets.TEST_REGION_ID }}
+      TF_ACC: ${{ secrets.TF_ACC }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -22,13 +33,7 @@ jobs:
         run: go build -v ./...
 
       - name: Tests data_source
-        env:
-          EC_USERNAME: ${{ secrets.EC_USERNAME }}
-          EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
-        run: make test_cloud_data_source
+        run: go test -v ./edgecenter/test -tags cloud_data_source -short -timeout=20m
 
       - name: Tests resource
-        env:
-          EC_USERNAME: ${{ secrets.EC_USERNAME }}
-          EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
-        run: make test_cloud_resource
+        run: go test -v ./edgecenter/test -tags cloud_resource -short -timeout=20m
