@@ -76,8 +76,8 @@ func PrepareMetadataReadonly(apiMetadataRaw interface{}) []map[string]interface{
 	return metadataReadOnly
 }
 
-func MapInterfaceToMapString(mapInterface interface{}) (*edgecloudV2.Metadata, error) {
-	mapString := make(edgecloudV2.Metadata)
+func MapInterfaceToMapString(mapInterface interface{}) (*map[string]string, error) {
+	mapString := make(map[string]string)
 
 	switch v := mapInterface.(type) {
 	default:
