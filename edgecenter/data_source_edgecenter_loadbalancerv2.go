@@ -2,14 +2,13 @@ package edgecenter
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceLoadBalancerV2() *schema.Resource {
@@ -93,40 +92,42 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 	}
 }
 
-func dataSourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	clientV2.Region = d.Get("region_id").(int)
+	clientV2.Project = d.Get("project_id").(int)
 
 	name := d.Get("name").(string)
 
-	metaOpts := &loadbalancers.ListOpts{}
+	metaOpts := &edgecloudV2.LoadbalancerListOptions{}
 
 	if metadataK, ok := d.GetOk("metadata_k"); ok {
 		metaOpts.MetadataK = metadataK.(string)
 	}
 
 	if metadataRaw, ok := d.GetOk("metadata_kv"); ok {
-		meta, err := utils.MapInterfaceToMapString(metadataRaw)
+		meta, err := MapInterfaceToMapString(metadataRaw)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		metaOpts.MetadataKV = meta
+		typedMetadataKVJson, err := json.Marshal(meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		metaOpts.MetadataKV = string(typedMetadataKVJson)
 	}
 
-	lbs, err := loadbalancers.ListAll(client, *metaOpts)
+	lbs, _, err := clientV2.Loadbalancers.List(ctx, metaOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var lb loadbalancers.LoadBalancer
+	var lb edgecloudV2.Loadbalancer
 	for _, l := range lbs {
 		if l.Name == name {
 			lb = l
@@ -146,7 +147,7 @@ func dataSourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m i
 	d.Set("vip_address", lb.VipAddress.String())
 	d.Set("vip_port_id", lb.VipPortID)
 
-	metadataList, err := metadata.ResourceMetadataListAll(client, d.Id())
+	metadataList, _, err := clientV2.Loadbalancers.MetadataList(ctx, lb.ID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
