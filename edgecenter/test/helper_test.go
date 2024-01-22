@@ -3,6 +3,7 @@
 package edgecenter_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -18,6 +19,10 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 func createTestNetwork(client *edgecloud.ServiceClient, opts networks.CreateOpts) (string, error) {
@@ -247,4 +252,13 @@ func createTestVolume(client *edgecloud.ServiceClient, opts volumes.CreateOpts) 
 	}
 
 	return volumeID.(string), nil
+}
+
+func createTestVolumeV2(ctx context.Context, client *edgecloudV2.Client, opts *edgecloudV2.VolumeCreateRequest) (string, error) {
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Volumes.Create, opts, client)
+	if err != nil {
+		return "", err
+	}
+
+	return taskResult.Volumes[0], nil
 }
