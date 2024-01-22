@@ -6,9 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v1/secrets"
 )
 
 func dataSourceSecret() *schema.Resource {
@@ -87,20 +84,24 @@ func dataSourceSecret() *schema.Resource {
 	}
 }
 
-func dataSourceSecretRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start secret reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
-	secretID := d.Id()
-	log.Printf("[DEBUG] Secret id = %s", secretID)
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	allSecrets, err := secrets.ListAll(client)
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	secretID := d.Id()
+	log.Printf("[DEBUG] Secret id = %s", secretID)
+
+	allSecrets, _, err := clientV2.Secrets.List(ctx)
 	if err != nil {
 		return diag.Errorf("cannot get secrets. Error: %s", err.Error())
 	}
@@ -115,8 +116,9 @@ func dataSourceSecretRead(_ context.Context, d *schema.ResourceData, m interface
 			d.Set("bit_length", secret.BitLength)
 			d.Set("mode", secret.Mode)
 			d.Set("status", secret.Status)
-			d.Set("expiration", secret.Expiration.Format(edgecloud.RFC3339ZColon))
-			d.Set("created", secret.CreatedAt.Format(edgecloud.RFC3339ZColon))
+			d.Set("expiration", secret.Expiration)
+			d.Set("created", secret.Created)
+
 			if err := d.Set("content_types", secret.ContentTypes); err != nil {
 				return diag.FromErr(err)
 			}
