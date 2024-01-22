@@ -256,7 +256,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			return diag.Errorf("cannot get metadata. Error: %s", err)
 		}
 
-		_, err = clientV2.Networks.MetadataUpdate(ctx, networkID, meta)
+		_, err = clientV2.Networks.MetadataUpdate(ctx, networkID, (*edgecloudV2.Metadata)(meta))
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
