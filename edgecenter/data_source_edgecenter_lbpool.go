@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
-
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
