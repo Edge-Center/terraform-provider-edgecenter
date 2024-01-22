@@ -9,6 +9,7 @@ jobs:
     env:
       EC_USERNAME: ${{ secrets.EC_USERNAME }}
       EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
+      EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
       EC_API: ${{ secrets.EC_API }}
       EC_CDN_URL: ${{ secrets.EC_CDN_URL }}
       EC_DNS_API: ${{ secrets.EC_DNS_API }}
