@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/reservedfixedip/v1/reservedfixedips"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceReservedFixedIP() *schema.Resource {
@@ -102,25 +102,29 @@ func dataSourceReservedFixedIP() *schema.Resource {
 	}
 }
 
-func dataSourceReservedFixedIPRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	ipAddr := d.Get("fixed_ip_address").(string)
-	ips, err := reservedfixedips.ListAll(client, reservedfixedips.ListOpts{})
+
+	ips, _, err := clientV2.ReservedFixedIP.List(ctx, &edgecloudV2.ReservedFixedIPListOptions{})
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var reservedFixedIP reservedfixedips.ReservedFixedIP
+	var reservedFixedIP edgecloudV2.ReservedFixedIP
 	for _, ip := range ips {
 		if ip.FixedIPAddress.String() == ipAddr {
 			reservedFixedIP = ip
@@ -141,7 +145,7 @@ func dataSourceReservedFixedIPRead(_ context.Context, d *schema.ResourceData, m 
 	d.Set("fixed_ip_address", reservedFixedIP.FixedIPAddress.String())
 	d.Set("subnet_id", reservedFixedIP.SubnetID)
 	d.Set("network_id", reservedFixedIP.NetworkID)
-	d.Set("is_vip", reservedFixedIP.IsVip)
+	d.Set("is_vip", reservedFixedIP.IsVIP)
 	d.Set("port_id", reservedFixedIP.PortID)
 
 	allowedPairs := make([]map[string]interface{}, len(reservedFixedIP.AllowedAddressPairs))
@@ -153,6 +157,7 @@ func dataSourceReservedFixedIPRead(_ context.Context, d *schema.ResourceData, m 
 
 		allowedPairs[i] = pair
 	}
+
 	if err := d.Set("allowed_address_pairs", allowedPairs); err != nil {
 		return diag.FromErr(err)
 	}

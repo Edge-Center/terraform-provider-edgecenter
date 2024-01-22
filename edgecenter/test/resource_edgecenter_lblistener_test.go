@@ -35,6 +35,7 @@ func TestAccLBListener(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	defer loadbalancers.Delete(client, lbID)
 
 	type Params struct {
