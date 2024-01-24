@@ -2,15 +2,13 @@ package edgecenter
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/availablenetworks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceNetwork() *schema.Resource {
@@ -184,45 +182,44 @@ func dataSourceNetwork() *schema.Resource {
 	}
 }
 
-func dataSourceNetworkRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Network reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
 
-	client, err := CreateClient(provider, d, NetworksPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	clientShared, err := CreateClient(provider, d, SharedNetworksPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	clientV2 := config.CloudClient
+
+	clientV2.Region = d.Get("region_id").(int)
+	clientV2.Project = d.Get("project_id").(int)
 
 	name := d.Get("name").(string)
-	metaOpts := &networks.ListOpts{}
+	metaOpts := &edgecloudV2.NetworkListOptions{}
 
 	if metadataK, ok := d.GetOk("metadata_k"); ok {
 		metaOpts.MetadataK = metadataK.(string)
 	}
 
 	if metadataRaw, ok := d.GetOk("metadata_kv"); ok {
-		typedMetadataKV := make(map[string]string, len(metadataRaw.(map[string]interface{})))
-		for k, v := range metadataRaw.(map[string]interface{}) {
-			typedMetadataKV[k] = v.(string)
+		meta, err := MapInterfaceToMapString(metadataRaw)
+		if err != nil {
+			return diag.FromErr(err)
 		}
-		metaOpts.MetadataKV = typedMetadataKV
+		typedMetadataKVJson, err := json.Marshal(meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		metaOpts.MetadataKV = string(typedMetadataKVJson)
 	}
 
 	var (
 		withDetails = d.Get("shared_with_subnets").(bool)
 		rawNetwork  map[string]interface{}
-		subs        []subnets.Subnet
-		meta        []metadata.Metadata
+		subs        []edgecloudV2.Subnetwork
+		meta        []edgecloudV2.MetadataDetailed
 	)
 
 	if !withDetails {
-		nets, err := networks.ListAll(client, *metaOpts)
+		nets, _, err := clientV2.Networks.List(ctx, metaOpts)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -236,7 +233,7 @@ func dataSourceNetworkRead(_ context.Context, d *schema.ResourceData, m interfac
 			return diag.FromErr(err)
 		}
 	} else {
-		nets, err := availablenetworks.ListAll(clientShared, nil)
+		nets, _, err := clientV2.Networks.ListNetworksWithSubnets(ctx, nil)
 		if err != nil {
 			return diag.FromErr(err)
 		}
