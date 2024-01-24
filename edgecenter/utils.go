@@ -1,7 +1,9 @@
 package edgecenter
 
 import (
+	"context"
 	"fmt"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"log"
 	"net/url"
 	"strconv"
@@ -59,6 +61,7 @@ func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string
 }
 
 // findRegionByNameLegacy to support backwards compatibility.
+// ToDo remove after migrate to New Go Client.
 func findRegionByNameLegacy(arr []regions.Region, name string) (int, error) {
 	for _, el := range arr {
 		if el.DisplayName == name {
@@ -69,6 +72,7 @@ func findRegionByNameLegacy(arr []regions.Region, name string) (int, error) {
 }
 
 // GetRegionLegacy to support backwards compatibility.
+// ToDo remove after migrate to New Go Client.
 func GetRegionLegacy(provider *edgecloud.ProviderClient, regionID int, regionName string) (int, error) {
 	if regionID != 0 {
 		return regionID, nil
@@ -165,4 +169,18 @@ func ExtractHostAndPath(uri string) (string, string, error) {
 	path = pURL.Path
 
 	return host, path, nil
+}
+
+func SetRegionIDandProjectID(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) error {
+	var err error
+	client.Project, err = GetProjectV2(ctx, client, d.Get("project_id").(int), d.Get("project_name").(string))
+	if err != nil {
+		return err
+	}
+
+	client.Region, err = GetRegion(ctx, client, d.Get("region_id").(int), d.Get("region_name").(string))
+	if err != nil {
+		return fmt.Errorf("failed to get region: %w", err)
+	}
+	return nil
 }

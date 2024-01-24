@@ -115,14 +115,17 @@ func dataSourceImage() *schema.Resource {
 }
 
 func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var err error
 	log.Println("[DEBUG] Start Image reading")
 	name := d.Get("name").(string)
 
 	config := m.(*Config)
 	clientV2 := config.CloudClient
 
-	clientV2.Region = d.Get("region_id").(int)
-	clientV2.Project = d.Get("project_id").(int)
+	err = SetRegionIDandProjectID(ctx, clientV2, d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	listOpts := &edgecloudV2.ImageListOptions{}
 
@@ -143,7 +146,6 @@ func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 	var allImages []edgecloudV2.Image
 
-	var err error
 	if isBm, _ := d.Get("is_baremetal").(bool); isBm {
 		allImages, _, err = clientV2.Images.ImagesBaremetalList(ctx, listOpts)
 	} else {
@@ -169,8 +171,8 @@ func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	d.SetId(image.ID)
-	d.Set("project_id", d.Get("project_id").(int))
-	d.Set("region_id", d.Get("region_id").(int))
+	d.Set("project_id", clientV2.Project)
+	d.Set("region_id", clientV2.Region)
 	d.Set("min_disk", image.MinDisk)
 	d.Set("min_ram", image.MinRAM)
 	d.Set("os_distro", image.OSDistro)
