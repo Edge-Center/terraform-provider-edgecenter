@@ -12,10 +12,6 @@ import (
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
-const (
-	ImagesPoint = "images"
-)
-
 func dataSourceImage() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceImageRead,

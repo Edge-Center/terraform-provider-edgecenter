@@ -20,7 +20,7 @@ func TestAccImageDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createTestClient(cfg.Provider, edgecenter.ImagesPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, ImagesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
