@@ -1,6 +1,7 @@
 package edgecenter
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/region/v1/regions"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
@@ -165,4 +167,20 @@ func ExtractHostAndPath(uri string) (string, string, error) {
 	path = pURL.Path
 
 	return host, path, nil
+}
+
+// GetRegionIDandProjectID search for project ID and region ID by name or return project ID
+// and region ID if they exist in the terraform configuration.
+// Use new version Edgecenterclient-go V2.
+func GetRegionIDandProjectID(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) (int, int, error) {
+	projectID, err := GetProjectV2(ctx, client, d.Get("project_id").(int), d.Get("project_name").(string))
+	if err != nil {
+		return 0, 0, err
+	}
+
+	regionID, err := GetRegionV2(ctx, client, d.Get("region_id").(int), d.Get("region_name").(string))
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to get region: %w", err)
+	}
+	return projectID, regionID, nil
 }
