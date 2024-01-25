@@ -172,15 +172,15 @@ func ExtractHostAndPath(uri string) (string, string, error) {
 // GetRegionIDandProjectID search for project ID and region ID by name or return project ID
 // and region ID if they exist in the terraform configuration.
 // Use new version Edgecenterclient-go V2.
-func GetRegionIDandProjectID(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) (int, int, error) {
-	projectID, err := GetProjectV2(ctx, client, d.Get("project_id").(int), d.Get("project_name").(string))
+func GetRegionIDandProjectID(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) (regionID, projectID int, err error) {
+	projectID, err = GetProjectV2(ctx, client, d.Get("project_id").(int), d.Get("project_name").(string))
 	if err != nil {
 		return 0, 0, err
 	}
 
-	regionID, err := GetRegionV2(ctx, client, d.Get("region_id").(int), d.Get("region_name").(string))
+	regionID, err = GetRegionV2(ctx, client, d.Get("region_id").(int), d.Get("region_name").(string))
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to get region: %w", err)
 	}
-	return projectID, regionID, nil
+	return regionID, projectID, nil
 }
