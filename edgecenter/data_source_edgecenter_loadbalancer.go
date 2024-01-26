@@ -123,8 +123,11 @@ func dataSourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m i
 	config := m.(*Config)
 	clientV2 := config.CloudClient
 
-	clientV2.Region = d.Get("region_id").(int)
-	clientV2.Project = d.Get("project_id").(int)
+	var err error
+	clientV2.Region, clientV2.Project, err = GetRegionIDandProjectID(ctx, clientV2, d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	name := d.Get("name").(string)
 	metaOpts := &edgecloudV2.LoadbalancerListOptions{}
