@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -9,8 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 func dataSourceSecurityGroup() *schema.Resource {
@@ -100,17 +101,17 @@ func dataSourceSecurityGroup() *schema.Resource {
 						"direction": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: fmt.Sprintf("Available value is '%s', '%s'", types.RuleDirectionIngress, types.RuleDirectionEgress),
+							Description: fmt.Sprintf("Available value is '%s', '%s'", edgecloudV2.SGRuleDirectionIngress, edgecloudV2.SGRuleDirectionEgress),
 						},
 						"ethertype": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: fmt.Sprintf("Available value is '%s', '%s'", types.EtherTypeIPv4, types.EtherTypeIPv6),
+							Description: fmt.Sprintf("Available value is '%s', '%s'", edgecloudV2.EtherTypeIPv4, edgecloudV2.EtherTypeIPv6),
 						},
 						"protocol": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: fmt.Sprintf("Available value is %s", strings.Join(types.Protocol("").StringList(), ",")),
+							Description: fmt.Sprintf("Available value is %s", strings.Join(utilV2.SecurityGroupRuleProtocol("").StringList(), ",")),
 						},
 						"port_range_min": {
 							Type:     schema.TypeInt,
@@ -143,19 +144,22 @@ func dataSourceSecurityGroup() *schema.Resource {
 	}
 }
 
-func dataSourceSecurityGroupRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start SecurityGroup reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	name := d.Get("name").(string)
-	metaOpts := &securitygroups.ListOpts{}
+	metaOpts := &edgecloudV2.SecurityGroupListOptions{}
 
 	if metadataK, ok := d.GetOk("metadata_k"); ok {
 		metaOpts.MetadataK = metadataK.(string)
@@ -166,15 +170,20 @@ func dataSourceSecurityGroupRead(_ context.Context, d *schema.ResourceData, m in
 		for k, v := range metadataRaw.(map[string]interface{}) {
 			typedMetadataKV[k] = v.(string)
 		}
-		metaOpts.MetadataKV = typedMetadataKV
+		typedMetadataKVJson, err := json.Marshal(typedMetadataKV)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		metaOpts.MetadataKV = string(typedMetadataKVJson)
 	}
-	sgs, err := securitygroups.ListAll(client, *metaOpts)
+
+	sgs, _, err := clientV2.SecurityGroups.List(ctx, metaOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var sg securitygroups.SecurityGroup
+	var sg edgecloudV2.SecurityGroup
 	for _, s := range sgs {
 		if s.Name == name {
 			sg = s
@@ -211,16 +220,16 @@ func dataSourceSecurityGroupRead(_ context.Context, d *schema.ResourceData, m in
 	for i, sgr := range sg.SecurityGroupRules {
 		r := make(map[string]interface{})
 		r["id"] = sgr.ID
-		r["direction"] = sgr.Direction.String()
+		r["direction"] = string(sgr.Direction)
 
 		r["ethertype"] = ""
 		if sgr.EtherType != nil {
-			r["ethertype"] = sgr.EtherType.String()
+			r["ethertype"] = string(*sgr.EtherType)
 		}
 
-		r["protocol"] = types.ProtocolAny.String()
+		r["protocol"] = edgecloudV2.SGRuleProtocolANY
 		if sgr.Protocol != nil {
-			r["protocol"] = sgr.Protocol.String()
+			r["protocol"] = string(*sgr.Protocol)
 		}
 
 		r["port_range_max"] = 65535
@@ -243,8 +252,8 @@ func dataSourceSecurityGroupRead(_ context.Context, d *schema.ResourceData, m in
 			r["remote_ip_prefix"] = *sgr.RemoteIPPrefix
 		}
 
-		r["updated_at"] = sgr.UpdatedAt.String()
-		r["created_at"] = sgr.CreatedAt.String()
+		r["updated_at"] = sgr.UpdatedAt
+		r["created_at"] = sgr.CreatedAt
 
 		newSgRules[i] = r
 	}
