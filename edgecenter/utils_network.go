@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
@@ -54,18 +53,6 @@ func dnsNameserversToStringList(dnsNameservers []net.IP) []string {
 	}
 
 	return dns
-}
-
-func hostRoutesToListOfMaps(hostRoutes []subnets.HostRoute) []map[string]string {
-	hrs := make([]map[string]string, len(hostRoutes))
-	for i, hr := range hostRoutes {
-		hR := map[string]string{"destination": "", "nexthop": ""}
-		hR["destination"] = hr.Destination.String()
-		hR["nexthop"] = hr.NextHop.String()
-		hrs[i] = hR
-	}
-
-	return hrs
 }
 
 func hostRoutesToListOfMapsV2(hostRoutes []edgecloudV2.HostRoute) []map[string]string {
