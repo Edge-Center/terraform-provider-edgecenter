@@ -2,12 +2,13 @@ package edgecenter
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceVolume() *schema.Resource {
@@ -94,19 +95,22 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 	}
 }
 
-func dataSourceVolumeRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Volume reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
+	regionID, ProjectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = ProjectID
+
 	name := d.Get("name").(string)
-	volumeOpts := &volumes.ListOpts{}
+	volumeOpts := &edgecloudV2.VolumeListOptions{}
 	if metadataK, ok := d.GetOk("metadata_k"); ok {
 		volumeOpts.MetadataK = metadataK.(string)
 	}
@@ -116,16 +120,20 @@ func dataSourceVolumeRead(_ context.Context, d *schema.ResourceData, m interface
 		for k, v := range metadataRaw.(map[string]interface{}) {
 			typedMetadataKV[k] = v.(string)
 		}
-		volumeOpts.MetadataKV = typedMetadataKV
+		typedMetadataKVJson, err := json.Marshal(typedMetadataKV)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		volumeOpts.MetadataKV = string(typedMetadataKVJson)
 	}
 
-	vols, err := volumes.ListAll(client, volumeOpts)
+	vols, _, err := clientV2.Volumes.List(ctx, volumeOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var volume volumes.Volume
+	var volume edgecloudV2.Volume
 	for _, v := range vols {
 		if v.Name == name {
 			volume = v
