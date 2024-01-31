@@ -10,7 +10,6 @@ terraform {
 }
 
 provider "edgecenter" {
-  permanent_api_token = "12687$f95c4e7d9547e381deb7b6d499c63d045b3aeb94292c3a9e07685f7c78907d417d07f40bac848bb8b219c220e449d81fa43aee452e8254a99c2fd6b6f1808186"
 }
 
 //
@@ -18,7 +17,7 @@ provider "edgecenter" {
 //
 variable "example_domain0" {
   type    = string
-  default = "tftestzone3.com"
+  default = "tftestzone4.com"
 }
 
 resource "edgecenter_dns_zone" "examplezone0" {
@@ -36,13 +35,13 @@ resource "edgecenter_dns_zone_record" "example_rrset0" {
     type   = "is_healthy"
   }
 
+  filter {
+      type = "first_n"
+      limit = 1
+      strict = false
+  }
+
   meta {
-    failover {
-        frequency = 10
-        port = 443
-        protocol = "ICMP"
-        timeout = 10
-    }
   }
 
   resource_record {

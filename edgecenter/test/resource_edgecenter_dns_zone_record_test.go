@@ -37,6 +37,20 @@ resource "%s" "%s" {
     strict = true
   }
 
+  filter {
+    limit = 1
+    type   = "is_healthy"
+  }
+
+  meta {
+    failover {
+        frequency = 10
+        port = 443
+        protocol = "ICMP"
+        timeout = 10
+    }
+  }
+
   resource_record {
     content  = "1234"
     enabled = true

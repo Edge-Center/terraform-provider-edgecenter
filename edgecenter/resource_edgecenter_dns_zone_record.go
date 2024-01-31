@@ -622,7 +622,7 @@ func fillRRSet(d *schema.ResourceData, rType string, rrSet *dnssdk.RRSet) error 
 
 func listToFailoverMeta(m []interface{}) dnssdk.Meta {
 	var meta dnssdk.Meta
-	if len(m) == 0 {
+	if len(m) == 0 || m[0] == nil {
 		return meta
 	}
 	fields := m[0].(map[string]interface{})
