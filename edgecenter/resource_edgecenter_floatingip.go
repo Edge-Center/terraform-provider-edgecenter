@@ -2,21 +2,18 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
@@ -160,50 +157,42 @@ func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m int
 	log.Println("[DEBUG] Start FloatingIP creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	opts := floatingips.CreateOpts{
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	opts := &edgecloudV2.FloatingIPCreateRequest{
 		PortID:         d.Get("port_id").(string),
 		FixedIPAddress: net.ParseIP(d.Get("fixed_ip_address").(string)),
 	}
 
 	if metadataRaw, ok := d.GetOk("metadata_map"); ok {
-		meta, err := utils.MapInterfaceToMapString(metadataRaw)
+		meta, err := MapInterfaceToMapString(metadataRaw)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		opts.Metadata = meta
+		opts.Metadata = *meta
 	}
 
-	results, err := floatingips.Create(client, opts).Extract()
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Floatingips.Create, opts, clientV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-	floatingIPID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, FloatingIPCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		floatingIPID, err := floatingips.ExtractFloatingIPIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve FloatingIP ID from task info: %w", err)
-		}
-		return floatingIPID, nil
-	})
+	floatingIPID := taskResult.FloatingIPs[0]
 
 	log.Printf("[DEBUG] FloatingIP id (%s)", floatingIPID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(floatingIPID.(string))
+	d.SetId(floatingIPID)
 	resourceFloatingIPRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish FloatingIP creating (%s)", floatingIPID)
@@ -211,21 +200,23 @@ func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m int
 	return diags
 }
 
-func resourceFloatingIPRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	floatingIP, err := floatingips.Get(client, d.Id()).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	floatingIP, response, err := clientV2.Floatingips.Get(ctx, d.Id())
 	if err != nil {
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
+		if response.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] Removing floating ip %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil
@@ -244,7 +235,7 @@ func resourceFloatingIPRead(_ context.Context, d *schema.ResourceData, m interfa
 	d.Set("status", floatingIP.Status)
 	d.Set("port_id", floatingIP.PortID)
 	d.Set("router_id", floatingIP.RouterID)
-	d.Set("floating_ip_address", floatingIP.FloatingIPAddress.String())
+	d.Set("floating_ip_address", floatingIP.FloatingIPAddress)
 
 	metadataMap, metadataReadOnly := PrepareMetadata(floatingIP.Metadata)
 
@@ -264,30 +255,33 @@ func resourceFloatingIPRead(_ context.Context, d *schema.ResourceData, m interfa
 func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP updating")
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
 	if d.HasChanges("fixed_ip_address", "port_id") {
 		oldFixedIP, newFixedIP := d.GetChange("fixed_ip_address")
 		oldPortID, newPortID := d.GetChange("port_id")
 		if oldPortID.(string) != "" || oldFixedIP.(string) != "" {
-			_, err := floatingips.UnAssign(client, d.Id()).Extract()
+			_, _, err := clientV2.Floatingips.UnAssign(ctx, d.Id())
 			if err != nil {
 				return diag.FromErr(err)
 			}
 		}
 
 		if newPortID.(string) != "" || newFixedIP.(string) != "" {
-			opts := floatingips.CreateOpts{
+			opts := &edgecloudV2.AssignFloatingIPRequest{
 				PortID:         d.Get("port_id").(string),
 				FixedIPAddress: net.ParseIP(d.Get("fixed_ip_address").(string)),
 			}
 
-			_, err = floatingips.Assign(client, d.Id(), opts).Extract()
+			_, _, err = clientV2.Floatingips.Assign(ctx, d.Id(), opts)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -299,12 +293,13 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 	if d.HasChange("metadata_map") {
 		_, nmd := d.GetChange("metadata_map")
 
-		meta, err := utils.MapInterfaceToMapString(nmd.(map[string]interface{}))
+		meta, err := MapInterfaceToMapString(nmd.(map[string]interface{}))
 		if err != nil {
 			return diag.Errorf("cannot get metadata. Error: %s", err)
 		}
 
-		err = metadata.ResourceMetadataReplace(client, d.Id(), meta).Err
+		metaChanged := edgecloudV2.Metadata(*meta)
+		_, err = clientV2.Floatingips.MetadataUpdate(ctx, d.Id(), &metaChanged)
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
@@ -313,37 +308,35 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 	return resourceFloatingIPRead(ctx, d, m)
 }
 
-func resourceFloatingIPDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	id := d.Id()
-	results, err := floatingips.Delete(client, id).Extract()
+
+	results, _, err := clientV2.Floatingips.Delete(ctx, id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, FloatingIPCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		_, err := floatingips.Get(client, id).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete floating ip with ID: %s", id)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting FloatingIP resource error: %w", err)
-	})
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if task.State == edgecloudV2.TaskStateError {
+		return diag.Errorf("cannot delete floating ip with ID: %s", id)
 	}
 
 	d.SetId("")
