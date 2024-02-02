@@ -2,8 +2,6 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -11,10 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
@@ -95,10 +91,9 @@ func resourceLbListener() *schema.Resource {
 				Description: "Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS' and 'Terminated HTTPS'.",
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
-					switch types.ProtocolType(v) {
-					case types.ProtocolTypeTCP, types.ProtocolTypeUDP, types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTerminatedHTTPS:
+					switch edgecloudV2.LoadbalancerListenerProtocol(v) {
+					case edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolTerminatedHTTPS:
 						return diag.Diagnostics{}
-					case types.ProtocolTypePROXY:
 					}
 					return diag.Errorf("wrong protocol %s, available values are 'TCP', 'UDP', 'HTTP', 'HTTPS' and 'Terminated HTTPS'.", v)
 				},
@@ -161,42 +156,45 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 	log.Println("[DEBUG] Start LBListener creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	opts := listeners.CreateOpts{
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	opts := edgecloudV2.ListenerCreateRequest{
 		Name:             d.Get("name").(string),
-		Protocol:         types.ProtocolType(d.Get("protocol").(string)),
+		Protocol:         edgecloudV2.LoadbalancerListenerProtocol(d.Get("protocol").(string)),
 		ProtocolPort:     d.Get("protocol_port").(int),
-		LoadBalancerID:   d.Get("loadbalancer_id").(string),
+		LoadbalancerID:   d.Get("loadbalancer_id").(string),
 		InsertXForwarded: d.Get("insert_x_forwarded").(bool),
 	}
 	secretID := d.Get("secret_id").(string)
 	sniSecretIDRaw := d.Get("sni_secret_id").([]interface{})
 
-	switch opts.Protocol { //nolint: exhaustive
-	case types.ProtocolTypeTCP, types.ProtocolTypeUDP, types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS:
+	switch opts.Protocol {
+	case edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS:
 		if secretID != "" {
-			return diag.Errorf("secret_id parameter can only be used with %s listener protocol type", types.ProtocolTypeTerminatedHTTPS)
+			return diag.Errorf("secret_id parameter can only be used with %s listener protocol type", edgecloudV2.ListenerProtocolTerminatedHTTPS)
 		}
 
 		if len(sniSecretIDRaw) > 0 {
-			return diag.Errorf("sni_secret_id parameter can only be used with %s listener protocol type", types.ProtocolTypeTerminatedHTTPS)
+			return diag.Errorf("sni_secret_id parameter can only be used with %s listener protocol type", edgecloudV2.ListenerProtocolTerminatedHTTPS)
 		}
 
-		if opts.InsertXForwarded && (opts.Protocol == types.ProtocolTypeTCP || opts.Protocol == types.ProtocolTypeUDP || opts.Protocol == types.ProtocolTypeHTTPS) {
+		if opts.InsertXForwarded && (opts.Protocol == edgecloudV2.ListenerProtocolTCP || opts.Protocol == edgecloudV2.ListenerProtocolUDP || opts.Protocol == edgecloudV2.ListenerProtocolHTTPS) {
 			return diag.Errorf(
 				"X-Forwarded headers can only be used with %s or %s listener protocol type",
-				types.ProtocolTypeHTTP, types.ProtocolTypeTerminatedHTTPS,
+				edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolTerminatedHTTPS,
 			)
 		}
-	case types.ProtocolTypeTerminatedHTTPS:
+	case edgecloudV2.ListenerProtocolTerminatedHTTPS:
 		if secretID == "" {
-			return diag.Errorf("secret_id parameter is required with %s listener protocol type", types.ProtocolTypeTerminatedHTTPS)
+			return diag.Errorf("secret_id parameter is required with %s listener protocol type", edgecloudV2.ListenerProtocolTerminatedHTTPS)
 		}
 		opts.SecretID = secretID
 		if len(sniSecretIDRaw) > 0 {
@@ -217,28 +215,14 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 		}
 	}
 
-	results, err := listeners.Create(client, opts).Extract()
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.ListenerCreate, &opts, clientV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-	listenerID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, LBListenerCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		listenerID, err := listeners.ExtractListenerIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve LBListener ID from task info: %w", err)
-		}
-		return listenerID, nil
-	})
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	listenerID := taskResult.Listeners[0]
 
-	d.SetId(listenerID.(string))
+	d.SetId(listenerID)
 	resourceLBListenerRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LBListener creating (%s)", listenerID)
@@ -246,27 +230,31 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 	return diags
 }
 
-func resourceLBListenerRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	lb, err := listeners.Get(client, d.Id()).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	lb, _, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	d.Set("name", lb.Name)
-	d.Set("protocol", lb.Protocol.String())
+	d.Set("protocol", lb.Protocol)
 	d.Set("protocol_port", lb.ProtocolPort)
 	d.Set("pool_count", lb.PoolCount)
-	d.Set("operating_status", lb.OperationStatus.String())
-	d.Set("provisioning_status", lb.ProvisioningStatus.String())
+	d.Set("operating_status", lb.OperatingStatus)
+	d.Set("provisioning_status", lb.ProvisioningStatus)
 	d.Set("secret_id", lb.SecretID)
 	d.Set("sni_secret_id", lb.SNISecretID)
 	d.Set("allowed_cidrs", lb.AllowedCIDRs)
@@ -282,15 +270,18 @@ func resourceLBListenerRead(_ context.Context, d *schema.ResourceData, m interfa
 func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener updating")
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV2)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	var changed bool
-	opts := listeners.UpdateOpts{
+	opts := edgecloudV2.ListenerUpdateRequest{
 		Name: d.Get("name").(string),
 	}
 
@@ -299,16 +290,16 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if d.HasChange("secret_id") {
-		if types.ProtocolType(d.Get("protocol").(string)) != types.ProtocolTypeTerminatedHTTPS {
-			return diag.Errorf("secret_id parameter can only be used with %s listener protocol type", types.ProtocolTypeTerminatedHTTPS)
+		if edgecloudV2.LoadbalancerListenerProtocol(d.Get("protocol").(string)) != edgecloudV2.ListenerProtocolTerminatedHTTPS {
+			return diag.Errorf("secret_id parameter can only be used with %s listener protocol type", edgecloudV2.ListenerProtocolTerminatedHTTPS)
 		}
 		opts.SecretID = d.Get("secret_id").(string)
 		changed = true
 	}
 
 	if d.HasChange("sni_secret_id") {
-		if types.ProtocolType(d.Get("protocol").(string)) != types.ProtocolTypeTerminatedHTTPS {
-			return diag.Errorf("sni_secret_id parameter can only be used with %s listener protocol type", types.ProtocolTypeTerminatedHTTPS)
+		if edgecloudV2.LoadbalancerListenerProtocol(d.Get("protocol").(string)) != edgecloudV2.ListenerProtocolTerminatedHTTPS {
+			return diag.Errorf("sni_secret_id parameter can only be used with %s listener protocol type", edgecloudV2.ListenerProtocolTerminatedHTTPS)
 		}
 		sniSecretIDRaw := d.Get("sni_secret_id").([]interface{})
 		sniSecretID := make([]string, len(sniSecretIDRaw))
@@ -330,7 +321,14 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if changed {
-		_, err = listeners.Update(client, d.Id(), opts).Extract()
+		task, _, err := clientV2.Loadbalancers.ListenerUpdate(ctx, d.Id(), &opts)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		taskID := task.Tasks[0]
+
+		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -343,37 +341,34 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 	return resourceLBListenerRead(ctx, d, m)
 }
 
-func resourceLBListenerDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	id := d.Id()
-	results, err := listeners.Delete(client, id).Extract()
+	results, _, err := clientV2.Loadbalancers.ListenerDelete(ctx, id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, LBListenerCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		_, err := listeners.Get(client, id).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete LBListener with ID: %s", id)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting Listener resource error: %w", err)
-	})
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if task.State == edgecloudV2.TaskStateError {
+		return diag.Errorf("cannot delete LBListener with ID: %s", id)
 	}
 
 	d.SetId("")
