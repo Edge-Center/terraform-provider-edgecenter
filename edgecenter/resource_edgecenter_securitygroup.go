@@ -2,8 +2,10 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -12,15 +14,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygrouprules"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/types"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
-	SecurityGroupPoint      = "securitygroups"
-	securityGroupRulesPoint = "securitygrouprules"
+	SecurityGroupPoint = "securitygroups"
 )
+
+var ErrCannotDeleteSGRule = errors.New("error when deleting security group rule")
 
 func resourceSecurityGroup() *schema.Resource {
 	return &schema.Resource{
@@ -47,24 +48,28 @@ func resourceSecurityGroup() *schema.Resource {
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
@@ -81,6 +86,7 @@ func resourceSecurityGroup() *schema.Resource {
 			"metadata_map": {
 				Type:        schema.TypeMap,
 				Optional:    true,
+				Computed:    true,
 				Description: "A map containing metadata, for example tags.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -121,33 +127,33 @@ func resourceSecurityGroup() *schema.Resource {
 						"direction": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: fmt.Sprintf("Available value is '%s', '%s'", types.RuleDirectionIngress, types.RuleDirectionEgress),
+							Description: fmt.Sprintf("Available value is '%s', '%s'", edgecloudV2.SGRuleDirectionIngress, edgecloudV2.SGRuleDirectionEgress),
 							ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
 								val := v.(string)
-								switch types.RuleDirection(val) {
-								case types.RuleDirectionIngress, types.RuleDirectionEgress:
+								switch edgecloudV2.SecurityGroupRuleDirection(val) {
+								case edgecloudV2.SGRuleDirectionIngress, edgecloudV2.SGRuleDirectionEgress:
 									return nil
 								}
-								return diag.Errorf("wrong direction '%s', available value is '%s', '%s'", val, types.RuleDirectionIngress, types.RuleDirectionEgress)
+								return diag.Errorf("wrong direction '%s', available value is '%s', '%s'", val, edgecloudV2.SGRuleDirectionIngress, edgecloudV2.SGRuleDirectionEgress)
 							},
 						},
 						"ethertype": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: fmt.Sprintf("Available value is '%s', '%s'", types.EtherTypeIPv4, types.EtherTypeIPv6),
+							Description: fmt.Sprintf("Available value is '%s', '%s'", edgecloudV2.EtherTypeIPv4, edgecloudV2.EtherTypeIPv6),
 							ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
 								val := v.(string)
-								switch types.EtherType(val) {
-								case types.EtherTypeIPv4, types.EtherTypeIPv6:
+								switch edgecloudV2.EtherType(val) {
+								case edgecloudV2.EtherTypeIPv4, edgecloudV2.EtherTypeIPv6:
 									return nil
 								}
-								return diag.Errorf("wrong ethertype '%s', available value is '%s', '%s'", val, types.EtherTypeIPv4, types.EtherTypeIPv6)
+								return diag.Errorf("wrong ethertype '%s', available value is '%s', '%s'", val, edgecloudV2.EtherTypeIPv4, edgecloudV2.EtherTypeIPv6)
 							},
 						},
 						"protocol": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: fmt.Sprintf("Available value is %s", strings.Join(types.Protocol("").StringList(), ",")),
+							Description: fmt.Sprintf("Available value is %s", strings.Join(edgecloudV2.SecurityGroupRuleProtocol("").StringList(), ",")),
 						},
 						"port_range_min": {
 							Type:         schema.TypeInt,
@@ -199,7 +205,7 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	vals := d.Get("security_group_rules").(*schema.Set).List()
 	for _, val := range vals {
 		rule := val.(map[string]interface{})
-		if types.RuleDirection(rule["direction"].(string)) == types.RuleDirectionEgress {
+		if edgecloudV2.SecurityGroupRuleDirection(rule["direction"].(string)) == edgecloudV2.SGRuleDirectionEgress {
 			valid = true
 			break
 		}
@@ -210,25 +216,31 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
 
-	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	d.Set("region_id", regionID)
+	d.Set("project_id", projectID)
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
 	rawRules := d.Get("security_group_rules").(*schema.Set).List()
-	rules := make([]securitygroups.CreateSecurityGroupRuleOpts, len(rawRules))
+	rules := make([]edgecloudV2.RuleCreateRequest, len(rawRules))
 	for i, r := range rawRules {
 		rule := r.(map[string]interface{})
 
 		descr := rule["description"].(string)
 		remoteIPPrefix := rule["remote_ip_prefix"].(string)
 
-		sgrOpts := securitygroups.CreateSecurityGroupRuleOpts{
-			Direction:   types.RuleDirection(rule["direction"].(string)),
-			EtherType:   types.EtherType(rule["ethertype"].(string)),
-			Protocol:    types.Protocol(rule["protocol"].(string)),
+		sgrOpts := edgecloudV2.RuleCreateRequest{
+			Direction:   edgecloudV2.SecurityGroupRuleDirection(rule["direction"].(string)),
+			EtherType:   edgecloudV2.EtherType(rule["ethertype"].(string)),
+			Protocol:    edgecloudV2.SecurityGroupRuleProtocol(rule["protocol"].(string)),
 			Description: &descr,
 		}
 
@@ -249,15 +261,15 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 		rules[i] = sgrOpts
 	}
 
-	createSecurityGroupOpts := &securitygroups.CreateSecurityGroupOpts{}
+	createSecurityGroupOpts := &edgecloudV2.SecurityGroupCreateRequestInner{}
 	createSecurityGroupOpts.Name = d.Get("name").(string)
 	createSecurityGroupOpts.SecurityGroupRules = rules
 
 	if metadataRaw, ok := d.GetOk("metadata_map"); ok {
-		createSecurityGroupOpts.Metadata = metadataRaw.(map[string]interface{})
+		createSecurityGroupOpts.Metadata = metadataRaw.(edgecloudV2.Metadata)
 	}
 
-	opts := securitygroups.CreateOpts{
+	opts := edgecloudV2.SecurityGroupCreateRequest{
 		SecurityGroup: *createSecurityGroupOpts,
 	}
 	descr := d.Get("description").(string)
@@ -265,7 +277,7 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 		opts.SecurityGroup.Description = &descr
 	}
 
-	sg, err := securitygroups.Create(client, opts).Extract()
+	sg, _, err := clientV2.SecurityGroups.Create(ctx, &opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -278,24 +290,27 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	return diags
 }
 
-func resourceSecurityGroupRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start SecurityGroup reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	sg, err := securitygroups.Get(client, d.Id()).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	sg, _, err := clientV2.SecurityGroups.Get(ctx, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.Set("project_id", sg.ProjectID)
 	d.Set("region_id", sg.RegionID)
+	d.Set("project_id", sg.ProjectID)
 	d.Set("name", sg.Name)
 	d.Set("description", sg.Description)
 
@@ -331,7 +346,7 @@ func resourceSecurityGroupRead(_ context.Context, d *schema.ResourceData, m inte
 			r["ethertype"] = sgr.EtherType.String()
 		}
 
-		r["protocol"] = types.ProtocolAny
+		r["protocol"] = edgecloudV2.SGRuleProtocolANY
 		if sgr.Protocol != nil {
 			r["protocol"] = sgr.Protocol.String()
 		}
@@ -355,8 +370,8 @@ func resourceSecurityGroupRead(_ context.Context, d *schema.ResourceData, m inte
 			r["remote_ip_prefix"] = *sgr.RemoteIPPrefix
 		}
 
-		r["updated_at"] = sgr.UpdatedAt.String()
-		r["created_at"] = sgr.CreatedAt.String()
+		r["updated_at"] = sgr.UpdatedAt
+		r["created_at"] = sgr.CreatedAt
 
 		newSgRules[i] = r
 	}
@@ -376,7 +391,7 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 	vals := d.Get("security_group_rules").(*schema.Set).List()
 	for _, val := range vals {
 		rule := val.(map[string]interface{})
-		if types.RuleDirection(rule["direction"].(string)) == types.RuleDirectionEgress {
+		if edgecloudV2.SecurityGroupRuleDirection(rule["direction"].(string)) == edgecloudV2.SGRuleDirectionEgress {
 			valid = true
 			break
 		}
@@ -386,16 +401,15 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	config := m.(*Config)
-	provider := config.Provider
-	clientCreate, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientUpdateDelete, err := CreateClient(provider, d, securityGroupRulesPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
 	gid := d.Id()
 
@@ -409,8 +423,8 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 			rule := r.(map[string]interface{})
 			rid := rule["id"].(string)
 			if !oldRules.Contains(r) && rid == "" {
-				opts := extractSecurityGroupRuleMap(r, gid)
-				_, err := securitygroups.AddRule(clientCreate, gid, opts).Extract()
+				opts := extractSecurityGroupRuleCreateRequestV2(r, gid)
+				_, _, err = clientV2.SecurityGroups.RuleCreate(ctx, gid, &opts)
 				if err != nil {
 					return diag.FromErr(err)
 				}
@@ -419,8 +433,8 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 			}
 			if rid != "" && !oldRules.Contains(r) {
 				changedRule[rid] = true
-				opts := extractSecurityGroupRuleMap(r, gid)
-				_, err := securitygrouprules.Replace(clientUpdateDelete, rid, opts).Extract()
+				opts := extractSecurityGroupRuleUpdateRequestV2(r, gid)
+				_, _, err = clientV2.SecurityGroups.RuleUpdate(ctx, gid, &opts)
 				if err != nil {
 					return diag.FromErr(err)
 				}
@@ -431,14 +445,13 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 			rule := r.(map[string]interface{})
 			rid := rule["id"].(string)
 			if !newRules.Contains(r) && !changedRule[rid] {
-				// todo patch lib, should be task instead of DeleteResult
-				err := securitygrouprules.Delete(clientUpdateDelete, rid).ExtractErr()
+				_, resp, err := clientV2.SecurityGroups.RuleDelete(ctx, rid)
 				if err != nil {
 					return diag.FromErr(err)
 				}
-				// todo remove after patch lib
-				time.Sleep(time.Second * 2)
-				continue
+				if resp.StatusCode != http.StatusNoContent {
+					return diag.FromErr(fmt.Errorf("sgRuleId: %s, error: %w", rid, ErrCannotDeleteSGRule))
+				}
 			}
 		}
 	}
@@ -446,7 +459,13 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 	if d.HasChange("metadata_map") {
 		_, nmd := d.GetChange("metadata_map")
 
-		err := securitygroups.MetadataReplace(clientCreate, gid, nmd.(map[string]interface{})).Err
+		nmdMapString, err := MapInterfaceToMapString(nmd)
+		if err != nil {
+			return diag.Errorf("cannot update metadata. Error: %s", err)
+		}
+		metaData := edgecloudV2.Metadata(*nmdMapString)
+
+		_, err = clientV2.SecurityGroups.MetadataUpdate(ctx, gid, &metaData)
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
@@ -458,19 +477,23 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 	return resourceSecurityGroupRead(ctx, d, m)
 }
 
-func resourceSecurityGroupDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSecurityGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start SecurityGroup deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
 	sgID := d.Id()
 
-	client, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	err = securitygroups.Delete(client, sgID).Err
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	_, err = clientV2.SecurityGroups.Delete(ctx, sgID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
