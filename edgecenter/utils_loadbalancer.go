@@ -8,9 +8,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
-	typesLb "github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 // ImportStringParserExtended parses a string containing project ID, region ID, and two other fields,
@@ -37,14 +36,14 @@ func ImportStringParserExtended(infoStr string) (projectID int, regionID int, id
 	return
 }
 
-// extractSessionPersistenceMap creates a session persistence options struct from the data in the given ResourceData.
-func extractSessionPersistenceMap(d *schema.ResourceData) *lbpools.CreateSessionPersistenceOpts {
-	var sessionOpts *lbpools.CreateSessionPersistenceOpts
+// extractSessionPersistenceMapV2 creates a session persistence options struct from the data in the given ResourceData.
+func extractSessionPersistenceMapV2(d *schema.ResourceData) *edgecloudV2.LoadbalancerSessionPersistence {
+	var sessionOpts *edgecloudV2.LoadbalancerSessionPersistence
 	sessionPersistence := d.Get("session_persistence").([]interface{})
 	if len(sessionPersistence) > 0 {
 		sm := sessionPersistence[0].(map[string]interface{})
-		sessionOpts = &lbpools.CreateSessionPersistenceOpts{
-			Type: typesLb.PersistenceType(sm["type"].(string)),
+		sessionOpts = &edgecloudV2.LoadbalancerSessionPersistence{
+			Type: edgecloudV2.SessionPersistence(sm["type"].(string)),
 		}
 
 		granularity, ok := sm["persistence_granularity"].(string)
@@ -66,14 +65,14 @@ func extractSessionPersistenceMap(d *schema.ResourceData) *lbpools.CreateSession
 	return sessionOpts
 }
 
-// extractHealthMonitorMap creates a health monitor options struct from the data in the given ResourceData.
-func extractHealthMonitorMap(d *schema.ResourceData) *lbpools.CreateHealthMonitorOpts {
-	var healthOpts *lbpools.CreateHealthMonitorOpts
+// extractHealthMonitorMapV2 creates a health monitor options struct from the data in the given ResourceData.
+func extractHealthMonitorMapV2(d *schema.ResourceData) *edgecloudV2.HealthMonitorCreateRequest {
+	var healthOpts *edgecloudV2.HealthMonitorCreateRequest
 	monitors := d.Get("health_monitor").([]interface{})
 	if len(monitors) > 0 {
 		hm := monitors[0].(map[string]interface{})
-		healthOpts = &lbpools.CreateHealthMonitorOpts{
-			Type:       typesLb.HealthMonitorType(hm["type"].(string)),
+		healthOpts = &edgecloudV2.HealthMonitorCreateRequest{
+			Type:       edgecloudV2.HealthMonitorType(hm["type"].(string)),
 			Delay:      hm["delay"].(int),
 			MaxRetries: hm["max_retries"].(int),
 			Timeout:    hm["timeout"].(int),
@@ -86,7 +85,8 @@ func extractHealthMonitorMap(d *schema.ResourceData) *lbpools.CreateHealthMonito
 
 		httpMethod := hm["http_method"].(string)
 		if httpMethod != "" {
-			healthOpts.HTTPMethod = typesLb.HTTPMethodPointer(typesLb.HTTPMethod(httpMethod))
+			hm := edgecloudV2.HTTPMethod(httpMethod)
+			healthOpts.HTTPMethod = &hm
 		}
 
 		urlPath := hm["url_path"].(string)

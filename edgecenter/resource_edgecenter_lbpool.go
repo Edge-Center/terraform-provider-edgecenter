@@ -2,19 +2,17 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
@@ -84,28 +82,28 @@ func resourceLBPool() *schema.Resource {
 			"lb_algorithm": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s'", types.LoadBalancerAlgorithmRoundRobin, types.LoadBalancerAlgorithmLeastConnections, types.LoadBalancerAlgorithmSourceIP, types.LoadBalancerAlgorithmSourceIPPort),
+				Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s'", edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP, edgecloudV2.LoadbalancerAlgorithmSourceIPPort),
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
-					switch types.LoadBalancerAlgorithm(v) {
-					case types.LoadBalancerAlgorithmRoundRobin, types.LoadBalancerAlgorithmLeastConnections, types.LoadBalancerAlgorithmSourceIP, types.LoadBalancerAlgorithmSourceIPPort:
+					switch edgecloudV2.LoadbalancerAlgorithm(v) {
+					case edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP, edgecloudV2.LoadbalancerAlgorithmSourceIPPort:
 						return diag.Diagnostics{}
 					}
-					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, types.LoadBalancerAlgorithmRoundRobin, types.LoadBalancerAlgorithmLeastConnections, types.LoadBalancerAlgorithmSourceIP, types.LoadBalancerAlgorithmSourceIPPort)
+					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIPPort, edgecloudV2.LoadbalancerAlgorithmSourceIPPort)
 				},
 			},
 			"protocol": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP),
+				Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP),
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
-					switch types.ProtocolType(v) {
-					case types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP:
+					switch edgecloudV2.LoadbalancerPoolProtocol(v) {
+					case edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP:
 						return diag.Diagnostics{}
-					case types.ProtocolTypeTerminatedHTTPS, types.ProtocolTypePROXY:
+					case edgecloudV2.LBPoolProtocolTerminatedHTTPS, edgecloudV2.LBPoolProtocolProxy:
 					}
-					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP)
+					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP)
 				},
 			},
 			"loadbalancer_id": {
@@ -135,14 +133,14 @@ It determines how the load balancer identifies whether the backend members are h
 						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s', '%s', '%s", types.HealthMonitorTypeHTTP, types.HealthMonitorTypeHTTPS, types.HealthMonitorTypePING, types.HealthMonitorTypeTCP, types.HealthMonitorTypeTLSHello, types.HealthMonitorTypeUDPConnect),
+							Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s', '%s', '%s", edgecloudV2.HealthMonitorTypeHTTP, edgecloudV2.HealthMonitorTypeHTTPS, edgecloudV2.HealthMonitorTypePING, edgecloudV2.HealthMonitorTypeTCP, edgecloudV2.HealthMonitorTypeTLSHello, edgecloudV2.HealthMonitorTypeUDPConnect),
 							ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 								v := val.(string)
-								switch types.HealthMonitorType(v) {
-								case types.HealthMonitorTypeHTTP, types.HealthMonitorTypeHTTPS, types.HealthMonitorTypePING, types.HealthMonitorTypeTCP, types.HealthMonitorTypeTLSHello, types.HealthMonitorTypeUDPConnect:
+								switch edgecloudV2.HealthMonitorType(v) {
+								case edgecloudV2.HealthMonitorTypeHTTP, edgecloudV2.HealthMonitorTypeHTTPS, edgecloudV2.HealthMonitorTypePING, edgecloudV2.HealthMonitorTypeTCP, edgecloudV2.HealthMonitorTypeTLSHello, edgecloudV2.HealthMonitorTypeUDPConnect:
 									return diag.Diagnostics{}
 								}
-								return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s', '%s', '%s", v, types.HealthMonitorTypeHTTP, types.HealthMonitorTypeHTTPS, types.HealthMonitorTypePING, types.HealthMonitorTypeTCP, types.HealthMonitorTypeTLSHello, types.HealthMonitorTypeUDPConnect)
+								return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s', '%s', '%s", v, edgecloudV2.HealthMonitorTypeHTTP, edgecloudV2.HealthMonitorTypeHTTPS, edgecloudV2.HealthMonitorTypePING, edgecloudV2.HealthMonitorTypeTCP, edgecloudV2.HealthMonitorTypeTLSHello, edgecloudV2.HealthMonitorTypeUDPConnect)
 							},
 						},
 						"delay": {
@@ -225,47 +223,36 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Println("[DEBUG] Start LBPool creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	healthOpts := extractHealthMonitorMap(d)
-	sessionOpts := extractSessionPersistenceMap(d)
-	opts := lbpools.CreateOpts{
-		Name:               d.Get("name").(string),
-		Protocol:           types.ProtocolType(d.Get("protocol").(string)),
-		LBPoolAlgorithm:    types.LoadBalancerAlgorithm(d.Get("lb_algorithm").(string)),
-		LoadBalancerID:     d.Get("loadbalancer_id").(string),
-		ListenerID:         d.Get("listener_id").(string),
-		HealthMonitor:      healthOpts,
-		SessionPersistence: sessionOpts,
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	healthOpts := extractHealthMonitorMapV2(d)
+	sessionOpts := extractSessionPersistenceMapV2(d)
+	opts := edgecloudV2.LoadbalancerPoolCreateRequest{
+		Name:                  d.Get("name").(string),
+		Protocol:              edgecloudV2.LoadbalancerPoolProtocol(d.Get("protocol").(string)),
+		LoadbalancerAlgorithm: edgecloudV2.LoadbalancerAlgorithm(d.Get("lb_algorithm").(string)),
+		LoadbalancerID:        d.Get("loadbalancer_id").(string),
+		ListenerID:            d.Get("listener_id").(string),
+		HealthMonitor:         healthOpts,
+		SessionPersistence:    sessionOpts,
 	}
 
-	results, err := lbpools.Create(client, opts).Extract()
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.PoolCreate, &edgecloudV2.PoolCreateRequest{LoadbalancerPoolCreateRequest: opts}, clientV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-	lbPoolID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, LBPoolsCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		lbPoolID, err := lbpools.ExtractPoolIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve LBPool ID from task info: %w", err)
-		}
-		return lbPoolID, nil
-	})
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	lbPoolID := taskResult.Pools[0]
 
-	d.SetId(lbPoolID.(string))
+	d.SetId(lbPoolID)
 	resourceLBPoolRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LBPool creating (%s)", lbPoolID)
@@ -273,27 +260,31 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func resourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBPool reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	lb, err := lbpools.Get(client, d.Id()).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	lb, _, err := clientV2.Loadbalancers.PoolGet(ctx, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	d.Set("name", lb.Name)
-	d.Set("lb_algorithm", lb.LoadBalancerAlgorithm.String())
-	d.Set("protocol", lb.Protocol.String())
+	d.Set("lb_algorithm", lb.LoadbalancerAlgorithm)
+	d.Set("protocol", lb.Protocol)
 
-	if len(lb.LoadBalancers) > 0 {
-		d.Set("loadbalancer_id", lb.LoadBalancers[0].ID)
+	if len(lb.Loadbalancers) > 0 {
+		d.Set("loadbalancer_id", lb.Loadbalancers[0].ID)
 	}
 
 	if len(lb.Listeners) > 0 {
@@ -303,7 +294,7 @@ func resourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface{}
 	if lb.HealthMonitor != nil {
 		healthMonitor := map[string]interface{}{
 			"id":               lb.HealthMonitor.ID,
-			"type":             lb.HealthMonitor.Type.String(),
+			"type":             lb.HealthMonitor.Type,
 			"delay":            lb.HealthMonitor.Delay,
 			"timeout":          lb.HealthMonitor.Timeout,
 			"max_retries":      lb.HealthMonitor.MaxRetries,
@@ -312,7 +303,7 @@ func resourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface{}
 			"expected_codes":   lb.HealthMonitor.ExpectedCodes,
 		}
 		if lb.HealthMonitor.HTTPMethod != nil {
-			healthMonitor["http_method"] = lb.HealthMonitor.HTTPMethod.String()
+			healthMonitor["http_method"] = lb.HealthMonitor.HTTPMethod
 		}
 
 		if err := d.Set("health_monitor", []interface{}{healthMonitor}); err != nil {
@@ -322,7 +313,7 @@ func resourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface{}
 
 	if lb.SessionPersistence != nil {
 		sessionPersistence := map[string]interface{}{
-			"type":                    lb.SessionPersistence.Type.String(),
+			"type":                    lb.SessionPersistence.Type,
 			"cookie_name":             lb.SessionPersistence.CookieName,
 			"persistence_granularity": lb.SessionPersistence.PersistenceGranularity,
 			"persistence_timeout":     lb.SessionPersistence.PersistenceTimeout,
@@ -344,28 +335,31 @@ func resourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface{}
 func resourceLBPoolUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBPool updating")
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	var change bool
-	opts := lbpools.UpdateOpts{Name: d.Get("name").(string)}
+	opts := edgecloudV2.PoolUpdateRequest{Name: d.Get("name").(string)}
 
 	if d.HasChange("lb_algorithm") {
-		opts.LBPoolAlgorithm = types.LoadBalancerAlgorithm(d.Get("lb_algorithm").(string))
+		opts.LoadbalancerAlgorithm = edgecloudV2.LoadbalancerAlgorithm(d.Get("lb_algorithm").(string))
 		change = true
 	}
 
 	if d.HasChange("health_monitor") {
-		opts.HealthMonitor = extractHealthMonitorMap(d)
+		opts.HealthMonitor = extractHealthMonitorMapV2(d)
 		change = true
 	}
 
 	if d.HasChange("session_persistence") {
-		opts.SessionPersistence = extractSessionPersistenceMap(d)
+		opts.SessionPersistence = extractSessionPersistenceMapV2(d)
 		change = true
 	}
 
@@ -374,20 +368,14 @@ func resourceLBPoolUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		return resourceLBPoolRead(ctx, d, m)
 	}
 
-	results, err := lbpools.Update(client, d.Id(), opts).Extract()
+	task, _, err := clientV2.Loadbalancers.PoolUpdate(ctx, d.Id(), &opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, LBPoolsCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		_, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		return nil, nil
-	})
+	taskID := task.Tasks[0]
 
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -398,38 +386,34 @@ func resourceLBPoolUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	return resourceLBPoolRead(ctx, d, m)
 }
 
-func resourceLBPoolDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBPool deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	id := d.Id()
-	results, err := lbpools.Delete(client, id).Extract()
+	results, resp, err := clientV2.Loadbalancers.PoolDelete(ctx, id)
 	if err != nil {
-		var errDefault404 edgecloud.Default404Error
-		if !errors.As(err, &errDefault404) {
-			return diag.FromErr(err)
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			log.Printf("[DEBUG] Finish of LBPool deleting")
+			return diags
 		}
+		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, LBPoolsCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		_, err := lbpools.Get(client, id).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete LBPool with ID: %s", id)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting LBPool resource error: %w", err)
-	})
+
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
