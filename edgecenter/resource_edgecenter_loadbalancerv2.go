@@ -2,17 +2,15 @@ package edgecenter
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 func resourceLoadBalancerV2() *schema.Resource {
@@ -20,7 +18,7 @@ func resourceLoadBalancerV2() *schema.Resource {
 		CreateContext: resourceLoadBalancerV2Create,
 		ReadContext:   resourceLoadBalancerV2Read,
 		UpdateContext: resourceLoadBalancerV2Update,
-		DeleteContext: resourceLoadBalancerDelete,
+		DeleteContext: resourceLoadBalancerV2Delete,
 		Description:   "Represent load balancer without nested listener",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
@@ -149,14 +147,17 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 	log.Println("[DEBUG] Start LoadBalancer creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	opts := loadbalancers.CreateOpts{
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	opts := &edgecloudV2.LoadbalancerCreateRequest{
 		Name:         d.Get("name").(string),
 		VipPortID:    d.Get("vip_port_id").(string),
 		VipNetworkID: d.Get("vip_network_id").(string),
@@ -164,40 +165,27 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	if metadataRaw, ok := d.GetOk("metadata_map"); ok {
-		meta, err := utils.MapInterfaceToMapString(metadataRaw)
+		meta, err := MapInterfaceToMapString(metadataRaw)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		opts.Metadata = meta
+		opts.Metadata = *meta
 	}
 
 	lbFlavor := d.Get("flavor").(string)
 	if len(lbFlavor) != 0 {
-		opts.Flavor = &lbFlavor
+		opts.Flavor = lbFlavor
 	}
 
-	results, err := loadbalancers.Create(client, opts).Extract()
+	createLBTimeout := 5 * time.Minute
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.Create, opts, clientV2, createLBTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-	lbID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, LoadBalancerCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		lbID, err := loadbalancers.ExtractLoadBalancerIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve LoadBalancer ID from task info: %w", err)
-		}
-		return lbID, nil
-	})
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	lbID := taskResult.Loadbalancers[0]
 
-	d.SetId(lbID.(string))
+	d.SetId(lbID)
 
 	resourceLoadBalancerV2Read(ctx, d, m)
 
@@ -206,21 +194,25 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 	return diags
 }
 
-func resourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	lb, err := loadbalancers.Get(client, d.Id()).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	lb, _, err := clientV2.Loadbalancers.Get(ctx, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	d.Set("project_id", lb.ProjectID)
 	d.Set("region_id", lb.RegionID)
 	d.Set("name", lb.Name)
@@ -233,10 +225,11 @@ func resourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m int
 	fields := []string{"vip_network_id", "vip_subnet_id"}
 	revertState(d, &fields)
 
-	metadataList, err := metadata.ResourceMetadataListAll(client, d.Id())
+	metadataList, _, err := clientV2.Loadbalancers.MetadataList(ctx, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	metadataMap, metadataReadOnly := PrepareMetadata(metadataList)
 
 	if err = d.Set("metadata_map", metadataMap); err != nil {
@@ -255,19 +248,21 @@ func resourceLoadBalancerV2Read(_ context.Context, d *schema.ResourceData, m int
 func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer updating")
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	if d.HasChange("name") {
-		opts := loadbalancers.UpdateOpts{
+		opts := &edgecloudV2.Name{
 			Name: d.Get("name").(string),
 		}
-		_, err = loadbalancers.Update(client, d.Id(), opts).Extract()
-		if err != nil {
+		if _, _, err = clientV2.Loadbalancers.Rename(ctx, d.Id(), opts); err != nil {
 			return diag.FromErr(err)
 		}
 
@@ -277,12 +272,13 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 	if d.HasChange("metadata_map") {
 		_, nmd := d.GetChange("metadata_map")
 
-		meta, err := utils.MapInterfaceToMapString(nmd.(map[string]interface{}))
+		meta, err := MapInterfaceToMapString(nmd.(map[string]interface{}))
 		if err != nil {
 			return diag.Errorf("cannot get metadata. Error: %s", err)
 		}
 
-		err = metadata.ResourceMetadataReplace(client, d.Id(), meta).Err
+		metadataLB := edgecloudV2.Metadata(*meta)
+		_, err = clientV2.Loadbalancers.MetadataUpdate(ctx, d.Id(), &metadataLB)
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
@@ -291,4 +287,42 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 	log.Println("[DEBUG] Finish LoadBalancer updating")
 
 	return resourceLoadBalancerV2Read(ctx, d, m)
+}
+
+func resourceLoadBalancerV2Delete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Println("[DEBUG] Start LoadBalancer deleting")
+	var diags diag.Diagnostics
+	config := m.(*Config)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	id := d.Id()
+	results, resp, err := clientV2.Loadbalancers.Delete(ctx, id)
+	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			log.Printf("[DEBUG] Finish of Load Balancer deleting")
+			return diags
+		}
+		return diag.FromErr(err)
+	}
+
+	taskID := results.Tasks[0]
+
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId("")
+	log.Printf("[DEBUG] Finish of LoadBalancer deleting")
+
+	return diags
 }
