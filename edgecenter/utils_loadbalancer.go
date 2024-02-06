@@ -8,13 +8,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 // ImportStringParserExtended parses a string containing project ID, region ID, and two other fields,
 // and returns them as separate values along with any error encountered.
-func ImportStringParserExtended(infoStr string) (projectID int, regionID int, id3 string, id4 string, err error) { //nolint: nonamedreturns
+func ImportStringParserExtended(infoStr string) (projectID int, regionID int, id3 string, id4 string, err error) { // nolint: nonamedreturns
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 4 {
@@ -108,12 +107,12 @@ func extractHealthMonitorMapV2(d *schema.ResourceData) *edgecloudV2.HealthMonito
 	return healthOpts
 }
 
-// extractListenerIntoMap converts a listener object into a map.
-func extractListenerIntoMap(listener *listeners.Listener) map[string]interface{} {
+// extractListenerIntoMapV2 converts a listener object into a map.
+func extractListenerIntoMapV2(listener *edgecloudV2.Listener) map[string]interface{} {
 	l := make(map[string]interface{})
 	l["id"] = listener.ID
 	l["name"] = listener.Name
-	l["protocol"] = listener.Protocol.String()
+	l["protocol"] = listener.Protocol
 	l["protocol_port"] = listener.ProtocolPort
 	l["secret_id"] = listener.SecretID
 	l["sni_secret_id"] = listener.SNISecretID
