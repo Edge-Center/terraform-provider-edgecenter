@@ -2,24 +2,24 @@ package edgecenter
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v1/secrets"
-	secretsV2 "github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v2/secrets"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
-	SecretDeleting        int = 1200
 	SecretCreatingTimeout int = 1200
 	SecretPoint               = "secrets"
+	// RFC3339NoZ is the time format used in Heat (Orchestration).
+	RFC3339NoZ          = "2006-01-02T15:04:05"
+	RFC3339WithTimeZone = "2006-01-02T15:04:05+00:00"
 )
 
 func resourceSecret() *schema.Resource {
@@ -129,12 +129,12 @@ func resourceSecret() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				StateFunc: func(val interface{}) string {
-					expTime, _ := time.Parse(edgecloud.RFC3339NoZ, val.(string))
-					return expTime.Format(edgecloud.RFC3339NoZ)
+					expTime, _ := time.Parse(RFC3339NoZ, val.(string))
+					return expTime.Format(RFC3339NoZ)
 				},
 				ValidateDiagFunc: func(i interface{}, path cty.Path) diag.Diagnostics {
 					rawTime := i.(string)
-					_, err := time.Parse(edgecloud.RFC3339NoZ, rawTime)
+					_, err := time.Parse(RFC3339NoZ, rawTime)
 					if err != nil {
 						return diag.FromErr(err)
 					}
@@ -154,59 +154,38 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Println("[DEBUG] Start Secret creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, SecretPoint, VersionPointV2)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	opts := secretsV2.CreateOpts{
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	opts := &edgecloudV2.SecretCreateRequestV2{
 		Name: d.Get("name").(string),
-		Payload: secretsV2.PayloadOpts{
+		Payload: edgecloudV2.Payload{
 			CertificateChain: d.Get("certificate_chain").(string),
 			Certificate:      d.Get("certificate").(string),
 			PrivateKey:       d.Get("private_key").(string),
 		},
 	}
 	if rawTime := d.Get("expiration").(string); rawTime != "" {
-		expiration, err := time.Parse(edgecloud.RFC3339NoZ, rawTime)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		opts.Expiration = &expiration
+		opts.Expiration = &rawTime
 	}
 
-	results, err := secretsV2.Create(client, opts).Extract()
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Secrets.CreateV2, opts, clientV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
+	secretID := taskResult.Secrets[0]
 
-	clientV1, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	secretID, err := tasks.WaitTaskAndReturnResult(clientV1, taskID, true, SecretCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(clientV1, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		Secret, err := secrets.ExtractSecretIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve Secret ID from task info: %w", err)
-		}
-		return Secret, nil
-	},
-	)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 	log.Printf("[DEBUG] Secret id (%s)", secretID)
 
-	d.SetId(secretID.(string))
+	d.SetId(secretID)
 
 	resourceSecretRead(ctx, d, m)
 
@@ -215,30 +194,37 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func resourceSecretRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start secret reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
+
 	secretID := d.Id()
 	log.Printf("[DEBUG] Secret id = %s", secretID)
 
-	client, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	secret, err := secrets.Get(client, secretID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	secret, _, err := clientV2.Secrets.Get(ctx, secretID)
 	if err != nil {
 		return diag.Errorf("cannot get secret with ID: %s. Error: %s", secretID, err.Error())
 	}
+
+	expTime, _ := time.Parse(RFC3339WithTimeZone, secret.Expiration)
+
 	d.Set("name", secret.Name)
 	d.Set("algorithm", secret.Algorithm)
 	d.Set("bit_length", secret.BitLength)
 	d.Set("mode", secret.Mode)
 	d.Set("status", secret.Status)
-	d.Set("expiration", secret.Expiration.Format(edgecloud.RFC3339NoZ))
-	d.Set("created", secret.CreatedAt.Format(edgecloud.RFC3339MilliNoZ))
+	d.Set("expiration", expTime.Format(RFC3339NoZ))
+	d.Set("created", secret.Created)
 	if err := d.Set("content_types", secret.ContentTypes); err != nil {
 		return diag.FromErr(err)
 	}
@@ -248,32 +234,36 @@ func resourceSecretRead(_ context.Context, d *schema.ResourceData, m interface{}
 	return diags
 }
 
-func resourceSecretDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start secret deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
+
 	secretID := d.Id()
 	log.Printf("[DEBUG] Secret id = %s", secretID)
 
-	client, err := CreateClient(provider, d, SecretPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	results, err := secrets.Delete(client, secretID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	results, resp, err := clientV2.Secrets.Delete(ctx, secretID)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			log.Printf("[DEBUG] Finish of Secret deleting")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
+
 	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, SecretDeleting, func(task tasks.TaskID) (interface{}, error) {
-		_, err := secrets.Get(client, secretID).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete secret with ID: %s", secretID)
-		}
-		return nil, nil
-	})
+
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
