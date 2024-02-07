@@ -2,25 +2,22 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/port/v1/ports"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/reservedfixedip/v1/reservedfixedips"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
 	ReservedFixedIPsPoint        = "reserved_fixed_ips"
-	portsPoint                   = "ports"
 	ReservedFixedIPCreateTimeout = 1200
 )
 
@@ -74,14 +71,14 @@ func resourceReservedFixedIP() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: fmt.Sprintf("The type of reserved fixed IP. Valid values are '%s', '%s', '%s', and '%s'", reservedfixedips.External, reservedfixedips.Subnet, reservedfixedips.AnySubnet, reservedfixedips.IPAddress),
+				Description: fmt.Sprintf("The type of reserved fixed IP. Valid values are '%s', '%s', '%s', and '%s'", edgecloudV2.ReservedFixedIPTypeExternal, edgecloudV2.ReservedFixedIPTypeSubnet, edgecloudV2.ReservedFixedIPTypeAnySubnet, edgecloudV2.ReservedFixedIPTypeIPAddress),
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
-					switch reservedfixedips.ReservedFixedIPType(v) {
-					case reservedfixedips.External, reservedfixedips.Subnet, reservedfixedips.AnySubnet, reservedfixedips.IPAddress:
+					switch edgecloudV2.ReservedFixedIPType(v) {
+					case edgecloudV2.ReservedFixedIPTypeExternal, edgecloudV2.ReservedFixedIPTypeSubnet, edgecloudV2.ReservedFixedIPTypeAnySubnet, edgecloudV2.ReservedFixedIPTypeIPAddress:
 						return diag.Diagnostics{}
 					}
-					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, reservedfixedips.External, reservedfixedips.Subnet, reservedfixedips.AnySubnet, reservedfixedips.IPAddress)
+					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, edgecloudV2.ReservedFixedIPTypeExternal, edgecloudV2.ReservedFixedIPTypeSubnet, edgecloudV2.ReservedFixedIPTypeAnySubnet, edgecloudV2.ReservedFixedIPTypeIPAddress)
 				},
 			},
 			"status": {
@@ -160,34 +157,37 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 	log.Println("[DEBUG] Start ReservedFixedIP creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	opts := reservedfixedips.CreateOpts{
-		IsVip: d.Get("is_vip").(bool),
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	opts := &edgecloudV2.ReservedFixedIPCreateRequest{
+		IsVIP: d.Get("is_vip").(bool),
 	}
 
 	portType := d.Get("type").(string)
-	switch reservedfixedips.ReservedFixedIPType(portType) {
-	case reservedfixedips.External:
-	case reservedfixedips.Subnet:
+	switch edgecloudV2.ReservedFixedIPType(portType) {
+	case edgecloudV2.ReservedFixedIPTypeExternal:
+	case edgecloudV2.ReservedFixedIPTypeSubnet:
 		subnetID := d.Get("subnet_id").(string)
 		if subnetID == "" {
 			return diag.Errorf("'subnet_id' required if the type is 'subnet'")
 		}
 
 		opts.SubnetID = subnetID
-	case reservedfixedips.AnySubnet:
+	case edgecloudV2.ReservedFixedIPTypeAnySubnet:
 		networkID := d.Get("network_id").(string)
 		if networkID == "" {
 			return diag.Errorf("'network_id' required if the type is 'any_subnet'")
 		}
 		opts.NetworkID = networkID
-	case reservedfixedips.IPAddress:
+	case edgecloudV2.ReservedFixedIPTypeIPAddress:
 		networkID := d.Get("network_id").(string)
 		ipAddress := d.Get("fixed_ip_address").(string)
 		if networkID == "" || ipAddress == "" {
@@ -195,36 +195,26 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 		}
 
 		opts.NetworkID = networkID
-		opts.IPAddress = net.ParseIP(ipAddress)
+		opts.IPAddress = ipAddress
 	default:
 		return diag.Errorf("wrong type %s, available values is 'external', 'subnet', 'any_subnet', 'ip_address'", portType)
 	}
 
-	opts.Type = reservedfixedips.ReservedFixedIPType(portType)
-	results, err := reservedfixedips.Create(client, opts).Extract()
+	opts.Type = edgecloudV2.ReservedFixedIPType(portType)
+
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.ReservedFixedIP.Create, opts, clientV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-	reservedFixedIPID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, ReservedFixedIPCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		reservedFixedIPID, err := reservedfixedips.ExtractReservedFixedIPIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve reservedFixedIP ID from task info: %w", err)
-		}
-		return reservedFixedIPID, nil
-	})
+	reservedFixedIPID := taskResult.Ports[0]
 
 	log.Printf("[DEBUG] ReservedFixedIP id (%s)", reservedFixedIPID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(reservedFixedIPID.(string))
+	d.SetId(reservedFixedIPID)
 	resourceReservedFixedIPRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish ReservedFixedIP creating (%s)", reservedFixedIPID)
@@ -232,21 +222,23 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 	return diags
 }
 
-func resourceReservedFixedIPRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	reservedFixedIP, err := reservedfixedips.Get(client, d.Id()).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	reservedFixedIP, resp, err := clientV2.ReservedFixedIP.Get(ctx, d.Id())
 	if err != nil {
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
+		if resp.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] Removing reserved fixed ip %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil
@@ -260,7 +252,7 @@ func resourceReservedFixedIPRead(_ context.Context, d *schema.ResourceData, m in
 	d.Set("fixed_ip_address", reservedFixedIP.FixedIPAddress.String())
 	d.Set("subnet_id", reservedFixedIP.SubnetID)
 	d.Set("network_id", reservedFixedIP.NetworkID)
-	d.Set("is_vip", reservedFixedIP.IsVip)
+	d.Set("is_vip", reservedFixedIP.IsVIP)
 	d.Set("port_id", reservedFixedIP.PortID)
 
 	allowedPairs := make([]map[string]interface{}, len(reservedFixedIP.AllowedAddressPairs))
@@ -286,17 +278,20 @@ func resourceReservedFixedIPRead(_ context.Context, d *schema.ResourceData, m in
 func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP updating")
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	id := d.Id()
 	if d.HasChange("is_vip") {
-		opts := reservedfixedips.SwitchVIPOpts{IsVip: d.Get("is_vip").(bool)}
-		_, err := reservedfixedips.SwitchVIP(client, id, opts).Extract()
+		opts := &edgecloudV2.SwitchVIPStatusRequest{IsVIP: d.Get("is_vip").(bool)}
+		_, _, err := clientV2.ReservedFixedIP.SwitchVIPStatus(ctx, id, opts)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -304,23 +299,15 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 
 	if d.HasChange("allowed_address_pairs") {
 		aap := d.Get("allowed_address_pairs").([]interface{})
-		allowedAddressPairs := make([]reservedfixedips.AllowedAddressPairs, len(aap))
-		for i, p := range aap {
+		for _, p := range aap {
 			pair := p.(map[string]interface{})
-			allowedAddressPairs[i] = reservedfixedips.AllowedAddressPairs{
+			opts := &edgecloudV2.AllowedAddressPairsRequest{
 				IPAddress:  pair["ip_address"].(string),
 				MacAddress: pair["mac_address"].(string),
 			}
-		}
-
-		clientPort, err := CreateClient(provider, d, portsPoint, VersionPointV1)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		opts := ports.AllowAddressPairsOpts{AllowedAddressPairs: allowedAddressPairs}
-		if _, err := ports.AllowAddressPairs(clientPort, id, opts).Extract(); err != nil {
-			return diag.FromErr(err)
+			if _, _, err := clientV2.Ports.Assign(ctx, id, opts); err != nil {
+				return diag.FromErr(err)
+			}
 		}
 	}
 
@@ -330,16 +317,19 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 	return resourceReservedFixedIPRead(ctx, d, m)
 }
 
-func resourceReservedFixedIPDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, ReservedFixedIPsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
 	// only is_vip == false
 	isVip := d.Get("is_vip").(bool)
@@ -348,10 +338,9 @@ func resourceReservedFixedIPDelete(_ context.Context, d *schema.ResourceData, m 
 	}
 
 	id := d.Id()
-	results, err := reservedfixedips.Delete(client, id).Extract()
+	results, resp, err := clientV2.ReservedFixedIP.Delete(ctx, id)
 	if err != nil {
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
+		if resp.StatusCode == http.StatusNotFound {
 			d.SetId("")
 			log.Printf("[DEBUG] Finish of ReservedFixedIP deleting")
 			return diags
@@ -360,17 +349,8 @@ func resourceReservedFixedIPDelete(_ context.Context, d *schema.ResourceData, m 
 	}
 
 	taskID := results.Tasks[0]
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, ReservedFixedIPCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		_, err := reservedfixedips.Get(client, id).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete reserved fixed ip with ID: %s", id)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting FixedIP resource error: %w", err)
-	})
+
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
