@@ -14,6 +14,8 @@ github.com/Edge-Center/edgecentercloud-go/v2 v2.0.11 h1:ZSOWIYDjhzHD9v8XRQpovnZU
 github.com/Edge-Center/edgecentercloud-go/v2 v2.0.11/go.mod h1:2b+MKa93GhFzShQDjHHc5bUWVhL0g6pSwGbFmeywI7U=
 github.com/Edge-Center/edgecentercloud-go/v2 v2.0.12 h1:jXC2RGZH5j4B5lHU5qfF3qgX7pah+sneKskpBycR0nw=
 github.com/Edge-Center/edgecentercloud-go/v2 v2.0.12/go.mod h1:2b+MKa93GhFzShQDjHHc5bUWVhL0g6pSwGbFmeywI7U=
+github.com/Edge-Center/edgecentercloud-go/v2 v2.0.13 h1:n4OnlX8pSz9Y31lAZbmWdx84kXFNDM+Nd8hvNAPsHmA=
+github.com/Edge-Center/edgecentercloud-go/v2 v2.0.13/go.mod h1:2b+MKa93GhFzShQDjHHc5bUWVhL0g6pSwGbFmeywI7U=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95 h1:KLq8BE0KwCL+mmXnjLWEAOYO+2l2AE4YMmqG1ZpZHBs=
 github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95/go.mod h1:EjAoLdwvbIOoOQr3ihjnSoLZRtE8azugULFRteWMNc0=
