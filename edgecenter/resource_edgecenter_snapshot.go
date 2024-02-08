@@ -2,23 +2,19 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/snapshot/v1/snapshots"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
-	snapshotDeleting        int = 1200
-	snapshotCreatingTimeout int = 1200
-	SnapshotsPoint              = "snapshots"
+	SnapshotsPoint = "snapshots"
 )
 
 func resourceSnapshot() *schema.Resource {
@@ -45,24 +41,28 @@ func resourceSnapshot() *schema.Resource {
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
@@ -115,39 +115,27 @@ func resourceSnapshotCreate(ctx context.Context, d *schema.ResourceData, m inter
 	log.Println("[DEBUG] Start snapshot creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
 	opts := getSnapshotData(d)
-	results, err := snapshots.Create(client, opts).Extract()
+
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Snapshots.Create, opts, clientV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	SnapshotID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, snapshotCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		snapshotID, err := snapshots.ExtractSnapshotIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve snapshot ID from task info: %w", err)
-		}
-		return snapshotID, nil
-	},
-	)
+	SnapshotID := taskResult.Snapshots[0]
 	log.Printf("[DEBUG] Snapshot id (%s)", SnapshotID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
-	d.SetId(SnapshotID.(string))
+	d.SetId(SnapshotID)
 	resourceSnapshotRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish snapshot creating (%s)", SnapshotID)
@@ -155,21 +143,25 @@ func resourceSnapshotCreate(ctx context.Context, d *schema.ResourceData, m inter
 	return diags
 }
 
-func resourceSnapshotRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start snapshot reading")
 	log.Printf("[DEBUG] Start snapshot reading %s", d.State())
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
+
 	snapshotID := d.Id()
 	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
 
-	client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	snapshot, err := snapshots.Get(client, snapshotID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	snapshot, _, err := clientV2.Snapshots.Get(ctx, snapshotID)
 	if err != nil {
 		return diag.Errorf("cannot get snapshot with ID: %s. Error: %s", snapshotID, err)
 	}
@@ -193,60 +185,63 @@ func resourceSnapshotRead(_ context.Context, d *schema.ResourceData, m interface
 func resourceSnapshotUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start snapshot updating")
 	snapshotID := d.Id()
+
 	if d.HasChange("metadata") {
 		config := m.(*Config)
-		provider := config.Provider
-		client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
+		clientV2 := config.CloudClient
+
+		regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
+		clientV2.Region = regionID
+		clientV2.Project = projectID
+
 		newMeta := prepareRawMetadata(d.Get("metadata").(map[string]interface{}))
-		metadata := make([]snapshots.MetadataOpts, 0, len(newMeta))
-		for k, v := range newMeta {
-			metadata = append(metadata, snapshots.MetadataOpts{Key: k, Value: v})
-		}
-		opts := snapshots.MetadataSetOpts{Metadata: metadata}
-		if _, err := snapshots.MetadataReplace(client, snapshotID, opts).Extract(); err != nil {
+
+		opts := &edgecloudV2.MetadataCreateRequest{Metadata: newMeta}
+		if _, _, err := clientV2.Snapshots.MetadataUpdate(ctx, snapshotID, opts); err != nil {
 			return diag.FromErr(err)
 		}
 	}
+
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish snapshot updating")
 
 	return resourceSnapshotRead(ctx, d, m)
 }
 
-func resourceSnapshotDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSnapshotDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start snapshot deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
+
 	snapshotID := d.Id()
 	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
 
-	client, err := CreateClient(provider, d, SnapshotsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	results, err := snapshots.Delete(client, snapshotID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	results, resp, err := clientV2.Snapshots.Delete(ctx, snapshotID)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			log.Printf("[DEBUG] Finish of Snapshot deleting")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
+
 	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, snapshotDeleting, func(task tasks.TaskID) (interface{}, error) {
-		_, err := snapshots.Get(client, snapshotID).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete snapshot with ID: %s", snapshotID)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting Shapshot resource error: %w", err)
-	})
+
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -257,8 +252,8 @@ func resourceSnapshotDelete(_ context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func getSnapshotData(d *schema.ResourceData) *snapshots.CreateOpts {
-	snapshotData := snapshots.CreateOpts{}
+func getSnapshotData(d *schema.ResourceData) *edgecloudV2.SnapshotCreateRequest {
+	snapshotData := edgecloudV2.SnapshotCreateRequest{}
 	snapshotData.Name = d.Get("name").(string)
 	snapshotData.VolumeID = d.Get("volume_id").(string)
 	snapshotData.Description = d.Get("description").(string)
