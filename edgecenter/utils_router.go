@@ -12,7 +12,6 @@ import (
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
@@ -84,29 +83,6 @@ func StringToNetHookFuncV2() mapstructure.DecodeHookFuncType {
 			return data, nil
 		}
 	}
-}
-
-// extractHostRoutesMap converts a slice of interface{} representing host routes into a slice of subnets.HostRoute.
-func extractHostRoutesMap(v []interface{}) ([]subnets.HostRoute, error) {
-	decoderConfig := &mapstructure.DecoderConfig{
-		DecodeHook: StringToNetHookFunc(),
-	}
-
-	hostRoutes := make([]subnets.HostRoute, len(v))
-	for i, hostRoute := range v {
-		hs, ok := hostRoute.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("failed to assert host route as map[string]interface{}")
-		}
-		var H subnets.HostRoute
-		err := MapStructureDecoder(&H, &hs, decoderConfig)
-		if err != nil {
-			return nil, err
-		}
-		hostRoutes[i] = H
-	}
-
-	return hostRoutes, nil
 }
 
 // extractHostRoutesMapV2 converts a slice of interface{} representing host routes into a slice of edgecloudV2.HostRoute.
