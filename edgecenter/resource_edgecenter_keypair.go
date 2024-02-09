@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/keypair/v2/keypairs"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const KeypairsPoint = "keypairs"
@@ -22,6 +22,7 @@ func resourceKeypair() *schema.Resource {
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
@@ -29,6 +30,7 @@ func resourceKeypair() *schema.Resource {
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
@@ -64,77 +66,92 @@ func resourceKeypairCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, KeypairsPoint, VersionPointV2)
+	_, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	opts := keypairs.CreateOpts{
-		Name:      d.Get("sshkey_name").(string),
-		PublicKey: d.Get("public_key").(string),
-		ProjectID: d.Get("project_id").(int),
+	// To work with KeyPairsV2 endpoints, you only need a project.
+	// Therefore, a stub with a value of 1 is applied for the region.
+	clientV2.Region = 1
+	clientV2.Project = projectID
+
+	opts := &edgecloudV2.KeyPairCreateRequestV2{
+		SSHKeyName: d.Get("sshkey_name").(string),
+		PublicKey:  d.Get("public_key").(string),
+		ProjectID:  projectID,
 	}
 
-	kp, err := keypairs.Create(client, opts).Extract()
+	kp, _, err := clientV2.KeyPairs.CreateV2(ctx, opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	log.Printf("[DEBUG] KeyPair id (%s)", kp.ID)
-	d.SetId(kp.ID)
+	log.Printf("[DEBUG] KeyPair id (%s)", kp.SSHKeyID)
+	d.SetId(kp.SSHKeyID)
 
 	resourceKeypairRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish KeyPair creating (%s)", kp.ID)
+	log.Printf("[DEBUG] Finish KeyPair creating (%s)", kp.SSHKeyID)
 
 	return diags
 }
 
-func resourceKeypairRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceKeypairRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start KeyPair reading")
 
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, KeypairsPoint, VersionPointV2)
+	_, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	// To work with KeyPairsV2 endpoints, you only need a project.
+	// Therefore, a stub with a value of 1 is applied for the region.
+	clientV2.Region = 1
+	clientV2.Project = projectID
+
 	kpID := d.Id()
-	kp, err := keypairs.Get(client, kpID).Extract()
+	kp, _, err := clientV2.KeyPairs.GetV2(ctx, kpID)
 	if err != nil {
 		return diag.Errorf("cannot get keypairs with ID %s. Error: %s", kpID, err.Error())
 	}
 
-	d.Set("sshkey_name", kp.Name)
+	d.Set("sshkey_name", kp.SSHKeyName)
 	d.Set("public_key", kp.PublicKey)
-	d.Set("sshkey_id", kp.ID)
+	d.Set("sshkey_id", kp.SSHKeyID)
 	d.Set("fingerprint", kp.Fingerprint)
-	d.Set("project_id", kp.ProjectID)
+	d.Set("project_id", projectID)
 
 	log.Println("[DEBUG] Finish KeyPair reading")
 
 	return diags
 }
 
-func resourceKeypairDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceKeypairDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start KeyPair deleting")
 
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, KeypairsPoint, VersionPointV2)
+	_, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	// To work with KeyPairsV2 endpoints, you only need a project.
+	// Therefore, a stub with a value of 1 is applied for the region.
+	clientV2.Region = 1
+	clientV2.Project = projectID
+
 	kpID := d.Id()
-	if err := keypairs.Delete(client, kpID).ExtractErr(); err != nil {
+	if _, err := clientV2.KeyPairs.DeleteV2(ctx, kpID); err != nil {
 		return diag.FromErr(err)
 	}
 

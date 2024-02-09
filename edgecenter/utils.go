@@ -179,9 +179,17 @@ func GetRegionIDandProjectID(ctx context.Context, client *edgecloudV2.Client, d 
 		return 0, 0, err
 	}
 
-	regionID, err = GetRegionV2(ctx, client, d.Get("region_id").(int), d.Get("region_name").(string))
+	rID, IDOk := d.GetOk("region_id")
+	rName, NameOk := d.GetOk("region_name")
+
+	if !IDOk && !NameOk {
+		return 0, projectID, err
+	}
+
+	regionID, err = GetRegionV2(ctx, client, rID.(int), rName.(string))
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to get region: %w", err)
 	}
+
 	return regionID, projectID, nil
 }
