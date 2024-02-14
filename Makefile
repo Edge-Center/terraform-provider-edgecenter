@@ -47,7 +47,7 @@ download_env_file:
 	@if [ -z "${VAULT_TOKEN}" ] || [ -z "${VAULT_ADDR}" ]; then \
 		echo "ERROR: Vault environment is not set, please setup VAULT_ADDR and VAULT_TOKEN environment variables" && exit 1;\
 	fi
-	vault kv get -format=json --field data /CLOUD/terraform | $(BIN_DIR)/jq -r 'to_entries|map("\(.key)=\(.value)")|.[]' > $(ENV_TESTS_FILE)
+	vault kv get -format=json --field data /cloud/terraform | $(BIN_DIR)/jq -r 'to_entries|map("\(.key)=\(.value)")|.[]' > $(ENV_TESTS_FILE)
 
 tidy:
 	go mod tidy

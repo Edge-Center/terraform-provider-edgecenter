@@ -2,7 +2,6 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -10,17 +9,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
-	volumeDeleting        int = 1200
 	VolumeCreatingTimeout int = 1200
-	volumeExtending       int = 1200
 	VolumesPoint              = "volumes"
 )
 
@@ -33,7 +27,7 @@ func resourceVolume() *schema.Resource {
 		Description: `A volume is a detachable block storage device akin to a USB hard drive or SSD, but located remotely in the cloud.
 Volumes can be attached to a virtual machine and manipulated like a physical hard drive.`,
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, volumeID, err := ImportStringParser(d.Id())
 				if err != nil {
 					return nil, err
@@ -42,15 +36,13 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 				d.Set("region_id", regionID)
 				d.SetId(volumeID)
 
-				config := meta.(*Config)
-				provider := config.Provider
+				config := m.(*Config)
+				clientV2 := config.CloudClient
 
-				client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
-				if err != nil {
-					return nil, err
-				}
+				clientV2.Region = regionID
+				clientV2.Project = projectID
 
-				volume, err := volumes.Get(client, volumeID).Extract()
+				volume, _, err := clientV2.Volumes.Get(ctx, volumeID)
 				if err != nil {
 					return nil, fmt.Errorf("cannot get volume with ID: %s. Error: %w", volumeID, err)
 				}
@@ -156,42 +148,34 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Println("[DEBUG] Start volume creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	opts, err := getVolumeData(d)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	results, err := volumes.Create(client, opts).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	opts, err := getVolumeDataV2(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	VolumeID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, VolumeCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		volumeID, err := volumes.ExtractVolumeIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve volume ID from task info: %w", err)
-		}
-		return volumeID, nil
-	},
-	)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Volumes.Create, opts, clientV2)
+	if err != nil {
+		return diag.Errorf("error creating volume: %s", err)
+	}
+
+	VolumeID := taskResult.Volumes[0]
+
 	log.Printf("[DEBUG] Volume id (%s)", VolumeID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(VolumeID.(string))
+	d.SetId(VolumeID)
 	resourceVolumeRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish volume creating (%s)", VolumeID)
@@ -199,21 +183,24 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func resourceVolumeRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start volume reading")
 	log.Printf("[DEBUG] Start volume reading%s", d.State())
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
-	volumeID := d.Id()
-	log.Printf("[DEBUG] Volume id = %s", volumeID)
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	volume, err := volumes.Get(client, volumeID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+	volumeID := d.Id()
+	log.Printf("[DEBUG] Volume id = %s", volumeID)
+
+	volume, _, err := clientV2.Volumes.Get(ctx, volumeID)
 	if err != nil {
 		return diag.Errorf("cannot get volume with ID: %s. Error: %s", volumeID, err)
 	}
@@ -247,32 +234,38 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 	config := m.(*Config)
-	provider := config.Provider
-	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	volume, err := volumes.Get(client, volumeID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	volume, _, err := clientV2.Volumes.Get(ctx, volumeID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	if d.HasChange("name") {
-		name := d.Get("name").(string)
-		_, err := volumes.Update(client, volumeID, volumes.UpdateOpts{Name: name}).Extract()
+		newName := d.Get("name").(string)
+		_, _, err := clientV2.Volumes.Rename(ctx, volumeID, &edgecloudV2.Name{Name: newName})
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
 	if d.HasChange("size") {
-		newValue := d.Get("size")
-		newSize := newValue.(int)
+		newSize := d.Get("size").(int)
 		if newSize != 0 {
 			if volume.Size < newSize {
-				err = ExtendVolume(client, volumeID, newSize)
+				task, _, err := clientV2.Volumes.Extend(ctx, volumeID, &edgecloudV2.VolumeExtendSizeRequest{Size: newSize})
 				if err != nil {
+					return diag.FromErr(err)
+				}
+				if err = utilV2.WaitForTaskComplete(ctx, clientV2, task.Tasks[0]); err != nil {
 					return diag.FromErr(err)
 				}
 			} else {
@@ -283,15 +276,14 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	if d.HasChange("type_name") {
 		newTN := d.Get("type_name")
-		newVolumeType, err := volumes.VolumeType(newTN.(string)).ValidOrNil()
+		newVolumeType, err := edgecloudV2.VolumeType(newTN.(string)).ValidOrNil()
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		opts := volumes.VolumeTypePropertyOperationOpts{
+		_, _, err = clientV2.Volumes.ChangeType(ctx, volumeID, &edgecloudV2.VolumeChangeTypeRequest{
 			VolumeType: *newVolumeType,
-		}
-		_, err = volumes.Retype(client, volumeID, opts).Extract()
+		})
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -300,13 +292,13 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	if d.HasChange("metadata_map") {
 		_, nmd := d.GetChange("metadata_map")
 
-		meta, err := utils.MapInterfaceToMapString(nmd.(map[string]interface{}))
+		metadata, err := MapInterfaceToMapString(nmd.(map[string]interface{}))
 		if err != nil {
 			return diag.Errorf("cannot get metadata. Error: %s", err)
 		}
+		metadataUpdate := edgecloudV2.Metadata(*metadata)
 
-		err = metadata.ResourceMetadataReplace(client, d.Id(), meta).Err
-		if err != nil {
+		if _, err := clientV2.Volumes.MetadataUpdate(ctx, d.Id(), &metadataUpdate); err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
 	}
@@ -317,64 +309,57 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	return resourceVolumeRead(ctx, d, m)
 }
 
-func resourceVolumeDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start volume deleting")
-	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 
-	client, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
+	volume, _, err := clientV2.Volumes.Get(ctx, d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.Errorf("Error getting volume: %s", err)
 	}
 
-	opts := volumes.DeleteOpts{
-		Snapshots: [](string){d.Get("snapshot_id").(string)},
-	}
-	results, err := volumes.Delete(client, volumeID, opts).Extract()
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, volumeDeleting, func(task tasks.TaskID) (interface{}, error) {
-		_, err := volumes.Get(client, volumeID).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete volume with ID: %s", volumeID)
+	if len(volume.Attachments) > 0 {
+		volumeDetachRequest := &edgecloudV2.VolumeDetachRequest{InstanceID: volume.Attachments[0].ServerID}
+		if _, _, err = clientV2.Volumes.Detach(ctx, d.Id(), volumeDetachRequest); err != nil {
+			return diag.Errorf("Error detaching volume from instance: %s", err)
 		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting Volume resource error: %w", err)
-	})
-	if err != nil {
-		return diag.FromErr(err)
 	}
 
+	log.Printf("[INFO] Deleting volume: %s", d.Id())
+	if err = utilV2.DeleteResourceIfExist(ctx, clientV2, clientV2.Volumes, d.Id()); err != nil {
+		return diag.Errorf("Error deleting volume: %s", err)
+	}
 	d.SetId("")
-	log.Printf("[DEBUG] Finish of volume deleting")
 
-	return diags
+	return nil
 }
 
-func getVolumeData(d *schema.ResourceData) (*volumes.CreateOpts, error) {
-	volumeData := volumes.CreateOpts{}
-	volumeData.Source = volumes.NewVolume
+func getVolumeDataV2(d *schema.ResourceData) (*edgecloudV2.VolumeCreateRequest, error) {
+	volumeData := edgecloudV2.VolumeCreateRequest{}
+	volumeData.Source = edgecloudV2.VolumeSourceNewVolume
 	volumeData.Name = d.Get("name").(string)
 	volumeData.Size = d.Get("size").(int)
 
 	imageID := d.Get("image_id").(string)
 	if imageID != "" {
-		volumeData.Source = volumes.Image
+		volumeData.Source = edgecloudV2.VolumeSourceImage
 		volumeData.ImageID = imageID
 	}
 
 	snapshotID := d.Get("snapshot_id").(string)
 	if snapshotID != "" {
-		volumeData.Source = volumes.Snapshot
+		volumeData.Source = edgecloudV2.VolumeSourceSnapshot
 		volumeData.SnapshotID = snapshotID
 		if volumeData.Size != 0 {
 			log.Println("[DEBUG] Size must be equal or larger to respective snapshot size")
@@ -383,7 +368,7 @@ func getVolumeData(d *schema.ResourceData) (*volumes.CreateOpts, error) {
 
 	typeName := d.Get("type_name").(string)
 	if typeName != "" {
-		modifiedTypeName, err := volumes.VolumeType(typeName).ValidOrNil()
+		modifiedTypeName, err := edgecloudV2.VolumeType(typeName).ValidOrNil()
 		if err != nil {
 			return nil, fmt.Errorf("checking Volume validation error: %w", err)
 		}
@@ -391,40 +376,13 @@ func getVolumeData(d *schema.ResourceData) (*volumes.CreateOpts, error) {
 	}
 
 	if metadataRaw, ok := d.GetOk("metadata_map"); ok {
-		meta, err := utils.MapInterfaceToMapString(metadataRaw)
+		meta, err := MapInterfaceToMapString(metadataRaw)
 		if err != nil {
 			return nil, fmt.Errorf("volume metadata error: %w", err)
 		}
 
-		volumeData.Metadata = meta
+		volumeData.Metadata = *meta
 	}
 
 	return &volumeData, nil
-}
-
-func ExtendVolume(client *edgecloud.ServiceClient, volumeID string, newSize int) error {
-	opts := volumes.SizePropertyOperationOpts{
-		Size: newSize,
-	}
-	results, err := volumes.Extend(client, volumeID, opts).Extract()
-	if err != nil {
-		return fmt.Errorf("extracting Volume resource error: %w", err)
-	}
-
-	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, volumeExtending, func(task tasks.TaskID) (interface{}, error) {
-		_, err := volumes.Get(client, volumeID).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get volume with ID: %s. Error: %w", volumeID, err)
-		}
-		return nil, nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("checking Volume state error: %w", err)
-	}
-	log.Printf("[DEBUG] Finish waiting.")
-
-	return nil
 }
