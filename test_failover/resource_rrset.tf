@@ -10,6 +10,7 @@ terraform {
 }
 
 provider "edgecenter" {
+  permanent_api_token = "17964$7f7415e90e6bd6a54eb9958e4d68149ed04b2d3e61254a3c72dff00c7fdfc3d19e4991abfdf1f727cbc4af730e18addfcb1e3e18a6ec5830a566420ca545b54d"
 }
 
 //

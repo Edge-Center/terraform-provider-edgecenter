@@ -8,11 +8,10 @@ import (
 	"net"
 	"strings"
 
+	dnssdk "github.com/bioidiad/edgecenter-dns-sdk-go"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	dnssdk "github.com/bioidiad/edgecenter-dns-sdk-go"
 )
 
 const (
@@ -29,13 +28,13 @@ const (
 	DNSZoneRecordSchemaFailoverProtocol       = "protocol"
 	DNSZoneRecordSchemaFailoverFrequency      = "frequency"
 	DNSZoneRecordSchemaFailoverHost           = "host"
-	DNSZoneRecordSchemaFailoverHttpStatusCode = "http_status_code"
+	DNSZoneRecordSchemaFailoverHTTPStatusCode = "http_status_code"
 	DNSZoneRecordSchemaFailoverMethod         = "method"
 	DNSZoneRecordSchemaFailoverPort           = "port"
 	DNSZoneRecordSchemaFailoverRegexp         = "regexp"
 	DNSZoneRecordSchemaFailoverTimeout        = "timeout"
-	DNSZoneRecordSchemaFailoverTls            = "tls"
-	DNSZoneRecordSchemaFailoverUrl            = "url"
+	DNSZoneRecordSchemaFailoverTLS            = "tls"
+	DNSZoneRecordSchemaFailoverURL            = "url"
 	DNSZoneRecordSchemaFailoverVerify         = "verify"
 
 	DNSZoneRecordSchemaFilterLimit  = "limit"
@@ -152,7 +151,7 @@ func resourceDNSZoneRecord() *schema.Resource {
 										Optional:    true,
 										Description: "A failover host of DNS Zone Record resource.",
 									},
-									DNSZoneRecordSchemaFailoverHttpStatusCode: {
+									DNSZoneRecordSchemaFailoverHTTPStatusCode: {
 										Type:        schema.TypeInt,
 										Optional:    true,
 										Description: "A failover http status code of DNS Zone Record resource.",
@@ -177,12 +176,12 @@ func resourceDNSZoneRecord() *schema.Resource {
 										Required:    true,
 										Description: "A failover timeout of DNS Zone Record resource.",
 									},
-									DNSZoneRecordSchemaFailoverTls: {
+									DNSZoneRecordSchemaFailoverTLS: {
 										Type:        schema.TypeBool,
 										Optional:    true,
 										Description: "A failover tls of DNS Zone Record resource.",
 									},
-									DNSZoneRecordSchemaFailoverUrl: {
+									DNSZoneRecordSchemaFailoverURL: {
 										Type:        schema.TypeString,
 										Optional:    true,
 										Description: "A failover url of DNS Zone Record resource.",
@@ -622,9 +621,13 @@ func fillRRSet(d *schema.ResourceData, rType string, rrSet *dnssdk.RRSet) error 
 
 func listToFailoverMeta(m []interface{}) dnssdk.Meta {
 	var meta dnssdk.Meta
-	if len(m) == 0 || m[0] == nil {
+	if len(m) == 0 {
 		return meta
 	}
+	if m[0] == nil {
+		return meta
+	}
+
 	fields := m[0].(map[string]interface{})
 	if props, ok := getOptByName(fields, "failover"); ok {
 		meta.Failover = &dnssdk.FailoverMeta{
@@ -655,13 +658,14 @@ func listToFailoverMeta(m []interface{}) dnssdk.Meta {
 			meta.Failover.Verify = verify.(bool)
 		}
 	}
+
 	return meta
 }
 
 func failoverMetaToList(meta *dnssdk.Meta) []interface{} {
 	result := make(map[string][]interface{})
 	if meta.Failover != nil {
-		var m = make(map[string]interface{})
+		m := make(map[string]interface{})
 		if meta.Failover.Protocol != "" {
 			m["protocol"] = meta.Failover.Protocol
 		}
@@ -695,6 +699,7 @@ func failoverMetaToList(meta *dnssdk.Meta) []interface{} {
 		}
 		result["failover"] = []interface{}{m}
 	}
+
 	return []interface{}{result}
 }
 
@@ -713,5 +718,6 @@ func verifyFailoverMeta(meta dnssdk.Meta) error {
 			return fmt.Errorf("failover method can only be set along with HTTP protocol")
 		}
 	}
+
 	return nil
 }

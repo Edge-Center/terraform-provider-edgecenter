@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	dnsSDK "github.com/bioidiad/edgecenter-dns-sdk-go"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 
@@ -14,7 +15,6 @@ import (
 	cdn "github.com/Edge-Center/edgecentercdn-go"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
-	dnsSDK "github.com/bioidiad/edgecenter-dns-sdk-go"
 )
 
 const (
