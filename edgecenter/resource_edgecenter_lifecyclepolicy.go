@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/lifecyclepolicy/v1/lifecyclepolicy"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
@@ -81,15 +81,15 @@ func resourceLifecyclePolicy() *schema.Resource {
 			"status": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      lifecyclepolicy.PolicyStatusActive.String(),
-				ValidateFunc: validation.StringInSlice(lifecyclepolicy.PolicyStatus("").StringList(), false),
+				Default:      edgecloudV2.LifeCyclePolicyStatusActive.String(),
+				ValidateFunc: validation.StringInSlice(edgecloudV2.LifeCyclePolicyStatus("").StringList(), false),
 			},
 			"action": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      lifecyclepolicy.PolicyActionVolumeSnapshot.String(),
+				Default:      edgecloudV2.LifeCyclePolicyActionVolumeSnapshot.String(),
 				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice(lifecyclepolicy.PolicyAction("").StringList(), false),
+				ValidateFunc: validation.StringInSlice(edgecloudV2.LifeCyclePolicyAction("").StringList(), false),
 			},
 			"volume": {
 				Type:        schema.TypeSet,
@@ -269,17 +269,23 @@ func resourceLifecyclePolicy() *schema.Resource {
 }
 
 func resourceLifecyclePolicyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
-	if err != nil {
-		return diag.Errorf("Error creating client: %s", err)
-	}
+	config := m.(*Config)
+	clientV2 := config.CloudClient
 
-	log.Printf("[DEBUG] Start of LifecyclePolicy creating")
-	opts, err := buildLifecyclePolicyCreateOpts(d)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	policy, err := lifecyclepolicy.Create(client, *opts).Extract()
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	log.Printf("[DEBUG] Start of LifecyclePolicy creating")
+	opts, err := buildLifecyclePolicyCreateOptsV2(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	policy, _, err := clientV2.LifeCyclePolicies.Create(ctx, opts)
 	if err != nil {
 		return diag.Errorf("Error creating lifecycle policy: %s", err)
 	}
@@ -289,19 +295,27 @@ func resourceLifecyclePolicyCreate(ctx context.Context, d *schema.ResourceData, 
 	return resourceLifecyclePolicyRead(ctx, d, m)
 }
 
-func resourceLifecyclePolicyRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
+func resourceLifecyclePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	config := m.(*Config)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
-		return diag.Errorf("Error creating client: %s", err)
+		return diag.FromErr(err)
 	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 	id := d.Id()
+	d.Set("region_id", regionID)
+	d.Set("project_id", projectID)
 	integerID, err := strconv.Atoi(id)
 	if err != nil {
 		return diag.Errorf("Error converting lifecycle policy ID to integer: %s", err)
 	}
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy %s reading", id)
-	policy, err := lifecyclepolicy.Get(client, integerID, lifecyclepolicy.GetOpts{NeedVolumes: true}).Extract()
+	policy, _, err := clientV2.LifeCyclePolicies.Get(ctx, integerID, &edgecloudV2.LifeCyclePolicyGetOptions{NeedVolumes: true})
 	if err != nil {
 		return diag.Errorf("Error getting lifecycle policy: %s", err)
 	}
@@ -310,10 +324,10 @@ func resourceLifecyclePolicyRead(_ context.Context, d *schema.ResourceData, m in
 	_ = d.Set("status", policy.Status)
 	_ = d.Set("action", policy.Action)
 	_ = d.Set("user_id", policy.UserID)
-	if err = d.Set("volume", flattenVolumes(policy.Volumes)); err != nil {
+	if err = d.Set("volume", flattenVolumesV2(policy.Volumes)); err != nil {
 		return diag.Errorf("error setting lifecycle policy volumes: %s", err)
 	}
-	if err = d.Set("schedule", flattenSchedules(policy.Schedules)); err != nil {
+	if err = d.Set("schedule", flattenSchedulesV2(policy.Schedules)); err != nil {
 		return diag.Errorf("error setting lifecycle policy schedules: %s", err)
 	}
 
@@ -323,10 +337,16 @@ func resourceLifecyclePolicyRead(_ context.Context, d *schema.ResourceData, m in
 }
 
 func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
+	config := m.(*Config)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
-		return diag.Errorf("Error creating client: %s", err)
+		return diag.FromErr(err)
 	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 	id := d.Id()
 	integerID, err := strconv.Atoi(id)
 	if err != nil {
@@ -334,19 +354,22 @@ func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy updating")
-	_, err = lifecyclepolicy.Update(client, integerID, buildLifecyclePolicyUpdateOpts(d)).Extract()
-	if err != nil {
-		return diag.Errorf("Error updating lifecycle policy: %s", err)
+	if d.HasChanges("status", "name") {
+		lifeCycleUpdateRequest := buildLifecyclePolicyUpdateOptsV2(d)
+		_, _, err = clientV2.LifeCyclePolicies.Update(ctx, integerID, &lifeCycleUpdateRequest)
+		if err != nil {
+			return diag.Errorf("Error updating lifecycle policy: %s", err)
+		}
 	}
 
 	if d.HasChange("volume") {
 		oldVolumes, newVolumes := d.GetChange("volume")
 		toRemove, toAdd := volumeSymmetricDifference(oldVolumes.(*schema.Set), newVolumes.(*schema.Set))
-		_, err = lifecyclepolicy.RemoveVolumes(client, integerID, lifecyclepolicy.RemoveVolumesOpts{VolumeIds: toRemove}).Extract()
+		_, _, err = clientV2.LifeCyclePolicies.RemoveVolumes(ctx, integerID, &edgecloudV2.LifeCyclePolicyRemoveVolumesRequest{VolumeIds: toRemove})
 		if err != nil {
 			return diag.Errorf("Error removing volumes from lifecycle policy: %s", err)
 		}
-		_, err = lifecyclepolicy.AddVolumes(client, integerID, lifecyclepolicy.AddVolumesOpts{VolumeIds: toAdd}).Extract()
+		_, _, err = clientV2.LifeCyclePolicies.AddVolumes(ctx, integerID, &edgecloudV2.LifeCyclePolicyAddVolumesRequest{VolumeIds: toAdd})
 		if err != nil {
 			return diag.Errorf("Error adding volumes to lifecycle policy: %s", err)
 		}
@@ -356,11 +379,17 @@ func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, 
 	return resourceLifecyclePolicyRead(ctx, d, m)
 }
 
-func resourceLifecyclePolicyDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client, err := CreateClient(m.(*Config).Provider, d, LifecyclePolicyPoint, VersionPointV1)
+func resourceLifecyclePolicyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	config := m.(*Config)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
-		return diag.Errorf("Error creating client: %s", err)
+		return diag.FromErr(err)
 	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 	id := d.Id()
 	integerID, err := strconv.Atoi(id)
 	if err != nil {
@@ -368,7 +397,7 @@ func resourceLifecyclePolicyDelete(_ context.Context, d *schema.ResourceData, m 
 	}
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy %s deleting", id)
-	err = lifecyclepolicy.Delete(client, integerID)
+	_, err = clientV2.LifeCyclePolicies.Delete(ctx, integerID)
 	if err != nil {
 		return diag.Errorf("Error deleting lifecycle policy: %s", err)
 	}
@@ -378,8 +407,8 @@ func resourceLifecyclePolicyDelete(_ context.Context, d *schema.ResourceData, m 
 	return nil
 }
 
-func expandIntervalSchedule(flat map[string]interface{}) *lifecyclepolicy.CreateIntervalScheduleOpts {
-	return &lifecyclepolicy.CreateIntervalScheduleOpts{
+func expandIntervalScheduleV2(flat map[string]interface{}) *edgecloudV2.LifeCyclePolicyCreateIntervalScheduleRequest {
+	return &edgecloudV2.LifeCyclePolicyCreateIntervalScheduleRequest{
 		Weeks:   flat["weeks"].(int),
 		Days:    flat["days"].(int),
 		Hours:   flat["hours"].(int),
@@ -387,8 +416,8 @@ func expandIntervalSchedule(flat map[string]interface{}) *lifecyclepolicy.Create
 	}
 }
 
-func expandCronSchedule(flat map[string]interface{}) *lifecyclepolicy.CreateCronScheduleOpts {
-	return &lifecyclepolicy.CreateCronScheduleOpts{
+func expandCronScheduleV2(flat map[string]interface{}) *edgecloudV2.LifeCyclePolicyCreateCronScheduleRequest {
+	return &edgecloudV2.LifeCyclePolicyCreateCronScheduleRequest{
 		Timezone:  flat["timezone"].(string),
 		Week:      flat["week"].(string),
 		DayOfWeek: flat["day_of_week"].(string),
@@ -399,10 +428,10 @@ func expandCronSchedule(flat map[string]interface{}) *lifecyclepolicy.CreateCron
 	}
 }
 
-func expandRetentionTimer(flat []interface{}) *lifecyclepolicy.RetentionTimer {
+func expandRetentionTimerV2(flat []interface{}) *edgecloudV2.LifeCyclePolicyRetentionTimer {
 	if len(flat) > 0 {
 		rawRetention := flat[0].(map[string]interface{})
-		return &lifecyclepolicy.RetentionTimer{
+		return &edgecloudV2.LifeCyclePolicyRetentionTimer{
 			Weeks:   rawRetention["weeks"].(int),
 			Days:    rawRetention["days"].(int),
 			Hours:   rawRetention["hours"].(int),
@@ -412,35 +441,35 @@ func expandRetentionTimer(flat []interface{}) *lifecyclepolicy.RetentionTimer {
 	return nil
 }
 
-func expandSchedule(flat map[string]interface{}) (lifecyclepolicy.CreateScheduleOpts, error) {
-	t := lifecyclepolicy.ScheduleType("")
+func expandScheduleV2(flat map[string]interface{}) (edgecloudV2.LifeCyclePolicyCreateScheduleRequest, error) {
+	t := edgecloudV2.LifeCyclePolicyScheduleType("")
 	intervalSlice := flat["interval"].([]interface{})
 	cronSlice := flat["cron"].([]interface{})
 	if len(intervalSlice)+len(cronSlice) != 1 {
 		return nil, fmt.Errorf("exactly one of interval and cron blocks should be provided")
 	}
-	var expanded lifecyclepolicy.CreateScheduleOpts
+	var expanded edgecloudV2.LifeCyclePolicyCreateScheduleRequest
 	if len(intervalSlice) > 0 {
-		t = lifecyclepolicy.ScheduleTypeInterval
-		expanded = expandIntervalSchedule(intervalSlice[0].(map[string]interface{}))
+		t = edgecloudV2.LifeCyclePolicyScheduleTypeInterval
+		expanded = expandIntervalScheduleV2(intervalSlice[0].(map[string]interface{}))
 	} else {
-		t = lifecyclepolicy.ScheduleTypeCron
-		expanded = expandCronSchedule(cronSlice[0].(map[string]interface{}))
+		t = edgecloudV2.LifeCyclePolicyScheduleTypeCron
+		expanded = expandCronScheduleV2(cronSlice[0].(map[string]interface{}))
 	}
-	expanded.SetCommonCreateScheduleOpts(lifecyclepolicy.CommonCreateScheduleOpts{
+	expanded.SetCommonCreateScheduleOpts(edgecloudV2.LifeCyclePolicyCommonCreateScheduleRequest{
 		Type:                 t,
 		ResourceNameTemplate: flat["resource_name_template"].(string),
 		MaxQuantity:          flat["max_quantity"].(int),
-		RetentionTime:        expandRetentionTimer(flat["retention_time"].([]interface{})),
+		RetentionTime:        expandRetentionTimerV2(flat["retention_time"].([]interface{})),
 	})
 
 	return expanded, nil
 }
 
-func expandSchedules(flat []interface{}) ([]lifecyclepolicy.CreateScheduleOpts, error) {
-	expanded := make([]lifecyclepolicy.CreateScheduleOpts, len(flat))
+func expandSchedulesV2(flat []interface{}) ([]edgecloudV2.LifeCyclePolicyCreateScheduleRequest, error) {
+	expanded := make([]edgecloudV2.LifeCyclePolicyCreateScheduleRequest, len(flat))
 	for i, x := range flat {
-		exp, err := expandSchedule(x.(map[string]interface{}))
+		exp, err := expandScheduleV2(x.(map[string]interface{}))
 		if err != nil {
 			return nil, err
 		}
@@ -457,23 +486,23 @@ func expandVolumeIds(flat []interface{}) []string {
 	return expanded
 }
 
-func buildLifecyclePolicyCreateOpts(d *schema.ResourceData) (*lifecyclepolicy.CreateOpts, error) {
-	schedules, err := expandSchedules(d.Get("schedule").([]interface{}))
+func buildLifecyclePolicyCreateOptsV2(d *schema.ResourceData) (*edgecloudV2.LifeCyclePolicyCreateRequest, error) {
+	schedules, err := expandSchedulesV2(d.Get("schedule").([]interface{}))
 	if err != nil {
 		return nil, err
 	}
-	opts := &lifecyclepolicy.CreateOpts{
+	opts := &edgecloudV2.LifeCyclePolicyCreateRequest{
 		Name:      d.Get("name").(string),
-		Status:    lifecyclepolicy.PolicyStatus(d.Get("status").(string)),
+		Status:    edgecloudV2.LifeCyclePolicyStatus(d.Get("status").(string)),
 		Schedules: schedules,
 		VolumeIds: expandVolumeIds(d.Get("volume").(*schema.Set).List()),
 	}
 
 	// Action is required field from API point of view, but optional for us
 	if action, ok := d.GetOk("action"); ok {
-		opts.Action = lifecyclepolicy.PolicyAction(action.(string))
+		opts.Action = edgecloudV2.LifeCyclePolicyAction(action.(string))
 	} else {
-		opts.Action = lifecyclepolicy.PolicyActionVolumeSnapshot
+		opts.Action = edgecloudV2.LifeCyclePolicyActionVolumeSnapshot
 	}
 
 	return opts, nil
@@ -496,15 +525,15 @@ func volumeSymmetricDifference(oldVolumes, newVolumes *schema.Set) ([]string, []
 	return toRemove, toAdd
 }
 
-func buildLifecyclePolicyUpdateOpts(d *schema.ResourceData) lifecyclepolicy.UpdateOpts {
-	opts := lifecyclepolicy.UpdateOpts{
+func buildLifecyclePolicyUpdateOptsV2(d *schema.ResourceData) edgecloudV2.LifeCyclePolicyUpdateRequest {
+	opts := edgecloudV2.LifeCyclePolicyUpdateRequest{
 		Name:   d.Get("name").(string),
-		Status: lifecyclepolicy.PolicyStatus(d.Get("status").(string)),
+		Status: edgecloudV2.LifeCyclePolicyStatus(d.Get("status").(string)),
 	}
 	return opts
 }
 
-func flattenIntervalSchedule(expanded lifecyclepolicy.IntervalSchedule) interface{} {
+func flattenIntervalScheduleV2(expanded edgecloudV2.LifeCyclePolicyIntervalSchedule) interface{} {
 	return []map[string]int{{
 		"weeks":   expanded.Weeks,
 		"days":    expanded.Days,
@@ -513,7 +542,7 @@ func flattenIntervalSchedule(expanded lifecyclepolicy.IntervalSchedule) interfac
 	}}
 }
 
-func flattenCronSchedule(expanded lifecyclepolicy.CronSchedule) interface{} {
+func flattenCronScheduleV2(expanded edgecloudV2.LifeCyclePolicyCronSchedule) interface{} {
 	return []map[string]string{{
 		"timezone":    expanded.Timezone,
 		"week":        expanded.Week,
@@ -525,7 +554,7 @@ func flattenCronSchedule(expanded lifecyclepolicy.CronSchedule) interface{} {
 	}}
 }
 
-func flattenRetentionTimer(expanded *lifecyclepolicy.RetentionTimer) interface{} {
+func flattenRetentionTimerV2(expanded *edgecloudV2.LifeCyclePolicyRetentionTimer) interface{} {
 	if expanded != nil {
 		return []map[string]int{{
 			"weeks":   expanded.Weeks,
@@ -537,34 +566,34 @@ func flattenRetentionTimer(expanded *lifecyclepolicy.RetentionTimer) interface{}
 	return []interface{}{}
 }
 
-func flattenSchedule(expanded lifecyclepolicy.Schedule) map[string]interface{} {
+func flattenScheduleV2(expanded edgecloudV2.LifeCyclePolicySchedule) map[string]interface{} {
 	common := expanded.GetCommonSchedule()
 	flat := map[string]interface{}{
 		"max_quantity":           common.MaxQuantity,
 		"resource_name_template": common.ResourceNameTemplate,
-		"retention_time":         flattenRetentionTimer(common.RetentionTime),
+		"retention_time":         flattenRetentionTimerV2(common.RetentionTime),
 		"id":                     common.ID,
 		"type":                   common.Type,
 	}
 	switch common.Type {
-	case lifecyclepolicy.ScheduleTypeInterval:
-		flat["interval"] = flattenIntervalSchedule(expanded.(lifecyclepolicy.IntervalSchedule))
-	case lifecyclepolicy.ScheduleTypeCron:
-		flat["cron"] = flattenCronSchedule(expanded.(lifecyclepolicy.CronSchedule))
+	case edgecloudV2.LifeCyclePolicyScheduleTypeInterval:
+		flat["interval"] = flattenIntervalScheduleV2(expanded.(edgecloudV2.LifeCyclePolicyIntervalSchedule))
+	case edgecloudV2.LifeCyclePolicyScheduleTypeCron:
+		flat["cron"] = flattenCronScheduleV2(expanded.(edgecloudV2.LifeCyclePolicyCronSchedule))
 	}
 
 	return flat
 }
 
-func flattenSchedules(expanded []lifecyclepolicy.Schedule) []map[string]interface{} {
+func flattenSchedulesV2(expanded []edgecloudV2.LifeCyclePolicySchedule) []map[string]interface{} {
 	flat := make([]map[string]interface{}, len(expanded))
 	for i, x := range expanded {
-		flat[i] = flattenSchedule(x)
+		flat[i] = flattenScheduleV2(x)
 	}
 	return flat
 }
 
-func flattenVolumes(expanded []lifecyclepolicy.Volume) []map[string]string {
+func flattenVolumesV2(expanded []edgecloudV2.LifeCyclePolicyVolume) []map[string]string {
 	flat := make([]map[string]string, len(expanded))
 	for i, volume := range expanded {
 		flat[i] = map[string]string{"id": volume.ID, "name": volume.Name}
