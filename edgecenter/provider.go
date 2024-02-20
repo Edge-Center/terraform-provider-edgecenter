@@ -60,7 +60,7 @@ func Provider() *schema.Provider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A single API endpoint for all products. Will be used when specific product API url is not defined.",
-				DefaultFunc: schema.EnvDefaultFunc("EC_API_ENDPOINT", "https://api.edgecenter.online"),
+				DefaultFunc: schema.EnvDefaultFunc("EC_API_ENDPOINT", "https://api.edgecenter.ru"),
 			},
 			ProviderOptSkipCredsAuthErr: {
 				Type:        schema.TypeBool,
