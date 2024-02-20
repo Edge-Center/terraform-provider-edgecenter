@@ -412,7 +412,6 @@ func resourceDNSZoneRecordUpdate(ctx context.Context, d *schema.ResourceData, m 
 	config := m.(*Config)
 	client := config.DNSClient
 
-	log.Println("[DEBUG] Start DNS Zone Record Resource updating ", rrSet)
 	err = client.UpdateRRSet(ctx, zone, domain, rType, rrSet)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("update zone rrset: %w", err))

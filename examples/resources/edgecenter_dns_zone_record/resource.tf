@@ -1,5 +1,5 @@
 provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
+  permanent_api_token = "179...............45b54d"
 }
 
 //
@@ -20,6 +20,9 @@ resource "edgecenter_dns_zone_record" "example_rrset0" {
   type   = "A"
   ttl    = 100
 
+     meta {
+  }
+
   resource_record {
     content = "127.0.0.100"
   }
@@ -29,9 +32,6 @@ resource "edgecenter_dns_zone_record" "example_rrset0" {
   }
 }
 
-//
-// example1: managing zone outside of TF 
-//
 resource "edgecenter_dns_zone_record" "subdomain_examplezone" {
   zone   = "examplezone.com"
   domain = "subdomain.examplezone.com"
@@ -42,6 +42,9 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone" {
     type   = "geodistance"
     limit  = 1
     strict = true
+  }
+
+   meta {
   }
 
   resource_record {
@@ -66,10 +69,18 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone_mx" {
   type   = "MX"
   ttl    = 10
 
+
+  meta {
+  }
+
   resource_record {
     content = "10 mail.my.com."
     enabled = true
   }
+}
+
+locals {
+string = "0 issue \"company.org;account=12345\""
 }
 
 resource "edgecenter_dns_zone_record" "subdomain_examplezone_caa" {
@@ -78,8 +89,11 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone_caa" {
   type   = "CAA"
   ttl    = 10
 
+  meta {
+  }
+
   resource_record {
-    content = "0 issue \"company.org; account=12345\""
+    content = local.string
     enabled = true
   }
 }
