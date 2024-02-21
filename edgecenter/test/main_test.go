@@ -23,10 +23,6 @@ import (
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-<<<<<<< HEAD
-=======
-	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
->>>>>>> bioidiad-DNS-235
 )
 
 const (
