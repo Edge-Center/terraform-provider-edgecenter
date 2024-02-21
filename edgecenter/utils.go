@@ -14,7 +14,7 @@ import (
 	cdn "github.com/Edge-Center/edgecentercdn-go"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
-	dnsSDK "github.com/bioidiad/edgecenter-dns-sdk-go"
+	dnsSDK "github.com/Edge-Center/edgecenter-dns-sdk-go"
 )
 
 const (

@@ -22,7 +22,7 @@ import (
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-	dnssdk "github.com/bioidiad/edgecenter-dns-sdk-go"
+	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
 )
 
 const (
