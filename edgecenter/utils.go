@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	dnsSDK "github.com/bioidiad/edgecenter-dns-sdk-go"
+	dnsSDK "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 

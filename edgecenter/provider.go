@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"os"
 
-	dnssdk "github.com/bioidiad/edgecenter-dns-sdk-go"
+	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
