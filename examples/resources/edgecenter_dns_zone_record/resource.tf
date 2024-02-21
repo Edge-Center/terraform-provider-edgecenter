@@ -20,7 +20,7 @@ resource "edgecenter_dns_zone_record" "example_rrset0" {
   type   = "A"
   ttl    = 100
 
-     meta {
+  meta {
   }
 
   resource_record {
@@ -44,7 +44,7 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone" {
     strict = true
   }
 
-   meta {
+  meta {
   }
 
   resource_record {
@@ -80,7 +80,7 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone_mx" {
 }
 
 locals {
-string = "0 issue \"company.org;account=12345\""
+  string = "0 issue \"company.org;account=12345\""
 }
 
 resource "edgecenter_dns_zone_record" "subdomain_examplezone_caa" {
