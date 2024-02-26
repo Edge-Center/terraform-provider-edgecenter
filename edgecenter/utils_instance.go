@@ -98,48 +98,45 @@ func decodeInstanceInterfaceOpts(iFaceMap map[string]interface{}) (instances.Int
 }
 
 // decodeInstanceInterfaceOptsV2 decodes the interface and returns InstanceInterface with FloatingIP.
-func decodeInstanceInterfaceOptsV2(iFaceMap map[string]interface{}) (edgecloudV2.InstanceInterface, error) {
-	var interfaceOpts edgecloudV2.InstanceInterface
-	err := MapStructureDecoder(&interfaceOpts, &iFaceMap, instanceDecoderConfig)
-	if err != nil {
-		return interfaceOpts, err
+func decodeInstanceInterfaceOptsV2(iFaceMap map[string]interface{}) edgecloudV2.InstanceInterface {
+	iFace := edgecloudV2.InstanceInterface{
+		Type:      edgecloudV2.InterfaceType(iFaceMap["type"].(string)),
+		NetworkID: iFaceMap["network_id"].(string),
+		PortID:    iFaceMap["port_id"].(string),
+		SubnetID:  iFaceMap["subnet_id"].(string),
 	}
-
-	if fipSource := iFaceMap["fip_source"].(string); fipSource != "" {
-		var fip edgecloudV2.InterfaceFloatingIP
-		if existingFipID := iFaceMap["existing_fip_id"].(string); existingFipID != "" {
-			fip.Source = edgecloudV2.ExistingFloatingIP
-			fip.ExistingFloatingID = existingFipID
-		} else {
-			fip.Source = edgecloudV2.NewFloatingIP
+	switch iFaceMap["fip_source"].(string) {
+	case "new":
+		iFace.FloatingIP = &edgecloudV2.InterfaceFloatingIP{
+			Source: edgecloudV2.NewFloatingIP,
 		}
-		interfaceOpts.FloatingIP = &fip
+	case "existing":
+		iFace.FloatingIP = &edgecloudV2.InterfaceFloatingIP{
+			Source:             edgecloudV2.ExistingFloatingIP,
+			ExistingFloatingID: iFaceMap["existing_fip_id"].(string),
+		}
 	}
 
-	return interfaceOpts, nil
+	rawSgsID := iFaceMap["security_groups"].([]interface{})
+	sgs := make([]edgecloudV2.ID, len(rawSgsID))
+	for i, sgID := range rawSgsID {
+		sgs[i] = edgecloudV2.ID{ID: sgID.(string)}
+	}
+	iFace.SecurityGroups = sgs
+
+	return iFace
 }
 
 // extractInstanceInterfaceToListCreateV2 creates a list of InstanceInterface objects from a list of interfaces.
-func extractInstanceInterfaceToListCreateV2(interfaces []interface{}) ([]edgecloudV2.InstanceInterface, error) {
+func extractInstanceInterfaceToListCreateV2(interfaces []interface{}) []edgecloudV2.InstanceInterface {
 	interfaceInstanceCreateOptsList := make([]edgecloudV2.InstanceInterface, 0)
-	for _, iFace := range interfaces {
-		iFaceMap := iFace.(map[string]interface{})
-
-		interfaceOpts, err := decodeInstanceInterfaceOptsV2(iFaceMap)
-		if err != nil {
-			return nil, err
-		}
-
-		rawSgsID := iFaceMap["security_groups"].([]interface{})
-		sgs := make([]edgecloudV2.ID, len(rawSgsID))
-		for i, sgID := range rawSgsID {
-			sgs[i] = edgecloudV2.ID{ID: sgID.(string)}
-		}
-		interfaceOpts.SecurityGroups = sgs
-		interfaceInstanceCreateOptsList = append(interfaceInstanceCreateOptsList, interfaceOpts)
+	for _, tfIFace := range interfaces {
+		iFaceMap := tfIFace.(map[string]interface{})
+		iFace := decodeInstanceInterfaceOptsV2(iFaceMap)
+		interfaceInstanceCreateOptsList = append(interfaceInstanceCreateOptsList, iFace)
 	}
 
-	return interfaceInstanceCreateOptsList, nil
+	return interfaceInstanceCreateOptsList
 }
 
 // extractInstanceInterfaceToListRead creates a list of InterfaceOpts objects from a list of interfaces.
@@ -163,7 +160,7 @@ func extractInstanceInterfaceToListRead(interfaces []interface{}) ([]instances.I
 }
 
 // extractInstanceInterfaceToListReadV2 creates a list of InterfaceOpts objects from a list of interfaces.
-func extractInstanceInterfaceToListReadV2(interfaces []interface{}) ([]InstanceInterfaceWithIPAddress, error) {
+func extractInstanceInterfaceToListReadV2(interfaces []interface{}) []InstanceInterfaceWithIPAddress {
 	interfaceOptsList := make([]InstanceInterfaceWithIPAddress, 0)
 	for _, iFace := range interfaces {
 		var instanceInterfaceWithIPAddress InstanceInterfaceWithIPAddress
@@ -172,17 +169,13 @@ func extractInstanceInterfaceToListReadV2(interfaces []interface{}) ([]InstanceI
 		}
 
 		iFaceMap := iFace.(map[string]interface{})
-		interfaceOpts, err := decodeInstanceInterfaceOptsV2(iFaceMap)
+		interfaceOpts := decodeInstanceInterfaceOptsV2(iFaceMap)
 		instanceInterfaceWithIPAddress.InstanceInterface = interfaceOpts
 		instanceInterfaceWithIPAddress.IPAddress = iFaceMap["ip_address"].(string)
-
-		if err != nil {
-			return nil, err
-		}
 		interfaceOptsList = append(interfaceOptsList, instanceInterfaceWithIPAddress)
 	}
 
-	return interfaceOptsList, nil
+	return interfaceOptsList
 }
 
 // extractMetadataMap converts a map of metadata into a metadata set options structure.

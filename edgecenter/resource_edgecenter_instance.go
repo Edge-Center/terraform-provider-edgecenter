@@ -53,23 +53,27 @@ func resourceInstance() *schema.Resource {
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
+				Computed:     true,
 				Optional:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
@@ -448,10 +452,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	ifs := d.Get("interface").([]interface{})
 	if len(ifs) > 0 {
-		ifaceCreateOptsList, err := extractInstanceInterfaceToListCreateV2(ifs)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+		ifaceCreateOptsList := extractInstanceInterfaceToListCreateV2(ifs)
 		createOpts.Interfaces = ifaceCreateOptsList
 	}
 
@@ -603,11 +604,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	ifs := d.Get("interface").([]interface{})
 	sort.Sort(instanceInterfaces(ifs))
-	interfacesListExtracted, err := extractInstanceInterfaceToListReadV2(ifs)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	interfacesListExtracted := extractInstanceInterfaceToListReadV2(ifs)
 	var interfacesList []interface{}
 	for order, iFace := range interfacesListAPI {
 		if len(iFace.IPAssignments) == 0 {
