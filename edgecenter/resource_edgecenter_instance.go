@@ -604,9 +604,9 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	ifs := d.Get("interface").([]interface{})
 	sort.Sort(instanceInterfaces(ifs))
-	interfacesListExtracted := extractInstanceInterfaceToListReadV2(ifs)
+	orderedInterfacesMap := extractInstanceInterfaceToListReadV2(ifs)
 	var interfacesList []interface{}
-	for order, iFace := range interfacesListAPI {
+	for _, iFace := range interfacesListAPI {
 		if len(iFace.IPAssignments) == 0 {
 			continue
 		}
@@ -614,29 +614,37 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 		portID := iFace.PortID
 		for _, assignment := range iFace.IPAssignments {
 			subnetID := assignment.SubnetID
-			ipAddress := assignment.IPAddress.String()
 
-			var interfaceOpts edgecloudV2.InstanceInterface
-			for _, interfaceExtracted := range interfacesListExtracted {
-				if interfaceExtracted.InstanceInterface.SubnetID == subnetID || interfaceExtracted.IPAddress == ipAddress || interfaceExtracted.InstanceInterface.PortID == portID {
-					interfaceOpts = interfaceExtracted.InstanceInterface
+			var interfaceOpts OrderedInterfaceOpts
+			var orderedInterfaceOpts OrderedInterfaceOpts
+			var ok bool
+
+			// we need to match our interfaces with api's interfaces
+			// but with don't have any unique value, that's why we use exactly that list of keys
+			for _, k := range []string{subnetID, iFace.PortID, iFace.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
+				if orderedInterfaceOpts, ok = orderedInterfacesMap[k]; ok {
+					interfaceOpts = orderedInterfaceOpts
 					break
 				}
 			}
 
+			if !ok {
+				continue
+			}
+
 			i := make(map[string]interface{})
-			i["type"] = interfaceOpts.Type
-			i["order"] = order
+			i["type"] = interfaceOpts.InstanceInterface.Type
+			i["order"] = interfaceOpts.Order
 			i["network_id"] = iFace.NetworkID
 			i["subnet_id"] = subnetID
-			i["port_id"] = portID
+			i["port_id"] = iFace.PortID
 			i["port_security_disabled"] = !iFace.PortSecurityEnabled
-			if interfaceOpts.FloatingIP != nil {
-				i["fip_source"] = interfaceOpts.FloatingIP.Source
-				i["existing_fip_id"] = interfaceOpts.FloatingIP.ExistingFloatingID
-			}
-			i["ip_address"] = ipAddress
 
+			if interfaceOpts.InstanceInterface.FloatingIP != nil {
+				i["fip_source"] = interfaceOpts.InstanceInterface.FloatingIP.Source
+				i["existing_fip_id"] = interfaceOpts.InstanceInterface.FloatingIP.ExistingFloatingID
+			}
+			i["ip_address"] = assignment.IPAddress.String()
 			if port, err := findInstancePortV2(portID, instancePorts); err == nil {
 				sgs := make([]string, len(port.SecurityGroups))
 				for i, sg := range port.SecurityGroups {

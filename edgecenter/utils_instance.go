@@ -14,7 +14,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
@@ -62,8 +61,13 @@ func (s instanceInterfaces) Less(i, j int) bool {
 
 	lOrder, _ := ifLeft["order"].(int)
 	rOrder, _ := ifRight["order"].(int)
+	if lOrder != rOrder {
+		return lOrder < rOrder
+	}
+	lPortID, _ := ifLeft["port_id"].(string)
+	rPortID, _ := ifRight["port_id"].(string)
 
-	return lOrder < rOrder
+	return lPortID < rPortID
 }
 
 func (s instanceInterfaces) Swap(i, j int) {
@@ -71,30 +75,8 @@ func (s instanceInterfaces) Swap(i, j int) {
 }
 
 type OrderedInterfaceOpts struct {
-	instances.InterfaceOpts
+	InstanceInterfaceWithIPAddress
 	Order int
-}
-
-// decodeInstanceInterfaceOpts decodes the interface and returns InterfaceOpts with FloatingIP.
-func decodeInstanceInterfaceOpts(iFaceMap map[string]interface{}) (instances.InterfaceOpts, error) {
-	var interfaceOpts instances.InterfaceOpts
-	err := MapStructureDecoder(&interfaceOpts, &iFaceMap, instanceDecoderConfig)
-	if err != nil {
-		return interfaceOpts, err
-	}
-
-	if fipSource := iFaceMap["fip_source"].(string); fipSource != "" {
-		var fip instances.CreateNewInterfaceFloatingIPOpts
-		if existingFipID := iFaceMap["existing_fip_id"].(string); existingFipID != "" {
-			fip.Source = types.ExistingFloatingIP
-			fip.ExistingFloatingID = existingFipID
-		} else {
-			fip.Source = types.NewFloatingIP
-		}
-		interfaceOpts.FloatingIP = &fip
-	}
-
-	return interfaceOpts, nil
 }
 
 // decodeInstanceInterfaceOptsV2 decodes the interface and returns InstanceInterface with FloatingIP.
@@ -117,9 +99,13 @@ func decodeInstanceInterfaceOptsV2(iFaceMap map[string]interface{}) edgecloudV2.
 		}
 	}
 
-	rawSgsID := iFaceMap["security_groups"].([]interface{})
-	sgs := make([]edgecloudV2.ID, len(rawSgsID))
-	for i, sgID := range rawSgsID {
+	rawSgsID := iFaceMap["security_groups"]
+	if rawSgsID == nil {
+		return iFace
+	}
+	rawSgsIDList := iFaceMap["security_groups"].([]interface{})
+	sgs := make([]edgecloudV2.ID, len(rawSgsIDList))
+	for i, sgID := range rawSgsIDList {
 		sgs[i] = edgecloudV2.ID{ID: sgID.(string)}
 	}
 	iFace.SecurityGroups = sgs
@@ -139,29 +125,9 @@ func extractInstanceInterfaceToListCreateV2(interfaces []interface{}) []edgeclou
 	return interfaceInstanceCreateOptsList
 }
 
-// extractInstanceInterfaceToListRead creates a list of InterfaceOpts objects from a list of interfaces.
-// todo delete after migrate to v2 edgcentercloud-go client.
-func extractInstanceInterfaceToListRead(interfaces []interface{}) ([]instances.InterfaceOpts, error) {
-	interfaceOptsList := make([]instances.InterfaceOpts, 0)
-	for _, iFace := range interfaces {
-		if iFace == nil {
-			continue
-		}
-
-		iFaceMap := iFace.(map[string]interface{})
-		interfaceOpts, err := decodeInstanceInterfaceOpts(iFaceMap)
-		if err != nil {
-			return nil, err
-		}
-		interfaceOptsList = append(interfaceOptsList, interfaceOpts)
-	}
-
-	return interfaceOptsList, nil
-}
-
 // extractInstanceInterfaceToListReadV2 creates a list of InterfaceOpts objects from a list of interfaces.
-func extractInstanceInterfaceToListReadV2(interfaces []interface{}) []InstanceInterfaceWithIPAddress {
-	interfaceOptsList := make([]InstanceInterfaceWithIPAddress, 0)
+func extractInstanceInterfaceToListReadV2(interfaces []interface{}) map[string]OrderedInterfaceOpts {
+	orderedInterfacesMap := make(map[string]OrderedInterfaceOpts)
 	for _, iFace := range interfaces {
 		var instanceInterfaceWithIPAddress InstanceInterfaceWithIPAddress
 		if iFace == nil {
@@ -172,19 +138,17 @@ func extractInstanceInterfaceToListReadV2(interfaces []interface{}) []InstanceIn
 		interfaceOpts := decodeInstanceInterfaceOptsV2(iFaceMap)
 		instanceInterfaceWithIPAddress.InstanceInterface = interfaceOpts
 		instanceInterfaceWithIPAddress.IPAddress = iFaceMap["ip_address"].(string)
-		interfaceOptsList = append(interfaceOptsList, instanceInterfaceWithIPAddress)
+		order, _ := iFaceMap["order"].(int)
+		orderedInt := OrderedInterfaceOpts{instanceInterfaceWithIPAddress, order}
+		orderedInterfacesMap[instanceInterfaceWithIPAddress.InstanceInterface.SubnetID] = orderedInt
+		orderedInterfacesMap[instanceInterfaceWithIPAddress.InstanceInterface.NetworkID] = orderedInt
+		orderedInterfacesMap[instanceInterfaceWithIPAddress.InstanceInterface.PortID] = orderedInt
+		if instanceInterfaceWithIPAddress.InstanceInterface.Type == edgecloudV2.InterfaceTypeExternal {
+			orderedInterfacesMap[string(instanceInterfaceWithIPAddress.InstanceInterface.Type)] = orderedInt
+		}
 	}
 
-	return interfaceOptsList
-}
-
-// extractMetadataMap converts a map of metadata into a metadata set options structure.
-func extractMetadataMap(metadata map[string]interface{}) instances.MetadataSetOpts {
-	result := make([]instances.MetadataOpts, 0, len(metadata))
-	for k, v := range metadata {
-		result = append(result, instances.MetadataOpts{Key: k, Value: v.(string)})
-	}
-	return instances.MetadataSetOpts{Metadata: result}
+	return orderedInterfacesMap
 }
 
 // extractInstanceVolumesMap converts a slice of instance volumes into a map of volume IDs to boolean values.
@@ -205,25 +169,6 @@ func extractVolumesIntoMap(volumes []interface{}) map[string]map[string]interfac
 		result[vol["volume_id"].(string)] = vol
 	}
 	return result
-}
-
-// extractKeyValue takes a slice of metadata interfaces and converts it into an instances.MetadataSetOpts structure.
-// todo delete after finish migrating to v2 edgecentercloud-go client.
-func extractKeyValue(metadata []interface{}) (instances.MetadataSetOpts, error) {
-	metaData := make([]instances.MetadataOpts, len(metadata))
-	var metadataSetOpts instances.MetadataSetOpts
-	for i, meta := range metadata {
-		md := meta.(map[string]interface{})
-		var MD instances.MetadataOpts
-		err := MapStructureDecoder(&MD, &md, instanceDecoderConfig)
-		if err != nil {
-			return metadataSetOpts, err
-		}
-		metaData[i] = MD
-	}
-	metadataSetOpts.Metadata = metaData
-
-	return metadataSetOpts, nil
 }
 
 // extractKeyValueV2 takes a slice of metadata interfaces and converts it into an edgecloudV2.Metadata structure.
@@ -248,8 +193,8 @@ func volumeUniqueID(i interface{}) int {
 	return int(binary.BigEndian.Uint64(h.Sum(nil)))
 }
 
-// isInterfaceAttached checks if an interface is attached to a list of instances.Interface objects based on the subnet ID or external interface type.
-func isInterfaceAttached(ifs []instances.Interface, ifs2 map[string]interface{}) bool {
+// isInterfaceAttachedV2 checks if an interface is attached to a list of instances.Interface objects based on the subnet ID or external interface type.
+func isInterfaceAttachedV2(ifs []edgecloudV2.InstancePortInterface, ifs2 map[string]interface{}) bool {
 	subnetID, _ := ifs2["subnet_id"].(string)
 	iType := types.InterfaceType(ifs2["type"].(string))
 	for _, i := range ifs {
@@ -416,8 +361,12 @@ func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client
 	case edgecloudV2.InterfaceTypeReservedFixedIP:
 		opts.PortID = iface["port_id"].(string)
 	}
-	opts.SecurityGroups = getSecurityGroupsIDsV2(iface["security_groups"].([]interface{}))
-
+	secGroups := iface["security_groups"]
+	if secGroups != nil {
+		opts.SecurityGroups = getSecurityGroupsIDsV2(secGroups.([]interface{}))
+	} else {
+		opts.SecurityGroups = []edgecloudV2.ID{}
+	}
 	log.Printf("[DEBUG] attach interface: %+v", opts)
 	results, _, err := client.Instances.AttachInterface(ctx, instanceID, &opts)
 	if err != nil {
@@ -434,13 +383,17 @@ func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client
 		return fmt.Errorf("cannot attach interface with opts: %v", opts)
 	}
 
-	interfacesListAPI, _, err := client.Instances.InterfaceList(ctx, instanceID)
-	if err != nil {
-		return fmt.Errorf("error from getting instance interfaces: %w", err)
-	}
+	_, isBareMetal := iface["is_parent"]
 
-	if err = adjustPortSecurityDisabledOptV2(ctx, client, interfacesListAPI, iface); err != nil {
-		return fmt.Errorf("cannot adjust port_security_disabled opt: %+v. Error: %w", iface, err)
+	if !isBareMetal {
+		interfacesListAPI, _, err := client.Instances.InterfaceList(ctx, instanceID)
+		if err != nil {
+			return fmt.Errorf("error from getting instance interfaces: %w", err)
+		}
+
+		if err = adjustPortSecurityDisabledOptV2(ctx, client, interfacesListAPI, iface); err != nil {
+			return fmt.Errorf("cannot adjust port_security_disabled opt: %+v. Error: %w", iface, err)
+		}
 	}
 
 	return nil

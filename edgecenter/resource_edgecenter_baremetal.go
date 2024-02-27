@@ -2,9 +2,9 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"sort"
 	"strconv"
 	"time"
@@ -12,11 +12,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/baremetal/v1/bminstances"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
@@ -25,7 +22,10 @@ const (
 	BmInstancePoint               = "bminstances"
 )
 
-var bmCreateTimeout = time.Second * time.Duration(BmInstanceCreatingTimeout)
+var (
+	bmCreateTimeout = time.Second * time.Duration(BmInstanceCreatingTimeout)
+	bmDeleteTimeout = time.Second * time.Duration(BmInstanceDeleting)
+)
 
 func resourceBmInstance() *schema.Resource {
 	return &schema.Resource{
@@ -55,23 +55,27 @@ func resourceBmInstance() *schema.Resource {
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
+				Computed:     true,
 				Optional:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
+				Computed:     true,
 				Optional:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
@@ -88,7 +92,7 @@ func resourceBmInstance() *schema.Resource {
 						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", types.SubnetInterfaceType, types.AnySubnetInterfaceType, types.ExternalInterfaceType, types.ReservedFixedIPType),
+							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", edgecloudV2.InterfaceTypeSubnet, edgecloudV2.InterfaceTypeAnySubnet, edgecloudV2.InterfaceTypeExternal, edgecloudV2.InterfaceTypeReservedFixedIP),
 						},
 						"is_parent": {
 							Type:        schema.TypeBool,
@@ -269,21 +273,25 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 	log.Println("[DEBUG] Start BaremetalInstance creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
 
-	client, err := CreateClient(provider, d, BmInstancePoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	ifs := d.Get("interface").([]interface{})
 	// sort interfaces by 'is_parent' at first and by 'order' key to attach it in right order
 	sort.Sort(instanceInterfaces(ifs))
-	interfaceOptsList := make([]bminstances.InterfaceOpts, len(ifs))
+	interfaceOptsList := make([]edgecloudV2.BareMetalInterfaceOpts, len(ifs))
 	for i, iFace := range ifs {
 		raw := iFace.(map[string]interface{})
-		interfaceOpts := bminstances.InterfaceOpts{
-			Type:      types.InterfaceType(raw["type"].(string)),
+		interfaceOpts := edgecloudV2.BareMetalInterfaceOpts{
+			Type:      edgecloudV2.InterfaceType(raw["type"].(string)),
 			NetworkID: raw["network_id"].(string),
 			SubnetID:  raw["subnet_id"].(string),
 			PortID:    raw["port_id"].(string),
@@ -292,8 +300,8 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 		fipSource := raw["fip_source"].(string)
 		fipID := raw["existing_fip_id"].(string)
 		if fipSource != "" {
-			interfaceOpts.FloatingIP = &bminstances.CreateNewInterfaceFloatingIPOpts{
-				Source:             types.FloatingIPSource(fipSource),
+			interfaceOpts.FloatingIP = &edgecloudV2.InterfaceFloatingIP{
+				Source:             edgecloudV2.FloatingIPSource(fipSource),
 				ExistingFloatingID: fipID,
 			}
 		}
@@ -301,11 +309,11 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	log.Printf("[DEBUG] Baremetal interfaces: %+v", interfaceOptsList)
-	opts := bminstances.CreateOpts{
+	createRequest := edgecloudV2.BareMetalServerCreateRequest{
 		Flavor:        d.Get("flavor_id").(string),
 		ImageID:       d.Get("image_id").(string),
 		AppTemplateID: d.Get("apptemplate_id").(string),
-		Keypair:       d.Get("keypair_name").(string),
+		KeypairName:   d.Get("keypair_name").(string),
 		Password:      d.Get("password").(string),
 		Username:      d.Get("username").(string),
 		UserData:      d.Get("user_data").(string),
@@ -315,7 +323,7 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 
 	name := d.Get("name").(string)
 	if len(name) > 0 {
-		opts.Names = []string{name}
+		createRequest.Names = []string{name}
 	}
 
 	if nameTemplatesRaw, ok := d.GetOk("name_templates"); ok {
@@ -325,73 +333,78 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 			for i, nametemp := range nameTemplates {
 				NameTemp[i] = nametemp.(string)
 			}
-			opts.NameTemplates = NameTemp
+			createRequest.NameTemplates = NameTemp
 		}
 	} else if nameTemplate, ok := d.GetOk("name_template"); ok {
-		opts.NameTemplates = []string{nameTemplate.(string)}
+		createRequest.NameTemplates = []string{nameTemplate.(string)}
 	}
 
 	if metadata, ok := d.GetOk("metadata"); ok {
 		if len(metadata.([]interface{})) > 0 {
-			md, err := extractKeyValue(metadata.([]interface{}))
+			metadataKV, err := extractKeyValueV2(metadata.([]interface{}))
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			opts.Metadata = &md
+			metadata, err := MapInterfaceToMapString(metadataKV)
+			if err != nil {
+				diag.FromErr(err)
+			}
+			createRequest.Metadata = *metadata
 		}
 	} else if metadataRaw, ok := d.GetOk("metadata_map"); ok {
-		md := extractMetadataMap(metadataRaw.(map[string]interface{}))
-		opts.Metadata = &md
+		metadata, err := MapInterfaceToMapString(metadataRaw)
+		if err != nil {
+			diag.FromErr(err)
+		}
+		createRequest.Metadata = *metadata
 	}
 
-	results, err := bminstances.Create(client, opts).Extract()
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Instances.BareMetalCreateInstance, &createRequest, clientV2, bmCreateTimeout)
+	if err != nil {
+		return diag.Errorf("error creating instance: %s", err)
+	}
+
+	instanceID := taskResult.Instances[0]
+	log.Printf("[DEBUG] Baremetal Instance id (%s)", instanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-
-	InstanceID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, BmInstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		Instance, err := instances.ExtractInstanceIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve Instance ID from task info: %w", err)
-		}
-		return Instance, nil
-	},
-	)
-	log.Printf("[DEBUG] Baremetal Instance id (%s)", InstanceID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(InstanceID.(string))
+	d.SetId(instanceID)
 	resourceBmInstanceRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish Baremetal Instance creating (%s)", InstanceID)
+	log.Printf("[DEBUG] Finish Baremetal Instance creating (%s)", instanceID)
 
 	return diags
 }
 
-func resourceBmInstanceRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Baremetal Instance reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	instance, err := instances.Get(client, instanceID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+	d.Set("region_id", regionID)
+	d.Set("project_id", projectID)
+
+	instance, resp, err := clientV2.Instances.Get(ctx, instanceID)
 	if err != nil {
-		return diag.Errorf("cannot get instance with ID: %s. Error: %s", instanceID, err)
+		if resp.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", d.Id())
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
 	}
 
 	d.Set("name", instance.Name)
@@ -406,7 +419,7 @@ func resourceBmInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 	flavor["vcpus"] = strconv.Itoa(instance.Flavor.VCPUS)
 	d.Set("flavor", flavor)
 
-	interfacesListAPI, err := instances.ListInterfacesAll(client, instanceID)
+	interfacesListAPI, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -416,78 +429,81 @@ func resourceBmInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 	}
 
 	ifs := d.Get("interface").([]interface{})
-	sort.Sort(instanceInterfaces(ifs))
-	interfacesListExtracted, err := extractInstanceInterfaceToListRead(ifs)
+	orderedInterfacesMap := extractInstanceInterfaceToListReadV2(ifs)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var interfacesList []interface{}
-	for order, iFace := range interfacesListAPI {
+	for _, iFace := range interfacesListAPI {
 		if len(iFace.IPAssignments) == 0 {
 			continue
 		}
-
-		portID := iFace.PortID
 		for _, assignment := range iFace.IPAssignments {
 			subnetID := assignment.SubnetID
-			ipAddress := assignment.IPAddress.String()
 
-			var interfaceOpts instances.InterfaceOpts
-			for _, interfaceExtracted := range interfacesListExtracted {
-				if interfaceExtracted.SubnetID == subnetID ||
-					interfaceExtracted.IPAddress == ipAddress ||
-					interfaceExtracted.PortID == portID {
-					interfaceOpts = interfaceExtracted
+			var interfaceOpts OrderedInterfaceOpts
+			var orderedInterfaceOpts OrderedInterfaceOpts
+			var ok bool
+
+			// we need to match our interfaces with api's interfaces
+			// but with don't have any unique value, that's why we use exactly that list of keys
+			for _, k := range []string{subnetID, iFace.PortID, iFace.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
+				if orderedInterfaceOpts, ok = orderedInterfacesMap[k]; ok {
+					interfaceOpts = orderedInterfaceOpts
 					break
 				}
 			}
 
+			if !ok {
+				continue
+			}
+
 			i := make(map[string]interface{})
-			i["type"] = interfaceOpts.Type.String()
-			i["order"] = order
+			i["type"] = interfaceOpts.InstanceInterface.Type
+			i["order"] = interfaceOpts.Order
 			i["network_id"] = iFace.NetworkID
 			i["subnet_id"] = subnetID
-			i["port_id"] = portID
-			i["is_parent"] = true
-			if interfaceOpts.FloatingIP != nil {
-				i["fip_source"] = interfaceOpts.FloatingIP.Source.String()
-				i["existing_fip_id"] = interfaceOpts.FloatingIP.ExistingFloatingID
+			i["port_id"] = iFace.PortID
+			if iFace.SubPorts != nil {
+				i["is_parent"] = true
 			}
-			i["ip_address"] = ipAddress
+			if interfaceOpts.InstanceInterface.FloatingIP != nil {
+				i["fip_source"] = interfaceOpts.InstanceInterface.FloatingIP.Source
+				i["existing_fip_id"] = interfaceOpts.InstanceInterface.FloatingIP.ExistingFloatingID
+			}
+			i["ip_address"] = assignment.IPAddress.String()
 
 			interfacesList = append(interfacesList, i)
 		}
-
 		for _, iFaceSubPort := range iFace.SubPorts {
-			subPortID := iFaceSubPort.PortID
 			for _, assignmentSubPort := range iFaceSubPort.IPAssignments {
 				assignmentSubnetID := assignmentSubPort.SubnetID
-				assignmentIPAddress := assignmentSubPort.IPAddress.String()
 
-				var subPortInterfaceOpts instances.InterfaceOpts
-				for _, interfaceExtracted := range interfacesListExtracted {
-					if interfaceExtracted.SubnetID == assignmentSubnetID ||
-						interfaceExtracted.IPAddress == assignmentIPAddress ||
-						interfaceExtracted.PortID == subPortID {
-						subPortInterfaceOpts = interfaceExtracted
+				var interfaceOpts OrderedInterfaceOpts
+				var orderedInterfaceOpts OrderedInterfaceOpts
+				var ok bool
+
+				for _, k := range []string{assignmentSubnetID, iFaceSubPort.PortID, iFaceSubPort.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
+					if orderedInterfaceOpts, ok = orderedInterfacesMap[k]; ok {
+						interfaceOpts = orderedInterfaceOpts
 						break
 					}
 				}
 
 				i := make(map[string]interface{})
 
-				i["type"] = subPortInterfaceOpts.Type.String()
-				i["order"] = order
+				i["type"] = interfaceOpts.InstanceInterface.Type
+				i["order"] = interfaceOpts.Order
 				i["network_id"] = iFaceSubPort.NetworkID
 				i["subnet_id"] = assignmentSubnetID
-				i["port_id"] = subPortID
+				i["port_id"] = iFaceSubPort.PortID
 				i["is_parent"] = false
-				if subPortInterfaceOpts.FloatingIP != nil {
-					i["fip_source"] = subPortInterfaceOpts.FloatingIP.Source.String()
-					i["existing_fip_id"] = subPortInterfaceOpts.FloatingIP.ExistingFloatingID
+				if interfaceOpts.InstanceInterface.FloatingIP != nil {
+					i["fip_source"] = interfaceOpts.InstanceInterface.FloatingIP.Source
+					i["existing_fip_id"] = interfaceOpts.InstanceInterface.FloatingIP.ExistingFloatingID
 				}
-				i["ip_address"] = assignmentIPAddress
+				i["ip_address"] = assignmentSubPort.IPAddress.String()
 
 				interfacesList = append(interfacesList, i)
 			}
@@ -503,7 +519,7 @@ func resourceBmInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 		for i, data := range metadata {
 			d := data.(map[string]interface{})
 			mdata := make(map[string]string, 2)
-			md, err := instances.MetadataGet(client, instanceID, d["key"].(string)).Extract()
+			md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: d["key"].(string)})
 			if err != nil {
 				return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
 			}
@@ -516,7 +532,7 @@ func resourceBmInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 		metadata := d.Get("metadata_map").(map[string]interface{})
 		newMetadata := make(map[string]interface{}, len(metadata))
 		for k := range metadata {
-			md, err := instances.MetadataGet(client, instanceID, k).Extract()
+			md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
 			if err != nil {
 				return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
 			}
@@ -533,7 +549,7 @@ func resourceBmInstanceRead(_ context.Context, d *schema.ResourceData, m interfa
 		netd := make([]map[string]string, len(data))
 		for i, iaddr := range data {
 			ndata := make(map[string]string, 2)
-			ndata["type"] = iaddr.Type.String()
+			ndata["type"] = iaddr.Type
 			ndata["addr"] = iaddr.Address.String()
 			netd[i] = ndata
 		}
@@ -557,20 +573,22 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 	config := m.(*Config)
-	provider := config.Provider
-	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
 	if d.HasChange("name") {
 		nameTemplates := d.Get("name_templates").([]interface{})
 		nameTemplate := d.Get("name_template").(string)
 		if len(nameTemplate) == 0 && len(nameTemplates) == 0 {
-			opts := instances.RenameInstanceOpts{
-				Name: d.Get("name").(string),
-			}
-			if _, err := instances.RenameInstance(client, instanceID, opts).Extract(); err != nil {
+			opts := edgecloudV2.Name{Name: d.Get("name").(string)}
+			if _, _, err := clientV2.Instances.Rename(ctx, instanceID, &opts); err != nil {
 				return diag.FromErr(err)
 			}
 		}
@@ -582,25 +600,19 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 			for _, data := range omd.([]interface{}) {
 				d := data.(map[string]interface{})
 				k := d["key"].(string)
-				err := instances.MetadataDelete(client, instanceID, k).Err
+				_, err = clientV2.Instances.MetadataDeleteItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
 				if err != nil {
 					return diag.Errorf("cannot delete metadata key: %s. Error: %s", k, err)
 				}
 			}
 		}
 		if len(nmd.([]interface{})) > 0 {
-			var MetaData []instances.MetadataOpts
+			MetaData := make(edgecloudV2.Metadata)
 			for _, data := range nmd.([]interface{}) {
 				d := data.(map[string]interface{})
-				var md instances.MetadataOpts
-				md.Key = d["key"].(string)
-				md.Value = d["value"].(string)
-				MetaData = append(MetaData, md)
+				MetaData[d["key"].(string)] = d["value"].(string)
 			}
-			createOpts := instances.MetadataSetOpts{
-				Metadata: MetaData,
-			}
-			err := instances.MetadataCreate(client, instanceID, createOpts).Err
+			_, err = clientV2.Instances.MetadataCreate(ctx, instanceID, &MetaData)
 			if err != nil {
 				return diag.Errorf("cannot create metadata. Error: %s", err)
 			}
@@ -609,25 +621,18 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 		omd, nmd := d.GetChange("metadata_map")
 		if len(omd.(map[string]interface{})) > 0 {
 			for k := range omd.(map[string]interface{}) {
-				err := instances.MetadataDelete(client, instanceID, k).Err
+				_, err := clientV2.Instances.MetadataDeleteItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
 				if err != nil {
 					return diag.Errorf("cannot delete metadata key: %s. Error: %s", k, err)
 				}
 			}
 		}
 		if len(nmd.(map[string]interface{})) > 0 {
-			var MetaData []instances.MetadataOpts
+			MetaData := make(edgecloudV2.Metadata)
 			for k, v := range nmd.(map[string]interface{}) {
-				md := instances.MetadataOpts{
-					Key:   k,
-					Value: v.(string),
-				}
-				MetaData = append(MetaData, md)
+				MetaData[k] = v.(string)
 			}
-			createOpts := instances.MetadataSetOpts{
-				Metadata: MetaData,
-			}
-			err := instances.MetadataCreate(client, instanceID, createOpts).Err
+			_, err = clientV2.Instances.MetadataCreate(ctx, instanceID, &MetaData)
 			if err != nil {
 				return diag.Errorf("cannot create metadata. Error: %s", err)
 			}
@@ -650,31 +655,12 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 			if iface["is_parent"].(bool) {
 				return diag.Errorf("could not detach trunk interface")
 			}
-
-			var opts instances.InterfaceOpts
-			opts.PortID = iface["port_id"].(string)
-			opts.IPAddress = iface["ip_address"].(string)
-
-			log.Printf("[DEBUG] detach interface: %+v", opts)
-			results, err := instances.DetachInterface(client, instanceID, opts).Extract()
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			taskID := results.Tasks[0]
-			_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, InstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-				taskInfo, err := tasks.Get(client, string(task)).Extract()
-				if err != nil {
-					return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w, task: %+v", task, err, taskInfo)
-				}
-				return nil, nil
-			},
-			)
-			if err != nil {
+			if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
 				return diag.FromErr(err)
 			}
 		}
 
-		currentIfs, err := instances.ListInterfacesAll(client, d.Id())
+		currentIfs, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -686,37 +672,24 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 				log.Println("[DEBUG] Skipped, dont need attach")
 				continue
 			}
-			if isInterfaceAttached(currentIfs, iface) {
+			if isInterfaceAttachedV2(currentIfs, iface) {
 				continue
 			}
 
-			iType := types.InterfaceType(iface["type"].(string))
-			opts := instances.InterfaceOpts{Type: iType}
+			iType := edgecloudV2.InterfaceType(iface["type"].(string))
+			opts := edgecloudV2.InstanceInterface{Type: iType}
 			switch iType {
-			case types.SubnetInterfaceType:
+			case edgecloudV2.InterfaceTypeSubnet:
 				opts.SubnetID = iface["subnet_id"].(string)
-			case types.AnySubnetInterfaceType:
+			case edgecloudV2.InterfaceTypeAnySubnet:
 				opts.NetworkID = iface["network_id"].(string)
-			case types.ReservedFixedIPType:
+			case edgecloudV2.InterfaceTypeReservedFixedIP:
 				opts.PortID = iface["port_id"].(string)
-			case types.ExternalInterfaceType:
+			case edgecloudV2.InterfaceTypeExternal:
 			}
 
 			log.Printf("[DEBUG] attach interface: %+v", opts)
-			results, err := instances.AttachInterface(client, instanceID, opts).Extract()
-			if err != nil {
-				return diag.Errorf("cannot attach interface: %s. Error: %s", iType, err)
-			}
-			taskID := results.Tasks[0]
-			_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, InstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-				taskInfo, err := tasks.Get(client, string(task)).Extract()
-				if err != nil {
-					return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w, task: %+v", task, err, taskInfo)
-				}
-				return nil, nil
-			},
-			)
-			if err != nil {
+			if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
 				return diag.FromErr(err)
 			}
 		}
@@ -728,41 +701,37 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 	return resourceBmInstanceRead(ctx, d, m)
 }
 
-func resourceBmInstanceDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceBmInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Baremetal Instance deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
-	instanceID := d.Id()
-	log.Printf("[DEBUG] Instance id = %s", instanceID)
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var delOpts instances.DeleteOpts
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+	instanceID := d.Id()
+
+	var delOpts edgecloudV2.InstanceDeleteOptions
 	delOpts.DeleteFloatings = true
 
-	results, err := instances.Delete(client, instanceID, delOpts).Extract()
+	results, _, err := clientV2.Instances.Delete(ctx, instanceID, &delOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, BmInstanceDeleting, func(task tasks.TaskID) (interface{}, error) {
-		_, err := instances.Get(client, instanceID).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete instance with ID: %s", instanceID)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting Instance resource error: %w", err)
-	})
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, bmDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if task.State == edgecloudV2.TaskStateError {
+		return diag.Errorf("cannot delete instance with ID: %s", instanceID)
 	}
 
 	d.SetId("")
