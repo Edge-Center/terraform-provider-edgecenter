@@ -11,7 +11,7 @@ import (
 	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	"github.com/mitchellh/mapstructure"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
@@ -19,18 +19,7 @@ import (
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
-var instanceDecoderConfig = &mapstructure.DecoderConfig{
-	TagName: "json",
-}
-
 type instanceInterfaces []interface{}
-
-type InstancePortSecurityOpts struct {
-	PortID               string
-	PortSecurityDisabled bool
-	SubnetID             string
-	IPAddress            string
-}
 
 type InstanceInterfaceWithIPAddress struct {
 	InstanceInterface edgecloudV2.InstanceInterface
@@ -151,26 +140,6 @@ func extractInstanceInterfaceToListReadV2(interfaces []interface{}) map[string]O
 	return orderedInterfacesMap
 }
 
-// extractInstanceVolumesMap converts a slice of instance volumes into a map of volume IDs to boolean values.
-func extractInstanceVolumesMap(volumes []interface{}) map[string]bool {
-	result := make(map[string]bool)
-	for _, volume := range volumes {
-		v := volume.(map[string]interface{})
-		result[v["volume_id"].(string)] = true
-	}
-	return result
-}
-
-// extractVolumesIntoMap converts a slice of volumes into a map with volume_id as the key.
-func extractVolumesIntoMap(volumes []interface{}) map[string]map[string]interface{} {
-	result := make(map[string]map[string]interface{}, len(volumes))
-	for _, volume := range volumes {
-		vol := volume.(map[string]interface{})
-		result[vol["volume_id"].(string)] = vol
-	}
-	return result
-}
-
 // extractKeyValueV2 takes a slice of metadata interfaces and converts it into an edgecloudV2.Metadata structure.
 func extractKeyValueV2(metadata []interface{}) (map[string]interface{}, error) {
 	metaData := make(map[string]interface{}, len(metadata))
@@ -219,22 +188,6 @@ func isInterfaceAttachedV2(ifs []edgecloudV2.InstancePortInterface, ifs2 map[str
 	}
 
 	return false
-}
-
-// extractVolumesMap takes a slice of volume interfaces and converts it into a slice of instances.CreateVolumeOpts.
-func extractVolumesMapV2(volumes []interface{}) ([]edgecloudV2.InstanceVolumeCreate, error) {
-	vols := make([]edgecloudV2.InstanceVolumeCreate, len(volumes))
-	for i, volume := range volumes {
-		vol := volume.(map[string]interface{})
-		var V edgecloudV2.InstanceVolumeCreate
-		err := MapStructureDecoder(&V, &vol, instanceDecoderConfig)
-		if err != nil {
-			return nil, err
-		}
-		vols[i] = V
-	}
-
-	return vols, nil
 }
 
 // isInterfaceContains checks if a given verifiable interface is present in the provided set of interfaces (ifsSet).
@@ -572,4 +525,110 @@ func getSecurityGroupsDifferenceV2(sl1, sl2 []edgecloudV2.ID) (diff []edgecloudV
 	}
 
 	return diff
+}
+
+// changeVolumes execute code for function resourceInstanceUpdate.
+func changeVolumes(ctx context.Context, d *schema.ResourceData, clientV2 *edgecloudV2.Client) error {
+	oldVolumesRaw, newVolumesRaw := d.GetChange("volume")
+	oldVolumes, newVolumes := oldVolumesRaw.([]interface{}), newVolumesRaw.([]interface{})
+
+	oldIDs := getVolumeIDsSet(oldVolumes)
+	newIDs := getVolumeIDsSet(newVolumes)
+
+	// detach volumes
+	for volumeID := range mapLeftDiff(oldIDs, newIDs) {
+		volume := getVolumeInfoByID(volumeID, oldVolumes)
+		if volume["boot_index"].(int) == 0 {
+			return fmt.Errorf("cannot detach primary boot device with boot_index=0. id: %s", volumeID)
+		}
+
+		volumeDetachRequest := &edgecloudV2.VolumeDetachRequest{InstanceID: d.Id()}
+		if _, _, err := clientV2.Volumes.Detach(ctx, volumeID, volumeDetachRequest); err != nil {
+			return fmt.Errorf("еrror while detaching the volume: %w", err)
+		}
+	}
+
+	// attach volumes
+	for volumeID := range mapLeftDiff(newIDs, oldIDs) {
+		volume := getVolumeInfoByID(volumeID, newVolumes)
+		attachmentTag := volume["attachment_tag"].(string)
+
+		switch volume["source"].(string) {
+		case "existing-volume":
+			volumeAttachRequest := &edgecloudV2.VolumeAttachRequest{
+				InstanceID:    d.Id(),
+				AttachmentTag: attachmentTag,
+			}
+			if _, _, err := clientV2.Volumes.Attach(ctx, volumeID, volumeAttachRequest); err != nil {
+				return fmt.Errorf("cannot attach existing-volume: %s. error: %w", volumeID, err)
+			}
+		default:
+			return fmt.Errorf("you cannot use such type: %s", volume["source"].(string))
+		}
+	}
+
+	// resize the same volume
+	for volumeID := range mapsIntersection(newIDs, oldIDs) {
+		volumeOld := getVolumeInfoByID(volumeID, oldVolumes)
+		volumeNew := getVolumeInfoByID(volumeID, newVolumes)
+
+		if volumeOld["size"].(int) != volumeNew["size"].(int) {
+			volumeExtendSizeRequest := &edgecloudV2.VolumeExtendSizeRequest{Size: volumeNew["size"].(int)}
+			task, _, err := clientV2.Volumes.Extend(ctx, volumeID, volumeExtendSizeRequest)
+			if err != nil {
+				return fmt.Errorf("error when extending instance volume: %w", err)
+			}
+			if err = utilV2.WaitForTaskComplete(ctx, clientV2, task.Tasks[0]); err != nil {
+				return fmt.Errorf("error while waiting for instance volume extend: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// getVolumeIDsSet returns set of ids.
+func getVolumeIDsSet(volumes []interface{}) map[string]struct{} {
+	ids := make(map[string]struct{}, len(volumes))
+	for _, volumeRaw := range volumes {
+		volume := volumeRaw.(map[string]interface{})
+		ids[volume["id"].(string)] = struct{}{}
+	}
+
+	return ids
+}
+
+// mapLeftDiff returns all elements in Left that are not in Right.
+func mapLeftDiff(left, right map[string]struct{}) map[string]struct{} {
+	out := make(map[string]struct{})
+	for l := range left {
+		if _, ok := right[l]; !ok {
+			out[l] = struct{}{}
+		}
+	}
+
+	return out
+}
+
+func getVolumeInfoByID(id string, volumeList []interface{}) map[string]interface{} {
+	for _, volumeRaw := range volumeList {
+		volume := volumeRaw.(map[string]interface{})
+		if volume["id"].(string) == id {
+			return volume
+		}
+	}
+
+	return nil
+}
+
+// mapsIntersection returns all elements in Left that are in Right.
+func mapsIntersection(left, right map[string]struct{}) map[string]struct{} {
+	out := make(map[string]struct{})
+	for l := range left {
+		if _, ok := right[l]; ok {
+			out[l] = struct{}{}
+		}
+	}
+
+	return out
 }

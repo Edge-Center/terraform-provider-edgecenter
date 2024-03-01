@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/mitchellh/mapstructure"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
@@ -48,12 +49,12 @@ func resourceInstance() *schema.Resource {
 				return []*schema.ResourceData{d}, nil
 			},
 		},
-
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
+				ForceNew:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
@@ -61,6 +62,7 @@ func resourceInstance() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
+				ForceNew:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
@@ -68,6 +70,7 @@ func resourceInstance() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
+				ForceNew:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
@@ -75,6 +78,7 @@ func resourceInstance() *schema.Resource {
 				Type:         schema.TypeString,
 				Computed:     true,
 				Optional:     true,
+				ForceNew:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
@@ -100,18 +104,18 @@ func resourceInstance() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"name_templates"},
-				Description:   "A template used to generate the instance name. This field cannot be used with 'name_templates'.",
+				Description:   "A template used to generate the instance name. You can use forms ip_octets, two_ip_octets, one_ip_octet. This field cannot be used with 'name_templates'.",
 			},
 			"volume": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Required:    true,
-				Set:         volumeUniqueID,
 				Description: "A set defining the volumes to be attached to the instance.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Computed:    true,
 							Description: "The name assigned to the volume. Defaults to 'system'.",
 						},
 						"source": {
@@ -128,17 +132,28 @@ func resourceInstance() *schema.Resource {
 						},
 						"boot_index": {
 							Type:        schema.TypeInt,
-							Description: "If boot_index==0 volumes can not detached",
+							Description: "0 should be set for the primary boot device. Unique positive values for other bootable devices. Negative - the boot is prohibited. If boot_index==0 volumes can not detached",
 							Optional:    true,
+							ForceNew:    true,
 						},
 						"type_name": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Computed:    true,
 							Description: "The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.",
+							ValidateFunc: validation.StringInSlice([]string{
+								string(edgecloudV2.VolumeTypeSsdHiIops),
+								string(edgecloudV2.VolumeTypeSsdLocal),
+								string(edgecloudV2.VolumeTypeUltra),
+								string(edgecloudV2.VolumeTypeCold),
+								string(edgecloudV2.VolumeTypeStandard),
+							}, false),
 						},
 						"image_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: "The ID of the image. The field is mandatory if the volume is created from the image.",
 						},
 						"size": {
 							Type:        schema.TypeInt,
@@ -147,22 +162,25 @@ func resourceInstance() *schema.Resource {
 							Description: "The size of the volume, specified in gigabytes (GB).",
 						},
 						"volume_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The ID of the volume. The field is mandatory if the source == 'existing-volume'.",
 						},
 						"attachment_tag": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The block device attachment tag.",
 						},
 						"id": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The ID of the volume.",
 						},
 						"delete_on_termination": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Whether the volume is deleted together with the VM.",
 						},
 					},
 				},
@@ -175,7 +193,7 @@ func resourceInstance() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:        schema.TypeString,
-							Optional:    true,
+							Required:    true,
 							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", edgecloudV2.InterfaceTypeSubnet, edgecloudV2.InterfaceTypeAnySubnet, edgecloudV2.InterfaceTypeExternal, edgecloudV2.InterfaceTypeReservedFixedIP),
 						},
 						"order": {
@@ -186,29 +204,31 @@ func resourceInstance() *schema.Resource {
 						},
 						"network_id": {
 							Type:        schema.TypeString,
-							Description: "Required if type is 'subnet' or 'any_subnet'.",
+							Description: "The ID of the network that the subnet belongs to. Required if type is 'subnet' or 'any_subnet'.",
 							Optional:    true,
 							Computed:    true,
 						},
 						"subnet_id": {
 							Type:        schema.TypeString,
-							Description: "Required if type is 'subnet'.",
+							Description: "The port is assigned an IP address from this subnet.Required if type is 'subnet'.",
 							Optional:    true,
 							Computed:    true,
 						},
 						// nested map is not supported, in this case, you do not need to use the list for the map
 						"fip_source": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Indicates whether the floating IP for this subnet will be new or reused.Possible values 'existing'.",
 						},
 						"existing_fip_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "If fip_source is 'existing', the ID of the existing floating IP must be specified",
 						},
 						"port_id": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "required if type is  'reserved_fixed_ip'",
+							Description: "The ID of the network that the subnet belongs to. The port will be plugged in this network. Required if type is 'reserved_fixed_ip'",
 							Optional:    true,
 						},
 						"security_groups": {
@@ -218,9 +238,9 @@ func resourceInstance() *schema.Resource {
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"ip_address": {
-							Type:     schema.TypeString,
-							Computed: true,
-							Optional: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Ip address which mapped to this interface.",
 						},
 						"port_security_disabled": {
 							Type:     schema.TypeBool,
@@ -248,13 +268,13 @@ func resourceInstance() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"id": {
 							Type:        schema.TypeString,
-							Description: "Firewall unique id (uuid)",
-							Required:    true,
+							Computed:    true,
+							Description: "Firewall unique id (uuid).",
 						},
 						"name": {
 							Type:        schema.TypeString,
-							Description: "Firewall name",
-							Required:    true,
+							Computed:    true,
+							Description: "Firewall name.",
 						},
 					},
 				},
@@ -279,12 +299,14 @@ func resourceInstance() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The metadata item key. The maximum size is 255 bytes.",
 						},
 						"value": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The metadata item value. The maximum size is 1024 bytes.",
 						},
 					},
 				},
@@ -327,7 +349,7 @@ from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"userdata"},
-				Description:   "A field for specifying user data to be used for configuring the instance at launch time.",
+				Description:   "A string in the base64 format.A field for specifying user data to be used for configuring the instance at launch time.",
 			},
 			"allow_app_ports": {
 				Type:        schema.TypeBool,
@@ -342,7 +364,6 @@ from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."
 			},
 			"status": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "The current status of the instance. This is computed automatically and can be used to track the instance's state.",
 			},
@@ -351,7 +372,7 @@ from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."
 				Optional: true,
 				Computed: true,
 				Description: fmt.Sprintf(`The current virtual machine state of the instance, 
-allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceVMStateStopped, InstanceVMStateActive),
+allowing you to start or stop the VM. Possible values are '%s' and '%s'.`, InstanceVMStateStopped, InstanceVMStateActive),
 				ValidateFunc: validation.StringInSlice([]string{InstanceVMStateActive, InstanceVMStateStopped}, true),
 			},
 			"addresses": {
@@ -384,7 +405,6 @@ allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceV
 			},
 			"last_updated": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "The timestamp of the last update (use with update context).",
 			},
@@ -441,14 +461,19 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		createOpts.NameTemplates = []string{nameTemplate.(string)}
 	}
 
-	currentVols := d.Get("volume").(*schema.Set).List()
-	if len(currentVols) > 0 {
-		vs, err := extractVolumesMapV2(currentVols)
-		if err != nil {
-			return diag.FromErr(err)
+	volumes := d.Get("volume").([]interface{})
+
+	instanceVolumeCreateList := make([]edgecloudV2.InstanceVolumeCreate, len(volumes))
+
+	for i, volume := range volumes {
+		vol := volume.(map[string]interface{})
+		var V edgecloudV2.InstanceVolumeCreate
+		if err := MapStructureDecoder(&V, &vol, &mapstructure.DecoderConfig{TagName: "json"}); err != nil {
+			return diag.Errorf("error creating instance volume config: %s", err)
 		}
-		createOpts.Volumes = vs
+		instanceVolumeCreateList[i] = V
 	}
+	createOpts.Volumes = instanceVolumeCreateList
 
 	ifs := d.Get("interface").([]interface{})
 	if len(ifs) > 0 {
@@ -566,24 +591,26 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 	flavor["vcpus"] = strconv.Itoa(instance.Flavor.VCPUS)
 	d.Set("flavor", flavor)
 
-	currentVolumes := extractVolumesIntoMap(d.Get("volume").(*schema.Set).List())
-
-	extVolumes := make([]interface{}, 0, len(instance.Volumes))
-	for _, vol := range instance.Volumes {
-		v, ok := currentVolumes[vol.ID]
-		// todo fix it
-		if !ok {
-			v = make(map[string]interface{})
-			v["volume_id"] = vol.ID
-			v["source"] = edgecloudV2.VolumeSourceExistingVolume
+	currentVolumes := d.Get("volume").([]interface{})
+	for i, v := range currentVolumes {
+		volume := v.(map[string]interface{})
+		volumeID := volume["volume_id"].(string)
+		volInfo, _, err := clientV2.Volumes.Get(ctx, volumeID)
+		if err != nil {
+			return diag.FromErr(err)
 		}
-
-		v["id"] = vol.ID
-		v["delete_on_termination"] = vol.DeleteOnTermination
-		extVolumes = append(extVolumes, v)
+		if volumeID == "" {
+			return diag.Errorf("error during get volume id")
+		}
+		volume["id"] = volumeID
+		volume["size"] = volInfo.Size
+		volume["name"] = volInfo.Name
+		volume["type_name"] = volInfo.VolumeType
+		volume["image_id"] = volInfo.VolumeImageMetadata.ImageID
+		currentVolumes[i] = volume
 	}
 
-	if err := d.Set("volume", schema.NewSet(volumeUniqueID, extVolumes)); err != nil {
+	if err := d.Set("volume", currentVolumes); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -756,6 +783,12 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 		if task.State == edgecloudV2.TaskStateError {
 			return diag.Errorf("cannot update flavor in instance with ID: %s", instanceID)
+		}
+	}
+
+	if d.HasChange("volume") {
+		if err := changeVolumes(ctx, d, clientV2); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
@@ -940,34 +973,6 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			err := addServerGroupV2(ctx, clientV2, instanceID, newSGID)
 			if err != nil {
 				return diag.FromErr(err)
-			}
-		}
-	}
-
-	if d.HasChange("volume") {
-		oldVolumesRaw, newVolumesRaw := d.GetChange("volume")
-		oldVolumes := extractInstanceVolumesMap(oldVolumesRaw.(*schema.Set).List())
-		newVolumes := extractInstanceVolumesMap(newVolumesRaw.(*schema.Set).List())
-
-		vDetachOpts := edgecloudV2.VolumeDetachRequest{InstanceID: d.Id()}
-		for vid := range oldVolumes {
-			if isAttached := newVolumes[vid]; isAttached {
-				// mark as already attached
-				newVolumes[vid] = false
-				continue
-			}
-			if _, _, err := clientV2.Volumes.Detach(ctx, vid, &vDetachOpts); err != nil {
-				return diag.FromErr(err)
-			}
-		}
-
-		// range over not attached volumes
-		vAttachOpts := edgecloudV2.VolumeAttachRequest{InstanceID: d.Id()}
-		for vid, ok := range newVolumes {
-			if ok {
-				if _, _, err := clientV2.Volumes.Attach(ctx, vid, &vAttachOpts); err != nil {
-					return diag.FromErr(err)
-				}
 			}
 		}
 	}
