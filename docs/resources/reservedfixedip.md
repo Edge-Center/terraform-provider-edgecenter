@@ -37,7 +37,7 @@ resource "edgecenter_reservedfixedip" "fixed_ip" {
 
 - `allowed_address_pairs` (Block List) Group of IP addresses that share the current IP as VIP. (see [below for nested schema](#nestedblock--allowed_address_pairs))
 - `fixed_ip_address` (String) The IP address that is associated with the reserved IP.
-- `instance_ports_that_share_vip` (List of String) instance ports that share a VIP
+- `instance_ports_that_share_vip` (Set of String) instance ports that share a VIP
 - `is_vip` (Boolean) Flag to determine if the reserved fixed IP should be treated as a Virtual IP (VIP).
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `network_id` (String) ID of the network to which the reserved fixed IP is associated.

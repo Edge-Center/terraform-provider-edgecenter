@@ -172,6 +172,7 @@ func Provider() *schema.Provider {
 			"edgecenter_storage_s3_bucket": dataSourceStorageS3Bucket(),
 			"edgecenter_reservedfixedip":   dataSourceReservedFixedIP(),
 			"edgecenter_servergroup":       dataSourceServerGroup(),
+			"edgecenter_snapshot":          dataSourceSnapshot(),
 			"edgecenter_k8s":               dataSourceK8s(),
 			"edgecenter_k8s_pool":          dataSourceK8sPool(),
 			"edgecenter_k8s_client_config": dataSourceK8sClientConfig(),
@@ -316,4 +317,19 @@ func providerConfigure(_ context.Context, d *schema.ResourceData, terraformVersi
 	}
 
 	return &config, diags
+}
+
+func InitCloudClient(ctx context.Context, d *schema.ResourceData, m interface{}) (*edgecloudV2.Client, error) {
+	config := m.(*Config)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	if err != nil {
+		return nil, err
+	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	return clientV2, nil
 }
