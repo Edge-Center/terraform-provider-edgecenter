@@ -11,7 +11,9 @@ terraform.tfstate
 
 ### bin
 bin/
-.local.env
+
+### env
+**/*.env
 
 ### other
 local-files

@@ -44,7 +44,6 @@ resource "edgecenter_loadbalancerv2" "lb" {
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
-- `security_group` (String) Creates a new security group with the specified name
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `vip_network_id` (String) Attaches the created network.
 - `vip_port_id` (String) Attaches the created reserved IP.
@@ -54,7 +53,6 @@ resource "edgecenter_loadbalancerv2" "lb" {
 
 - `id` (String) The ID of this resource.
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
-- `security_group_id` (String) Load balancer security group ID
 - `vip_address` (String) Load balancer IP address
 
 <a id="nestedblock--timeouts"></a>

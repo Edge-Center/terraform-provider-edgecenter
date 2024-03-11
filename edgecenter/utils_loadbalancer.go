@@ -8,14 +8,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
-	typesLb "github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 // ImportStringParserExtended parses a string containing project ID, region ID, and two other fields,
 // and returns them as separate values along with any error encountered.
-func ImportStringParserExtended(infoStr string) (projectID int, regionID int, id3 string, id4 string, err error) { //nolint: nonamedreturns
+func ImportStringParserExtended(infoStr string) (projectID int, regionID int, id3 string, id4 string, err error) { // nolint: nonamedreturns
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 4 {
@@ -37,14 +35,14 @@ func ImportStringParserExtended(infoStr string) (projectID int, regionID int, id
 	return
 }
 
-// extractSessionPersistenceMap creates a session persistence options struct from the data in the given ResourceData.
-func extractSessionPersistenceMap(d *schema.ResourceData) *lbpools.CreateSessionPersistenceOpts {
-	var sessionOpts *lbpools.CreateSessionPersistenceOpts
+// extractSessionPersistenceMapV2 creates a session persistence options struct from the data in the given ResourceData.
+func extractSessionPersistenceMapV2(d *schema.ResourceData) *edgecloudV2.LoadbalancerSessionPersistence {
+	var sessionOpts *edgecloudV2.LoadbalancerSessionPersistence
 	sessionPersistence := d.Get("session_persistence").([]interface{})
 	if len(sessionPersistence) > 0 {
 		sm := sessionPersistence[0].(map[string]interface{})
-		sessionOpts = &lbpools.CreateSessionPersistenceOpts{
-			Type: typesLb.PersistenceType(sm["type"].(string)),
+		sessionOpts = &edgecloudV2.LoadbalancerSessionPersistence{
+			Type: edgecloudV2.SessionPersistence(sm["type"].(string)),
 		}
 
 		granularity, ok := sm["persistence_granularity"].(string)
@@ -66,14 +64,14 @@ func extractSessionPersistenceMap(d *schema.ResourceData) *lbpools.CreateSession
 	return sessionOpts
 }
 
-// extractHealthMonitorMap creates a health monitor options struct from the data in the given ResourceData.
-func extractHealthMonitorMap(d *schema.ResourceData) *lbpools.CreateHealthMonitorOpts {
-	var healthOpts *lbpools.CreateHealthMonitorOpts
+// extractHealthMonitorMapV2 creates a health monitor options struct from the data in the given ResourceData.
+func extractHealthMonitorMapV2(d *schema.ResourceData) *edgecloudV2.HealthMonitorCreateRequest {
+	var healthOpts *edgecloudV2.HealthMonitorCreateRequest
 	monitors := d.Get("health_monitor").([]interface{})
 	if len(monitors) > 0 {
 		hm := monitors[0].(map[string]interface{})
-		healthOpts = &lbpools.CreateHealthMonitorOpts{
-			Type:       typesLb.HealthMonitorType(hm["type"].(string)),
+		healthOpts = &edgecloudV2.HealthMonitorCreateRequest{
+			Type:       edgecloudV2.HealthMonitorType(hm["type"].(string)),
 			Delay:      hm["delay"].(int),
 			MaxRetries: hm["max_retries"].(int),
 			Timeout:    hm["timeout"].(int),
@@ -86,7 +84,8 @@ func extractHealthMonitorMap(d *schema.ResourceData) *lbpools.CreateHealthMonito
 
 		httpMethod := hm["http_method"].(string)
 		if httpMethod != "" {
-			healthOpts.HTTPMethod = typesLb.HTTPMethodPointer(typesLb.HTTPMethod(httpMethod))
+			hm := edgecloudV2.HTTPMethod(httpMethod)
+			healthOpts.HTTPMethod = &hm
 		}
 
 		urlPath := hm["url_path"].(string)
@@ -108,12 +107,12 @@ func extractHealthMonitorMap(d *schema.ResourceData) *lbpools.CreateHealthMonito
 	return healthOpts
 }
 
-// extractListenerIntoMap converts a listener object into a map.
-func extractListenerIntoMap(listener *listeners.Listener) map[string]interface{} {
+// extractListenerIntoMapV2 converts a listener object into a map.
+func extractListenerIntoMapV2(listener *edgecloudV2.Listener) map[string]interface{} {
 	l := make(map[string]interface{})
 	l["id"] = listener.ID
 	l["name"] = listener.Name
-	l["protocol"] = listener.Protocol.String()
+	l["protocol"] = listener.Protocol
 	l["protocol_port"] = listener.ProtocolPort
 	l["secret_id"] = listener.SecretID
 	l["sni_secret_id"] = listener.SNISecretID

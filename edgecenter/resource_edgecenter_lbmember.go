@@ -2,19 +2,18 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
@@ -144,14 +143,17 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 	log.Println("[DEBUG] Start LBMember creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	opts := lbpools.CreatePoolMemberOpts{
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	opts := &edgecloudV2.PoolMemberCreateRequest{
 		Address:      net.ParseIP(d.Get("address").(string)),
 		ProtocolPort: d.Get("protocol_port").(int),
 		Weight:       d.Get("weight").(int),
@@ -159,28 +161,26 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 		InstanceID:   d.Get("instance_id").(string),
 	}
 
-	results, err := lbpools.CreateMember(client, d.Get("pool_id").(string), opts).Extract()
+	poolID := d.Get("pool_id").(string)
+	results, _, err := clientV2.Loadbalancers.PoolMemberCreate(ctx, poolID, opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
-	pmID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, LBPoolsCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		pmID, err := lbpools.ExtractPoolMemberIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve LBMember ID from task info: %w", err)
-		}
-		return pmID, nil
-	})
+
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(pmID.(string))
+	poolMember, err := utilV2.ExtractTaskResultFromTask(taskInfo)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	pmID := poolMember.Members[0]
+
+	d.SetId(pmID)
 	resourceLBMemberRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish LBMember creating (%s)", pmID)
@@ -188,18 +188,23 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 	return diags
 }
 
-func resourceLBMemberRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBMemberRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBMember reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	pool, err := lbpools.Get(client, d.Get("pool_id").(string)).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	poolID := d.Get("pool_id").(string)
+
+	pool, _, err := clientV2.Loadbalancers.PoolGet(ctx, poolID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -227,23 +232,28 @@ func resourceLBMemberRead(_ context.Context, d *schema.ResourceData, m interface
 func resourceLBMemberUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBMember updating")
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	pool, err := lbpools.Get(client, d.Get("pool_id").(string)).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	poolID := d.Get("pool_id").(string)
+
+	pool, _, err := clientV2.Loadbalancers.PoolGet(ctx, poolID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	members := make([]lbpools.CreatePoolMemberOpts, len(pool.Members))
+	members := make([]edgecloudV2.PoolMemberCreateRequest, len(pool.Members))
 	for i, pm := range pool.Members {
 		if pm.ID != d.Id() {
-			members[i] = lbpools.CreatePoolMemberOpts{
-				Address:      *pm.Address,
+			members[i] = edgecloudV2.PoolMemberCreateRequest{
+				Address:      pm.Address,
 				ProtocolPort: pm.ProtocolPort,
 				Weight:       pm.Weight,
 				SubnetID:     pm.SubnetID,
@@ -253,7 +263,7 @@ func resourceLBMemberUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			continue
 		}
 
-		members[i] = lbpools.CreatePoolMemberOpts{
+		members[i] = edgecloudV2.PoolMemberCreateRequest{
 			Address:      net.ParseIP(d.Get("address").(string)),
 			ProtocolPort: d.Get("protocol_port").(int),
 			Weight:       d.Get("weight").(int),
@@ -263,24 +273,16 @@ func resourceLBMemberUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 	}
 
-	opts := lbpools.UpdateOpts{Name: pool.Name, Members: members}
-	results, err := lbpools.Update(client, pool.ID, opts).Extract()
+	opts := &edgecloudV2.PoolUpdateRequest{Name: pool.Name, Members: members}
+
+	results, _, err := clientV2.Loadbalancers.PoolUpdate(ctx, pool.ID, opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, LBPoolsCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		lbPoolID, err := lbpools.ExtractPoolMemberIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve LBPool ID from task info: %w, %+v, %+v", err, taskInfo, task)
-		}
-		return lbPoolID, nil
-	})
+
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -291,23 +293,26 @@ func resourceLBMemberUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	return resourceLBMemberRead(ctx, d, m)
 }
 
-func resourceLBMemberDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLBMemberDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBMember deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	mid := d.Id()
 	pid := d.Get("pool_id").(string)
-	results, err := lbpools.DeleteMember(client, pid, mid).Extract()
+
+	results, resp, err := clientV2.Loadbalancers.PoolMemberDelete(ctx, pid, mid)
 	if err != nil {
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
+		if resp.StatusCode == http.StatusNotFound {
 			d.SetId("")
 			log.Printf("[DEBUG] Finish of LBMember deleting")
 			return diags
@@ -316,20 +321,8 @@ func resourceLBMemberDelete(_ context.Context, d *schema.ResourceData, m interfa
 	}
 
 	taskID := results.Tasks[0]
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, LBPoolsCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		pool, err := lbpools.Get(client, pid).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("extracting LBPool resource error: %w", err)
-		}
 
-		for _, pm := range pool.Members {
-			if pm.ID == mid {
-				return nil, fmt.Errorf("pool member %s still exist", mid)
-			}
-		}
-
-		return nil, nil
-	})
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}

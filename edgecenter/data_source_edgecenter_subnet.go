@@ -2,12 +2,13 @@ package edgecenter
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceSubnet() *schema.Resource {
@@ -133,20 +134,24 @@ func dataSourceSubnet() *schema.Resource {
 	}
 }
 
-func dataSourceSubnetRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Subnet reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, SubnetPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	name := d.Get("name").(string)
 	networkID := d.Get("network_id").(string)
-	subnetsOpts := &subnets.ListOpts{NetworkID: networkID}
+
+	subnetsOpts := &edgecloudV2.SubnetworkListOptions{NetworkID: networkID}
 
 	if metadataK, ok := d.GetOk("metadata_k"); ok {
 		subnetsOpts.MetadataK = metadataK.(string)
@@ -156,16 +161,20 @@ func dataSourceSubnetRead(_ context.Context, d *schema.ResourceData, m interface
 		for k, v := range metadataRaw.(map[string]interface{}) {
 			typedMetadataKV[k] = v.(string)
 		}
-		subnetsOpts.MetadataKV = typedMetadataKV
+		typedMetadataKVJson, err := json.Marshal(typedMetadataKV)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		subnetsOpts.MetadataKV = string(typedMetadataKVJson)
 	}
 
-	snets, err := subnets.ListAll(client, *subnetsOpts)
+	snets, _, err := clientV2.Subnetworks.List(ctx, subnetsOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var subnet subnets.Subnet
+	var subnet edgecloudV2.Subnetwork
 	for _, sn := range snets {
 		if sn.Name == name {
 			subnet = sn
@@ -181,7 +190,7 @@ func dataSourceSubnetRead(_ context.Context, d *schema.ResourceData, m interface
 	d.SetId(subnet.ID)
 	d.Set("name", subnet.Name)
 	d.Set("enable_dhcp", subnet.EnableDHCP)
-	d.Set("cidr", subnet.CIDR.String())
+	d.Set("cidr", subnet.CIDR)
 	d.Set("network_id", subnet.NetworkID)
 
 	metadataReadOnly := PrepareMetadataReadonly(subnet.Metadata)
@@ -189,20 +198,8 @@ func dataSourceSubnetRead(_ context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	dns := make([]string, len(subnet.DNSNameservers))
-	for i, ns := range subnet.DNSNameservers {
-		dns[i] = ns.String()
-	}
-	d.Set("dns_nameservers", dns)
-
-	hrs := make([]map[string]string, len(subnet.HostRoutes))
-	for i, hr := range subnet.HostRoutes {
-		hR := map[string]string{"destination": "", "nexthop": ""}
-		hR["destination"] = hr.Destination.String()
-		hR["nexthop"] = hr.NextHop.String()
-		hrs[i] = hR
-	}
-	d.Set("host_routes", hrs)
+	d.Set("dns_nameservers", dnsNameserversToStringList(subnet.DNSNameservers))
+	d.Set("host_routes", hostRoutesToListOfMapsV2(subnet.HostRoutes))
 	d.Set("region_id", subnet.RegionID)
 	d.Set("project_id", subnet.ProjectID)
 	d.Set("gateway_ip", subnet.GatewayIP.String())

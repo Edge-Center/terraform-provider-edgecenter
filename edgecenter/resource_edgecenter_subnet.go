@@ -2,10 +2,10 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"regexp"
 	"time"
 
@@ -13,15 +13,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
-	SubnetDeleting        int = 1200
 	SubnetCreatingTimeout int = 1200
 	SubnetPoint               = "subnets"
 	disable                   = "disable"
@@ -52,24 +48,28 @@ func resourceSubnet() *schema.Resource {
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
@@ -184,25 +184,30 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Println("[DEBUG] Start Subnet creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, SubnetPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	createOpts := subnets.CreateOpts{}
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
-	var eccidr edgecloud.CIDR
+	createOpts := &edgecloudV2.SubnetworkCreateRequest{
+		Name:                   d.Get("name").(string),
+		EnableDHCP:             d.Get("enable_dhcp").(bool),
+		NetworkID:              d.Get("network_id").(string),
+		ConnectToNetworkRouter: d.Get("connect_to_network_router").(bool),
+	}
+
 	cidr := d.Get("cidr").(string)
 	if cidr != "" {
-		_, netIPNet, err := net.ParseCIDR(cidr)
+		_, _, err := net.ParseCIDR(cidr)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		eccidr.IP = netIPNet.IP
-		eccidr.Mask = netIPNet.Mask
-		createOpts.CIDR = eccidr
+		createOpts.CIDR = cidr
 	}
 
 	dnsNameservers := d.Get("dns_nameservers").([]interface{})
@@ -217,60 +222,40 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	hostRoutes := d.Get("host_routes").([]interface{})
-	createOpts.HostRoutes = make([]subnets.HostRoute, 0)
+	createOpts.HostRoutes = make([]edgecloudV2.HostRoute, 0)
 	if len(hostRoutes) > 0 {
-		createOpts.HostRoutes, err = extractHostRoutesMap(hostRoutes)
+		createOpts.HostRoutes, err = extractHostRoutesMapV2(hostRoutes)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
-	createOpts.Name = d.Get("name").(string)
-	createOpts.EnableDHCP = d.Get("enable_dhcp").(bool)
-	createOpts.NetworkID = d.Get("network_id").(string)
-	createOpts.ConnectToNetworkRouter = d.Get("connect_to_network_router").(bool)
 	gatewayIP := d.Get("gateway_ip").(string)
 	gw := net.ParseIP(gatewayIP)
 	if gatewayIP == disable {
 		createOpts.ConnectToNetworkRouter = false
-	} else {
+	} else if gw != nil {
 		createOpts.GatewayIP = &gw
 	}
 
 	if metadataRaw, ok := d.GetOk("metadata_map"); ok {
-		meta, err := utils.MapInterfaceToMapString(metadataRaw)
+		meta, err := MapInterfaceToMapString(metadataRaw)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		createOpts.Metadata = meta
+		createOpts.Metadata = *meta
 	}
 
 	log.Printf("Create subnet ops: %+v", createOpts)
-	results, err := subnets.Create(client, createOpts).Extract()
+
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Subnetworks.Create, createOpts, clientV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	subnetID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, SubnetCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		Subnet, err := subnets.ExtractSubnetIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve Subnet ID from task info: %w", err)
-		}
-		return Subnet, nil
-	},
-	)
-	log.Printf("[DEBUG] Subnet id (%s)", subnetID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	subnetID := taskResult.Subnets[0]
 
-	d.SetId(subnetID.(string))
+	d.SetId(subnetID)
 	resourceSubnetRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Subnet creating (%s)", subnetID)
@@ -278,28 +263,31 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func resourceSubnetRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start subnet reading")
 	log.Printf("[DEBUG] Start subnet reading%s", d.State())
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 	subnetID := d.Id()
 	log.Printf("[DEBUG] Subnet id = %s", subnetID)
 
-	client, err := CreateClient(provider, d, SubnetPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	subnet, err := subnets.Get(client, subnetID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	subnet, _, err := clientV2.Subnetworks.Get(ctx, subnetID)
 	if err != nil {
 		return diag.Errorf("cannot get subnet with ID: %s. Error: %s", subnetID, err)
 	}
 
 	d.Set("name", subnet.Name)
 	d.Set("enable_dhcp", subnet.EnableDHCP)
-	d.Set("cidr", subnet.CIDR.String())
+	d.Set("cidr", subnet.CIDR)
 	d.Set("network_id", subnet.NetworkID)
 
 	dns := make([]string, len(subnet.DNSNameservers))
@@ -348,13 +336,17 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	subnetID := d.Id()
 	log.Printf("[DEBUG] Subnet id = %s", subnetID)
 	config := m.(*Config)
-	provider := config.Provider
-	client, err := CreateClient(provider, d, SubnetPoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	updateOpts := subnets.UpdateOpts{}
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	updateOpts := &edgecloudV2.SubnetworkUpdateRequest{}
 
 	if d.HasChange("name") {
 		updateOpts.Name = d.Get("name").(string)
@@ -375,9 +367,9 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	hostRoutes := d.Get("host_routes").([]interface{})
-	updateOpts.HostRoutes = make([]subnets.HostRoute, 0)
+	updateOpts.HostRoutes = make([]edgecloudV2.HostRoute, 0)
 	if len(hostRoutes) > 0 {
-		updateOpts.HostRoutes, err = extractHostRoutesMap(hostRoutes)
+		updateOpts.HostRoutes, err = extractHostRoutesMapV2(hostRoutes)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -391,18 +383,21 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 
-	_, err = subnets.Update(client, subnetID, updateOpts).Extract()
+	_, _, err = clientV2.Subnetworks.Update(ctx, subnetID, updateOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	if d.HasChange("metadata_map") {
 		_, nmd := d.GetChange("metadata_map")
-		meta, err := utils.MapInterfaceToMapString(nmd)
+		meta, err := MapInterfaceToMapString(nmd)
 		if err != nil {
 			return diag.Errorf("metadata wrong fmt. Error: %s", err)
 		}
-		err = metadata.ResourceMetadataReplace(client, subnetID, meta).Err
+
+		metaSubnet := edgecloudV2.Metadata(*meta)
+
+		_, err = clientV2.Subnetworks.MetadataUpdate(ctx, subnetID, &metaSubnet)
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
@@ -414,36 +409,36 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	return resourceSubnetRead(ctx, d, m)
 }
 
-func resourceSubnetDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start subnet deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
+
 	subnetID := d.Id()
 	log.Printf("[DEBUG] Subnet id = %s", subnetID)
 
-	client, err := CreateClient(provider, d, SubnetPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	results, err := subnets.Delete(client, subnetID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	results, resp, err := clientV2.Subnetworks.Delete(ctx, subnetID)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			log.Printf("[DEBUG] Finish of Subnet deleting")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
+
 	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, SubnetDeleting, func(task tasks.TaskID) (interface{}, error) {
-		_, err := subnets.Get(client, subnetID).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete subnet with ID: %s", subnetID)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting Subnet resource error: %w", err)
-	})
+
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}

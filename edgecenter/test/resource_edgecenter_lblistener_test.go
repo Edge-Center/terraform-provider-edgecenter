@@ -35,6 +35,7 @@ func TestAccLBListener(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	defer loadbalancers.Delete(client, lbID)
 
 	type Params struct {
@@ -72,6 +73,14 @@ func TestAccLBListener(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", create.Name),
 				),
 			},
+		},
+	})
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccLBListenerDestroy,
+		Steps: []resource.TestStep{
 			{
 				Config: ripTemplate(&update),
 				Check: resource.ComposeTestCheckFunc(

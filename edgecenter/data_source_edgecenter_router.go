@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceRouter() *schema.Resource {
@@ -136,25 +136,29 @@ func dataSourceRouter() *schema.Resource {
 	}
 }
 
-func dataSourceRouterRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Router reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
+	regionID, ProjectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = ProjectID
+
 	name := d.Get("name").(string)
-	rs, err := routers.ListAll(client, routers.ListOpts{})
+
+	rs, _, err := clientV2.Routers.List(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var router routers.Router
+	var router edgecloudV2.Router
 	for _, r := range rs {
 		if r.Name == name {
 			router = r
@@ -170,11 +174,13 @@ func dataSourceRouterRead(_ context.Context, d *schema.ResourceData, m interface
 	d.SetId(router.ID)
 	d.Set("name", router.Name)
 	d.Set("status", router.Status)
+	d.Set("region_id", router.RegionID)
+	d.Set("project_id", router.ProjectID)
 
 	if len(router.ExternalGatewayInfo.ExternalFixedIPs) > 0 {
 		egi := make(map[string]interface{}, 4)
 		egilst := make([]map[string]interface{}, 1)
-		egi["enable_snat"] = router.ExternalGatewayInfo.EnableSNat
+		egi["enable_snat"] = router.ExternalGatewayInfo.EnableSnat
 		egi["network_id"] = router.ExternalGatewayInfo.NetworkID
 
 		efip := make([]map[string]string, len(router.ExternalGatewayInfo.ExternalFixedIPs))
@@ -196,7 +202,7 @@ func dataSourceRouterRead(_ context.Context, d *schema.ResourceData, m interface
 			smap := make(map[string]interface{}, 6)
 			smap["port_id"] = iface.PortID
 			smap["network_id"] = iface.NetworkID
-			smap["mac_address"] = iface.MacAddress.String()
+			smap["mac_address"] = iface.MacAddress
 			smap["type"] = "subnet"
 			smap["subnet_id"] = subnet.SubnetID
 			smap["ip_address"] = subnet.IPAddress.String()

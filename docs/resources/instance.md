@@ -75,10 +75,11 @@ resource "edgecenter_instance" "instance" {
   }
 
   interface {
-    type            = "subnet"
-    network_id      = edgecenter_network.network.id
-    subnet_id       = edgecenter_subnet.subnet.id
-    security_groups = ["d75db0b2-58f1-4a11-88c6-a932bb897310"]
+    type                   = "subnet"
+    network_id             = edgecenter_network.network.id
+    subnet_id              = edgecenter_subnet.subnet.id
+    security_groups        = ["d75db0b2-58f1-4a11-88c6-a932bb897310"]
+    port_security_disabled = true
   }
 
   metadata_map = {
@@ -199,6 +200,7 @@ Optional:
 - `network_id` (String) Required if type is 'subnet' or 'any_subnet'.
 - `order` (Number) Order of attaching interface
 - `port_id` (String) required if type is  'reserved_fixed_ip'
+- `port_security_disabled` (Boolean)
 - `security_groups` (List of String) list of security group IDs
 - `subnet_id` (String) Required if type is 'subnet'.
 - `type` (String) Available value is 'subnet', 'any_subnet', 'external', 'reserved_fixed_ip'

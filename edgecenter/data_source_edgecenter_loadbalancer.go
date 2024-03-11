@@ -2,16 +2,14 @@ package edgecenter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceLoadBalancer() *schema.Resource {
@@ -85,7 +83,7 @@ func dataSourceLoadBalancer() *schema.Resource {
 						"protocol": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP),
+							Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP),
 						},
 						"protocol_port": {
 							Type:     schema.TypeInt,
@@ -119,39 +117,44 @@ func dataSourceLoadBalancer() *schema.Resource {
 	}
 }
 
-func dataSourceLoadBalancerRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
+	var err error
+	clientV2.Region, clientV2.Project, err = GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	name := d.Get("name").(string)
-	metaOpts := &loadbalancers.ListOpts{}
+	metaOpts := &edgecloudV2.LoadbalancerListOptions{}
 
 	if metadataK, ok := d.GetOk("metadata_k"); ok {
 		metaOpts.MetadataK = metadataK.(string)
 	}
 
 	if metadataRaw, ok := d.GetOk("metadata_kv"); ok {
-		meta, err := utils.MapInterfaceToMapString(metadataRaw)
+		meta, err := MapInterfaceToMapString(metadataRaw)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		metaOpts.MetadataKV = meta
+		typedMetadataKVJson, err := json.Marshal(meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		metaOpts.MetadataKV = string(typedMetadataKVJson)
 	}
 
-	lbs, err := loadbalancers.ListAll(client, *metaOpts)
+	lbs, _, err := clientV2.Loadbalancers.List(ctx, metaOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var lb loadbalancers.LoadBalancer
+	var lb edgecloudV2.Loadbalancer
 	for _, l := range lbs {
 		if l.Name == name {
 			lb = l
@@ -171,19 +174,14 @@ func dataSourceLoadBalancerRead(_ context.Context, d *schema.ResourceData, m int
 	d.Set("vip_address", lb.VipAddress.String())
 	d.Set("vip_port_id", lb.VipPortID)
 
-	metadataReadOnly := PrepareMetadataReadonly(lb.Metadata)
+	metadataReadOnly := PrepareMetadataReadonly(lb.MetadataDetailed)
 	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
-		return diag.FromErr(err)
-	}
-
-	listenersClient, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
-	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	newListeners := make([]map[string]interface{}, len(lb.Listeners))
 	for i, l := range lb.Listeners {
-		listener, err := listeners.Get(listenersClient, l.ID).Extract()
+		listener, _, err := clientV2.Loadbalancers.ListenerGet(ctx, l.ID)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -191,7 +189,7 @@ func dataSourceLoadBalancerRead(_ context.Context, d *schema.ResourceData, m int
 		newListeners[i] = map[string]interface{}{
 			"id":            listener.ID,
 			"name":          listener.Name,
-			"protocol":      listener.Protocol.String(),
+			"protocol":      listener.Protocol,
 			"protocol_port": listener.ProtocolPort,
 		}
 	}

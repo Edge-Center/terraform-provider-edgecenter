@@ -67,7 +67,7 @@ resource "edgecenter_loadbalancer" "lb" {
 Required:
 
 - `name` (String)
-- `protocol` (String) Available values is 'HTTP' (currently work, other do not work on ed-8), 'HTTPS', 'TCP', 'UDP'
+- `protocol` (String) Available values is 'TCP' (currently work, other do not work on ed-8), 'UDP', 'HTTP', 'HTTPS'
 - `protocol_port` (Number)
 
 Optional:

@@ -2,9 +2,10 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
+	"encoding/base64"
 	"fmt"
 	"log"
+	"net/http"
 	"sort"
 	"strconv"
 	"time"
@@ -15,15 +16,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
-	InstanceDeleting        int = 1200
 	InstanceCreatingTimeout int = 1200
 	InstancePoint               = "instances"
 
@@ -56,23 +53,27 @@ func resourceInstance() *schema.Resource {
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
+				Computed:     true,
 				Optional:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
@@ -119,10 +120,10 @@ func resourceInstance() *schema.Resource {
 							Description: "Currently available only 'existing-volume' value",
 							ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 								v := val.(string)
-								if types.VolumeSource(v) == types.ExistingVolume {
+								if edgecloudV2.VolumeSource(v) == edgecloudV2.VolumeSourceExistingVolume {
 									return diag.Diagnostics{}
 								}
-								return diag.Errorf("wrong source type %s, now available values is '%s'", v, types.ExistingVolume)
+								return diag.Errorf("wrong source type %s, now available values is '%s'", v, edgecloudV2.VolumeSourceExistingVolume)
 							},
 						},
 						"boot_index": {
@@ -175,7 +176,7 @@ func resourceInstance() *schema.Resource {
 						"type": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", types.SubnetInterfaceType, types.AnySubnetInterfaceType, types.ExternalInterfaceType, types.ReservedFixedIPType),
+							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", edgecloudV2.InterfaceTypeSubnet, edgecloudV2.InterfaceTypeAnySubnet, edgecloudV2.InterfaceTypeExternal, edgecloudV2.InterfaceTypeReservedFixedIP),
 						},
 						"order": {
 							Type:        schema.TypeInt,
@@ -220,6 +221,11 @@ func resourceInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 							Optional: true,
+						},
+						"port_security_disabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
 						},
 					},
 				},
@@ -390,32 +396,31 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	log.Println("[DEBUG] Start Instance creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
 
-	clientV1, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2, err := CreateClient(provider, d, InstancePoint, VersionPointV2)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
-	createOpts := instances.CreateOpts{
+	createOpts := edgecloudV2.InstanceCreateRequest{
 		Flavor:         d.Get("flavor_id").(string),
-		SecurityGroups: []edgecloud.ItemID{},
-		Keypair:        d.Get("keypair_name").(string),
-		Password:       d.Get("password").(string),
+		KeypairName:    d.Get("keypair_name").(string),
 		Username:       d.Get("username").(string),
+		Password:       d.Get("password").(string),
+		SecurityGroups: []edgecloudV2.ID{},
 		ServerGroupID:  d.Get("server_group").(string),
 		AllowAppPorts:  d.Get("allow_app_ports").(bool),
 	}
 
-	if userData, ok := d.GetOk("userdata"); ok {
-		createOpts.UserData = userData.(string)
-	} else if userData, ok := d.GetOk("user_data"); ok {
-		createOpts.UserData = userData.(string)
+	if userData, ok := d.GetOk("user_data"); ok {
+		createOpts.UserData = base64.StdEncoding.EncodeToString([]byte(userData.(string)))
+	} else if userData, ok := d.GetOk("userdata"); ok {
+		createOpts.UserData = base64.StdEncoding.EncodeToString([]byte(userData.(string)))
 	}
 
 	name := d.Get("name").(string)
@@ -438,7 +443,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	currentVols := d.Get("volume").(*schema.Set).List()
 	if len(currentVols) > 0 {
-		vs, err := extractVolumesMap(currentVols)
+		vs, err := extractVolumesMapV2(currentVols)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -447,85 +452,101 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	ifs := d.Get("interface").([]interface{})
 	if len(ifs) > 0 {
-		interfacesList, err := extractInstanceInterfaceToListCreate(ifs)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		createOpts.Interfaces = interfacesList
+		ifaceCreateOptsList := extractInstanceInterfaceToListCreateV2(ifs)
+		createOpts.Interfaces = ifaceCreateOptsList
 	}
 
-	if metadata, ok := d.GetOk("metadata"); ok {
-		if len(metadata.([]interface{})) > 0 {
-			md, err := extractKeyValue(metadata.([]interface{}))
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			createOpts.Metadata = &md
+	if v, ok := d.GetOk("metadata"); ok {
+		metadataKV, err := extractKeyValueV2(v.([]interface{}))
+		if err != nil {
+			diag.FromErr(err)
 		}
+		metadata, err := MapInterfaceToMapString(metadataKV)
+		if err != nil {
+			diag.FromErr(err)
+		}
+		createOpts.Metadata = *metadata
 	} else if metadataRaw, ok := d.GetOk("metadata_map"); ok {
-		md := extractMetadataMap(metadataRaw.(map[string]interface{}))
-		createOpts.Metadata = &md
+		metadata, err := MapInterfaceToMapString(metadataRaw)
+		if err != nil {
+			diag.FromErr(err)
+		}
+		createOpts.Metadata = *metadata
 	}
 
 	configuration := d.Get("configuration")
 	if len(configuration.([]interface{})) > 0 {
-		conf, err := extractKeyValue(configuration.([]interface{}))
+		conf, err := extractKeyValueV2(configuration.([]interface{}))
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		createOpts.Configuration = &conf
+		createOpts.Configuration = conf
+	}
+
+	if v, ok := d.GetOk("security_groups"); ok {
+		securityGroups := v.([]interface{})
+		sgsList := make([]edgecloudV2.ID, 0, len(securityGroups))
+		for _, sg := range securityGroups {
+			sgsList = append(sgsList, edgecloudV2.ID{ID: sg.(string)})
+		}
+		createOpts.SecurityGroups = sgsList
 	}
 
 	log.Printf("[DEBUG] Instance create options: %+v", createOpts)
-	results, err := instances.Create(clientV2, createOpts).Extract()
+
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Instances.Create, &createOpts, clientV2)
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.Errorf("error creating instance: %s", err)
 	}
 
-	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	InstanceID, err := tasks.WaitTaskAndReturnResult(clientV1, taskID, true, InstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(clientV1, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		Instance, err := instances.ExtractInstanceIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve Instance ID from task info: %w", err)
-		}
-		return Instance, nil
-	},
-	)
-	log.Printf("[DEBUG] Instance id (%s)", InstanceID)
+	instanceID := taskResult.Instances[0]
+	log.Printf("[DEBUG] Instance id (%s)", instanceID)
+
+	// Code below adjusts all interfaces PortSecurityDisabled opt
+	log.Println("[DEBUG] ports security options adjusting...")
+	interfacesListAPI, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.FromErr(fmt.Errorf("error from getting instance interfaces: %w", err))
 	}
 
-	d.SetId(InstanceID.(string))
+	for _, iface := range ifs {
+		ifaceMap := iface.(map[string]interface{})
+		err = adjustPortSecurityDisabledOptV2(ctx, clientV2, interfacesListAPI, ifaceMap)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("error from port securtity disable option configuring. Interface: %#v, error: %w", ifaceMap, err))
+		}
+	}
+
+	d.SetId(instanceID)
 	resourceInstanceRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish Instance creating (%s)", InstanceID)
+	log.Printf("[DEBUG] Finish Instance creating (%s)", instanceID)
 
 	return diags
 }
 
-func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Instance reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	instance, err := instances.Get(client, instanceID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+	d.Set("region_id", regionID)
+	d.Set("project_id", projectID)
+
+	instance, resp, err := clientV2.Instances.Get(ctx, instanceID)
 	if err != nil {
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
+		if resp.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil
@@ -554,7 +575,7 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 		if !ok {
 			v = make(map[string]interface{})
 			v["volume_id"] = vol.ID
-			v["source"] = types.ExistingVolume.String()
+			v["source"] = edgecloudV2.VolumeSourceExistingVolume
 		}
 
 		v["id"] = vol.ID
@@ -566,30 +587,26 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	instancePorts, err := instances.ListPortsAll(client, instanceID)
+	instancePorts, _, err := clientV2.Instances.PortsList(ctx, instanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	secGroups := prepareSecurityGroups(instancePorts)
+	secGroups := prepareSecurityGroupsV2(instancePorts)
 
 	if err := d.Set("security_group", secGroups); err != nil {
 		return diag.FromErr(err)
 	}
 
-	interfacesListAPI, err := instances.ListInterfacesAll(client, instanceID)
+	interfacesListAPI, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	ifs := d.Get("interface").([]interface{})
 	sort.Sort(instanceInterfaces(ifs))
-	interfacesListExtracted, err := extractInstanceInterfaceToListRead(ifs)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	orderedInterfacesMap := extractInstanceInterfaceToListReadV2(ifs)
 	var interfacesList []interface{}
-	for order, iFace := range interfacesListAPI {
+	for _, iFace := range interfacesListAPI {
 		if len(iFace.IPAssignments) == 0 {
 			continue
 		}
@@ -597,29 +614,38 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 		portID := iFace.PortID
 		for _, assignment := range iFace.IPAssignments {
 			subnetID := assignment.SubnetID
-			ipAddress := assignment.IPAddress.String()
 
-			var interfaceOpts instances.InterfaceOpts
-			for _, interfaceExtracted := range interfacesListExtracted {
-				if interfaceExtracted.SubnetID == subnetID || interfaceExtracted.IPAddress == ipAddress || interfaceExtracted.PortID == portID {
-					interfaceOpts = interfaceExtracted
+			var interfaceOpts OrderedInterfaceOpts
+			var orderedInterfaceOpts OrderedInterfaceOpts
+			var ok bool
+
+			// we need to match our interfaces with api's interfaces
+			// but with don't have any unique value, that's why we use exactly that list of keys
+			for _, k := range []string{subnetID, iFace.PortID, iFace.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
+				if orderedInterfaceOpts, ok = orderedInterfacesMap[k]; ok {
+					interfaceOpts = orderedInterfaceOpts
 					break
 				}
 			}
 
+			if !ok {
+				continue
+			}
+
 			i := make(map[string]interface{})
-			i["type"] = interfaceOpts.Type.String()
-			i["order"] = order
+			i["type"] = interfaceOpts.InstanceInterface.Type
+			i["order"] = interfaceOpts.Order
 			i["network_id"] = iFace.NetworkID
 			i["subnet_id"] = subnetID
-			i["port_id"] = portID
-			if interfaceOpts.FloatingIP != nil {
-				i["fip_source"] = interfaceOpts.FloatingIP.Source.String()
-				i["existing_fip_id"] = interfaceOpts.FloatingIP.ExistingFloatingID
-			}
-			i["ip_address"] = ipAddress
+			i["port_id"] = iFace.PortID
+			i["port_security_disabled"] = !iFace.PortSecurityEnabled
 
-			if port, err := findInstancePort(portID, instancePorts); err == nil {
+			if interfaceOpts.InstanceInterface.FloatingIP != nil {
+				i["fip_source"] = interfaceOpts.InstanceInterface.FloatingIP.Source
+				i["existing_fip_id"] = interfaceOpts.InstanceInterface.FloatingIP.ExistingFloatingID
+			}
+			i["ip_address"] = assignment.IPAddress.String()
+			if port, err := findInstancePortV2(portID, instancePorts); err == nil {
 				sgs := make([]string, len(port.SecurityGroups))
 				for i, sg := range port.SecurityGroups {
 					sgs[i] = sg.ID
@@ -640,12 +666,14 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 		for i, data := range metadata {
 			d := data.(map[string]interface{})
 			mdata := make(map[string]string, 2)
-			md, err := instances.MetadataGet(client, instanceID, d["key"].(string)).Extract()
+
+			md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: d["key"].(string)})
 			if err != nil {
-				return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
+				return diag.Errorf("cannot get metadata with key: %s. Error: %s", d["key"].(string), err)
 			}
 			mdata["key"] = md.Key
 			mdata["value"] = md.Value
+
 			sliced[i] = mdata
 		}
 		d.Set("metadata", sliced)
@@ -653,7 +681,7 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 		metadata := d.Get("metadata_map").(map[string]interface{})
 		newMetadata := make(map[string]interface{}, len(metadata))
 		for k := range metadata {
-			md, err := instances.MetadataGet(client, instanceID, k).Extract()
+			md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
 			if err != nil {
 				return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
 			}
@@ -670,7 +698,7 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 		netd := make([]map[string]string, len(data))
 		for i, iaddr := range data {
 			ndata := make(map[string]string, 2)
-			ndata["type"] = iaddr.Type.String()
+			ndata["type"] = iaddr.Type
 			ndata["addr"] = iaddr.Address.String()
 			netd[i] = ndata
 		}
@@ -691,20 +719,23 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 	config := m.(*Config)
-	provider := config.Provider
-	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
+
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
 	if d.HasChange("name") {
 		nameTemplates := d.Get("name_templates").([]interface{})
 		nameTemplate := d.Get("name_template").(string)
 		if len(nameTemplate) == 0 && len(nameTemplates) == 0 {
-			opts := instances.RenameInstanceOpts{
-				Name: d.Get("name").(string),
-			}
-			if _, err := instances.RenameInstance(client, instanceID, opts).Extract(); err != nil {
+			opts := edgecloudV2.Name{Name: d.Get("name").(string)}
+			if _, _, err := clientV2.Instances.Rename(ctx, instanceID, &opts); err != nil {
 				return diag.FromErr(err)
 			}
 		}
@@ -712,23 +743,19 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	if d.HasChange("flavor_id") {
 		flavorID := d.Get("flavor_id").(string)
-		results, err := instances.Resize(client, instanceID, instances.ChangeFlavorOpts{FlavorID: flavorID}).Extract()
+		result, _, err := clientV2.Instances.UpdateFlavor(ctx, instanceID, &edgecloudV2.InstanceFlavorUpdateRequest{FlavorID: flavorID})
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		taskID := results.Tasks[0]
+		taskID := result.Tasks[0]
 		log.Printf("[DEBUG] Task id (%s)", taskID)
-		taskState, err := tasks.WaitTaskAndReturnResult(client, taskID, true, InstanceCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-			taskInfo, err := tasks.Get(client, string(task)).Extract()
-			if err != nil {
-				return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-			}
-			return taskInfo.State, nil
-		},
-		)
-		log.Printf("[DEBUG] Task state (%s)", taskState)
+		task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID)
 		if err != nil {
 			return diag.FromErr(err)
+		}
+
+		if task.State == edgecloudV2.TaskStateError {
+			return diag.Errorf("cannot update flavor in instance with ID: %s", instanceID)
 		}
 	}
 
@@ -738,25 +765,20 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			for _, data := range omd.([]interface{}) {
 				d := data.(map[string]interface{})
 				k := d["key"].(string)
-				err := instances.MetadataDelete(client, instanceID, k).Err
+				_, err = clientV2.Instances.MetadataDeleteItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
 				if err != nil {
 					return diag.Errorf("cannot delete metadata key: %s. Error: %s", k, err)
 				}
 			}
 		}
+		MetaData := make(edgecloudV2.Metadata)
 		if len(nmd.([]interface{})) > 0 {
-			var MetaData []instances.MetadataOpts
 			for _, data := range nmd.([]interface{}) {
 				d := data.(map[string]interface{})
-				var md instances.MetadataOpts
-				md.Key = d["key"].(string)
-				md.Value = d["value"].(string)
-				MetaData = append(MetaData, md)
+				MetaData[d["key"].(string)] = d["value"].(string)
 			}
-			createOpts := instances.MetadataSetOpts{
-				Metadata: MetaData,
-			}
-			err := instances.MetadataCreate(client, instanceID, createOpts).Err
+
+			_, err = clientV2.Instances.MetadataCreate(ctx, instanceID, &MetaData)
 			if err != nil {
 				return diag.Errorf("cannot create metadata. Error: %s", err)
 			}
@@ -765,25 +787,18 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		omd, nmd := d.GetChange("metadata_map")
 		if len(omd.(map[string]interface{})) > 0 {
 			for k := range omd.(map[string]interface{}) {
-				err := instances.MetadataDelete(client, instanceID, k).Err
+				_, err := clientV2.Instances.MetadataDeleteItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
 				if err != nil {
 					return diag.Errorf("cannot delete metadata key: %s. Error: %s", k, err)
 				}
 			}
 		}
+		MetaData := make(edgecloudV2.Metadata)
 		if len(nmd.(map[string]interface{})) > 0 {
-			var MetaData []instances.MetadataOpts
 			for k, v := range nmd.(map[string]interface{}) {
-				md := instances.MetadataOpts{
-					Key:   k,
-					Value: v.(string),
-				}
-				MetaData = append(MetaData, md)
+				MetaData[k] = v.(string)
 			}
-			createOpts := instances.MetadataSetOpts{
-				Metadata: MetaData,
-			}
-			err := instances.MetadataCreate(client, instanceID, createOpts).Err
+			_, err = clientV2.Instances.MetadataCreate(ctx, instanceID, &MetaData)
 			if err != nil {
 				return diag.Errorf("cannot create metadata. Error: %s", err)
 			}
@@ -803,30 +818,26 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				iOld := item.(map[string]interface{})
 				iNew := ifsNewSlice[idx].(map[string]interface{})
 
-				sgsIDsOld := getSecurityGroupsIDs(iOld["security_groups"].([]interface{}))
-				sgsIDsNew := getSecurityGroupsIDs(iNew["security_groups"].([]interface{}))
+				sgsIDsOld := getSecurityGroupsIDsV2(iOld["security_groups"].([]interface{}))
+				sgsIDsNew := getSecurityGroupsIDsV2(iNew["security_groups"].([]interface{}))
 				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
 					portID := iOld["port_id"].(string)
-					sgClient, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
-					if err != nil {
+					removeSGs := getSecurityGroupsDifferenceV2(sgsIDsNew, sgsIDsOld)
+					if err := removeSecurityGroupFromInstanceV2(ctx, clientV2, instanceID, portID, removeSGs); err != nil {
 						return diag.FromErr(err)
 					}
-					removeSGs := getSecurityGroupsDifference(sgsIDsNew, sgsIDsOld)
-					if err := removeSecurityGroupFromInstance(sgClient, client, instanceID, portID, removeSGs); err != nil {
-						return diag.FromErr(err)
-					}
-					addSGs := getSecurityGroupsDifference(sgsIDsOld, sgsIDsNew)
-					if err := attachSecurityGroupToInstance(sgClient, client, instanceID, portID, addSGs); err != nil {
+					addSGs := getSecurityGroupsDifferenceV2(sgsIDsOld, sgsIDsNew)
+					if err := attachSecurityGroupToInstanceV2(ctx, clientV2, instanceID, portID, addSGs); err != nil {
 						return diag.FromErr(err)
 					}
 				}
 
 				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
 				if len(differentFields) > 0 {
-					if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
+					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
 					}
-					if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+					if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iNew); err != nil {
 						return diag.FromErr(err)
 					}
 				}
@@ -838,31 +849,27 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				iOld := item.(map[string]interface{})
 				iNew := ifsNewSlice[idx].(map[string]interface{})
 
-				sgsIDsOld := getSecurityGroupsIDs(iOld["security_groups"].([]interface{}))
-				sgsIDsNew := getSecurityGroupsIDs(iNew["security_groups"].([]interface{}))
+				sgsIDsOld := getSecurityGroupsIDsV2(iOld["security_groups"].([]interface{}))
+				sgsIDsNew := getSecurityGroupsIDsV2(iNew["security_groups"].([]interface{}))
 				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
 					portID := iOld["port_id"].(string)
-					clientSG, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
-					if err != nil {
-						return diag.FromErr(err)
-					}
-					removeSGs := getSecurityGroupsDifference(sgsIDsNew, sgsIDsOld)
-					if err := removeSecurityGroupFromInstance(clientSG, client, instanceID, portID, removeSGs); err != nil {
+					removeSGs := getSecurityGroupsDifferenceV2(sgsIDsNew, sgsIDsOld)
+					if err := removeSecurityGroupFromInstanceV2(ctx, clientV2, instanceID, portID, removeSGs); err != nil {
 						return diag.FromErr(err)
 					}
 
-					addSGs := getSecurityGroupsDifference(sgsIDsOld, sgsIDsNew)
-					if err := attachSecurityGroupToInstance(clientSG, client, instanceID, portID, addSGs); err != nil {
+					addSGs := getSecurityGroupsDifferenceV2(sgsIDsOld, sgsIDsNew)
+					if err := attachSecurityGroupToInstanceV2(ctx, clientV2, instanceID, portID, addSGs); err != nil {
 						return diag.FromErr(err)
 					}
 				}
 
 				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
 				if len(differentFields) > 0 {
-					if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
+					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
 					}
-					if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+					if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iNew); err != nil {
 						return diag.FromErr(err)
 					}
 				}
@@ -870,7 +877,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 			for _, item := range ifsNewSlice[len(ifsOldSlice):] {
 				iNew := item.(map[string]interface{})
-				if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+				if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iNew); err != nil {
 					return diag.FromErr(err)
 				}
 			}
@@ -881,31 +888,27 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				iOld := item.(map[string]interface{})
 				iNew := ifsNewSlice[idx].(map[string]interface{})
 
-				sgsIDsOld := getSecurityGroupsIDs(iOld["security_groups"].([]interface{}))
-				sgsIDsNew := getSecurityGroupsIDs(iNew["security_groups"].([]interface{}))
+				sgsIDsOld := getSecurityGroupsIDsV2(iOld["security_groups"].([]interface{}))
+				sgsIDsNew := getSecurityGroupsIDsV2(iNew["security_groups"].([]interface{}))
 				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
 					portID := iOld["port_id"].(string)
-					clientSG, err := CreateClient(provider, d, SecurityGroupPoint, VersionPointV1)
-					if err != nil {
-						return diag.FromErr(err)
-					}
-					removeSGs := getSecurityGroupsDifference(sgsIDsNew, sgsIDsOld)
-					if err := removeSecurityGroupFromInstance(clientSG, client, instanceID, portID, removeSGs); err != nil {
+					removeSGs := getSecurityGroupsDifferenceV2(sgsIDsNew, sgsIDsOld)
+					if err := removeSecurityGroupFromInstanceV2(ctx, clientV2, instanceID, portID, removeSGs); err != nil {
 						return diag.FromErr(err)
 					}
 
-					addSGs := getSecurityGroupsDifference(sgsIDsOld, sgsIDsNew)
-					if err := attachSecurityGroupToInstance(clientSG, client, instanceID, portID, addSGs); err != nil {
+					addSGs := getSecurityGroupsDifferenceV2(sgsIDsOld, sgsIDsNew)
+					if err := attachSecurityGroupToInstanceV2(ctx, clientV2, instanceID, portID, addSGs); err != nil {
 						return diag.FromErr(err)
 					}
 				}
 
 				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
 				if len(differentFields) > 0 {
-					if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
+					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
 					}
-					if err := attachInterfaceToInstance(client, instanceID, iNew); err != nil {
+					if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iNew); err != nil {
 						return diag.FromErr(err)
 					}
 				}
@@ -913,7 +916,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 			for _, item := range ifsOldSlice[len(ifsNewSlice):] {
 				iOld := item.(map[string]interface{})
-				if err := detachInterfaceFromInstance(client, instanceID, iOld); err != nil {
+				if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
 					return diag.FromErr(err)
 				}
 			}
@@ -924,14 +927,9 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		oldSGRaw, newSGRaw := d.GetChange("server_group")
 		oldSGID, newSGID := oldSGRaw.(string), newSGRaw.(string)
 
-		clientSG, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
 		// delete old server group
 		if oldSGID != "" {
-			err := deleteServerGroup(clientSG, client, instanceID, oldSGID)
+			err := deleteServerGroupV2(ctx, clientV2, instanceID)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -939,7 +937,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 		// add new server group if needed
 		if newSGID != "" {
-			err := addServerGroup(clientSG, client, instanceID, newSGID)
+			err := addServerGroupV2(ctx, clientV2, instanceID, newSGID)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -947,31 +945,27 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("volume") {
-		vClient, err := CreateClient(provider, d, VolumesPoint, VersionPointV1)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
 		oldVolumesRaw, newVolumesRaw := d.GetChange("volume")
 		oldVolumes := extractInstanceVolumesMap(oldVolumesRaw.(*schema.Set).List())
 		newVolumes := extractInstanceVolumesMap(newVolumesRaw.(*schema.Set).List())
 
-		vOpts := volumes.InstanceOperationOpts{InstanceID: d.Id()}
+		vDetachOpts := edgecloudV2.VolumeDetachRequest{InstanceID: d.Id()}
 		for vid := range oldVolumes {
 			if isAttached := newVolumes[vid]; isAttached {
 				// mark as already attached
 				newVolumes[vid] = false
 				continue
 			}
-			if _, err := volumes.Detach(vClient, vid, vOpts).Extract(); err != nil {
+			if _, _, err := clientV2.Volumes.Detach(ctx, vid, &vDetachOpts); err != nil {
 				return diag.FromErr(err)
 			}
 		}
 
 		// range over not attached volumes
+		vAttachOpts := edgecloudV2.VolumeAttachRequest{InstanceID: d.Id()}
 		for vid, ok := range newVolumes {
 			if ok {
-				if _, err := volumes.Attach(vClient, vid, vOpts).Extract(); err != nil {
+				if _, _, err := clientV2.Volumes.Attach(ctx, vid, &vAttachOpts); err != nil {
 					return diag.FromErr(err)
 				}
 			}
@@ -982,12 +976,12 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		state := d.Get("vm_state").(string)
 		switch state {
 		case InstanceVMStateActive:
-			if _, err := instances.Start(client, instanceID).Extract(); err != nil {
+			if _, _, err := clientV2.Instances.InstanceStart(ctx, instanceID); err != nil {
 				return diag.FromErr(err)
 			}
 			startStateConf := &retry.StateChangeConf{
 				Target:     []string{InstanceVMStateActive},
-				Refresh:    ServerV2StateRefreshFunc(client, instanceID),
+				Refresh:    ServerV2StateRefreshFuncV2(ctx, clientV2, instanceID),
 				Timeout:    d.Timeout(schema.TimeoutCreate),
 				Delay:      10 * time.Second,
 				MinTimeout: 3 * time.Second,
@@ -997,12 +991,12 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				return diag.Errorf("Error waiting for instance (%s) to become active: %s", d.Id(), err)
 			}
 		case InstanceVMStateStopped:
-			if _, err := instances.Stop(client, instanceID).Extract(); err != nil {
+			if _, _, err := clientV2.Instances.InstanceStop(ctx, instanceID); err != nil {
 				return diag.FromErr(err)
 			}
 			stopStateConf := &retry.StateChangeConf{
 				Target:     []string{InstanceVMStateStopped},
-				Refresh:    ServerV2StateRefreshFunc(client, instanceID),
+				Refresh:    ServerV2StateRefreshFuncV2(ctx, clientV2, instanceID),
 				Timeout:    d.Timeout(schema.TimeoutCreate),
 				Delay:      10 * time.Second,
 				MinTimeout: 3 * time.Second,
@@ -1020,39 +1014,36 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	return resourceInstanceRead(ctx, d, m)
 }
 
-func resourceInstanceDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Instance deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
-	instanceID := d.Id()
-	log.Printf("[DEBUG] Instance id = %s", instanceID)
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, InstancePoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var delOpts instances.DeleteOpts
-	results, err := instances.Delete(client, instanceID, delOpts).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+	instanceID := d.Id()
+	log.Printf("[DEBUG] Instance id = %s", instanceID)
+
+	var delOpts edgecloudV2.InstanceDeleteOptions
+	results, _, err := clientV2.Instances.Delete(ctx, instanceID, &delOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, InstanceDeleting, func(task tasks.TaskID) (interface{}, error) {
-		_, err := instances.Get(client, instanceID).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete instance with ID: %s", instanceID)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting Instance resource error: %w", err)
-	})
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if task.State == edgecloudV2.TaskStateError {
+		return diag.Errorf("cannot delete instance with ID: %s", instanceID)
 	}
 
 	d.SetId("")

@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
@@ -100,50 +100,57 @@ func resourceServerGroupCreate(ctx context.Context, d *schema.ResourceData, m in
 	log.Println("[DEBUG] Start ServerGroup creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
 
-	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	opts := servergroups.CreateOpts{
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	opts := edgecloudV2.ServerGroupCreateRequest{
 		Name:   d.Get("name").(string),
-		Policy: servergroups.ServerGroupPolicy(d.Get("policy").(string)),
+		Policy: edgecloudV2.ServerGroupPolicy(d.Get("policy").(string)),
 	}
 
-	serverGroup, err := servergroups.Create(client, opts).Extract()
+	serverGroup, _, err := clientV2.ServerGroups.Create(ctx, &opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(serverGroup.ServerGroupID)
+	d.SetId(serverGroup.ID)
 	resourceServerGroupRead(ctx, d, m)
 	log.Println("[DEBUG] Finish ServerGroup creating")
 
 	return diags
 }
 
-func resourceServerGroupRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ServerGroup reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	serverGroup, err := servergroups.Get(client, d.Id()).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+	d.Set("project_id", projectID)
+	d.Set("region_id", regionID)
+
+	serverGroup, _, err := clientV2.ServerGroups.Get(ctx, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.Set("name", serverGroup.Name)
-	d.Set("project_id", serverGroup.ProjectID)
-	d.Set("region_id", serverGroup.RegionID)
-	d.Set("policy", serverGroup.Policy.String())
+	d.Set("policy", serverGroup.Policy)
 
 	instances := make([]map[string]string, len(serverGroup.Instances))
 	for i, instance := range serverGroup.Instances {
@@ -161,18 +168,21 @@ func resourceServerGroupRead(_ context.Context, d *schema.ResourceData, m interf
 	return diags
 }
 
-func resourceServerGroupDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceServerGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ServerGroup deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	err = servergroups.Delete(client, d.Id()).ExtractErr()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	_, err = clientV2.ServerGroups.Delete(ctx, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}

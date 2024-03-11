@@ -2,22 +2,17 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils/metadata"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
@@ -48,19 +43,17 @@ func resourceLoadBalancer() *schema.Resource {
 				d.SetId(lbID)
 
 				config := m.(*Config)
-				provider := config.Provider
+				clientV2 := config.CloudClient
 
-				listenersClient, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
-				if err != nil {
-					return nil, err
-				}
+				clientV2.Region = regionID
+				clientV2.Project = projectID
 
-				listener, err := listeners.Get(listenersClient, listenerID).Extract()
+				listener, _, err := clientV2.Loadbalancers.ListenerGet(ctx, listenerID)
 				if err != nil {
 					return nil, fmt.Errorf("extracting Listener resource error: %w", err)
 				}
 
-				l := extractListenerIntoMap(listener)
+				l := extractListenerIntoMapV2(listener)
 				if err := d.Set("listener", []interface{}{l}); err != nil {
 					return nil, fmt.Errorf("set listener error: %w", err)
 				}
@@ -144,13 +137,13 @@ func resourceLoadBalancer() *schema.Resource {
 						"protocol": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP),
+							Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS),
 							ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 								v := val.(string)
-								switch types.ProtocolType(v) {
-								case types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP:
+								switch edgecloudV2.LoadbalancerListenerProtocol(v) {
+								case edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS:
 									return diag.Diagnostics{}
-								case types.ProtocolTypeTerminatedHTTPS, types.ProtocolTypePROXY:
+								case edgecloudV2.ListenerProtocolTerminatedHTTPS:
 								}
 								return diag.Errorf("wrong protocol %s, available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'", v)
 							},
@@ -226,21 +219,25 @@ func resourceLoadBalancerCreate(_ context.Context, _ *schema.ResourceData, _ int
 	return diag.FromErr(fmt.Errorf("use edgecenter_loadbalancerv2 resource instead"))
 }
 
-func resourceLoadBalancerRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	lb, err := loadbalancers.Get(client, d.Id()).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	lb, _, err := clientV2.Loadbalancers.Get(ctx, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	d.Set("project_id", lb.ProjectID)
 	d.Set("region_id", lb.RegionID)
 	d.Set("name", lb.Name)
@@ -252,11 +249,6 @@ func resourceLoadBalancerRead(_ context.Context, d *schema.ResourceData, m inter
 
 	fields := []string{"vip_network_id", "vip_subnet_id"}
 	revertState(d, &fields)
-
-	listenersClient, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	var ok bool
 	currentL := make(map[string]interface{})
@@ -270,13 +262,13 @@ func resourceLoadBalancerRead(_ context.Context, d *schema.ResourceData, m inter
 	}
 
 	for _, l := range lb.Listeners {
-		listener, err := listeners.Get(listenersClient, l.ID).Extract()
+		listener, _, err := clientV2.Loadbalancers.ListenerGet(ctx, l.ID)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		port, _ := currentL["protocol_port"].(int)
-		if (listener.ProtocolPort == port && listener.Protocol.String() == currentL["protocol"]) || len(cls) == 0 {
-			currentL = extractListenerIntoMap(listener)
+		if (listener.ProtocolPort == port && listener.Protocol == currentL["protocol"]) || len(cls) == 0 {
+			currentL = extractListenerIntoMapV2(listener)
 			break
 		}
 	}
@@ -284,7 +276,7 @@ func resourceLoadBalancerRead(_ context.Context, d *schema.ResourceData, m inter
 		diag.FromErr(err)
 	}
 
-	metadataMap, metadataReadOnly := PrepareMetadata(lb.Metadata)
+	metadataMap, metadataReadOnly := PrepareMetadata(lb.MetadataDetailed)
 
 	if err = d.Set("metadata_map", metadataMap); err != nil {
 		return diag.FromErr(err)
@@ -302,18 +294,21 @@ func resourceLoadBalancerRead(_ context.Context, d *schema.ResourceData, m inter
 func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer updating")
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	if d.HasChange("name") {
-		opts := loadbalancers.UpdateOpts{
+		opts := &edgecloudV2.Name{
 			Name: d.Get("name").(string),
 		}
-		if _, err = loadbalancers.Update(client, d.Id(), opts).Extract(); err != nil {
+		if _, _, err = clientV2.Loadbalancers.Rename(ctx, d.Id(), opts); err != nil {
 			return diag.FromErr(err)
 		}
 
@@ -321,11 +316,6 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("listener") {
-		client, err := CreateClient(provider, d, LBListenersPoint, VersionPointV1)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
 		oldListenerRaw, newListenerRaw := d.GetChange("listener")
 		oldListener := oldListenerRaw.([]interface{})[0].(map[string]interface{})
 		newListener := newListenerRaw.([]interface{})[0].(map[string]interface{})
@@ -335,32 +325,22 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 			oldListener["protocol_port"].(int) != newListener["protocol_port"].(int) {
 			// if protocol or port changed listener need to be recreated
 			// delete at first
-			results, err := listeners.Delete(client, listenerID).Extract()
+			results, _, err := clientV2.Loadbalancers.ListenerDelete(ctx, listenerID)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 
 			taskID := results.Tasks[0]
-			_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, LBListenerCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-				_, err := listeners.Get(client, listenerID).Extract()
-				if err == nil {
-					return nil, fmt.Errorf("cannot delete LBListener with ID: %s", listenerID)
-				}
-				var errDefault404 edgecloud.Default404Error
-				if errors.As(err, &errDefault404) {
-					return nil, nil
-				}
-				return nil, fmt.Errorf("extracting Listener resource error: %w", err)
-			})
+			err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 
-			opts := listeners.CreateOpts{
+			opts := edgecloudV2.ListenerCreateRequest{
 				Name:             newListener["name"].(string),
-				Protocol:         types.ProtocolType(newListener["protocol"].(string)),
+				Protocol:         edgecloudV2.LoadbalancerListenerProtocol(newListener["protocol"].(string)),
 				ProtocolPort:     newListener["protocol_port"].(int),
-				LoadBalancerID:   d.Id(),
+				LoadbalancerID:   d.Id(),
 				InsertXForwarded: newListener["insert_x_forwarded"].(bool),
 				SecretID:         newListener["secret_id"].(string),
 			}
@@ -373,28 +353,12 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 				opts.SNISecretID = sniSecretID
 			}
 
-			results, err = listeners.Create(client, opts).Extract()
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			taskID = results.Tasks[0]
-			_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, LBListenerCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-				taskInfo, err := tasks.Get(client, string(task)).Extract()
-				if err != nil {
-					return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-				}
-				listenerID, err := listeners.ExtractListenerIDFromTask(taskInfo)
-				if err != nil {
-					return nil, fmt.Errorf("cannot retrieve LBListener ID from task info: %w", err)
-				}
-				return listenerID, nil
-			})
+			_, err = utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.ListenerCreate, &opts, clientV2)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 		} else {
-			opts := listeners.UpdateOpts{
+			opts := &edgecloudV2.ListenerUpdateRequest{
 				Name:     newListener["name"].(string),
 				SecretID: newListener["secret_id"].(string),
 			}
@@ -404,7 +368,16 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 				sniSecretID[i] = s.(string)
 			}
 			opts.SNISecretID = sniSecretID
-			if _, err := listeners.Update(client, listenerID, opts).Extract(); err != nil {
+
+			task, _, err := clientV2.Loadbalancers.ListenerUpdate(ctx, listenerID, opts)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			taskID := task.Tasks[0]
+
+			err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
+			if err != nil {
 				return diag.FromErr(err)
 			}
 		}
@@ -413,12 +386,13 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if d.HasChange("metadata_map") {
 		_, nmd := d.GetChange("metadata_map")
 
-		meta, err := utils.MapInterfaceToMapString(nmd.(map[string]interface{}))
+		meta, err := MapInterfaceToMapString(nmd.(map[string]interface{}))
 		if err != nil {
 			return diag.Errorf("cannot get metadata. Error: %s", err)
 		}
 
-		err = metadata.ResourceMetadataReplace(client, d.Id(), meta).Err
+		metadataLB := edgecloudV2.Metadata(*meta)
+		_, err = clientV2.Loadbalancers.MetadataUpdate(ctx, d.Id(), &metadataLB)
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
@@ -429,35 +403,34 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceLoadBalancerRead(ctx, d, m)
 }
 
-func resourceLoadBalancerDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LoadBalancersPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
 	id := d.Id()
-	results, err := loadbalancers.Delete(client, id).Extract()
+	results, resp, err := clientV2.Loadbalancers.Delete(ctx, id)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			log.Printf("[DEBUG] Finish of Load Balancer deleting")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 
 	taskID := results.Tasks[0]
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, LoadBalancerCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		_, err := loadbalancers.Get(client, id).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete loadbalancer with ID: %s", id)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting Load Balancer resource error: %w", err)
-	})
+
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}

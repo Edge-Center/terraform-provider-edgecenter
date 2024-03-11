@@ -2,24 +2,18 @@ package edgecenter
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
-	RouterDeleting        int = 1200
-	RouterCreatingTimeout int = 1200
-	RouterPoint               = "routers"
+	RouterPoint = "routers"
 )
 
 func resourceRouter() *schema.Resource {
@@ -185,20 +179,23 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Println("[DEBUG] Start router creating")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	createOpts := routers.CreateOpts{}
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	createOpts := edgecloudV2.RouterCreateRequest{}
 
 	createOpts.Name = d.Get("name").(string)
 
 	egi := d.Get("external_gateway_info")
 	if len(egi.([]interface{})) > 0 {
-		gws, err := extractExternalGatewayInfoMap(egi.([]interface{}))
+		gws, err := extractExternalGatewayInfoMapV2(egi.([]interface{}))
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -207,7 +204,7 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	ifs := d.Get("interfaces").(*schema.Set)
 	if ifs.Len() > 0 {
-		ifaces, err := extractInterfacesMap(ifs.List())
+		ifaces, err := extractInterfacesMapV2(ifs.List())
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -216,38 +213,24 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	rs := d.Get("routes")
 	if len(rs.([]interface{})) > 0 {
-		routes, err := extractHostRoutesMap(rs.([]interface{}))
+		routes, err := extractHostRoutesMapV2(rs.([]interface{}))
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		createOpts.Routes = routes
 	}
 
-	results, err := routers.Create(client, createOpts).Extract()
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	log.Printf("[DEBUG] Router create options: %+v", createOpts)
 
-	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	routerID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, RouterCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		Router, err := routers.ExtractRouterIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve Router ID from task info: %w", err)
-		}
-		return Router, nil
-	},
-	)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Routers.Create, &createOpts, clientV2)
+	if err != nil {
+		return diag.Errorf("error router creating: %s", err)
+	}
+	routerID := taskResult.Routers[0]
+
 	log.Printf("[DEBUG] Router id (%s)", routerID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
-	d.SetId(routerID.(string))
+	d.SetId(routerID)
 	resourceRouterRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish router creating (%s)", routerID)
@@ -255,21 +238,27 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func resourceRouterRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start router reading")
 	log.Printf("[DEBUG] Start router reading%s", d.State())
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
 	routerID := d.Id()
 	log.Printf("[DEBUG] Router id = %s", routerID)
 
-	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	router, err := routers.Get(client, routerID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+	d.Set("region_id", regionID)
+	d.Set("project_id", projectID)
+
+	router, _, err := clientV2.Routers.Get(ctx, routerID)
 	if err != nil {
 		return diag.Errorf("cannot get router with ID: %s. Error: %s", routerID, err)
 	}
@@ -279,7 +268,7 @@ func resourceRouterRead(_ context.Context, d *schema.ResourceData, m interface{}
 	if len(router.ExternalGatewayInfo.ExternalFixedIPs) > 0 {
 		egi := make(map[string]interface{}, 4)
 		egilst := make([]map[string]interface{}, 1)
-		egi["enable_snat"] = router.ExternalGatewayInfo.EnableSNat
+		egi["enable_snat"] = router.ExternalGatewayInfo.EnableSnat
 		egi["network_id"] = router.ExternalGatewayInfo.NetworkID
 
 		egist := d.Get("external_gateway_info")
@@ -310,7 +299,7 @@ func resourceRouterRead(_ context.Context, d *schema.ResourceData, m interface{}
 			smap := make(map[string]interface{}, 6)
 			smap["port_id"] = iface.PortID
 			smap["network_id"] = iface.NetworkID
-			smap["mac_address"] = iface.MacAddress.String()
+			smap["mac_address"] = iface.MacAddress
 			smap["type"] = "subnet"
 			smap["subnet_id"] = subnet.SubnetID
 			smap["ip_address"] = subnet.IPAddress.String()
@@ -340,39 +329,27 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	routerID := d.Id()
 	log.Printf("[DEBUG] Router id = %s", routerID)
 	config := m.(*Config)
-	provider := config.Provider
-	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	updateOpts := routers.UpdateOpts{}
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
-	if d.HasChange("name") {
-		updateOpts.Name = d.Get("name").(string)
-	}
+	updateOpts := edgecloudV2.RouterUpdateRequest{}
 
-	// Only one kind of update is supported when external manual gateway is set.
-	if d.HasChange("external_gateway_info") {
-		egi := d.Get("external_gateway_info")
-		if len(egi.([]interface{})) > 0 {
-			gws, err := extractExternalGatewayInfoMap(egi.([]interface{}))
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			if gws.Type == "manual" {
-				updateOpts.ExternalGatewayInfo = gws
-			}
-		}
-	}
+	updateOpts.Name = d.Get("name").(string)
 
 	if d.HasChange("interfaces") {
 		oldValue, newValue := d.GetChange("interfaces")
-		oifs, err := extractInterfacesMap(oldValue.(*schema.Set).List())
+		oifs, err := extractInterfacesMapV2(oldValue.(*schema.Set).List())
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		nifs, err := extractInterfacesMap(newValue.(*schema.Set).List())
+		nifs, err := extractInterfacesMapV2(newValue.(*schema.Set).List())
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -388,7 +365,8 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 			if ok {
 				delete(omap, niface.SubnetID)
 			} else {
-				_, err = routers.Attach(client, routerID, niface.SubnetID).Extract()
+				routerAttachOpts := edgecloudV2.RouterAttachRequest{SubnetID: niface.SubnetID}
+				_, _, err = clientV2.Routers.Attach(ctx, routerID, &routerAttachOpts)
 				if err != nil {
 					return diag.FromErr(err)
 				}
@@ -397,28 +375,41 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 		for _, v := range omap {
 			oiface := oifs[v]
-			_, err = routers.Detach(client, routerID, oiface.SubnetID).Extract()
+			routerDetachOpts := edgecloudV2.RouterDetachRequest{SubnetID: oiface.SubnetID}
+
+			_, _, err = clientV2.Routers.Detach(ctx, routerID, &routerDetachOpts)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 		}
 	}
 
-	if d.HasChange("routes") {
-		rs := d.Get("routes")
-		updateOpts.Routes = make([]subnets.HostRoute, 0)
-		if len(rs.([]interface{})) > 0 {
-			routes, err := extractHostRoutesMap(rs.([]interface{}))
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			updateOpts.Routes = routes
+	egi := d.Get("external_gateway_info")
+	if len(egi.([]interface{})) > 0 {
+		gws, err := extractExternalGatewayInfoMapV2(egi.([]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if gws.Type == "manual" {
+			updateOpts.ExternalGatewayInfo = gws
 		}
 	}
 
-	_, err = routers.Update(client, routerID, updateOpts).Extract()
-	if err != nil {
-		return diag.FromErr(err)
+	rs := d.Get("routes")
+	updateOpts.Routes = make([]edgecloudV2.HostRoute, 0)
+	if len(rs.([]interface{})) > 0 {
+		routes, err := extractHostRoutesMapV2(rs.([]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		updateOpts.Routes = routes
+	}
+
+	if d.HasChange("routes") || d.HasChange("external_gateway_info") || d.HasChange("name") {
+		_, _, err = clientV2.Routers.Update(ctx, routerID, &updateOpts)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
@@ -427,36 +418,28 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	return resourceRouterRead(ctx, d, m)
 }
 
-func resourceRouterDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start router deleting")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
 	routerID := d.Id()
-	log.Printf("[DEBUG] Router id = %s", routerID)
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, RouterPoint, VersionPointV1)
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	results, err := routers.Delete(client, routerID).Extract()
+	clientV2.Region = regionID
+	clientV2.Project = projectID
+
+	results, _, err := clientV2.Routers.Delete(ctx, routerID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	_, err = tasks.WaitTaskAndReturnResult(client, taskID, true, RouterDeleting, func(task tasks.TaskID) (interface{}, error) {
-		_, err := routers.Get(client, routerID).Extract()
-		if err == nil {
-			return nil, fmt.Errorf("cannot delete router with ID: %s", routerID)
-		}
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("extracting Router resource error: %w", err)
-	})
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -55,5 +55,3 @@ data "edgecenter_k8s_pool" "pool" {
 - `node_count` (Number) The current number of nodes in the pool.
 - `node_names` (List of String) A list of names of nodes within the pool.
 - `stack_id` (String) The identifier of the underlying infrastructure stack used by this pool.
-
-

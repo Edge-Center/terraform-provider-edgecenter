@@ -9,11 +9,13 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/utils"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
+// TODO https://tracker.yandex.ru/CLOUDDEV-152
 func dataSourceFloatingIP() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceFloatingIPRead,
@@ -33,6 +35,13 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "floating IP uuid",
+				ValidateFunc: validation.IsUUID,
+				ExactlyOneOf: []string{"id", "floating_ip_address"},
+			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -47,7 +56,7 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 			},
 			"floating_ip_address": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "The floating IP address assigned to the resource. It must be a valid IP address.",
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
@@ -58,6 +67,7 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 
 					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
 				},
+				ExactlyOneOf: []string{"id", "floating_ip_address"},
 			},
 			"port_id": {
 				Type:        schema.TypeString,
@@ -117,66 +127,53 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 	}
 }
 
-func dataSourceFloatingIPRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	provider := config.Provider
 
-	client, err := CreateClient(provider, d, FloatingIPsPoint, VersionPointV1)
+	config := m.(*Config)
+	clientV2 := config.CloudClient
+
+	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	clientV2.Region = regionID
+	clientV2.Project = projectID
 
-	ipAddr := d.Get("floating_ip_address").(string)
-	metaOpts := &floatingips.ListOpts{}
+	var foundFloatingIP *edgecloudV2.FloatingIP
 
-	if metadataK, ok := d.GetOk("metadata_k"); ok {
-		metaOpts.MetadataK = metadataK.(string)
-	}
-
-	if metadataRaw, ok := d.GetOk("metadata_kv"); ok {
-		meta, err := utils.MapInterfaceToMapString(metadataRaw)
+	if id, ok := d.GetOk("id"); ok {
+		floatingIP, err := util.FloatingIPDetailedByID(ctx, clientV2, id.(string))
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		metaOpts.MetadataKV = meta
-	}
-
-	ips, err := floatingips.ListAll(client, *metaOpts)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	var found bool
-	var floatingIP floatingips.FloatingIPDetail
-	for _, ip := range ips {
-		if ip.FloatingIPAddress.String() == ipAddr {
-			floatingIP = ip
-			found = true
-			break
+		foundFloatingIP = floatingIP
+	} else if floatingIPAddress, ok := d.GetOk("floating_ip_address"); ok {
+		floatingIP, err := util.FloatingIPDetailedByIPAddress(ctx, clientV2, floatingIPAddress.(string))
+		if err != nil {
+			return diag.FromErr(err)
 		}
+		foundFloatingIP = floatingIP
+	} else {
+		return diag.Errorf("Error: specify either a floating_ip_address or id to lookup the floating ip")
 	}
+	d.SetId(foundFloatingIP.ID)
 
-	if !found {
-		return diag.Errorf("floatingIP %s not found", ipAddr)
-	}
-
-	d.SetId(floatingIP.ID)
-	if floatingIP.FixedIPAddress != nil {
-		d.Set("fixed_ip_address", floatingIP.FixedIPAddress.String())
+	if foundFloatingIP.FixedIPAddress != nil {
+		d.Set("fixed_ip_address", foundFloatingIP.FixedIPAddress.String())
 	} else {
 		d.Set("fixed_ip_address", "")
 	}
 
-	d.Set("project_id", floatingIP.ProjectID)
-	d.Set("region_id", floatingIP.RegionID)
-	d.Set("status", floatingIP.Status)
-	d.Set("port_id", floatingIP.PortID)
-	d.Set("router_id", floatingIP.RouterID)
-	d.Set("floating_ip_address", floatingIP.FloatingIPAddress.String())
+	d.Set("project_id", foundFloatingIP.ProjectID)
+	d.Set("region_id", foundFloatingIP.RegionID)
+	d.Set("status", foundFloatingIP.Status)
+	d.Set("port_id", foundFloatingIP.PortID)
+	d.Set("router_id", foundFloatingIP.RouterID)
+	d.Set("floating_ip_address", foundFloatingIP.FloatingIPAddress)
 
-	metadataReadOnly := PrepareMetadataReadonly(floatingIP.Metadata)
+	metadataReadOnly := PrepareMetadataReadonly(foundFloatingIP.Metadata)
 	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}

@@ -116,5 +116,3 @@ Read-Only:
 
 - `delete_on_termination` (Boolean)
 - `volume_id` (String)
-
-

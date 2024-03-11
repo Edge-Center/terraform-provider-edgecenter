@@ -27,6 +27,7 @@ issues:
 linters:
   enable-all: true
   disable:
+    - ireturn
     - deadcode
     - maligned
     - varcheck

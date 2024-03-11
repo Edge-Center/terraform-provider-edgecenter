@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceServerGroup() *schema.Resource {
@@ -70,18 +70,21 @@ func dataSourceServerGroup() *schema.Resource {
 	}
 }
 
-func dataSourceServerGroupRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ServerGroup reading")
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, ServerGroupsPoint, VersionPointV1)
+	regionID, clientID, err := GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var serverGroup servergroups.ServerGroup
-	serverGroups, err := servergroups.ListAll(client)
+	clientV2.Region = regionID
+	clientV2.Project = clientID
+
+	var serverGroup edgecloudV2.ServerGroup
+	serverGroups, _, err := clientV2.ServerGroups.List(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -100,11 +103,11 @@ func dataSourceServerGroupRead(_ context.Context, d *schema.ResourceData, m inte
 		return diag.Errorf("server group with name %s not found", name)
 	}
 
-	d.SetId(serverGroup.ServerGroupID)
+	d.SetId(serverGroup.ID)
 	d.Set("name", name)
 	d.Set("project_id", serverGroup.ProjectID)
 	d.Set("region_id", serverGroup.RegionID)
-	d.Set("policy", serverGroup.Policy.String())
+	d.Set("policy", serverGroup.Policy)
 
 	instances := make([]map[string]string, len(serverGroup.Instances))
 	for i, instance := range serverGroup.Instances {

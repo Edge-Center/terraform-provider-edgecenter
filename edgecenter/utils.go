@@ -1,6 +1,7 @@
 package edgecenter
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/url"
@@ -10,11 +11,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 
-	dnsSDK "github.com/Edge-Center/edgecenter-dns-sdk-go"
-	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
-	cdn "github.com/Edge-Center/edgecentercdn-go"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/region/v1/regions"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
@@ -24,13 +24,6 @@ const (
 	ProjectPoint = "projects"
 	RegionPoint  = "regions"
 )
-
-type Config struct {
-	Provider      *edgecloud.ProviderClient
-	CDNClient     cdn.ClientService
-	StorageClient *storageSDK.SDK
-	DNSClient     *dnsSDK.Client
-}
 
 // MapStructureDecoder decodes the given map into the provided structure using the specified decoder configuration.
 func MapStructureDecoder(strct interface{}, v *map[string]interface{}, config *mapstructure.DecoderConfig) error {
@@ -45,7 +38,7 @@ func MapStructureDecoder(strct interface{}, v *map[string]interface{}, config *m
 
 // ImportStringParser parses a string containing project ID, region ID, and another field,
 // and returns them as separate values along with any error encountered.
-func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string, err error) { //nolint: nonamedreturns
+func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string, err error) { //nolint:nonamedreturns
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")
 	if len(infoStrings) != 3 {
@@ -67,6 +60,45 @@ func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string
 	return
 }
 
+// findRegionByNameLegacy to support backwards compatibility.
+func findRegionByNameLegacy(arr []regions.Region, name string) (int, error) {
+	for _, el := range arr {
+		if el.DisplayName == name {
+			return el.ID, nil
+		}
+	}
+	return 0, fmt.Errorf("region with name %s not found", name)
+}
+
+// GetRegionLegacy to support backwards compatibility.
+func GetRegionLegacy(provider *edgecloud.ProviderClient, regionID int, regionName string) (int, error) {
+	if regionID != 0 {
+		return regionID, nil
+	}
+	client, err := edgecenter.ClientServiceFromProvider(provider, edgecloud.EndpointOpts{
+		Name:    RegionPoint,
+		Region:  0,
+		Project: 0,
+		Version: VersionPointV1,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	rs, err := regions.ListAll(client)
+	if err != nil {
+		return 0, err
+	}
+	log.Printf("[DEBUG] Regions: %v", rs)
+	regionID, err = findRegionByNameLegacy(rs, regionName)
+	if err != nil {
+		return 0, err
+	}
+	log.Printf("[DEBUG] The attempt to get the region is successful: regionID=%d", regionID)
+
+	return regionID, nil
+}
+
 // CreateClient creates a new edgecloud.ServiceClient.
 func CreateClient(provider *edgecloud.ProviderClient, d *schema.ResourceData, endpoint string, version string) (*edgecloud.ServiceClient, error) {
 	projectID, err := GetProject(provider, d.Get("project_id").(int), d.Get("project_name").(string))
@@ -78,8 +110,9 @@ func CreateClient(provider *edgecloud.ProviderClient, d *schema.ResourceData, en
 
 	rawRegionID := d.Get("region_id")
 	rawRegionName := d.Get("region_name")
+
 	if rawRegionID != nil && rawRegionName != nil {
-		regionID, err = GetRegion(provider, rawRegionID.(int), rawRegionName.(string))
+		regionID, err = GetRegionLegacy(provider, rawRegionID.(int), rawRegionName.(string))
 		if err != nil {
 			return nil, fmt.Errorf("failed to get region: %w", err)
 		}
@@ -134,4 +167,29 @@ func ExtractHostAndPath(uri string) (string, string, error) {
 	path = pURL.Path
 
 	return host, path, nil
+}
+
+// GetRegionIDandProjectID search for project ID and region ID by name or return project ID
+// and region ID if they exist in the terraform configuration.
+// Use new version Edgecenterclient-go V2.
+// nolint: nonamedreturns
+func GetRegionIDandProjectID(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) (regionID, projectID int, err error) {
+	projectID, err = GetProjectV2(ctx, client, d.Get("project_id").(int), d.Get("project_name").(string))
+	if err != nil {
+		return 0, 0, err
+	}
+
+	rID, IDOk := d.GetOk("region_id")
+	rName, NameOk := d.GetOk("region_name")
+
+	if !IDOk && !NameOk {
+		return 0, projectID, err
+	}
+
+	regionID, err = GetRegionV2(ctx, client, rID.(int), rName.(string))
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to get region: %w", err)
+	}
+
+	return regionID, projectID, nil
 }

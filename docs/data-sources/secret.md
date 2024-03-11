@@ -60,5 +60,3 @@ output "view" {
 - `id` (String) The ID of this resource.
 - `mode` (String) The mode of the encryption algorithm.
 - `status` (String) The current status of the secret.
-
-

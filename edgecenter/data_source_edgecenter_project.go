@@ -23,12 +23,14 @@ func dataSourceProject() *schema.Resource {
 	}
 }
 
-func dataSourceProjectRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Project reading")
 	name := d.Get("name").(string)
+
 	config := m.(*Config)
-	provider := config.Provider
-	projectID, err := GetProject(provider, 0, name)
+	clientV2 := config.CloudClient
+
+	projectID, err := GetProjectV2(ctx, clientV2, 0, name)
 	if err != nil {
 		return diag.FromErr(err)
 	}

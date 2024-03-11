@@ -8,8 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/lbpools"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceLBPool() *schema.Resource {
@@ -48,12 +47,12 @@ func dataSourceLBPool() *schema.Resource {
 			"lb_algorithm": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s'", types.LoadBalancerAlgorithmRoundRobin, types.LoadBalancerAlgorithmLeastConnections, types.LoadBalancerAlgorithmSourceIP, types.LoadBalancerAlgorithmSourceIPPort),
+				Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s'", edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP, edgecloudV2.LoadbalancerAlgorithmSourceIPPort),
 			},
 			"protocol": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", types.ProtocolTypeHTTP, types.ProtocolTypeHTTPS, types.ProtocolTypeTCP, types.ProtocolTypeUDP),
+				Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP),
 			},
 			"loadbalancer_id": {
 				Type:        schema.TypeString,
@@ -81,7 +80,7 @@ It determines how the load balancer identifies whether the backend members are h
 						"type": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s', '%s', '%s", types.HealthMonitorTypeHTTP, types.HealthMonitorTypeHTTPS, types.HealthMonitorTypePING, types.HealthMonitorTypeTCP, types.HealthMonitorTypeTLSHello, types.HealthMonitorTypeUDPConnect),
+							Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s', '%s', '%s", edgecloudV2.HealthMonitorTypeHTTP, edgecloudV2.HealthMonitorTypeHTTPS, edgecloudV2.HealthMonitorTypePING, edgecloudV2.HealthMonitorTypeTCP, edgecloudV2.HealthMonitorTypeTLSHello, edgecloudV2.HealthMonitorTypeUDPConnect),
 						},
 						"delay": {
 							Type:     schema.TypeInt,
@@ -144,35 +143,36 @@ This ensures that all requests from the user during the session are sent to the 
 	}
 }
 
-func dataSourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBPool reading")
 	var diags diag.Diagnostics
 	config := m.(*Config)
-	provider := config.Provider
+	clientV2 := config.CloudClient
 
-	client, err := CreateClient(provider, d, LBPoolsPoint, VersionPointV1)
+	var err error
+	clientV2.Region, clientV2.Project, err = GetRegionIDandProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var opts lbpools.ListOpts
+	var opts edgecloudV2.PoolListOptions
 	name := d.Get("name").(string)
 	lbID := d.Get("loadbalancer_id").(string)
 	if lbID != "" {
-		opts.LoadBalancerID = &lbID
+		opts.LoadbalancerID = lbID
 	}
 	lID := d.Get("listener_id").(string)
 	if lbID != "" {
-		opts.ListenerID = &lID
+		opts.ListenerID = lID
 	}
 
-	pools, err := lbpools.ListAll(client, opts)
+	pools, _, err := clientV2.Loadbalancers.PoolList(ctx, &opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var found bool
-	var lb lbpools.Pool
+	var lb edgecloudV2.Pool
 	for _, p := range pools {
 		if p.Name == name {
 			lb = p
@@ -187,11 +187,11 @@ func dataSourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface
 
 	d.SetId(lb.ID)
 	d.Set("name", lb.Name)
-	d.Set("lb_algorithm", lb.LoadBalancerAlgorithm.String())
-	d.Set("protocol", lb.Protocol.String())
+	d.Set("lb_algorithm", lb.LoadbalancerAlgorithm)
+	d.Set("protocol", lb.Protocol)
 
-	if len(lb.LoadBalancers) > 0 {
-		d.Set("loadbalancer_id", lb.LoadBalancers[0].ID)
+	if len(lb.Loadbalancers) > 0 {
+		d.Set("loadbalancer_id", lb.Loadbalancers[0].ID)
 	}
 
 	if len(lb.Listeners) > 0 {
@@ -201,7 +201,7 @@ func dataSourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface
 	if lb.HealthMonitor != nil {
 		healthMonitor := map[string]interface{}{
 			"id":               lb.HealthMonitor.ID,
-			"type":             lb.HealthMonitor.Type.String(),
+			"type":             lb.HealthMonitor.Type,
 			"delay":            lb.HealthMonitor.Delay,
 			"timeout":          lb.HealthMonitor.Timeout,
 			"max_retries":      lb.HealthMonitor.MaxRetries,
@@ -210,7 +210,7 @@ func dataSourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface
 			"expected_codes":   lb.HealthMonitor.ExpectedCodes,
 		}
 		if lb.HealthMonitor.HTTPMethod != nil {
-			healthMonitor["http_method"] = lb.HealthMonitor.HTTPMethod.String()
+			healthMonitor["http_method"] = lb.HealthMonitor.HTTPMethod
 		}
 
 		if err := d.Set("health_monitor", []interface{}{healthMonitor}); err != nil {
@@ -220,7 +220,7 @@ func dataSourceLBPoolRead(_ context.Context, d *schema.ResourceData, m interface
 
 	if lb.SessionPersistence != nil {
 		sessionPersistence := map[string]interface{}{
-			"type":                    lb.SessionPersistence.Type.String(),
+			"type":                    lb.SessionPersistence.Type,
 			"cookie_name":             lb.SessionPersistence.CookieName,
 			"persistence_granularity": lb.SessionPersistence.PersistenceGranularity,
 			"persistence_timeout":     lb.SessionPersistence.PersistenceTimeout,
