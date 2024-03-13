@@ -17,14 +17,14 @@ import (
 )
 
 const (
-	BmInstanceDeleting        int = 1200
+	BmInstanceDeletingTimeout int = 1200
 	BmInstanceCreatingTimeout int = 3600
 	BmInstancePoint               = "bminstances"
 )
 
 var (
 	bmCreateTimeout = time.Second * time.Duration(BmInstanceCreatingTimeout)
-	bmDeleteTimeout = time.Second * time.Duration(BmInstanceDeleting)
+	bmDeleteTimeout = time.Second * time.Duration(BmInstanceDeletingTimeout)
 )
 
 func resourceBmInstance() *schema.Resource {

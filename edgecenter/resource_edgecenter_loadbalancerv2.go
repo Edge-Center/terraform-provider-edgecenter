@@ -177,8 +177,7 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 		opts.Flavor = lbFlavor
 	}
 
-	createLBTimeout := 5 * time.Minute
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.Create, opts, clientV2, createLBTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.Create, opts, clientV2, LoadBalancerCreateTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -316,7 +315,7 @@ func resourceLoadBalancerV2Delete(ctx context.Context, d *schema.ResourceData, m
 
 	taskID := results.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, LoadBalancerDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

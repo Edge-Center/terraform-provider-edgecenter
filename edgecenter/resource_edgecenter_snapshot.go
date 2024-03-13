@@ -14,7 +14,9 @@ import (
 )
 
 const (
-	SnapshotsPoint = "snapshots"
+	SnapshotsPoint          = "snapshots"
+	snapshotCreatingTimeout = 1200 * time.Second
+	snapshotDeletingTimeout = 1200 * time.Second
 )
 
 func resourceSnapshot() *schema.Resource {
@@ -127,7 +129,7 @@ func resourceSnapshotCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	opts := getSnapshotData(d)
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Snapshots.Create, opts, clientV2)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Snapshots.Create, opts, clientV2, snapshotCreatingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -241,7 +243,7 @@ func resourceSnapshotDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	taskID := results.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, snapshotDeletingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

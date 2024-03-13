@@ -15,7 +15,9 @@ import (
 
 const (
 	LBListenersPoint        = "lblisteners"
-	LBListenerCreateTimeout = 2400
+	LBListenerCreateTimeout = 2400 * time.Second
+	LBListenerUpdateTimeout = 2400 * time.Second
+	LBListenerDeleteTimeout = 2400 * time.Second
 )
 
 func resourceLbListener() *schema.Resource {
@@ -215,7 +217,7 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 		}
 	}
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.ListenerCreate, &opts, clientV2)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.ListenerCreate, &opts, clientV2, LBListenerCreateTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -328,7 +330,7 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 		taskID := task.Tasks[0]
 
-		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
+		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, LBListenerUpdateTimeout)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -362,7 +364,7 @@ func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	taskID := results.Tasks[0]
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, LBListenerDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
