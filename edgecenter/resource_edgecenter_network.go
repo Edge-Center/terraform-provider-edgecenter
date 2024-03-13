@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	NetworkDeleting        int = 1200
-	NetworkCreatingTimeout int = 1200
-	NetworksPoint              = "networks"
-	SharedNetworksPoint        = "availablenetworks"
+	NetworkDeletingTimeout = 1200 * time.Second
+	NetworkCreatingTimeout = 1200 * time.Second
+	NetworksPoint          = "networks"
+	SharedNetworksPoint    = "availablenetworks"
 )
 
 func resourceNetwork() *schema.Resource {
@@ -165,7 +165,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
 
-	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID)
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, NetworkCreatingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -298,7 +298,7 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
 
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, NetworkDeletingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

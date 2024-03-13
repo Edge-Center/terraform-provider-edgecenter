@@ -32,7 +32,7 @@ func createTestNetwork(client *edgecloud.ServiceClient, opts networks.CreateOpts
 	}
 
 	taskID := result.Tasks[0]
-	networkID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.NetworkCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
+	networkID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.NetworkCreatingTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
@@ -58,7 +58,7 @@ func deleteTestNetwork(client *edgecloud.ServiceClient, networkID string) error 
 	}
 
 	taskID := result.Tasks[0]
-	err = tasks.WaitTaskAndProcessResult(client, taskID, true, edgecenter.NetworkDeleting, func(task tasks.TaskID) error {
+	err = tasks.WaitTaskAndProcessResult(client, taskID, true, int(edgecenter.NetworkDeletingTimeout.Seconds()), func(task tasks.TaskID) error {
 		_, err := networks.Get(client, networkID).Extract()
 		if err == nil {
 			return fmt.Errorf("cannot delete network with ID: %s", networkID)
@@ -95,7 +95,7 @@ func createTestSubnet(client *edgecloud.ServiceClient, opts subnets.CreateOpts, 
 	}
 
 	taskID := result.Tasks[0]
-	subnetID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.SubnetCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
+	subnetID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.SubnetCreatingTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
@@ -211,7 +211,7 @@ func createTestLoadBalancerWithListener(client *edgecloud.ServiceClient, opts lo
 	}
 
 	taskID := result.Tasks[0]
-	lbID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.LoadBalancerCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
+	lbID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.LoadBalancerCreateTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
@@ -236,7 +236,7 @@ func createTestVolume(client *edgecloud.ServiceClient, opts volumes.CreateOpts) 
 	}
 
 	taskID := result.Tasks[0]
-	volumeID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.VolumeCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
+	volumeID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.VolumeCreatingTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)

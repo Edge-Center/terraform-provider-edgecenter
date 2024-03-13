@@ -44,7 +44,7 @@ func TestAccSecretDataSource(t *testing.T) {
 	}
 
 	taskID := results.Tasks[0]
-	secretID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.SecretCreatingTimeout, func(task tasks.TaskID) (interface{}, error) {
+	secretID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.SecretCreatingTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)

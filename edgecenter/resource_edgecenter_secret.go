@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	SecretCreatingTimeout int = 1200
-	SecretPoint               = "secrets"
+	SecretDeletingTimeout = 1200 * time.Second
+	SecretCreatingTimeout = 1200 * time.Second
+	SecretPoint           = "secrets"
 	// RFC3339NoZ is the time format used in Heat (Orchestration).
 	RFC3339NoZ          = "2006-01-02T15:04:05"
 	RFC3339WithTimeZone = "2006-01-02T15:04:05+00:00"
@@ -176,7 +177,7 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		opts.Expiration = &rawTime
 	}
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Secrets.CreateV2, opts, clientV2)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Secrets.CreateV2, opts, clientV2, SecretCreatingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -263,7 +264,7 @@ func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	taskID := results.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, SecretDeletingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

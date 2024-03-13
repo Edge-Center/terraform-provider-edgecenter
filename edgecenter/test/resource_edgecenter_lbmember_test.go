@@ -165,7 +165,7 @@ func createTestLBPool(client *edgecloud.ServiceClient, opts lbpools.CreateOpts) 
 	}
 
 	taskID := res.Tasks[0]
-	poolID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.LBPoolsCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
+	poolID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.LBPoolsCreateTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)

@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	SubnetCreatingTimeout int = 1200
-	SubnetPoint               = "subnets"
-	disable                   = "disable"
+	SubnetCreatingTimeout = 1200 * time.Second
+	SubnetPoint           = "subnets"
+	disable               = "disable"
 )
 
 func resourceSubnet() *schema.Resource {
@@ -248,7 +248,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	log.Printf("Create subnet ops: %+v", createOpts)
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Subnetworks.Create, createOpts, clientV2)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Subnetworks.Create, createOpts, clientV2, SubnetCreatingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

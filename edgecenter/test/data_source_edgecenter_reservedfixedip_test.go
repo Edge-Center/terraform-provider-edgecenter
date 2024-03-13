@@ -35,7 +35,7 @@ func TestAccReservedFixedIPDataSource(t *testing.T) {
 	}
 
 	taskID := res.Tasks[0]
-	reservedFixedIPID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.ReservedFixedIPCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
+	reservedFixedIPID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.ReservedFixedIPCreateTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)

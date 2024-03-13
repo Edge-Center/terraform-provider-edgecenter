@@ -13,7 +13,9 @@ import (
 )
 
 const (
-	RouterPoint = "routers"
+	RouterPoint           = "routers"
+	RouterDeletingTimeout = 1200 * time.Second
+	RouterCreatingTimeout = 1200 * time.Second
 )
 
 func resourceRouter() *schema.Resource {
@@ -222,7 +224,7 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	log.Printf("[DEBUG] Router create options: %+v", createOpts)
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Routers.Create, &createOpts, clientV2)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Routers.Create, &createOpts, clientV2, RouterCreatingTimeout)
 	if err != nil {
 		return diag.Errorf("error router creating: %s", err)
 	}
@@ -439,7 +441,7 @@ func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, RouterDeletingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
