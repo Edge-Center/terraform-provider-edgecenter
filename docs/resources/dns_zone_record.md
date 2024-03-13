@@ -14,7 +14,7 @@ Represent DNS Zone Record resource. https://dns.edgecenter.ru/zones
 
 ```terraform
 provider "edgecenter" {
-  permanent_api_token = "251$d3361.............1b35f26d8"
+  permanent_api_token = "179...............45b54d"
 }
 
 //
@@ -35,6 +35,9 @@ resource "edgecenter_dns_zone_record" "example_rrset0" {
   type   = "A"
   ttl    = 100
 
+  meta {
+  }
+
   resource_record {
     content = "127.0.0.100"
   }
@@ -44,9 +47,6 @@ resource "edgecenter_dns_zone_record" "example_rrset0" {
   }
 }
 
-//
-// example1: managing zone outside of TF 
-//
 resource "edgecenter_dns_zone_record" "subdomain_examplezone" {
   zone   = "examplezone.com"
   domain = "subdomain.examplezone.com"
@@ -57,6 +57,9 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone" {
     type   = "geodistance"
     limit  = 1
     strict = true
+  }
+
+  meta {
   }
 
   resource_record {
@@ -81,10 +84,18 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone_mx" {
   type   = "MX"
   ttl    = 10
 
+
+  meta {
+  }
+
   resource_record {
     content = "10 mail.my.com."
     enabled = true
   }
+}
+
+locals {
+  string = "0 issue \"company.org;account=12345\""
 }
 
 resource "edgecenter_dns_zone_record" "subdomain_examplezone_caa" {
@@ -93,8 +104,11 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone_caa" {
   type   = "CAA"
   ttl    = 10
 
+  meta {
+  }
+
   resource_record {
-    content = "0 issue \"company.org; account=12345\""
+    content = local.string
     enabled = true
   }
 }
@@ -106,6 +120,7 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone_caa" {
 ### Required
 
 - `domain` (String) A domain of DNS Zone Record resource.
+- `meta` (Block List, Min: 1, Max: 1) A meta of DNS Zone Record resource. (see [below for nested schema](#nestedblock--meta))
 - `resource_record` (Block Set, Min: 1) An array of contents with meta of DNS Zone Record resource. (see [below for nested schema](#nestedblock--resource_record))
 - `type` (String) A type of DNS Zone Record resource.
 - `zone` (String) A zone of DNS Zone Record resource.
@@ -118,6 +133,35 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone_caa" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--meta"></a>
+### Nested Schema for `meta`
+
+Optional:
+
+- `failover` (Block List, Max: 1) A failover meta of DNS Zone Record resource. (see [below for nested schema](#nestedblock--meta--failover))
+
+<a id="nestedblock--meta--failover"></a>
+### Nested Schema for `meta.failover`
+
+Required:
+
+- `frequency` (Number) A failover frequency of DNS Zone Record resource.
+- `protocol` (String) A failover protocol of DNS Zone Record resource.
+- `timeout` (Number) A failover timeout of DNS Zone Record resource.
+
+Optional:
+
+- `host` (String) A failover host of DNS Zone Record resource.
+- `http_status_code` (Number) A failover http status code of DNS Zone Record resource.
+- `method` (String) A failover method of DNS Zone Record resource.
+- `port` (Number) A failover port of DNS Zone Record resource.
+- `regexp` (String) A failover regexp of DNS Zone Record resource.
+- `tls` (Boolean) A failover tls of DNS Zone Record resource.
+- `url` (String) A failover url of DNS Zone Record resource.
+- `verify` (Boolean) A failover verify of DNS Zone Record resource.
+
+
 
 <a id="nestedblock--resource_record"></a>
 ### Nested Schema for `resource_record`

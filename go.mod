@@ -1,11 +1,11 @@
 module github.com/Edge-Center/terraform-provider-edgecenter
 
 //TODO https://tracker.yandex.ru/CLOUDDEV-456: update golang version
-go 1.20
+go 1.21
 
 require (
 	github.com/AlekSi/pointer v1.2.0
-	github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.0
+	github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.2
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0
 	github.com/Edge-Center/edgecentercdn-go v0.1.5
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
