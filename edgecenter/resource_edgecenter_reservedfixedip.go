@@ -119,7 +119,8 @@ func resourceReservedFixedIP() *schema.Resource {
 			},
 			"is_vip": {
 				Type:        schema.TypeBool,
-				Required:    true,
+				Optional:    true,
+				Default:     false,
 				Description: "Flag to determine if the reserved fixed IP should be treated as a Virtual IP (VIP).",
 			},
 			"port_id": {
@@ -130,6 +131,7 @@ func resourceReservedFixedIP() *schema.Resource {
 			"allowed_address_pairs": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				Description: "Group of IP addresses that share the current IP as VIP.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -150,6 +152,20 @@ func resourceReservedFixedIP() *schema.Resource {
 				Computed:    true,
 				Description: "The timestamp of the last update (use with update context).",
 			},
+			"reservation": {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "The status of the reserved fixed IP with the type of the resource and the ID it is attached to",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"instance_ports_that_share_vip": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "instance ports that share a VIP",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -168,8 +184,25 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 	clientV2.Region = regionID
 	clientV2.Project = projectID
 
-	opts := &edgecloudV2.ReservedFixedIPCreateRequest{
-		IsVIP: d.Get("is_vip").(bool),
+	opts := &edgecloudV2.ReservedFixedIPCreateRequest{}
+
+	if v, ok := d.GetOk("is_vip"); ok {
+		opts.IsVIP = v.(bool)
+	}
+
+	newInstancePorts, okInstancePorts := d.GetOk("instance_ports_that_share_vip")
+
+	if okInstancePorts && !opts.IsVIP {
+		return diag.Errorf("field is_vip must be set 'true' for using field 'instance_ports_that_share_vip'")
+	}
+
+	allowedAddressPairsRaw, okAllowedAddressPairs := d.GetOk("allowed_address_pairs")
+	var allowedAddressPairs []interface{}
+	if okAllowedAddressPairs {
+		if opts.IsVIP {
+			return diag.Errorf("You can't use allowed_address_pairs with VIP IPs")
+		}
+		allowedAddressPairs = allowedAddressPairsRaw.([]interface{})
 	}
 
 	portType := d.Get("type").(string)
@@ -207,16 +240,37 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
 	reservedFixedIPID := taskResult.Ports[0]
 
-	log.Printf("[DEBUG] ReservedFixedIP id (%s)", reservedFixedIPID)
-	if err != nil {
-		return diag.FromErr(err)
+	d.SetId(reservedFixedIPID)
+
+	if okInstancePorts && opts.IsVIP {
+		newInstancePortsInterfaceSlice := newInstancePorts.(*schema.Set).List()
+		newInstancePortsStringSlice := make([]string, 0, len(newInstancePortsInterfaceSlice))
+		for _, v := range newInstancePortsInterfaceSlice {
+			vString, _ := v.(string)
+			newInstancePortsStringSlice = append(newInstancePortsStringSlice, vString)
+		}
+
+		addInstancePortsRequest := edgecloudV2.AddInstancePortsRequest{PortIDs: newInstancePortsStringSlice}
+		// Retry attempts to add instance ports to VIP (adding instance ports to VIP requires attaching interface to instance, this operation may take some time)
+		err = retryAddInstancePorts(ctx, clientV2, reservedFixedIPID, addInstancePortsRequest)
+		if err != nil {
+			return diag.Errorf("Error from adding instance ports to VIP: %s ", err)
+		}
 	}
 
-	d.SetId(reservedFixedIPID)
-	resourceReservedFixedIPRead(ctx, d, m)
+	if okAllowedAddressPairs && !opts.IsVIP {
+		// Retry attempts to assign allowed address pairs (because assigning address pairs requires attaching interface to instance, this operation may take some time)
+		err = retryAllowedAddressPairs(ctx, clientV2, reservedFixedIPID, allowedAddressPairs)
+		if err != nil {
+			return diag.Errorf("error from assigning AllowedAddressPairs: %s", err)
+		}
+	}
+
+	log.Printf("[DEBUG] ReservedFixedIP id (%s)", reservedFixedIPID)
+
+	diags = append(diags, resourceReservedFixedIPRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish ReservedFixedIP creating (%s)", reservedFixedIPID)
 
@@ -255,6 +309,30 @@ func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m 
 	d.Set("network_id", reservedFixedIP.NetworkID)
 	d.Set("is_vip", reservedFixedIP.IsVIP)
 	d.Set("port_id", reservedFixedIP.PortID)
+	// d.Set("last_updated", reservedFixedIP.UpdatedAt)
+
+	reservation := map[string]string{
+		"status":        reservedFixedIP.Reservation.Status,
+		"resource_type": reservedFixedIP.Reservation.ResourceType,
+		"resource_id":   reservedFixedIP.Reservation.ResourceID,
+	}
+	d.Set("reservation", reservation)
+
+	if reservedFixedIP.IsVIP {
+		ports, _, err := clientV2.ReservedFixedIP.ListInstancePorts(ctx, d.Id())
+		instancePorts := make([]string, 0, len(ports))
+		if err != nil {
+			return diag.Errorf("Error from getting instance ports that share a VIP: %s", err)
+		}
+		if len(ports) != 0 {
+			for _, port := range ports {
+				instancePorts = append(instancePorts, port.PortID)
+			}
+		}
+		if err = d.Set("instance_ports_that_share_vip", instancePorts); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 
 	allowedPairs := make([]map[string]interface{}, len(reservedFixedIP.AllowedAddressPairs))
 	for i, p := range reservedFixedIP.AllowedAddressPairs {
@@ -268,8 +346,6 @@ func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m 
 	if err := d.Set("allowed_address_pairs", allowedPairs); err != nil {
 		return diag.FromErr(err)
 	}
-	fields := []string{"type"}
-	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish ReservedFixedIP reading")
 
@@ -278,6 +354,7 @@ func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m 
 
 func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP updating")
+	var diags diag.Diagnostics
 	config := m.(*Config)
 	clientV2 := config.CloudClient
 
@@ -289,6 +366,21 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 	clientV2.Region = regionID
 	clientV2.Project = projectID
 
+	_, isVipNew := d.GetChange("is_vip")
+	isVip := isVipNew.(bool)
+
+	oldInstancePorts, newInstancePorts := d.GetChange("instance_ports_that_share_vip")
+	newInstancePortsSet := newInstancePorts.(*schema.Set)
+	oldInstancePortsSet := oldInstancePorts.(*schema.Set)
+
+	var instancePortsThatShareVip []interface{}
+	if newInstancePortsSet.Len() != 0 {
+		instancePortsThatShareVip = newInstancePortsSet.List()
+	}
+	if len(instancePortsThatShareVip) != 0 && !isVip {
+		return diag.Errorf("field is_vip must be set 'true' for using field 'instance_ports_that_share_vip'")
+	}
+
 	id := d.Id()
 	if d.HasChange("is_vip") {
 		opts := &edgecloudV2.SwitchVIPStatusRequest{IsVIP: d.Get("is_vip").(bool)}
@@ -296,26 +388,64 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 		if err != nil {
 			return diag.FromErr(err)
 		}
+		d.Set("last_updated", time.Now().Format(time.RFC850))
 	}
 
 	if d.HasChange("allowed_address_pairs") {
-		aap := d.Get("allowed_address_pairs").([]interface{})
-		for _, p := range aap {
-			pair := p.(map[string]interface{})
-			opts := &edgecloudV2.AllowedAddressPairsRequest{
-				IPAddress:  pair["ip_address"].(string),
-				MacAddress: pair["mac_address"].(string),
-			}
-			if _, _, err := clientV2.Ports.Assign(ctx, id, opts); err != nil {
-				return diag.FromErr(err)
+		_, newAllowedAddressPairs := d.GetChange("allowed_address_pairs")
+		allowedAddressPairs := newAllowedAddressPairs.([]interface{})
+		if assignDiag := assignAllowedAddressPairs(ctx, clientV2, id, allowedAddressPairs); assignDiag != nil {
+			// Retry attempts to assign allowed address pairs (because assigning address pairs requires attaching interface to instance, this operation may take some time)
+			err = retryAllowedAddressPairs(ctx, clientV2, id, allowedAddressPairs)
+			if err != nil {
+				return diag.Errorf("error from assigning AllowedAddressPairs: %s", err)
 			}
 		}
+		d.Set("last_updated", time.Now().Format(time.RFC850))
 	}
 
-	d.Set("last_updated", time.Now().Format(time.RFC850))
+	if d.HasChange("instance_ports_that_share_vip") && isVip {
+		var isReplaceInstancePorts bool
+		switch {
+		case oldInstancePortsSet.Len() != 0 && newInstancePortsSet.Len() != 0:
+			portsIntersection := newInstancePortsSet.Intersection(oldInstancePortsSet)
+			if portsIntersection.Len() != oldInstancePortsSet.Len() {
+				isReplaceInstancePorts = true
+			}
+		case newInstancePortsSet.Len() == 0:
+			isReplaceInstancePorts = true
+		}
+
+		newInstancePortsStringSlice := make([]string, 0, len(instancePortsThatShareVip))
+		for _, v := range instancePortsThatShareVip {
+			vString, ok := v.(string)
+			if !ok {
+				return diag.Errorf("Error getting instance_ports_that_share_vip from api")
+			}
+			newInstancePortsStringSlice = append(newInstancePortsStringSlice, vString)
+		}
+
+		addInstancePortsRequest := edgecloudV2.AddInstancePortsRequest{PortIDs: newInstancePortsStringSlice}
+
+		switch isReplaceInstancePorts {
+		case false:
+			// Retry attempts to add instance ports to VIP (adding instance ports to VIP requires attaching interface to instance, this operation may take some time)
+			err = retryAddInstancePorts(ctx, clientV2, id, addInstancePortsRequest)
+		case true:
+			// Retry attempts to replace instance ports to VIP (adding instance ports to VIP requires attaching interface to instance, this operation may take some time)
+			err = retryReplaceInstancePorts(ctx, clientV2, id, addInstancePortsRequest)
+		}
+		if err != nil {
+			return diag.Errorf("Error from replace instance ports: %s ", err)
+		}
+		d.Set("last_updated", time.Now().Format(time.RFC850))
+	}
+
 	log.Println("[DEBUG] Finish ReservedFixedIP updating")
 
-	return resourceReservedFixedIPRead(ctx, d, m)
+	diags = append(diags, resourceReservedFixedIPRead(ctx, d, m)...)
+
+	return diags
 }
 
 func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -332,10 +462,11 @@ func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, 
 	clientV2.Region = regionID
 	clientV2.Project = projectID
 
-	// only is_vip == false
 	isVip := d.Get("is_vip").(bool)
 	if isVip {
-		return diag.Errorf("could not delete reserved fixed ip with is_vip=true")
+		if _, _, err := clientV2.ReservedFixedIP.SwitchVIPStatus(ctx, d.Id(), &edgecloudV2.SwitchVIPStatusRequest{IsVIP: false}); err != nil {
+			return diag.Errorf("Error switching is_vip status to false , before deleting: %s", err)
+		}
 	}
 
 	id := d.Id()

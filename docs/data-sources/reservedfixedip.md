@@ -54,9 +54,11 @@ output "view" {
 
 - `allowed_address_pairs` (List of Object) Group of IP addresses that share the current IP as VIP. (see [below for nested schema](#nestedatt--allowed_address_pairs))
 - `id` (String) The ID of this resource.
+- `instance_ports_that_share_vip` (List of String) instance ports that share a VIP
 - `is_vip` (Boolean) Flag to determine if the reserved fixed IP should be treated as a Virtual IP (VIP).
 - `network_id` (String) ID of the network to which the reserved fixed IP is associated.
 - `port_id` (String) ID of the port_id underlying the reserved fixed IP
+- `reservation` (Map of String) The status of the reserved fixed IP with the type of the resource and the ID it is attached to
 - `status` (String) The current status of the reserved fixed IP.
 - `subnet_id` (String) ID of the subnet from which the fixed IP should be reserved.
 

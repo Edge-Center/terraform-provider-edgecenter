@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
@@ -578,4 +579,34 @@ func getSecurityGroupsDifferenceV2(sl1, sl2 []edgecloudV2.ID) (diff []edgecloudV
 	}
 
 	return diff
+}
+
+func validateInstanceResourceAttrs(d *schema.ResourceData) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	iOldRaw, iNewRaw := d.GetChange("interface")
+	_, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
+	for _, ifs := range ifsNewSlice {
+		iNew := ifs.(map[string]interface{})
+		var isPortSecDisabled, isSecGroupExists bool
+		if v, ok := iNew["port_security_disabled"]; ok {
+			isPortSecDisabled = v.(bool)
+		}
+		if v, ok := iNew["security_groups"]; ok {
+			secGroups := v.([]interface{})
+			if len(secGroups) != 0 {
+				isSecGroupExists = true
+			}
+		}
+		if isPortSecDisabled && isSecGroupExists {
+			curDiag := diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("if attribute \"port_security_disabled\" for interface %+v set true, you can't set \"security_groups\" attribute", iNew),
+				Detail:        "",
+				AttributePath: nil,
+			}
+			diags = append(diags, curDiag)
+		}
+	}
+
+	return diags
 }

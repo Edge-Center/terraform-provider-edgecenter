@@ -10,8 +10,8 @@ github.com/Edge-Center/edgecentercdn-go v0.1.5 h1:142aCMrAngvrlLSHyyPM4ZCztcvdRt
 github.com/Edge-Center/edgecentercdn-go v0.1.5/go.mod h1:RwEyxwPAmxor1mZKUTa2bIU2p5qM6kcAofUkaE4O1V4=
 github.com/Edge-Center/edgecentercloud-go v0.1.11 h1:00h5o/71lEoSdU1B4AWmviuOfO28P6nsRP+afjIsW80=
 github.com/Edge-Center/edgecentercloud-go v0.1.11/go.mod h1:kmXGtx0lL1ib+SPfJe/uIAyDHamquAvqiftoLSyhxF8=
-github.com/Edge-Center/edgecentercloud-go/v2 v2.0.27 h1:rr02+5UwCD2HvFLK/ZYVPmAsChcs1QtYQV5Qh1mEJfc=
-github.com/Edge-Center/edgecentercloud-go/v2 v2.0.27/go.mod h1:cj8TzP0EqbLMmejj0uql3ZgpTCzsdrQipS/mBamU+bE=
+github.com/Edge-Center/edgecentercloud-go/v2 v2.0.28 h1:+7S5TGtX9rjS1uIyUqjx/bDFRbo/R2IMuGS+4GOPyh0=
+github.com/Edge-Center/edgecentercloud-go/v2 v2.0.28/go.mod h1:cj8TzP0EqbLMmejj0uql3ZgpTCzsdrQipS/mBamU+bE=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95 h1:KLq8BE0KwCL+mmXnjLWEAOYO+2l2AE4YMmqG1ZpZHBs=
 github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95/go.mod h1:EjAoLdwvbIOoOQr3ihjnSoLZRtE8azugULFRteWMNc0=
@@ -32,6 +32,8 @@ github.com/bufbuild/protocompile v0.4.0 h1:LbFKd2XowZvQ/kajzguUp2DC9UEIQhIq77fZZ
 github.com/bwesterb/go-ristretto v1.2.3/go.mod h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0=
 github.com/cloudflare/circl v1.3.3 h1:fE/Qz0QdIGqeWfnwq0RE0R7MI51s0M2E4Ga9kq5AEMs=
 github.com/cloudflare/circl v1.3.3/go.mod h1:5XYMA4rFBvNIrhs50XuiBJ15vF2pZn4nnUKZrLbUZFA=
+github.com/connerdouglass/go-retry v1.0.1 h1:LY0syvUhQekCloHzDuaGC9JP06iwX6QpixjlWBpLyRE=
+github.com/connerdouglass/go-retry v1.0.1/go.mod h1:xll5MJlkUONsKltGWfJl4ZWL0APrpO+RbheBITTZ16I=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

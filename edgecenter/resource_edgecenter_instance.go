@@ -409,7 +409,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	clientV2.Region = regionID
 	clientV2.Project = projectID
 
-	diags = validateAttrs(d)
+	diags = validateInstanceResourceAttrs(d)
 	if diags.HasError() {
 		return diags
 	}
@@ -730,7 +730,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	clientV2.Region = regionID
 	clientV2.Project = projectID
 
-	diags := validateAttrs(d)
+	diags := validateInstanceResourceAttrs(d)
 	if diags.HasError() {
 		return diags
 	}
@@ -1062,36 +1062,6 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of Instance deleting")
-
-	return diags
-}
-
-func validateAttrs(d *schema.ResourceData) diag.Diagnostics {
-	diags := diag.Diagnostics{}
-	iOldRaw, iNewRaw := d.GetChange("interface")
-	_, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
-	for _, ifs := range ifsNewSlice {
-		iNew := ifs.(map[string]interface{})
-		var isPortSecDisabled, isSecGroupExists bool
-		if v, ok := iNew["port_security_disabled"]; ok {
-			isPortSecDisabled = v.(bool)
-		}
-		if v, ok := iNew["security_groups"]; ok {
-			secGroups := v.([]interface{})
-			if len(secGroups) != 0 {
-				isSecGroupExists = true
-			}
-		}
-		if isPortSecDisabled && isSecGroupExists {
-			curDiag := diag.Diagnostic{
-				Severity:      diag.Error,
-				Summary:       fmt.Sprintf("if attribute \"port_security_disabled\" for interface %+v set true, you can't set \"security_groups\" attribute", iNew),
-				Detail:        "",
-				AttributePath: nil,
-			}
-			diags = append(diags, curDiag)
-		}
-	}
 
 	return diags
 }
