@@ -98,6 +98,20 @@ func dataSourceReservedFixedIP() *schema.Resource {
 					},
 				},
 			},
+			"reservation": {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "The status of the reserved fixed IP with the type of the resource and the ID it is attached to",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"instance_ports_that_share_vip": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "instance ports that share a VIP",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -160,6 +174,29 @@ func dataSourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, 
 
 	if err := d.Set("allowed_address_pairs", allowedPairs); err != nil {
 		return diag.FromErr(err)
+	}
+
+	reservation := map[string]string{
+		"status":        reservedFixedIP.Reservation.Status,
+		"resource_type": reservedFixedIP.Reservation.ResourceType,
+		"resource_id":   reservedFixedIP.Reservation.ResourceID,
+	}
+	d.Set("reservation", reservation)
+
+	if reservedFixedIP.IsVIP {
+		ports, _, err := clientV2.ReservedFixedIP.ListInstancePorts(ctx, d.Id())
+		instancePorts := make([]string, 0, len(ports))
+		if err != nil {
+			return diag.Errorf("Error from getting instance ports that share a VIP: %s", err)
+		}
+		if len(ports) != 0 {
+			for _, port := range ports {
+				instancePorts = append(instancePorts, port.PortID)
+			}
+		}
+		if err = d.Set("instance_ports_that_share_vip", instancePorts); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	log.Println("[DEBUG] Finish ReservedFixedIP reading")
