@@ -24,6 +24,13 @@ const (
 	ProviderOptPermanentToken    = "permanent_api_token"
 	ProviderOptSkipCredsAuthErr  = "ignore_creds_auth_error" // nolint: gosec
 	ProviderOptSingleAPIEndpoint = "api_endpoint"
+	RegionIDField                = "region_id"
+	RegionNameField              = "region_name"
+	ProjectIDField               = "project_id"
+	ProjectNameField             = "project_name"
+	CreatedAtField               = "created_at"
+	UpdatedAtField               = "updated_at"
+	IDField                      = "id"
 
 	LifecyclePolicyResource = "edgecenter_lifecyclepolicy"
 )
@@ -152,6 +159,7 @@ func Provider() *schema.Provider {
 			"edgecenter_cdn_rule":          resourceCDNRule(),
 			"edgecenter_cdn_sslcert":       resourceCDNCert(),
 			LifecyclePolicyResource:        resourceLifecyclePolicy(),
+			"edgecenter_lb_l7policy":       resourceL7Policy(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":           dataSourceProject(),
@@ -177,6 +185,7 @@ func Provider() *schema.Provider {
 			"edgecenter_k8s_pool":          dataSourceK8sPool(),
 			"edgecenter_k8s_client_config": dataSourceK8sClientConfig(),
 			"edgecenter_secret":            dataSourceSecret(),
+			"edgecenter_lb_l7policy":       dataSourceL7Policy(),
 		},
 	}
 

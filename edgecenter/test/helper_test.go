@@ -18,11 +18,9 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
-
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func createTestNetwork(client *edgecloud.ServiceClient, opts networks.CreateOpts) (string, error) {
@@ -43,7 +41,6 @@ func createTestNetwork(client *edgecloud.ServiceClient, opts networks.CreateOpts
 		}
 		return networkID, nil
 	})
-
 	if err != nil {
 		return "", err
 	}
@@ -173,7 +170,6 @@ func createTestCluster(client *edgecloud.ServiceClient, opts clusters.CreateOpts
 		}
 		return clusterID, nil
 	})
-
 	if err != nil {
 		return "", err
 	}
@@ -227,6 +223,15 @@ func createTestLoadBalancerWithListener(client *edgecloud.ServiceClient, opts lo
 	}
 
 	return lbID.(string), nil
+}
+
+func createTestLoadBalancerWithListenerV2(ctx context.Context, client *edgecloudV2.Client, opts edgecloudV2.LoadbalancerCreateRequest) (string, error) {
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Loadbalancers.Create, &opts, client, edgecenter.LoadBalancerCreateTimeout)
+	if err != nil {
+		return "", err
+	}
+	lbID := taskResult.Loadbalancers[0]
+	return lbID, nil
 }
 
 func createTestVolume(client *edgecloud.ServiceClient, opts volumes.CreateOpts) (string, error) {
