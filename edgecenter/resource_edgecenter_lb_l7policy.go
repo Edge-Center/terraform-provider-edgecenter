@@ -45,8 +45,8 @@ func resourceL7Policy() *schema.Resource {
 				if err != nil {
 					return nil, err
 				}
-				d.Set("project_id", projectID)
-				d.Set("region_id", regionID)
+				d.Set(ProjectIDField, projectID)
+				d.Set(RegionIDField, regionID)
 				d.SetId(policyID)
 
 				return []*schema.ResourceData{d}, nil
@@ -93,7 +93,7 @@ func resourceL7Policy() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 
-			LBL7PolicyNameField: {
+			NameField: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The human-readable name of the policy",

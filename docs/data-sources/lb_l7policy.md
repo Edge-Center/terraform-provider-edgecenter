@@ -61,5 +61,6 @@ The action
 - `redirect_pool_id` (String) Requests matching this policy will be redirected to the pool with this ID. Only valid if the action is REDIRECT_TO_POOL
 - `redirect_prefix` (String) Requests matching this policy will be redirected to this Prefix URL. Only valid if the action is REDIRECT_PREFIX
 - `redirect_url` (String) Requests matching this policy will be redirected to this URL. Only valid if the action is REDIRECT_TO_URL
-- `tags` (List of String) A list of simple strings assigned to the resource
+- `rules` (Set of String) A set of l7rule uuids assigned to this l7policy
+- `tags` (Set of String) A list of simple strings assigned to the resource
 - `updated_at` (String) The datetime when the L7 policy was last updated

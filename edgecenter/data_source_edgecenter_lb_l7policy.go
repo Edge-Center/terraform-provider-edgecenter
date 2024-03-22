@@ -46,19 +46,20 @@ func dataSourceL7Policy() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			IDField: {
-				Type:          schema.TypeString,
-				Description:   "The uuid of l7policy",
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"name"},
-				ValidateFunc:  validation.IsUUID,
+				Type:         schema.TypeString,
+				Description:  "The uuid of l7policy",
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{IDField, NameField},
+				ValidateFunc: validation.IsUUID,
 			},
-			LBL7PolicyNameField: {
-				ConflictsWith: []string{"id"},
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				Description:   "The human-readable name of the policy",
+
+			NameField: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{IDField, NameField},
+				Description:  "The human-readable name of the policy",
 			},
 			LBL7PolicyActionField: {
 				Description: fmt.Sprintf("Enum: \"%s\" \"%s\" \"%s\" \"%s\"\nThe action.",
@@ -113,12 +114,12 @@ func dataSourceL7Policy() *schema.Resource {
 				Description: "Requests matching this policy will be redirected to the specified URL or Prefix URL with the HTTP response code. Valid if action is REDIRECT_TO_URL or REDIRECT_PREFIX. Valid options are 301, 302, 303, 307, or 308. Default is 302",
 				Computed:    true,
 			},
-			LBL7ProvisioningStatusField: {
+			ProvisioningStatusField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The provisioning status",
 			},
-			LBL7OperatingStatusField: {
+			OperatingStatusField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The operating status",
@@ -143,7 +144,17 @@ func datasourceL7PolicyV2Read(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	l7Policy, err := GetLBL7Policy(ctx, clientV2, d)
+	var l7policyID, l7policyName string
+
+	if l7policyIDRaw, ok := d.GetOk(IDField); ok {
+		l7policyID = l7policyIDRaw.(string)
+	}
+
+	if l7policyNameRaw, ok := d.GetOk(NameField); ok {
+		l7policyName = l7policyNameRaw.(string)
+	}
+
+	l7Policy, err := GetLBL7Policy(ctx, clientV2, l7policyID, l7policyName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -169,9 +180,9 @@ func datasourceL7PolicyV2Read(ctx context.Context, d *schema.ResourceData, m int
 		d.Set(LBL7PolicyRedirectHTTPCodeField, l7Policy.RedirectHTTPCode)
 	}
 	d.Set(LBL7PolicyListenerIDField, l7Policy.ListenerID)
-	d.Set(LBL7PolicyTagsField, l7Policy.Tags)
-	d.Set(LBL7ProvisioningStatusField, l7Policy.ProvisioningStatus)
-	d.Set(LBL7OperatingStatusField, l7Policy.OperatingStatus)
+	d.Set(TagsField, l7Policy.Tags)
+	d.Set(ProvisioningStatusField, l7Policy.ProvisioningStatus)
+	d.Set(OperatingStatusField, l7Policy.OperatingStatus)
 	d.Set(CreatedAtField, l7Policy.CreatedAt)
 	d.Set(UpdatedAtField, l7Policy.UpdatedAt)
 	rules := make([]string, 0, len(l7Policy.Rules))
