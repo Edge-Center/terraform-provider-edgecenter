@@ -194,6 +194,21 @@ func GetRegionIDandProjectID(ctx context.Context, client *edgecloudV2.Client, d 
 	return regionID, projectID, nil
 }
 
+func validateURLFunc(v interface{}, attributeName string) (warnings []string, errors []error) { //nolint:nonamedreturns
+	value, ok := v.(string)
+	if !ok {
+		errors = append(errors, fmt.Errorf("expected type of %s to be string", attributeName))
+		return
+	}
+
+	_, err := url.ParseRequestURI(value)
+	if err != nil {
+		errors = append(errors, fmt.Errorf("URL is not valid: %s", err.Error()))
+	}
+
+	return warnings, errors
+}
+
 // IndexFunc returns the first index i satisfying f(s[i]),
 // or -1 if none do.
 // TODO remove when upgrading to a new version - https://tracker.yandex.ru/CLOUDDEV-456.
