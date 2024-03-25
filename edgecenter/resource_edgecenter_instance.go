@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"reflect"
 	"sort"
 	"strconv"
 	"time"
@@ -790,16 +791,8 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 	} else if d.HasChange("metadata_map") {
 		omd, nmd := d.GetChange("metadata_map")
-		if len(omd.(map[string]interface{})) > 0 {
-			for k := range omd.(map[string]interface{}) {
-				_, err := clientV2.Instances.MetadataDeleteItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
-				if err != nil {
-					return diag.Errorf("cannot delete metadata key: %s. Error: %s", k, err)
-				}
-			}
-		}
-		MetaData := make(edgecloudV2.Metadata)
-		if len(nmd.(map[string]interface{})) > 0 {
+		if !reflect.DeepEqual(omd, nmd) {
+			MetaData := make(edgecloudV2.Metadata)
 			for k, v := range nmd.(map[string]interface{}) {
 				MetaData[k] = v.(string)
 			}
