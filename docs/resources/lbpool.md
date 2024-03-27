@@ -55,9 +55,9 @@ resource "edgecenter_lbpool" "pl" {
 
 ### Required
 
-- `lb_algorithm` (String) Available values is 'ROUND_ROBIN', 'LEAST_CONNECTIONS', 'SOURCE_IP', 'SOURCE_IP_PORT'
+- `lb_algorithm` (String) The algorithm of the load balancer. Available values is `ROUND_ROBIN`, `LEAST_CONNECTIONS`, `SOURCE_IP`, `SOURCE_IP_PORT`.
 - `name` (String) The name of the load balancer listener pool.
-- `protocol` (String) Available values is 'HTTP' (currently work, other do not work on ed-8), 'HTTPS', 'TCP', 'UDP'
+- `protocol` (String) The protocol of the load balancer. Available values is `HTTP` (currently work, other do not work on ed-8), `HTTPS`, `TCP`, `UDP`, `PROXY`.
 
 ### Optional
 
@@ -83,21 +83,18 @@ This ensures that all requests from the user during the session are sent to the 
 
 Required:
 
-- `delay` (Number)
-- `max_retries` (Number)
-- `timeout` (Number)
-- `type` (String) Available values is 'HTTP', 'HTTPS', 'PING', 'TCP', 'TLS-HELLO', 'UDP-CONNECT
+- `delay` (Number) The time between sending probes to members (in seconds).
+- `max_retries` (Number) The number of successes before the member is switched to the ONLINE state.
+- `timeout` (Number) The maximum time to connect. Must be less than the delay value.
+- `type` (String) The type of the health monitor. Available values is `HTTP`, `HTTPS`, `PING`, `TCP`, `TLS-HELLO`, `UDP-CONNECT`.
 
 Optional:
 
-- `expected_codes` (String)
-- `http_method` (String)
-- `max_retries_down` (Number)
-- `url_path` (String)
-
-Read-Only:
-
-- `id` (String) The ID of this resource.
+- `expected_codes` (String) The expected response code.
+- `http_method` (String) The HTTP method. Available values is `CONNECT`, `DELETE`, `GET`, `HEAD`, `OPTIONS`, `PATCH`,`POST`, `PUT`, `TRACE`.
+- `id` (String) The ID of the health monitor.
+- `max_retries_down` (Number) The number of failures before the member is switched to the ERROR state.
+- `url_path` (String) The URL path. Defaults to `/`.
 
 
 <a id="nestedblock--session_persistence"></a>
@@ -105,13 +102,13 @@ Read-Only:
 
 Required:
 
-- `type` (String)
+- `type` (String) The type of the session persistence. Available values is `APP_COOKIE`, `HTTP_COOKIE`, `SOURCE_IP`.
 
 Optional:
 
-- `cookie_name` (String)
-- `persistence_granularity` (String)
-- `persistence_timeout` (Number)
+- `cookie_name` (String) The name of the cookie. Should be set if app cookie or http cookie is used.
+- `persistence_granularity` (String) The subnet mask if source_ip is used. For UDP ports only.
+- `persistence_timeout` (Number) The timeout for the session persistence. For UDP ports only.
 
 
 <a id="nestedblock--timeouts"></a>
