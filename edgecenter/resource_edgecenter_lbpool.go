@@ -84,7 +84,7 @@ func resourceLBPool() *schema.Resource {
 			"lb_algorithm": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s'", edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP, edgecloudV2.LoadbalancerAlgorithmSourceIPPort),
+				Description: fmt.Sprintf("The algorithm of the load balancer. Available values is `%s`, `%s`, `%s`, `%s`.", edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP, edgecloudV2.LoadbalancerAlgorithmSourceIPPort),
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					switch edgecloudV2.LoadbalancerAlgorithm(v) {
@@ -97,7 +97,7 @@ func resourceLBPool() *schema.Resource {
 			"protocol": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s', '%s'", edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP, edgecloudV2.LBPoolProtocolProxy),
+				Description: fmt.Sprintf("The protocol of the load balancer. Available values is `%s` (currently work, other do not work on ed-8), `%s`, `%s`, `%s`, `%s`.", edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP, edgecloudV2.LBPoolProtocolProxy),
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					switch edgecloudV2.LoadbalancerPoolProtocol(v) {
@@ -128,14 +128,15 @@ It determines how the load balancer identifies whether the backend members are h
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: "The ID of the health monitor.",
 						},
 						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s', '%s', '%s", edgecloudV2.HealthMonitorTypeHTTP, edgecloudV2.HealthMonitorTypeHTTPS, edgecloudV2.HealthMonitorTypePING, edgecloudV2.HealthMonitorTypeTCP, edgecloudV2.HealthMonitorTypeTLSHello, edgecloudV2.HealthMonitorTypeUDPConnect),
+							Description: fmt.Sprintf("The type of the health monitor. Available values is `%s`, `%s`, `%s`, `%s`, `%s`, `%s`.", edgecloudV2.HealthMonitorTypeHTTP, edgecloudV2.HealthMonitorTypeHTTPS, edgecloudV2.HealthMonitorTypePING, edgecloudV2.HealthMonitorTypeTCP, edgecloudV2.HealthMonitorTypeTLSHello, edgecloudV2.HealthMonitorTypeUDPConnect),
 							ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 								v := val.(string)
 								switch edgecloudV2.HealthMonitorType(v) {
@@ -146,36 +147,43 @@ It determines how the load balancer identifies whether the backend members are h
 							},
 						},
 						"delay": {
-							Type:     schema.TypeInt,
-							Required: true,
+							Type:        schema.TypeInt,
+							Required:    true,
+							Description: "The time between sending probes to members (in seconds).",
 						},
 						"max_retries": {
-							Type:     schema.TypeInt,
-							Required: true,
+							Type:        schema.TypeInt,
+							Required:    true,
+							Description: "The number of successes before the member is switched to the ONLINE state.",
 						},
 						"timeout": {
-							Type:     schema.TypeInt,
-							Required: true,
+							Type:        schema.TypeInt,
+							Required:    true,
+							Description: "The maximum time to connect. Must be less than the delay value.",
 						},
 						"max_retries_down": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Computed:    true,
+							Description: "The number of failures before the member is switched to the ERROR state.",
 						},
 						"http_method": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: fmt.Sprintf("The HTTP method. Available values is `%s`, `%s`, `%s`, `%s`, `%s`, `%s`,`%s`, `%s`, `%s`.", edgecloudV2.HTTPMethodCONNECT, edgecloudV2.HTTPMethodDELETE, edgecloudV2.HTTPMethodGET, edgecloudV2.HTTPMethodHEAD, edgecloudV2.HTTPMethodOPTIONS, edgecloudV2.HTTPMethodPATCH, edgecloudV2.HTTPMethodPOST, edgecloudV2.HTTPMethodPUT, edgecloudV2.HTTPMethodTRACE),
 						},
 						"url_path": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: "The URL path. Defaults to `/`.",
 						},
 						"expected_codes": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: "The expected response code.",
 						},
 					},
 				},
@@ -190,23 +198,27 @@ This ensures that all requests from the user during the session are sent to the 
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: fmt.Sprintf("The type of the session persistence. Available values is `%s`, `%s`, `%s`.", edgecloudV2.SessionPersistenceAppCookie, edgecloudV2.SessionPersistenceHTTPCookie, edgecloudV2.SessionPersistenceSourceIP),
 						},
 						"cookie_name": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: "The name of the cookie. Should be set if app cookie or http cookie is used.",
 						},
 						"persistence_granularity": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: "The subnet mask if source_ip is used. For UDP ports only.",
 						},
 						"persistence_timeout": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Computed:    true,
+							Description: "The timeout for the session persistence. For UDP ports only.",
 						},
 					},
 				},
