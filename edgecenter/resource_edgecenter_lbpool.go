@@ -97,15 +97,15 @@ func resourceLBPool() *schema.Resource {
 			"protocol": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s'", edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP),
+				Description: fmt.Sprintf("Available values is '%s' (currently work, other do not work on ed-8), '%s', '%s', '%s', '%s'", edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP, edgecloudV2.LBPoolProtocolProxy),
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					switch edgecloudV2.LoadbalancerPoolProtocol(v) {
-					case edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP:
+					case edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP, edgecloudV2.LBPoolProtocolProxy:
 						return diag.Diagnostics{}
-					case edgecloudV2.LBPoolProtocolTerminatedHTTPS, edgecloudV2.LBPoolProtocolProxy:
+					case edgecloudV2.LBPoolProtocolTerminatedHTTPS:
 					}
-					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP)
+					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s', '%s'", v, edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP, edgecloudV2.LBPoolProtocolProxy)
 				},
 			},
 			"loadbalancer_id": {
