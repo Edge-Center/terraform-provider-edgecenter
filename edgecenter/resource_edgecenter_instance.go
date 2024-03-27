@@ -227,7 +227,7 @@ func resourceInstance() *schema.Resource {
 						"port_security_disabled": {
 							Type:     schema.TypeBool,
 							Optional: true,
-							Computed: true,
+							Default:  false,
 						},
 					},
 				},
@@ -503,23 +503,15 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	instanceID := taskResult.Instances[0]
 	log.Printf("[DEBUG] Instance id (%s)", instanceID)
+	d.SetId(instanceID)
 
 	// Code below adjusts all interfaces PortSecurityDisabled opt
 	log.Println("[DEBUG] ports security options adjusting...")
-	interfacesListAPI, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("error from getting instance interfaces: %w", err))
+	diagsAdjust := adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifs)
+	if len(diagsAdjust) != 0 {
+		return append(diags, diagsAdjust...)
 	}
 
-	for _, iface := range ifs {
-		ifaceMap := iface.(map[string]interface{})
-		err = adjustPortSecurityDisabledOptV2(ctx, clientV2, interfacesListAPI, ifaceMap)
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("error from port securtity disable option configuring. Interface: %#v, error: %w", ifaceMap, err))
-		}
-	}
-
-	d.SetId(instanceID)
 	resourceInstanceRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Instance creating (%s)", instanceID)
@@ -719,6 +711,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Instance updating")
 	instanceID := d.Id()
+
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 	config := m.(*Config)
 
@@ -834,7 +827,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					}
 				}
 
-				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
+				differentFields := getMapDifference(iOld, iNew, []string{"security_groups", "port_security_disabled"})
 				if len(differentFields) > 0 {
 					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
@@ -866,7 +859,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					}
 				}
 
-				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
+				differentFields := getMapDifference(iOld, iNew, []string{"security_groups", "port_security_disabled"})
 				if len(differentFields) > 0 {
 					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
@@ -905,7 +898,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					}
 				}
 
-				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
+				differentFields := getMapDifference(iOld, iNew, []string{"security_groups", "port_security_disabled"})
 				if len(differentFields) > 0 {
 					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
@@ -922,6 +915,10 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					return diag.FromErr(err)
 				}
 			}
+		}
+		diagsAdjust := adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifsNewSlice)
+		if len(diagsAdjust) != 0 {
+			return diagsAdjust
 		}
 	}
 
