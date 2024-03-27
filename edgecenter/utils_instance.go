@@ -10,6 +10,7 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/mitchellh/mapstructure"
 
@@ -383,19 +384,6 @@ func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client
 		return fmt.Errorf("cannot attach interface with opts: %v", opts)
 	}
 
-	_, isBareMetal := iface["is_parent"]
-
-	if !isBareMetal {
-		interfacesListAPI, _, err := client.Instances.InterfaceList(ctx, instanceID)
-		if err != nil {
-			return fmt.Errorf("error from getting instance interfaces: %w", err)
-		}
-
-		if err = adjustPortSecurityDisabledOptV2(ctx, client, interfacesListAPI, iface); err != nil {
-			return fmt.Errorf("cannot adjust port_security_disabled opt: %+v. Error: %w", iface, err)
-		}
-	}
-
 	return nil
 }
 
@@ -438,6 +426,24 @@ LOOP:
 	}
 
 	return nil
+}
+
+func adjustAllPortsSecurityDisabledOpt(ctx context.Context, client *edgecloudV2.Client, instanceID string, ifs []interface{}) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	interfacesListAPI, _, err := client.Instances.InterfaceList(ctx, instanceID)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("error from getting instance interfaces: %w", err))
+	}
+
+	for _, iface := range ifs {
+		ifaceMap := iface.(map[string]interface{})
+		err = adjustPortSecurityDisabledOptV2(ctx, client, interfacesListAPI, ifaceMap)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("error from port securtity disable option configuring. Interface: %#v, error: %w", ifaceMap, err))
+		}
+	}
+
+	return diags
 }
 
 // deleteServerGroupV2 removes a server group from an instance.
