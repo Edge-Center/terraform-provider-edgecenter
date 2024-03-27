@@ -47,12 +47,12 @@ func dataSourceLBPool() *schema.Resource {
 			"lb_algorithm": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: fmt.Sprintf("Available values is `%s`, `%s`, `%s`", edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP),
+				Description: fmt.Sprintf("Available values are `%s`, `%s`, `%s`.", edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP),
 			},
 			"protocol": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: fmt.Sprintf("Available values is `%s` (currently work, other do not work on ed-8), `%s`, `%s`, `%s`", edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP),
+				Description: fmt.Sprintf("Available values are `%s` (currently work, others do not work on ed-8), `%s`, `%s`, `%s`.", edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP),
 			},
 			"loadbalancer_id": {
 				Type:        schema.TypeString,
@@ -80,7 +80,7 @@ It determines how the load balancer identifies whether the backend members are h
 						"type": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s', '%s', '%s", edgecloudV2.HealthMonitorTypeHTTP, edgecloudV2.HealthMonitorTypeHTTPS, edgecloudV2.HealthMonitorTypePING, edgecloudV2.HealthMonitorTypeTCP, edgecloudV2.HealthMonitorTypeTLSHello, edgecloudV2.HealthMonitorTypeUDPConnect),
+							Description: fmt.Sprintf("Available values are `%s`, `%s`, `%s`, `%s`, `%s`, `%s`.", edgecloudV2.HealthMonitorTypeHTTP, edgecloudV2.HealthMonitorTypeHTTPS, edgecloudV2.HealthMonitorTypePING, edgecloudV2.HealthMonitorTypeTCP, edgecloudV2.HealthMonitorTypeTLSHello, edgecloudV2.HealthMonitorTypeUDPConnect),
 						},
 						"delay": {
 							Type:     schema.TypeInt,
