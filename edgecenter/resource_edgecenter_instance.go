@@ -227,7 +227,7 @@ func resourceInstance() *schema.Resource {
 						"port_security_disabled": {
 							Type:     schema.TypeBool,
 							Optional: true,
-							Computed: true,
+							Default:  false,
 						},
 					},
 				},
@@ -409,6 +409,11 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	clientV2.Region = regionID
 	clientV2.Project = projectID
 
+	diags = validateAttrs(d)
+	if diags.HasError() {
+		return diags
+	}
+
 	createOpts := edgecloudV2.InstanceCreateRequest{
 		Flavor:         d.Get("flavor_id").(string),
 		KeypairName:    d.Get("keypair_name").(string),
@@ -503,23 +508,15 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	instanceID := taskResult.Instances[0]
 	log.Printf("[DEBUG] Instance id (%s)", instanceID)
+	d.SetId(instanceID)
 
 	// Code below adjusts all interfaces PortSecurityDisabled opt
 	log.Println("[DEBUG] ports security options adjusting...")
-	interfacesListAPI, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("error from getting instance interfaces: %w", err))
+	diagsAdjust := adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifs)
+	if len(diagsAdjust) != 0 {
+		return append(diags, diagsAdjust...)
 	}
 
-	for _, iface := range ifs {
-		ifaceMap := iface.(map[string]interface{})
-		err = adjustPortSecurityDisabledOptV2(ctx, clientV2, interfacesListAPI, ifaceMap)
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("error from port securtity disable option configuring. Interface: %#v, error: %w", ifaceMap, err))
-		}
-	}
-
-	d.SetId(instanceID)
 	resourceInstanceRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish Instance creating (%s)", instanceID)
@@ -719,6 +716,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Instance updating")
 	instanceID := d.Id()
+
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 	config := m.(*Config)
 
@@ -731,6 +729,11 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	clientV2.Region = regionID
 	clientV2.Project = projectID
+
+	diags := validateAttrs(d)
+	if diags.HasError() {
+		return diags
+	}
 
 	if d.HasChange("name") {
 		nameTemplates := d.Get("name_templates").([]interface{})
@@ -813,6 +816,11 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		sort.Sort(instanceInterfaces(ifsOldSlice))
 		sort.Sort(instanceInterfaces(ifsNewSlice))
 
+		diagsAdjust := adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifsNewSlice)
+		if len(diagsAdjust) != 0 {
+			return diagsAdjust
+		}
+
 		switch {
 		// the same number of interfaces
 		case len(ifsOldSlice) == len(ifsNewSlice):
@@ -834,7 +842,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					}
 				}
 
-				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
+				differentFields := getMapDifference(iOld, iNew, []string{"security_groups", "port_security_disabled"})
 				if len(differentFields) > 0 {
 					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
@@ -866,7 +874,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					}
 				}
 
-				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
+				differentFields := getMapDifference(iOld, iNew, []string{"security_groups", "port_security_disabled"})
 				if len(differentFields) > 0 {
 					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
@@ -905,7 +913,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					}
 				}
 
-				differentFields := getMapDifference(iOld, iNew, []string{"security_groups"})
+				differentFields := getMapDifference(iOld, iNew, []string{"security_groups", "port_security_disabled"})
 				if len(differentFields) > 0 {
 					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
 						return diag.FromErr(err)
@@ -922,6 +930,10 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					return diag.FromErr(err)
 				}
 			}
+		}
+		diagsAdjust = adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifsNewSlice)
+		if len(diagsAdjust) != 0 {
+			return diagsAdjust
 		}
 	}
 
@@ -1050,6 +1062,36 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of Instance deleting")
+
+	return diags
+}
+
+func validateAttrs(d *schema.ResourceData) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	iOldRaw, iNewRaw := d.GetChange("interface")
+	_, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
+	for _, ifs := range ifsNewSlice {
+		iNew := ifs.(map[string]interface{})
+		var isPortSecDisabled, isSecGroupExists bool
+		if v, ok := iNew["port_security_disabled"]; ok {
+			isPortSecDisabled = v.(bool)
+		}
+		if v, ok := iNew["security_groups"]; ok {
+			secGroups := v.([]interface{})
+			if len(secGroups) != 0 {
+				isSecGroupExists = true
+			}
+		}
+		if isPortSecDisabled && isSecGroupExists {
+			curDiag := diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("if attribute \"port_security_disabled\" for interface %+v set true, you can't set \"security_groups\" attribute", iNew),
+				Detail:        "",
+				AttributePath: nil,
+			}
+			diags = append(diags, curDiag)
+		}
+	}
 
 	return diags
 }
