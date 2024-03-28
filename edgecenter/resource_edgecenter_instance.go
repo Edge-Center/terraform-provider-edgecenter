@@ -409,6 +409,11 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	clientV2.Region = regionID
 	clientV2.Project = projectID
 
+	diags = validateAttrs(d)
+	if diags.HasError() {
+		return diags
+	}
+
 	createOpts := edgecloudV2.InstanceCreateRequest{
 		Flavor:         d.Get("flavor_id").(string),
 		KeypairName:    d.Get("keypair_name").(string),
@@ -725,6 +730,11 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	clientV2.Region = regionID
 	clientV2.Project = projectID
 
+	diags := validateAttrs(d)
+	if diags.HasError() {
+		return diags
+	}
+
 	if d.HasChange("name") {
 		nameTemplates := d.Get("name_templates").([]interface{})
 		nameTemplate := d.Get("name_template").(string)
@@ -805,6 +815,11 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		ifsOldSlice, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
 		sort.Sort(instanceInterfaces(ifsOldSlice))
 		sort.Sort(instanceInterfaces(ifsNewSlice))
+
+		diagsAdjust := adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifsNewSlice)
+		if len(diagsAdjust) != 0 {
+			return diagsAdjust
+		}
 
 		switch {
 		// the same number of interfaces
@@ -916,7 +931,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				}
 			}
 		}
-		diagsAdjust := adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifsNewSlice)
+		diagsAdjust = adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifsNewSlice)
 		if len(diagsAdjust) != 0 {
 			return diagsAdjust
 		}
@@ -1047,6 +1062,36 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish of Instance deleting")
+
+	return diags
+}
+
+func validateAttrs(d *schema.ResourceData) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	iOldRaw, iNewRaw := d.GetChange("interface")
+	_, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
+	for _, ifs := range ifsNewSlice {
+		iNew := ifs.(map[string]interface{})
+		var isPortSecDisabled, isSecGroupExists bool
+		if v, ok := iNew["port_security_disabled"]; ok {
+			isPortSecDisabled = v.(bool)
+		}
+		if v, ok := iNew["security_groups"]; ok {
+			secGroups := v.([]interface{})
+			if len(secGroups) != 0 {
+				isSecGroupExists = true
+			}
+		}
+		if isPortSecDisabled && isSecGroupExists {
+			curDiag := diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("if attribute \"port_security_disabled\" for interface %+v set true, you can't set \"security_groups\" attribute", iNew),
+				Detail:        "",
+				AttributePath: nil,
+			}
+			diags = append(diags, curDiag)
+		}
+	}
 
 	return diags
 }
