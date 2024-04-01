@@ -31,21 +31,21 @@ resource "edgecenter_reservedfixedip" "fixed_ip" {
 
 ### Required
 
-- `type` (String) The type of reserved fixed IP. Valid values are 'external', 'subnet', 'any_subnet', and 'ip_address'
+- `type` (String) The type of reserved fixed IP. Valid values are 'external', 'subnet', 'any_subnet', and 'ip_address'. Refer optional parameters description to determine which are required for each type.
 
 ### Optional
 
 - `allowed_address_pairs` (Block List) Group of IP addresses that share the current IP as VIP. (see [below for nested schema](#nestedblock--allowed_address_pairs))
-- `fixed_ip_address` (String) The IP address that is associated with the reserved IP.
+- `fixed_ip_address` (String) The IP address that is associated with the reserved IP. Required if 'type' is 'ip_address', computed otherwise.
 - `instance_ports_that_share_vip` (Set of String) instance ports that share a VIP
 - `is_vip` (Boolean) Flag to determine if the reserved fixed IP should be treated as a Virtual IP (VIP).
 - `last_updated` (String) The timestamp of the last update (use with update context).
-- `network_id` (String) ID of the network to which the reserved fixed IP is associated.
+- `network_id` (String) ID of the network to which the reserved fixed IP is associated. Required if 'type' is 'ip_address' or 'any_subnet', computed otherwise.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
-- `subnet_id` (String) ID of the subnet from which the fixed IP should be reserved.
+- `subnet_id` (String) ID of the subnet from which the fixed IP should be reserved. Required if 'type' is 'subnet', computed otherwise.
 
 ### Read-Only
 

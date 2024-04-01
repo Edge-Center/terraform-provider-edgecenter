@@ -72,7 +72,7 @@ func resourceReservedFixedIP() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: fmt.Sprintf("The type of reserved fixed IP. Valid values are '%s', '%s', '%s', and '%s'", edgecloudV2.ReservedFixedIPTypeExternal, edgecloudV2.ReservedFixedIPTypeSubnet, edgecloudV2.ReservedFixedIPTypeAnySubnet, edgecloudV2.ReservedFixedIPTypeIPAddress),
+				Description: fmt.Sprintf("The type of reserved fixed IP. Valid values are '%s', '%s', '%s', and '%s'. Refer optional parameters description to determine which are required for each type.", edgecloudV2.ReservedFixedIPTypeExternal, edgecloudV2.ReservedFixedIPTypeSubnet, edgecloudV2.ReservedFixedIPTypeAnySubnet, edgecloudV2.ReservedFixedIPTypeIPAddress),
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					switch edgecloudV2.ReservedFixedIPType(v) {
@@ -88,11 +88,12 @@ func resourceReservedFixedIP() *schema.Resource {
 				Description: "The current status of the reserved fixed IP.",
 			},
 			"fixed_ip_address": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "The IP address that is associated with the reserved IP.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				Description:   fmt.Sprintf("The IP address that is associated with the reserved IP. Required if 'type' is '%s', computed otherwise.", edgecloudV2.ReservedFixedIPTypeIPAddress),
+				ConflictsWith: []string{"subnet_id"},
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					ip := net.ParseIP(v)
@@ -104,18 +105,20 @@ func resourceReservedFixedIP() *schema.Resource {
 				},
 			},
 			"subnet_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "ID of the subnet from which the fixed IP should be reserved.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				Description:   fmt.Sprintf("ID of the subnet from which the fixed IP should be reserved. Required if 'type' is '%s', computed otherwise.", edgecloudV2.ReservedFixedIPTypeSubnet),
+				ConflictsWith: []string{"network_id", "fixed_ip_address"},
 			},
 			"network_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "ID of the network to which the reserved fixed IP is associated.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				Description:   fmt.Sprintf("ID of the network to which the reserved fixed IP is associated. Required if 'type' is '%s' or '%s', computed otherwise.", edgecloudV2.ReservedFixedIPTypeIPAddress, edgecloudV2.ReservedFixedIPTypeAnySubnet),
+				ConflictsWith: []string{"subnet_id"},
 			},
 			"is_vip": {
 				Type:        schema.TypeBool,
