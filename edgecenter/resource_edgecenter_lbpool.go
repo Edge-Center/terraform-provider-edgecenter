@@ -84,14 +84,14 @@ func resourceLBPool() *schema.Resource {
 			"lb_algorithm": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: fmt.Sprintf("Available values is '%s', '%s', '%s', '%s'", edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP, edgecloudV2.LoadbalancerAlgorithmSourceIPPort),
+				Description: fmt.Sprintf("Available values is `%s`, `%s`, `%s`", edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP),
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					switch edgecloudV2.LoadbalancerAlgorithm(v) {
-					case edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP, edgecloudV2.LoadbalancerAlgorithmSourceIPPort:
+					case edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP:
 						return diag.Diagnostics{}
 					}
-					return diag.Errorf("wrong type %s, available values is '%s', '%s', '%s', '%s'", v, edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIPPort, edgecloudV2.LoadbalancerAlgorithmSourceIPPort)
+					return diag.Errorf("wrong type %s, available values is `%s`, `%s`, `%s`", v, edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP)
 				},
 			},
 			"protocol": {

@@ -55,7 +55,7 @@ resource "edgecenter_lbpool" "pl" {
 
 ### Required
 
-- `lb_algorithm` (String) Available values is 'ROUND_ROBIN', 'LEAST_CONNECTIONS', 'SOURCE_IP', 'SOURCE_IP_PORT'
+- `lb_algorithm` (String) Available values is `ROUND_ROBIN`, `LEAST_CONNECTIONS`, `SOURCE_IP`
 - `name` (String) The name of the load balancer listener pool.
 - `protocol` (String) Available values is 'HTTP' (currently work, other do not work on ed-8), 'HTTPS', 'TCP', 'UDP'
 
