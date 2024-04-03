@@ -31,6 +31,12 @@ const (
 	CreatedAtField               = "created_at"
 	UpdatedAtField               = "updated_at"
 	IDField                      = "id"
+	NameField                    = "name"
+	TagsField                    = "tags"
+	TypeField                    = "type"
+	KeyField                     = "key"
+	OperatingStatusField         = "operating_status"
+	ProvisioningStatusField      = "provisioning_status"
 
 	LifecyclePolicyResource = "edgecenter_lifecyclepolicy"
 )
@@ -160,6 +166,7 @@ func Provider() *schema.Provider {
 			"edgecenter_cdn_sslcert":       resourceCDNCert(),
 			LifecyclePolicyResource:        resourceLifecyclePolicy(),
 			"edgecenter_lb_l7policy":       resourceL7Policy(),
+			"edgecenter_lb_l7rule":         resourceL7Rule(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":           dataSourceProject(),
@@ -186,6 +193,7 @@ func Provider() *schema.Provider {
 			"edgecenter_k8s_client_config": dataSourceK8sClientConfig(),
 			"edgecenter_secret":            dataSourceSecret(),
 			"edgecenter_lb_l7policy":       dataSourceL7Policy(),
+			"edgecenter_lb_l7rule":         datasourceL7Rule(),
 		},
 	}
 

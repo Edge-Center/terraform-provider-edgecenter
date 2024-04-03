@@ -12,30 +12,28 @@ import (
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
-func GetLBL7Policy(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) (*edgecloudV2.L7Policy, error) {
-	l7PolicyID, idOk := d.GetOk("id")
-
+func GetLBL7Policy(ctx context.Context, client *edgecloudV2.Client, l7PolicyID, l7PolicyName string) (*edgecloudV2.L7Policy, error) {
+	if l7PolicyID == "" && l7PolicyName == "" {
+		return nil, fmt.Errorf("one of the arguments \"l7PolicyID\",\"l7PolicyName\", must not be equal to an empty string")
+	}
 	var l7Policy *edgecloudV2.L7Policy
 	var err error
-	switch idOk {
-	case true:
-		l7Policy, _, err = client.L7Policies.Get(ctx, l7PolicyID.(string))
+	switch {
+	case l7PolicyID != "":
+		l7Policy, _, err = client.L7Policies.Get(ctx, l7PolicyID)
 		if err != nil {
 			return nil, err
 		}
 	default:
-		lPolicyName, nameOk := d.GetOk("name")
-		if nameOk {
-			l7Policy, err = utilV2.GetLbL7PolicyFromName(ctx, client, lPolicyName.(string))
-			if err != nil {
-				switch {
-				case errors.Is(err, edgecloudV2.ErrMultipleResourcesWithTheSameName):
-					return nil, fmt.Errorf("%w. Use \"id\" attribute instead of \"name\"", err)
-				case errors.Is(err, edgecloudV2.ErrResourceDoesntExist):
-					return nil, fmt.Errorf("%w. Check if the name is correct, or try to use \"id\" attribute", err)
-				default:
-					return nil, err
-				}
+		l7Policy, err = utilV2.GetLbL7PolicyFromName(ctx, client, l7PolicyName)
+		if err != nil {
+			switch {
+			case errors.Is(err, edgecloudV2.ErrMultipleResourcesWithTheSameName):
+				return nil, fmt.Errorf("%w. Use \"id\" attribute instead of \"name\"", err)
+			case errors.Is(err, edgecloudV2.ErrResourceDoesntExist):
+				return nil, fmt.Errorf("%w. Check if the name is correct, or try to use \"id\" attribute", err)
+			default:
+				return nil, err
 			}
 		}
 	}
