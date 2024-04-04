@@ -194,14 +194,14 @@ allowing you to start or stop the VM. Possible values are stopped and active.
 
 Optional:
 
-- `existing_fip_id` (String)
-- `fip_source` (String)
-- `ip_address` (String)
+- `existing_fip_id` (String) If source is existing, the ID of the existing floating IP must be specified.
+- `fip_source` (String) Indicates whether the floating IP for this subnet will be new or reused. Available value is `new`,`existing`
+- `ip_address` (String) The IP address.
 - `network_id` (String) Required if type is 'subnet' or 'any_subnet'.
-- `order` (Number) Order of attaching interface
-- `port_id` (String) required if type is  'reserved_fixed_ip'
-- `port_security_disabled` (Boolean)
-- `security_groups` (List of String) list of security group IDs
+- `order` (Number) Order of attaching interface.
+- `port_id` (String) The ID of the network that the subnet belongs to. The port will be plugged in this network. Required if type is  'reserved_fixed_ip'
+- `port_security_disabled` (Boolean) Disables the port security mechanism for a specific port on the network. When port security is disabled, this means that the port will not be subject to security checks set at the port level on the network.
+- `security_groups` (List of String) List of security group IDs
 - `subnet_id` (String) Required if type is 'subnet'.
 - `type` (String) Available value is 'subnet', 'any_subnet', 'external', 'reserved_fixed_ip'
 
@@ -215,18 +215,15 @@ Required:
 
 Optional:
 
-- `attachment_tag` (String)
+- `attachment_tag` (String) The block device attachment tag (exposed in the metadata).
 - `boot_index` (Number) If boot_index==0 volumes can not detached
-- `delete_on_termination` (Boolean)
-- `image_id` (String)
+- `delete_on_termination` (Boolean) Whether the volume is deleted together with the VM.
+- `id` (String) The ID of the volume. The field is mandatory if the volume is a pre-existing volume.
+- `image_id` (String) The ID of the image. The field is mandatory if the volume is created from the image.
 - `name` (String) The name assigned to the volume. Defaults to 'system'.
 - `size` (Number) The size of the volume, specified in gigabytes (GB).
 - `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.
-- `volume_id` (String)
-
-Read-Only:
-
-- `id` (String) The ID of this resource.
+- `volume_id` (String) The ID of the volume. The field is mandatory if the volume is a pre-existing volume.
 
 
 <a id="nestedblock--addresses"></a>

@@ -126,17 +126,20 @@ func resourceBmInstance() *schema.Resource {
 						},
 						// nested map is not supported, in this case, you do not need to use the list for the map
 						"fip_source": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: fmt.Sprintf("Indicates whether the floating IP for this subnet will be new or reused. Available value is `%s`,`%s`.", edgecloudV2.NewFloatingIP, edgecloudV2.ExistingFloatingIP),
 						},
 						"existing_fip_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "If source is existing, the ID of the existing floating IP must be specified.",
 						},
 						"ip_address": {
-							Type:     schema.TypeString,
-							Computed: true,
-							Optional: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Optional:    true,
+							Description: "IP address.",
 						},
 					},
 				},
@@ -157,35 +160,41 @@ func resourceBmInstance() *schema.Resource {
 			"name_template": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Description:   "A list of the instance names which will be changed by template. You can use forms `ip_octets`, `two_ip_octets`, `one_ip_octet`.",
 				ConflictsWith: []string{"name_templates"},
 			},
 			"image_id": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The ID of the image. Either image_id or apptemplate_id is required.",
 				ExactlyOneOf: []string{
 					"image_id",
 					"apptemplate_id",
 				},
 			},
 			"apptemplate_id": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The ID of the app template. Either image_id or apptemplate_id is required.",
 				ExactlyOneOf: []string{
 					"image_id",
 					"apptemplate_id",
 				},
 			},
 			"keypair_name": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of the keypair to inject into new instance(s).",
 			},
 			"password": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The password for the VM. This parameter is used to set the password either for the \"Admin\" user on a Windows VM other default user or a new user on a Linux VM.",
 			},
 			"username": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of a new user on a Linux VM. It may be passed with the password parameter.",
 			},
 			"metadata": {
 				Type:          schema.TypeList,
@@ -215,30 +224,36 @@ func resourceBmInstance() *schema.Resource {
 				},
 			},
 			"app_config": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "The parameters for the application template from the marketplace.",
 			},
 			"user_data": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A string in the base64 format. Must not be passed together with username or password. Examples of user_data: https://cloudinit.readthedocs.io/en/latest/topics/examples.html",
 			},
 
 			// computed
 			"flavor": {
-				Type:     schema.TypeMap,
-				Computed: true,
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "The ID of the flavor.",
 			},
 			"status": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: fmt.Sprintf("The status of the VM. Possible statuses are `%s`, `%s`, SHUTOFF, REBOOT, PAUSED, etc.", edgecloudV2.ProvisioningStatusActive, edgecloudV2.ProvisioningStatusError),
 			},
 			"vm_state": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The state of the virtual machine (active).",
 			},
 			"addresses": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "The map of network_name.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"net": {
@@ -247,12 +262,14 @@ func resourceBmInstance() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"addr": {
-										Type:     schema.TypeString,
-										Required: true,
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The address of the network.",
 									},
 									"type": {
-										Type:     schema.TypeString,
-										Required: true,
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The type of the network.",
 									},
 								},
 							},

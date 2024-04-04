@@ -93,8 +93,9 @@ func dataSourceSubnet() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"destination": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The CIDR of the destination IPv4 subnet.",
 						},
 						"nexthop": {
 							Type:        schema.TypeString,

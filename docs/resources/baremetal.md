@@ -50,32 +50,32 @@ resource "edgecenter_baremetal" "bm" {
 
 ### Optional
 
-- `app_config` (Map of String)
-- `apptemplate_id` (String)
-- `image_id` (String)
-- `keypair_name` (String)
+- `app_config` (Map of String) The parameters for the application template from the marketplace.
+- `apptemplate_id` (String) The ID of the app template. Either image_id or apptemplate_id is required.
+- `image_id` (String) The ID of the image. Either image_id or apptemplate_id is required.
+- `keypair_name` (String) The name of the keypair to inject into new instance(s).
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata` (Block List, Deprecated) (see [below for nested schema](#nestedblock--metadata))
 - `metadata_map` (Map of String) A map containing metadata, for example tags.
 - `name` (String) The name of the baremetal instance.
-- `name_template` (String)
+- `name_template` (String) A list of the instance names which will be changed by template. You can use forms `ip_octets`, `two_ip_octets`, `one_ip_octet`.
 - `name_templates` (List of String, Deprecated)
-- `password` (String)
+- `password` (String) The password for the VM. This parameter is used to set the password either for the "Admin" user on a Windows VM other default user or a new user on a Linux VM.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `user_data` (String)
-- `username` (String)
+- `user_data` (String) A string in the base64 format. Must not be passed together with username or password. Examples of user_data: https://cloudinit.readthedocs.io/en/latest/topics/examples.html
+- `username` (String) The name of a new user on a Linux VM. It may be passed with the password parameter.
 
 ### Read-Only
 
-- `addresses` (List of Object) (see [below for nested schema](#nestedatt--addresses))
-- `flavor` (Map of String)
+- `addresses` (List of Object) The map of network_name. (see [below for nested schema](#nestedatt--addresses))
+- `flavor` (Map of String) The ID of the flavor.
 - `id` (String) The ID of this resource.
-- `status` (String)
-- `vm_state` (String)
+- `status` (String) The status of the VM. Possible statuses are `ACTIVE`, `ERROR`, SHUTOFF, REBOOT, PAUSED, etc.
+- `vm_state` (String) The state of the virtual machine (active).
 
 <a id="nestedblock--interface"></a>
 ### Nested Schema for `interface`
@@ -86,9 +86,9 @@ Required:
 
 Optional:
 
-- `existing_fip_id` (String)
-- `fip_source` (String)
-- `ip_address` (String)
+- `existing_fip_id` (String) If source is existing, the ID of the existing floating IP must be specified.
+- `fip_source` (String) Indicates whether the floating IP for this subnet will be new or reused. Available value is `new`,`existing`.
+- `ip_address` (String) IP address.
 - `is_parent` (Boolean) If not set will be calculated after creation. Trunk interface always attached first. Can't detach interface if is_parent true. Fields affect only on creation
 - `network_id` (String) required if type is 'subnet' or 'any_subnet'
 - `order` (Number) Order of attaching interface. Trunk interface always attached first, fields affect only on creation
