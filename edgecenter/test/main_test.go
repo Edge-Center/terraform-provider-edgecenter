@@ -38,7 +38,7 @@ const (
 	kpTestName         = "test-kp"
 
 	flavorTest           = "g1-standard-1-2"
-	osDistroTest         = "ubuntu"
+	osDistroTest         = "debian"
 	clusterVersionTest   = "1.20.15"
 	cidrTest             = "192.168.42.0/24"
 	nodeCountTest        = 1

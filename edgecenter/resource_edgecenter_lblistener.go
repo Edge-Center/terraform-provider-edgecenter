@@ -314,11 +314,11 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 	if d.HasChange("allowed_cidrs") {
 		allowedCIDRsRaw := d.Get("allowed_cidrs").([]interface{})
-		allowedCIDRs := make([]string, len(allowedCIDRsRaw))
-		for i, s := range allowedCIDRsRaw {
-			allowedCIDRs[i] = s.(string)
+		var allowedCIDRs []string
+		for _, s := range allowedCIDRsRaw {
+			allowedCIDRs = append(allowedCIDRs, s.(string))
 		}
-		opts.AllowedCIDRs = allowedCIDRs
+		opts.AllowedCIDRs = &allowedCIDRs
 		changed = true
 	}
 

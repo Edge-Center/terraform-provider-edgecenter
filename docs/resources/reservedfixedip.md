@@ -18,10 +18,11 @@ provider "edgecenter" {
 }
 
 resource "edgecenter_reservedfixedip" "fixed_ip" {
-  project_id = 1
-  region_id  = 1
-  type       = "external"
-  is_vip     = false
+  project_id                    = 1
+  region_id                     = 1
+  type                          = "external"
+  is_vip                        = true
+  instance_ports_that_share_vip = ["8296f985-eb1e-4ac8-8a99-cd1156746d30", "41233b81-f42r-46d0-8043-759c8c542219"]
 }
 ```
 
@@ -30,13 +31,14 @@ resource "edgecenter_reservedfixedip" "fixed_ip" {
 
 ### Required
 
-- `is_vip` (Boolean) Flag to determine if the reserved fixed IP should be treated as a Virtual IP (VIP).
 - `type` (String) The type of reserved fixed IP. Valid values are 'external', 'subnet', 'any_subnet', and 'ip_address'
 
 ### Optional
 
 - `allowed_address_pairs` (Block List) Group of IP addresses that share the current IP as VIP. (see [below for nested schema](#nestedblock--allowed_address_pairs))
 - `fixed_ip_address` (String) The IP address that is associated with the reserved IP.
+- `instance_ports_that_share_vip` (List of String) instance ports that share a VIP
+- `is_vip` (Boolean) Flag to determine if the reserved fixed IP should be treated as a Virtual IP (VIP).
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `network_id` (String) ID of the network to which the reserved fixed IP is associated.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
@@ -49,6 +51,7 @@ resource "edgecenter_reservedfixedip" "fixed_ip" {
 
 - `id` (String) The ID of this resource.
 - `port_id` (String) ID of the port_id underlying the reserved fixed IP.
+- `reservation` (Map of String) The status of the reserved fixed IP with the type of the resource and the ID it is attached to
 - `status` (String) The current status of the reserved fixed IP.
 
 <a id="nestedblock--allowed_address_pairs"></a>

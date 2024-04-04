@@ -10,7 +10,9 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
@@ -383,19 +385,6 @@ func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client
 		return fmt.Errorf("cannot attach interface with opts: %v", opts)
 	}
 
-	_, isBareMetal := iface["is_parent"]
-
-	if !isBareMetal {
-		interfacesListAPI, _, err := client.Instances.InterfaceList(ctx, instanceID)
-		if err != nil {
-			return fmt.Errorf("error from getting instance interfaces: %w", err)
-		}
-
-		if err = adjustPortSecurityDisabledOptV2(ctx, client, interfacesListAPI, iface); err != nil {
-			return fmt.Errorf("cannot adjust port_security_disabled opt: %+v. Error: %w", iface, err)
-		}
-	}
-
 	return nil
 }
 
@@ -438,6 +427,24 @@ LOOP:
 	}
 
 	return nil
+}
+
+func adjustAllPortsSecurityDisabledOpt(ctx context.Context, client *edgecloudV2.Client, instanceID string, ifs []interface{}) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	interfacesListAPI, _, err := client.Instances.InterfaceList(ctx, instanceID)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("error from getting instance interfaces: %w", err))
+	}
+
+	for _, iface := range ifs {
+		ifaceMap := iface.(map[string]interface{})
+		err = adjustPortSecurityDisabledOptV2(ctx, client, interfacesListAPI, ifaceMap)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("error from port securtity disable option configuring. Interface: %#v, error: %w", ifaceMap, err))
+		}
+	}
+
+	return diags
 }
 
 // deleteServerGroupV2 removes a server group from an instance.
@@ -572,4 +579,34 @@ func getSecurityGroupsDifferenceV2(sl1, sl2 []edgecloudV2.ID) (diff []edgecloudV
 	}
 
 	return diff
+}
+
+func validateInstanceResourceAttrs(d *schema.ResourceData) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	iOldRaw, iNewRaw := d.GetChange("interface")
+	_, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
+	for _, ifs := range ifsNewSlice {
+		iNew := ifs.(map[string]interface{})
+		var isPortSecDisabled, isSecGroupExists bool
+		if v, ok := iNew["port_security_disabled"]; ok {
+			isPortSecDisabled = v.(bool)
+		}
+		if v, ok := iNew["security_groups"]; ok {
+			secGroups := v.([]interface{})
+			if len(secGroups) != 0 {
+				isSecGroupExists = true
+			}
+		}
+		if isPortSecDisabled && isSecGroupExists {
+			curDiag := diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("if attribute \"port_security_disabled\" for interface %+v set true, you can't set \"security_groups\" attribute", iNew),
+				Detail:        "",
+				AttributePath: nil,
+			}
+			diags = append(diags, curDiag)
+		}
+	}
+
+	return diags
 }
