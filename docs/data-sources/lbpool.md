@@ -54,13 +54,11 @@ output "view" {
 
 ### Read-Only
 
-- `health_monitor` (List of Object) Configuration for health checks to test the health and state of the backend members. 
-                It determines how the load balancer identifies whether the backend members are healthy or unhealthy. (see [below for nested schema](#nestedatt--health_monitor))
+- `health_monitor` (List of Object) Configuration for health checks to test the health and state of the backend members. It determines how the load balancer identifies whether the backend members are healthy or unhealthy. (see [below for nested schema](#nestedatt--health_monitor))
 - `id` (String) The ID of this resource.
 - `lb_algorithm` (String) The algorithm of the load balancer. Available values are `ROUND_ROBIN`, `LEAST_CONNECTIONS`, `SOURCE_IP`.
 - `protocol` (String) The protocol. Available values are `HTTP` (currently work, others do not work on ed-8), `HTTPS`, `TCP`, `UDP`, `PROXY`.
-- `session_persistence` (List of Object) Configuration that enables the load balancer to bind a user's session to a specific backend member. 
-                This ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedatt--session_persistence))
+- `session_persistence` (List of Object) Configuration that enables the load balancer to bind a user's session to a specific backend member. This ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedatt--session_persistence))
 
 <a id="nestedatt--health_monitor"></a>
 ### Nested Schema for `health_monitor`

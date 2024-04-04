@@ -127,7 +127,7 @@ func dataSourceInstance() *schema.Resource {
 						"value": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "",
+							Description: "This parameter represents the value associated with the key in the metadata.",
 						},
 					},
 				},

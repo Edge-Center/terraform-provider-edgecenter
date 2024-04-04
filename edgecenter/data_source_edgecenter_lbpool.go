@@ -67,10 +67,9 @@ func dataSourceLBPool() *schema.Resource {
 				Description: "The uuid for the load balancer listener.",
 			},
 			"health_monitor": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Description: `Configuration for health checks to test the health and state of the backend members. 
-                It determines how the load balancer identifies whether the backend members are healthy or unhealthy.`,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: `Configuration for health checks to test the health and state of the backend members. It determines how the load balancer identifies whether the backend members are healthy or unhealthy.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -114,19 +113,17 @@ func dataSourceLBPool() *schema.Resource {
 							Description: "The URL path. Defaults to /.",
 						},
 						"expected_codes": {
-							Type:     schema.TypeString,
-							Computed: true,
-							Description: "The expected HTTP status codes. Defaults to 200. " +
-								"Multiple codes can be specified as a comma-separated string.",
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The expected HTTP status codes. Defaults to 200. Multiple codes can be specified as a comma-separated string.",
 						},
 					},
 				},
 			},
 			"session_persistence": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Description: `Configuration that enables the load balancer to bind a user's session to a specific backend member. 
-                This ensures that all requests from the user during the session are sent to the same member.`,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: `Configuration that enables the load balancer to bind a user's session to a specific backend member. This ensures that all requests from the user during the session are sent to the same member.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {

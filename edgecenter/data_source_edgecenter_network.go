@@ -3,6 +3,7 @@ package edgecenter
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -58,15 +59,17 @@ func dataSourceNetwork() *schema.Resource {
 			"type": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "'vlan' or 'vxlan' network type is allowed. Default value is 'vxlan'",
+				Description: fmt.Sprintf("The type of the network. Available values are `%s` or `%s`. Default value is `vxlan`.", edgecloudV2.VLAN, edgecloudV2.VXLAN),
 			},
 			"external": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "`true` if the network has router:external attribute.",
 			},
 			"shared": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "`true` if the network has router:external attribute.",
 			},
 			"subnets": {
 				Type:        schema.TypeList,
@@ -164,12 +167,14 @@ func dataSourceNetwork() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "This parameter represents a key in the metadata.",
 						},
 						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "This parameter represents the value associated with the key in the metadata.",
 						},
 						"read_only": {
 							Type:     schema.TypeBool,

@@ -55,13 +55,13 @@ output "view" {
 
 ### Read-Only
 
-- `external` (Boolean)
+- `external` (Boolean) `true` if the network has router:external attribute.
 - `id` (String) The ID of this resource.
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 - `mtu` (Number) Maximum Transmission Unit (MTU) for the network. It determines the maximum packet size that can be transmitted without fragmentation.
-- `shared` (Boolean)
+- `shared` (Boolean) `true` if the network has router:external attribute.
 - `subnets` (Block List) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedblock--subnets))
-- `type` (String) 'vlan' or 'vxlan' network type is allowed. Default value is 'vxlan'
+- `type` (String) The type of the network. Available values are `vlan` or `vxlan`. Default value is `vxlan`.
 
 <a id="nestedatt--metadata_read_only"></a>
 ### Nested Schema for `metadata_read_only`

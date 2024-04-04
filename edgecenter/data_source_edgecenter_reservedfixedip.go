@@ -88,12 +88,14 @@ func dataSourceReservedFixedIP() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ip_address": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The subnet mask or IP address of the port specified in allowed_address_pairs.",
 						},
 						"mac_address": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The MAC address of the port specified in allowed_address_pairs.",
 						},
 					},
 				},
