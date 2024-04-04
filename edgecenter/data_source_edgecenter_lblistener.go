@@ -14,6 +14,7 @@ import (
 func dataSourceLBListener() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceLBListenerRead,
+		Description: "Represent a data source load balancer listener. A listener is a process that checks for connection requests using the protocol and port that you configure.",
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:         schema.TypeInt,
@@ -53,7 +54,7 @@ func dataSourceLBListener() *schema.Resource {
 			"protocol": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: fmt.Sprintf("The protocol of the load balancer. Available values is `%s`, `%s`, `%s`, `%s`,`%s`", edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolTerminatedHTTPS),
+				Description: fmt.Sprintf("The protocol of the load balancer. Available values is `%s`, `%s`, `%s`, `%s`,`%s`.", edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolTerminatedHTTPS),
 			},
 			"protocol_port": {
 				Type:        schema.TypeInt,

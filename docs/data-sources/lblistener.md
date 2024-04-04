@@ -3,12 +3,12 @@
 page_title: "edgecenter_lblistener Data Source - edgecenter"
 subcategory: ""
 description: |-
-  
+  Represent a data source load balancer listener. A listener is a process that checks for connection requests using the protocol and port that you configure.
 ---
 
 # edgecenter_lblistener (Data Source)
 
-
+Represent a data source load balancer listener. A listener is a process that checks for connection requests using the protocol and port that you configure.
 
 ## Example Usage
 
@@ -58,6 +58,6 @@ output "view" {
 - `id` (String) The ID of this resource.
 - `operating_status` (String) The current operational status of the load balancer.
 - `pool_count` (Number) Number of pools associated with the load balancer.
-- `protocol` (String) Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'
+- `protocol` (String) The protocol of the load balancer. Available values is `TCP`, `UDP`, `HTTP`, `HTTPS`,`TERMINATED_HTTPS`.
 - `protocol_port` (Number) The port on which the protocol is bound.
 - `provisioning_status` (String) The current provisioning status of the load balancer.
