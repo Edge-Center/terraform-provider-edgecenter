@@ -55,14 +55,14 @@ resource "edgecenter_lbpool" "pl" {
 
 ### Required
 
-- `lb_algorithm` (String) Available values is `ROUND_ROBIN`, `LEAST_CONNECTIONS`, `SOURCE_IP`
+- `lb_algorithm` (String) Available values are `ROUND_ROBIN`, `LEAST_CONNECTIONS`, `SOURCE_IP`.
 - `name` (String) The name of the load balancer listener pool.
-- `protocol` (String) Available values is 'HTTP' (currently work, other do not work on ed-8), 'HTTPS', 'TCP', 'UDP'
+- `protocol` (String) Available values are 'HTTP' (currently work, others do not work on ed-8), 'HTTPS', 'TCP', 'UDP'
 
 ### Optional
 
 - `health_monitor` (Block List, Max: 1) Configuration for health checks to test the health and state of the backend members. 
-It determines how the load balancer identifies whether the backend members are healthy or unhealthy. (see [below for nested schema](#nestedblock--health_monitor))
+                It determines how the load balancer identifies whether the backend members are healthy or unhealthy. (see [below for nested schema](#nestedblock--health_monitor))
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `listener_id` (String) The uuid for the load balancer listener.
 - `loadbalancer_id` (String) The uuid for the load balancer.
@@ -71,7 +71,7 @@ It determines how the load balancer identifies whether the backend members are h
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 - `session_persistence` (Block List, Max: 1) Configuration that enables the load balancer to bind a user's session to a specific backend member. 
-This ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedblock--session_persistence))
+                This ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedblock--session_persistence))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
@@ -86,7 +86,7 @@ Required:
 - `delay` (Number)
 - `max_retries` (Number)
 - `timeout` (Number)
-- `type` (String) Available values is 'HTTP', 'HTTPS', 'PING', 'TCP', 'TLS-HELLO', 'UDP-CONNECT
+- `type` (String) Available values are 'HTTP', 'HTTPS', 'PING', 'TCP', 'TLS-HELLO', 'UDP-CONNECT
 
 Optional:
 
