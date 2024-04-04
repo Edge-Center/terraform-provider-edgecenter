@@ -92,3 +92,4 @@ docs: docs_fmt
 	tfplugindocs --tf-version=1.7.0 --provider-name=edgecenter
 
 .PHONY: tidy build build_debug err_check linters linters_docker envs_reader test_cloud_data_source test_cloud_resource test_not_cloud install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs
+
