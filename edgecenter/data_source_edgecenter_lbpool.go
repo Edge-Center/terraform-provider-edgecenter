@@ -47,12 +47,12 @@ func dataSourceLBPool() *schema.Resource {
 			"lb_algorithm": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: fmt.Sprintf("Available values are `%s`, `%s`, `%s`.", edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP),
+				Description: fmt.Sprintf("The algorithm of the load balancer. Available values are `%s`, `%s`, `%s`.", edgecloudV2.LoadbalancerAlgorithmRoundRobin, edgecloudV2.LoadbalancerAlgorithmLeastConnections, edgecloudV2.LoadbalancerAlgorithmSourceIP),
 			},
 			"protocol": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: fmt.Sprintf("Available values are `%s` (currently work, others do not work on ed-8), `%s`, `%s`, `%s`.", edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP),
+				Description: fmt.Sprintf("The protocol. Available values are `%s` (currently work, others do not work on ed-8), `%s`, `%s`, `%s`, `%s`.", edgecloudV2.LBPoolProtocolHTTP, edgecloudV2.LBPoolProtocolHTTPS, edgecloudV2.LBPoolProtocolTCP, edgecloudV2.LBPoolProtocolUDP, edgecloudV2.LBPoolProtocolProxy),
 			},
 			"loadbalancer_id": {
 				Type:        schema.TypeString,
@@ -70,45 +70,54 @@ func dataSourceLBPool() *schema.Resource {
 				Type:     schema.TypeList,
 				Computed: true,
 				Description: `Configuration for health checks to test the health and state of the backend members. 
-It determines how the load balancer identifies whether the backend members are healthy or unhealthy.`,
+                It determines how the load balancer identifies whether the backend members are healthy or unhealthy.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The ID of the health monitor.",
 						},
 						"type": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: fmt.Sprintf("Available values are `%s`, `%s`, `%s`, `%s`, `%s`, `%s`.", edgecloudV2.HealthMonitorTypeHTTP, edgecloudV2.HealthMonitorTypeHTTPS, edgecloudV2.HealthMonitorTypePING, edgecloudV2.HealthMonitorTypeTCP, edgecloudV2.HealthMonitorTypeTLSHello, edgecloudV2.HealthMonitorTypeUDPConnect),
+							Description: fmt.Sprintf("The type of the health monitor.Available values are `%s`, `%s`, `%s`, `%s`, `%s`, `%s`.", edgecloudV2.HealthMonitorTypeHTTP, edgecloudV2.HealthMonitorTypeHTTPS, edgecloudV2.HealthMonitorTypePING, edgecloudV2.HealthMonitorTypeTCP, edgecloudV2.HealthMonitorTypeTLSHello, edgecloudV2.HealthMonitorTypeUDPConnect),
 						},
 						"delay": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The time between sending probes to members (in seconds).",
 						},
 						"max_retries": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The number of successes before the member is switched to the ONLINE state.",
 						},
 						"timeout": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The maximum time to connect. Must be less than the delay value.",
 						},
 						"max_retries_down": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The number of failures before the member is switched to the ERROR state.",
 						},
 						"http_method": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: fmt.Sprintf("The HTTP method. Available values are `%s`,`%s`,`%s`,`%s`,`%s`,`%s`,`%s`,`%s`,`%s`.", edgecloudV2.HTTPMethodCONNECT, edgecloudV2.HTTPMethodDELETE, edgecloudV2.HTTPMethodGET, edgecloudV2.HTTPMethodHEAD, edgecloudV2.HTTPMethodOPTIONS, edgecloudV2.HTTPMethodPATCH, edgecloudV2.HTTPMethodPOST, edgecloudV2.HTTPMethodPUT, edgecloudV2.HTTPMethodTRACE),
 						},
 						"url_path": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The URL path. Defaults to /.",
 						},
 						"expected_codes": {
 							Type:     schema.TypeString,
 							Computed: true,
+							Description: "The expected HTTP status codes. Defaults to 200. " +
+								"Multiple codes can be specified as a comma-separated string.",
 						},
 					},
 				},
@@ -117,24 +126,28 @@ It determines how the load balancer identifies whether the backend members are h
 				Type:     schema.TypeList,
 				Computed: true,
 				Description: `Configuration that enables the load balancer to bind a user's session to a specific backend member. 
-This ensures that all requests from the user during the session are sent to the same member.`,
+                This ensures that all requests from the user during the session are sent to the same member.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The type of the session persistence. Available values are `%s`,`%s`,`%s`,`%s`,`%s`,`%s`,`%s`,`%s`,`%s`.\", edgecloudV2.HTTPMethodCONNECT, )",
 						},
 						"cookie_name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name of the cookie. Should be set if app cookie or http cookie is used.",
 						},
 						"persistence_granularity": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The subnet mask if source_ip is used. For UDP ports only.",
 						},
 						"persistence_timeout": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The timeout for the session persistence. For UDP ports only.",
 						},
 					},
 				},
