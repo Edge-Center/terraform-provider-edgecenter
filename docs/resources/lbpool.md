@@ -55,14 +55,13 @@ resource "edgecenter_lbpool" "pl" {
 
 ### Required
 
-- `lb_algorithm` (String) Available values is `ROUND_ROBIN`, `LEAST_CONNECTIONS`, `SOURCE_IP`
+- `lb_algorithm` (String) The algorithm of the load balancer. Available values are `ROUND_ROBIN`, `LEAST_CONNECTIONS`, `SOURCE_IP`.
 - `name` (String) The name of the load balancer listener pool.
-- `protocol` (String) Available values is 'HTTP' (currently work, other do not work on ed-8), 'HTTPS', 'TCP', 'UDP', 'PROXY'
+- `protocol` (String) The protocol. Available values are `HTTP` (currently work, other do not work on ed-8), `HTTPS`, `TCP`, `UDP`, `PROXY`.
 
 ### Optional
 
-- `health_monitor` (Block List, Max: 1) Configuration for health checks to test the health and state of the backend members. 
-It determines how the load balancer identifies whether the backend members are healthy or unhealthy. (see [below for nested schema](#nestedblock--health_monitor))
+- `health_monitor` (Block List, Max: 1) Configuration for health checks to test the health and state of the backend members. It determines how the load balancer identifies whether the backend members are healthy or unhealthy. (see [below for nested schema](#nestedblock--health_monitor))
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `listener_id` (String) The uuid for the load balancer listener.
 - `loadbalancer_id` (String) The uuid for the load balancer.
@@ -70,8 +69,7 @@ It determines how the load balancer identifies whether the backend members are h
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
-- `session_persistence` (Block List, Max: 1) Configuration that enables the load balancer to bind a user's session to a specific backend member. 
-This ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedblock--session_persistence))
+- `session_persistence` (Block List, Max: 1) Configuration that enables the load balancer to bind a user's session to a specific backend member. This ensures that all requests from the user during the session are sent to the same member. (see [below for nested schema](#nestedblock--session_persistence))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
@@ -83,21 +81,18 @@ This ensures that all requests from the user during the session are sent to the 
 
 Required:
 
-- `delay` (Number)
-- `max_retries` (Number)
-- `timeout` (Number)
-- `type` (String) Available values is 'HTTP', 'HTTPS', 'PING', 'TCP', 'TLS-HELLO', 'UDP-CONNECT
+- `delay` (Number) The time between sending probes to members (in seconds).
+- `max_retries` (Number) The number of successes before the member is switched to the ONLINE state.
+- `timeout` (Number) The maximum time to connect. Must be less than the delay value.
+- `type` (String) The type of the health monitor. Available values are `HTTP`, `HTTPS`, `PING`, `TCP`, `TLS-HELLO`, `UDP-CONNECT`.
 
 Optional:
 
-- `expected_codes` (String)
-- `http_method` (String)
-- `max_retries_down` (Number)
-- `url_path` (String)
-
-Read-Only:
-
-- `id` (String) The ID of this resource.
+- `expected_codes` (String) The expected HTTP status codes. Multiple codes can be specified as a comma-separated string.
+- `http_method` (String) The HTTP method. Available values are `CONNECT`, `DELETE`, `GET`, `HEAD`, `OPTIONS`, `PATCH`,`POST`, `PUT`, `TRACE`.
+- `id` (String) The ID of the health monitor.
+- `max_retries_down` (Number) The number of failures before the member is switched to the ERROR state.
+- `url_path` (String) The URL path. Defaults to `/`.
 
 
 <a id="nestedblock--session_persistence"></a>
@@ -105,13 +100,13 @@ Read-Only:
 
 Required:
 
-- `type` (String)
+- `type` (String) The type of the session persistence. Available values are `APP_COOKIE`,`HTTP_COOKIE`,`SOURCE_IP`.
 
 Optional:
 
-- `cookie_name` (String)
-- `persistence_granularity` (String)
-- `persistence_timeout` (Number)
+- `cookie_name` (String) The name of the cookie. Should be set if app cookie or http cookie is used.
+- `persistence_granularity` (String) The subnet mask if source_ip is used. For UDP ports only.
+- `persistence_timeout` (Number) The timeout for the session persistence. For UDP ports only.
 
 
 <a id="nestedblock--timeouts"></a>
