@@ -54,7 +54,7 @@ func dataSourceLoadBalancer() *schema.Resource {
 			"metadata_kv": {
 				Type:        schema.TypeMap,
 				Optional:    true,
-				Description: `Filtration query opts, for example, {offset = "10", limit = "10"}`,
+				Description: `Filtration query opts, for example, {offset = "10", limit = "10"}.`,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

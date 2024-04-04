@@ -60,7 +60,7 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 			"vip_address": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Load balancer IP address",
+				Description: "The IP address of the load balancer.",
 			},
 			"vip_port_id": {
 				Type:        schema.TypeString,
@@ -74,16 +74,19 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "",
 						},
 						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "",
 						},
 						"read_only": {
-							Type:     schema.TypeBool,
-							Computed: true,
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "",
 						},
 					},
 				},

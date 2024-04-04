@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -52,7 +53,7 @@ func dataSourceLBListener() *schema.Resource {
 			"protocol": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'",
+				Description: fmt.Sprintf("The protocol of the load balancer. Available values is `%s`, `%s`, `%s`, `%s`,`%s`", edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolTerminatedHTTPS),
 			},
 			"protocol_port": {
 				Type:        schema.TypeInt,
