@@ -60,8 +60,7 @@ output "view" {
 - `metadata` (List of Object) (see [below for nested schema](#nestedatt--metadata))
 - `security_group` (List of Object) A list of firewall configurations applied to the instance, defined by their id and name. (see [below for nested schema](#nestedatt--security_group))
 - `status` (String) The current status of the instance. This is computed automatically and can be used to track the instance's state.
-- `vm_state` (String) The current virtual machine state of the instance, 
-allowing you to start or stop the VM. Possible values are stopped and active.
+- `vm_state` (String) The current virtual machine state of the instance, allowing you to start or stop the VM. Possible values are stopped and active.
 - `volume` (Set of Object) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedatt--volume))
 
 <a id="nestedatt--addresses"></a>

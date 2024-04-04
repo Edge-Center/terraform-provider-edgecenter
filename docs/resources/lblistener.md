@@ -42,7 +42,7 @@ resource "edgecenter_lblistener" "listener" {
 
 - `loadbalancer_id` (String) The uuid for the load balancer.
 - `name` (String) The name of the load balancer listener.
-- `protocol` (String) Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS' and 'Terminated HTTPS'.
+- `protocol` (String) The protocol of the load balancer. Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS' and 'Terminated HTTPS'.
 - `protocol_port` (Number) The port on which the protocol is bound.
 
 ### Optional

@@ -143,10 +143,9 @@ func dataSourceInstance() *schema.Resource {
 				Description: "The current status of the instance. This is computed automatically and can be used to track the instance's state.",
 			},
 			"vm_state": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Description: fmt.Sprintf(`The current virtual machine state of the instance, 
-                allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceVMStateStopped, InstanceVMStateActive),
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: fmt.Sprintf(`The current virtual machine state of the instance, allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceVMStateStopped, InstanceVMStateActive),
 			},
 			"addresses": {
 				Type:        schema.TypeList,

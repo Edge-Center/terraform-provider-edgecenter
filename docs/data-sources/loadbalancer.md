@@ -46,7 +46,7 @@ output "view" {
 ### Optional
 
 - `metadata_k` (String) Filtration query opts (only key).
-- `metadata_kv` (Map of String) Filtration query opts, for example, {offset = "10", limit = "10"}
+- `metadata_kv` (Map of String) Filtration query opts, for example, {offset = "10", limit = "10"}.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.

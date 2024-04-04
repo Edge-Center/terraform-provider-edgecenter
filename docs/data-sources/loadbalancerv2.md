@@ -56,7 +56,7 @@ output "view" {
 
 - `id` (String) The ID of this resource.
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
-- `vip_address` (String) Load balancer IP address
+- `vip_address` (String) The IP address of the load balancer.
 - `vip_port_id` (String) Attached reserved IP.
 
 <a id="nestedatt--metadata_read_only"></a>
