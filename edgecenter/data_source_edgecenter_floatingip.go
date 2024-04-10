@@ -74,6 +74,16 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 				Optional:    true,
 				Description: "The ID (uuid) of the network port that the floating IP is associated with.",
 			},
+			"instance_id_attached_to": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID (uuid) of the instance, that the floating IP is associated with.",
+			},
+			"load_balancers_id_attached_to": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID (uuid) of the loadbalancer, that the floating IP associated with",
+			},
 			"status": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -170,6 +180,12 @@ func dataSourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m int
 	d.Set("region_id", foundFloatingIP.RegionID)
 	d.Set("status", foundFloatingIP.Status)
 	d.Set("port_id", foundFloatingIP.PortID)
+	if foundFloatingIP.Instance.ID != "" {
+		d.Set("instance_id_attached_to", foundFloatingIP.Instance.ID)
+	}
+	if foundFloatingIP.Loadbalancer.ID != "" {
+		d.Set("load_balancer_id_attached_to", foundFloatingIP.Loadbalancer.ID)
+	}
 	d.Set("router_id", foundFloatingIP.RouterID)
 	d.Set("floating_ip_address", foundFloatingIP.FloatingIPAddress)
 

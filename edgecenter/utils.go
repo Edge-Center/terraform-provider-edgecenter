@@ -193,3 +193,15 @@ func GetRegionIDandProjectID(ctx context.Context, client *edgecloudV2.Client, d 
 
 	return regionID, projectID, nil
 }
+
+// IndexFunc returns the first index i satisfying f(s[i]),
+// or -1 if none do.
+// TODO remove when upgrading to a new version - https://tracker.yandex.ru/CLOUDDEV-456.
+func IndexFunc[E any](s []E, f func(E) bool) int {
+	for i := range s {
+		if f(s[i]) {
+			return i
+		}
+	}
+	return -1
+}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
@@ -77,8 +76,27 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 			"port_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The ID (uuid) of the network port that the floating IP is associated with.",
+			},
+			"instance_port_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID (uuid) of the network port of the instance that the floating IP is associated with.",
+			},
+			"load_balancers_port_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID (uuid) of the network port of the load balancer that the floating IP is associated with.",
+			},
+			"instance_id_attached_to": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID (uuid) of the instance, that the floating IP is associated with.",
+			},
+			"load_balancers_id_attached_to": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID (uuid) of the loadbalancer, that the floating IP associated with",
 			},
 			"status": {
 				Type:        schema.TypeString,
@@ -214,26 +232,37 @@ func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	clientV2.Region = regionID
 	clientV2.Project = projectID
-
-	floatingIP, response, err := clientV2.Floatingips.Get(ctx, d.Id())
+	floatingIPs, response, err := clientV2.Floatingips.List(ctx)
 	if err != nil {
-		if response.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] Removing floating ip %s because resource doesn't exist anymore", d.Id())
-			d.SetId("")
-			return nil
-		}
+		log.Printf("[WARN] Error while GET list floatingIPs. StstusCode: %d.", response.StatusCode)
 		return diag.FromErr(err)
 	}
-
+	// TODO remove when upgrading to a new version golang and use slices.IndexFunc - https://tracker.yandex.ru/CLOUDDEV-456.
+	index := IndexFunc(floatingIPs, func(f edgecloudV2.FloatingIP) bool {
+		return f.ID == d.Id()
+	})
+	if index == -1 {
+		log.Printf("[WARN] Removing floating ip %s because resource doesn't exist anymore", d.Id())
+		d.SetId("")
+		return diag.FromErr(fmt.Errorf("could not find a floatingIP with id: %s", d.Id()))
+	}
+	floatingIP := floatingIPs[index]
 	if floatingIP.FixedIPAddress != nil {
 		d.Set("fixed_ip_address", floatingIP.FixedIPAddress.String())
 	} else {
 		d.Set("fixed_ip_address", "")
 	}
-
 	d.Set("project_id", floatingIP.ProjectID)
 	d.Set("region_id", floatingIP.RegionID)
 	d.Set("status", floatingIP.Status)
+	if floatingIP.Instance.ID != "" {
+		d.Set("instance_id_attached_to", floatingIP.Instance.ID)
+		d.Set("instance_port_id", floatingIP.PortID)
+	}
+	if floatingIP.Loadbalancer.ID != "" {
+		d.Set("load_balancer_id_attached_to", floatingIP.Loadbalancer.ID)
+		d.Set("load_balancer_port_id", floatingIP.PortID)
+	}
 	d.Set("port_id", floatingIP.PortID)
 	d.Set("router_id", floatingIP.RouterID)
 	d.Set("floating_ip_address", floatingIP.FloatingIPAddress)
@@ -265,7 +294,6 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 	clientV2.Region = regionID
 	clientV2.Project = projectID
-
 	if d.HasChanges("fixed_ip_address", "port_id") {
 		oldFixedIP, newFixedIP := d.GetChange("fixed_ip_address")
 		oldPortID, newPortID := d.GetChange("port_id")
@@ -275,19 +303,17 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 				return diag.FromErr(err)
 			}
 		}
-
-		if newPortID.(string) != "" || newFixedIP.(string) != "" {
-			opts := &edgecloudV2.AssignFloatingIPRequest{
-				PortID:         d.Get("port_id").(string),
-				FixedIPAddress: net.ParseIP(d.Get("fixed_ip_address").(string)),
+		opts := &edgecloudV2.AssignFloatingIPRequest{}
+		if portID := newPortID.(string); portID != "" {
+			opts.PortID = portID
+			if fixedIP := newFixedIP.(string); fixedIP != "" {
+				opts.FixedIPAddress = net.ParseIP(fixedIP)
 			}
-
 			_, _, err = clientV2.Floatingips.Assign(ctx, d.Id(), opts)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 		}
-
 		d.Set("last_updated", time.Now().Format(time.RFC850))
 	}
 

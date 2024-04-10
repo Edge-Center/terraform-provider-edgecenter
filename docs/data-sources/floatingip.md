@@ -56,6 +56,8 @@ output "view" {
 ### Read-Only
 
 - `fixed_ip_address` (String) The fixed (reserved) IP address that is associated with the floating IP.
+- `instance_id_attached_to` (String) The ID (uuid) of the instance, that the floating IP is associated with.
+- `load_balancers_id_attached_to` (String) The ID (uuid) of the loadbalancer, that the floating IP associated with
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 - `router_id` (String) The ID (uuid) of the router that the floating IP is associated with.
 - `status` (String) The current status of the floating IP resource. Can be 'DOWN' or 'ACTIVE'.

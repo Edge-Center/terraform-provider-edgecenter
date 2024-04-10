@@ -49,6 +49,10 @@ resource "edgecenter_floatingip" "floating_ip" {
 - `created_at` (String) The timestamp when the floating IP was created.
 - `floating_ip_address` (String) The floating IP address assigned to the resource.
 - `id` (String) The ID of this resource.
+- `instance_id_attached_to` (String) The ID (uuid) of the instance, that the floating IP is associated with.
+- `instance_port_id` (String) The ID (uuid) of the network port of the instance that the floating IP is associated with.
+- `load_balancers_id_attached_to` (String) The ID (uuid) of the loadbalancer, that the floating IP associated with
+- `load_balancers_port_id` (String) The ID (uuid) of the network port of the load balancer that the floating IP is associated with.
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 - `router_id` (String) The ID (uuid) of the router that the floating IP is associated with.
 - `status` (String) The current status of the floating IP. Can be 'DOWN' or 'ACTIVE'.
