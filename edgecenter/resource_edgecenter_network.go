@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
@@ -18,6 +19,10 @@ const (
 	NetworksPoint          = "networks"
 	SharedNetworksPoint    = "availablenetworks"
 )
+
+func AllowedNetworkTypes() []string {
+	return []string{string(edgecloudV2.VLAN), string(edgecloudV2.VXLAN)}
+}
 
 func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
@@ -77,10 +82,12 @@ func resourceNetwork() *schema.Resource {
 				Description: "Maximum Transmission Unit (MTU) for the network. It determines the maximum packet size that can be transmitted without fragmentation.",
 			},
 			"type": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "'vlan' or 'vxlan' network type is allowed. Default value is 'vxlan'",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.StringInSlice(AllowedNetworkTypes(), false),
+				ForceNew:     true,
+				Description:  "'vlan' or 'vxlan' network type is allowed. Default value is 'vxlan'",
 			},
 			"create_router": {
 				Type:        schema.TypeBool,
