@@ -59,6 +59,12 @@ func dataSourceLBListener() *schema.Resource {
 				Computed:    true,
 				Description: "The port on which the protocol is bound.",
 			},
+			"l7policies": {
+				Type:        schema.TypeSet,
+				Computed:    true,
+				Description: "Set of l7policy uuids attached to this listener.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"pool_count": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -87,11 +93,8 @@ func dataSourceLBListener() *schema.Resource {
 func dataSourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	var err error
-	clientV2.Region, clientV2.Project, err = GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -133,6 +136,13 @@ func dataSourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m int
 	d.Set("project_id", d.Get("project_id").(int))
 	d.Set("region_id", d.Get("region_id").(int))
 	d.Set("allowed_cidrs", listener.AllowedCIDRs)
+
+	l7Policies, err := GetListenerL7PolicyUUIDS(ctx, clientV2, listener.ID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.Set("l7policies", l7Policies)
 
 	log.Println("[DEBUG] Finish LBListener reading")
 

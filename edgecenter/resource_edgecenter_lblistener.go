@@ -138,6 +138,12 @@ func resourceLbListener() *schema.Resource {
 				Optional:    true,
 				Description: "List of secret identifiers used for Server Name Indication (SNI).",
 			},
+			"l7policies": {
+				Type:        schema.TypeSet,
+				Computed:    true,
+				Description: "Set of l7policy uuids attached to this listener.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"allowed_cidrs": {
 				Type:        schema.TypeList,
 				Elem:        &schema.Schema{Type: schema.TypeString},
@@ -157,16 +163,11 @@ func resourceLbListener() *schema.Resource {
 func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	opts := edgecloudV2.ListenerCreateRequest{
 		Name:             d.Get("name").(string),
@@ -235,16 +236,11 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	lb, _, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
 	if err != nil {
@@ -261,6 +257,13 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 	d.Set("sni_secret_id", lb.SNISecretID)
 	d.Set("allowed_cidrs", lb.AllowedCIDRs)
 
+	l7Policies, err := GetListenerL7PolicyUUIDS(ctx, clientV2, lb.ID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.Set("l7policies", l7Policies)
+
 	fields := []string{"project_id", "region_id", "loadbalancer_id", "insert_x_forwarded"}
 	revertState(d, &fields)
 
@@ -271,16 +274,11 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 
 func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener updating")
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	var changed bool
 	opts := edgecloudV2.ListenerUpdateRequest{
@@ -346,16 +344,11 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	id := d.Id()
 	results, _, err := clientV2.Loadbalancers.ListenerDelete(ctx, id)
