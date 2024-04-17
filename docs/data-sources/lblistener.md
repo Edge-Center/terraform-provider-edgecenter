@@ -56,6 +56,7 @@ output "view" {
 
 - `allowed_cidrs` (List of String) The allowed CIDRs for listener.
 - `id` (String) The ID of this resource.
+- `l7policies` (Set of String) Set of l7policy uuids attached to this listener.
 - `operating_status` (String) The current operational status of the load balancer.
 - `pool_count` (Number) Number of pools associated with the load balancer.
 - `protocol` (String) Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'

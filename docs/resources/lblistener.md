@@ -61,6 +61,7 @@ resource "edgecenter_lblistener" "listener" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `l7policies` (Set of String) Set of l7policy uuids attached to this listener.
 - `operating_status` (String) The current operational status of the load balancer.
 - `pool_count` (Number) Number of pools associated with the load balancer.
 - `provisioning_status` (String) The current provisioning status of the load balancer.
