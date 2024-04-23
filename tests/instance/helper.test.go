@@ -1,8 +1,12 @@
 package test
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/gruntwork-io/terratest/modules/terraform"
+	"github.com/stretchr/testify/require"
 	"os"
+	"testing"
 )
 
 var (
@@ -174,4 +178,87 @@ func initializeReservedFIPModule(options *terraform.Options, networkID, subnetID
 			},
 		},
 	}
+}
+
+// applyChanges применяет изменения Terraform и обрабатывает ошибки
+func applyChanges(t *testing.T, tfOpts *terraform.Options) {
+	if _, err := terraform.ApplyAndIdempotentE(t, tfOpts); err != nil {
+		t.Fatalf("failed to apply changes: %v", err)
+	}
+}
+
+// applyModule инициализирует и применяет указанный Terraform модуль.
+func applyModule(t *testing.T, module *terraform.Options, moduleName string) {
+	if _, err := terraform.ApplyE(t, module); err != nil {
+		t.Fatalf("failed to initialize and apply %s module: %v", moduleName, err)
+	}
+}
+
+// checkOutput проверяет значение Terraform output
+func checkOutput(t *testing.T, tfOpts *terraform.Options, key, expectedValue string) {
+	output, err := terraform.OutputE(t, tfOpts, key)
+	if err != nil {
+		t.Fatalf("failed to get output %s: %v", key, err)
+	}
+	require.Equal(t, expectedValue, output, fmt.Sprintf("%s should be updated to the new value", key))
+}
+
+// getOutput получает выходное значение Terraform.
+func getOutput(t *testing.T, module *terraform.Options, outputName string) string {
+	output, err := terraform.OutputE(t, module, outputName)
+	if err != nil {
+		t.Fatalf("failed to get output %s: %v", outputName, err)
+	}
+	return output
+}
+
+// getAndCheckOutput получает и проверяет output Terraform.
+func getAndCheckOutput(t *testing.T, tfOpts *terraform.Options, key string, expected interface{}) {
+	output, err := terraform.OutputE(t, tfOpts, key)
+	if err != nil {
+		t.Fatalf("failed to get output for key %s: %v", key, err)
+	}
+
+	var actual interface{}
+	switch v := expected.(type) {
+	case string:
+		require.Equal(t, v, output)
+	case map[string]string:
+		if err := json.Unmarshal([]byte(output), &actual); err != nil {
+			t.Fatalf("failed to unmarshal output: %v", err)
+		}
+		require.Equal(t, v, actual)
+	default:
+		t.Fatalf("unknown type for comparison")
+	}
+}
+
+func checkAbsenceOfOldTags(t *testing.T, tfOpts *terraform.Options, oldTags map[string]string) {
+	updatedMetadataMapRaw, err := terraform.OutputJsonE(t, tfOpts, "metadata_map")
+	if err != nil {
+		t.Fatalf("failed to get updated metadata map: %v", err)
+	}
+
+	var updatedMetadataMap map[string]string
+	if err := json.Unmarshal([]byte(updatedMetadataMapRaw), &updatedMetadataMap); err != nil {
+		t.Fatalf("failed to unmarshal updated metadata map: %v", err)
+	}
+
+	for key, oldValue := range oldTags {
+		actualValue, exists := updatedMetadataMap[key]
+		if exists && actualValue == oldValue {
+			t.Errorf("old key-value pair %s:%s should not exist in the updated metadata map", key, oldValue)
+		}
+	}
+}
+
+// getAndAssertOutput получает выходные данные и выполняет утверждения.
+func getAndAssertOutput(t *testing.T, opts *terraform.Options, outputName, expected, msg string) {
+	value := terraform.Output(t, opts, outputName)
+	require.Equal(t, expected, value, msg)
+}
+
+// assertNotEmpty проверяет, что выходное значение не пустое.
+func assertNotEmpty(t *testing.T, value, msg string) {
+	require.NotEmpty(t, value, msg)
 }

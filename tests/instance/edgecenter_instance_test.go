@@ -30,69 +30,53 @@ func TestMain(m *testing.M) {
 func TestCreatePrepareResourcesForTerraformEdgeCenterInstance(t *testing.T) {
 	// Инициализация и применение конфигурации сетевого модуля.
 	initializeNetworkModule(&tfNetOpts)
-	if _, err := terraform.ApplyE(t, &tfNetOpts); err != nil {
-		t.Fatalf("failed to initialize and apply network module: %v", err)
-	}
+	applyModule(t, &tfNetOpts, "network")
 	// Получение и сохранение идентификаторов сети и подсети.
 	networkID := terraform.Output(t, &tfNetOpts, "network_id")
 	subnetID := terraform.Output(t, &tfNetOpts, "subnet_id")
 
 	// Инициализация и применение модуля volume.
 	initializeVolumeModule(&tfVolOpts)
-	if _, err := terraform.ApplyE(t, &tfVolOpts); err != nil {
-		t.Fatalf("failed to initialize and apply volume module: %v", err)
-	}
+	applyModule(t, &tfVolOpts, "volume")
 
 	// Инициализация и применение модуля ключевых пар.
 	initializeKeypairModule(&tfKeyOpts)
-	if _, err := terraform.ApplyE(t, &tfKeyOpts); err != nil {
-		t.Fatalf("failed to initialize and apply keypair module: %v", err)
-	}
+	applyModule(t, &tfKeyOpts, "keypair")
 
 	// Получение идентификатора группы серверов.
 	initializeServerGroupModule(&tfSerGOpts)
-	if _, err := terraform.ApplyE(t, &tfSerGOpts); err != nil {
-		t.Fatalf("failed to initialize and apply server_group module: %v", err)
-	}
+	applyModule(t, &tfSerGOpts, "server group")
 
 	// Инициализация и применение модуля плавающих IP-адресов.
 	initializeFloatingIPModule(&tfFipOpts)
-	if _, err := terraform.ApplyE(t, &tfFipOpts); err != nil {
-		t.Fatalf("failed to initialize and apply FIP module: %v", err)
-	}
+	applyModule(t, &tfFipOpts, "floating IP")
 
 	// Инициализация и применение модуля зарезервированных фиксированных IP-адресов.
 	initializeReservedFIPModule(&tfRFipOpts, networkID, subnetID)
-	if _, err := terraform.ApplyE(t, &tfRFipOpts); err != nil {
-		t.Fatalf("failed to initialize and apply ReservedFIP module: %v", err)
-	}
+	applyModule(t, &tfRFipOpts, "reserved fixed IP")
 
 	// Инициализация и применение модуля групп безопасности.
 	initializeSecGroupModule(&tfSecGOpts)
-	if _, err := terraform.ApplyE(t, &tfSecGOpts); err != nil {
-		t.Fatalf("failed to initialize and apply Security Group module: %v", err)
-	}
+	applyModule(t, &tfSecGOpts, "security group")
 }
 
 func TestCreateTerraformEdgeCenterInstance(t *testing.T) {
 	// Получение и сохранение идентификаторов сети и подсети.
-	networkID := terraform.Output(t, &tfNetOpts, "network_id")
-	subnetID := terraform.Output(t, &tfNetOpts, "subnet_id")
+	networkID := getOutput(t, &tfNetOpts, "network_id")
+	subnetID := getOutput(t, &tfNetOpts, "subnet_id")
 
 	// Получение идентификаторов первого, второго и третьего тома.
-	firstVolumeID := terraform.Output(t, &tfVolOpts, "first_volume_id")
-	secondVolumeID := terraform.Output(t, &tfVolOpts, "second_volume_id")
-	thirdVolumeID := terraform.Output(t, &tfVolOpts, "third_volume_id")
+	firstVolumeID := getOutput(t, &tfVolOpts, "first_volume_id")
+	secondVolumeID := getOutput(t, &tfVolOpts, "second_volume_id")
+	thirdVolumeID := getOutput(t, &tfVolOpts, "third_volume_id")
 
 	// Получение идентификатора группы серверов.
-	serverGroupID := terraform.Output(t, &tfSerGOpts, "server_group_id")
+	serverGroupID := getOutput(t, &tfSerGOpts, "server_group_id")
 
 	// Инициализация и применение основного модуля экземпляра.
 	initializeInstanceModule(&tfInstOpts, networkID, subnetID, firstVolumeID, secondVolumeID, thirdVolumeID, serverGroupID)
 	// TODO: Нужно заменить на ApplyAndIdempotentE
-	if _, err := terraform.ApplyE(t, &tfInstOpts); err != nil {
-		t.Fatalf("failed to initialize and apply instance module: %v", err)
-	}
+	applyModule(t, &tfInstOpts, "instance")
 
 	// После успешного создания всех ресурсов выполняется их проверка.
 	validateInstanceOutputs(t)
@@ -110,63 +94,45 @@ func validateInstanceOutputs(t *testing.T) {
 	validateNetworkInterfaces(t)
 }
 
-// validateBasicOutputs проверяет основные параметры сервера, такие как ID и flavor.
+// validateBasicOutputs проверяет основные параметры сервера.
 func validateBasicOutputs(t *testing.T) {
-	// Получаем ID сервера и проверяем, что он не пустой.
 	instanceID := terraform.Output(t, &tfInstOpts, "instance_id")
-	require.NotEmpty(t, instanceID, "Instance ID should not be empty")
+	assertNotEmpty(t, instanceID, "Instance ID should not be empty")
 
-	// Сверяем flavor сервера с ожидаемым значением.
-	instanceFlavorID := terraform.Output(t, &tfInstOpts, "flavor_id")
-	require.Equal(t, instanceFlavor, instanceFlavorID, "Flavor ID should match the expected value")
-
-	// Проверяем, что имя сервера соответствует ожидаемому.
-	computedInstanceName := terraform.Output(t, &tfInstOpts, "instance_name")
-	require.Equal(t, instanceName, computedInstanceName, "Instance name should match the expected value")
-
-	// Проверяем, что имя ключевой пары соответствует заданному.
-	computedKeypairName := terraform.Output(t, &tfInstOpts, "keypair_name")
-	require.Equal(t, keypairName, computedKeypairName, "Keypair name should match the expected value")
-
-	// Сверяем ID группы серверов с полученным значением.
-	serverGroupID := terraform.Output(t, &tfSerGOpts, "server_group_id")
-	computedServerGroup := terraform.Output(t, &tfInstOpts, "server_group")
-	require.Equal(t, serverGroupID, computedServerGroup, "Server group should match the expected ID")
-
-	// Проверяем, что user data соответствуют указанным.
-	computedUserData := terraform.Output(t, &tfInstOpts, "user_data")
-	require.Equal(t, userData, computedUserData, "User data should match the expected value")
+	getAndAssertOutput(t, &tfInstOpts, "flavor_id", instanceFlavor, "Flavor ID should match the expected value")
+	getAndAssertOutput(t, &tfInstOpts, "instance_name", instanceName, "Instance name should match the expected value")
+	getAndAssertOutput(t, &tfInstOpts, "keypair_name", keypairName, "Keypair name should match the expected value")
+	getAndAssertOutput(t, &tfInstOpts, "server_group", terraform.Output(t, &tfSerGOpts, "server_group_id"), "Server group should match the expected ID")
+	getAndAssertOutput(t, &tfInstOpts, "user_data", userData, "User data should match the expected value")
 }
 
-// validateVolumeOutputs проверяет прикрепленные volumes и их свойства, такие как id и boot_index.
+// validateVolumeOutputs проверяет прикрепленные volumes.
 func validateVolumeOutputs(t *testing.T) {
 	volumes := terraform.OutputListOfObjects(t, &tfInstOpts, "instance_volumes")
 	require.Equal(t, 3, len(volumes), "There should be three volumes attached to the instance")
 
-	// Проверяем, совпадают ли идентификаторы volumes
-	for i, volumeID := range []string{terraform.Output(t, &tfVolOpts, "first_volume_id"),
-		terraform.Output(t, &tfVolOpts, "second_volume_id"),
-		terraform.Output(t, &tfVolOpts, "third_volume_id")} {
-		require.Equal(t, volumes[i]["volume_id"], volumeID, fmt.Sprintf("Volume ID should match for volume index: %d", i))
+	for i, volumeID := range []string{getOutput(t, &tfVolOpts, "first_volume_id"),
+		getOutput(t, &tfVolOpts, "second_volume_id"),
+		getOutput(t, &tfVolOpts, "third_volume_id")} {
 		// TODO: Невозможно проверить параметр deleteOnTermination поскольку он не изменяется и не читается функцией Read
 		//deleteOnTermination := tfInstOpts.Vars["instance_volumes"].([]map[string]interface{})[i]["delete_on_termination"].(bool)
 		//require.Equal(t, volumes[i]["delete_on_termination"], deleteOnTermination, fmt.Sprintf("Delete on termination flag should match for volume index: %d", i))
-		bootIndex := tfInstOpts.Vars["instance_volumes"].([]map[string]interface{})[i]["boot_index"].(int)
-		require.Equal(t, volumes[i]["boot_index"], bootIndex, fmt.Sprintf("Boot_Index flag should match for volume index: %d", i))
+		require.Equal(t, volumes[i]["volume_id"], volumeID, fmt.Sprintf("Volume ID should match for volume index: %d", i))
+		require.Equal(t, volumes[i]["boot_index"], tfInstOpts.Vars["instance_volumes"].([]map[string]interface{})[i]["boot_index"], fmt.Sprintf("Boot index should match for volume index: %d", i))
 	}
 }
 
-// validateNetworkInterfaces проверяет конфигурации сетевых интерфейсов экземпляра.
+// validateNetworkInterfaces проверяет сетевые интерфейсы.
 func validateNetworkInterfaces(t *testing.T) {
 	interfaces := terraform.OutputListOfObjects(t, &tfInstOpts, "instance_interfaces")
 	require.Equal(t, 1, len(interfaces), "There should be one network interface attached to the instance")
 
-	networkID := terraform.Output(t, &tfNetOpts, "network_id")
-	subnetID := terraform.Output(t, &tfNetOpts, "subnet_id")
+	networkID, subnetID := getOutput(t, &tfNetOpts, "network_id"), getOutput(t, &tfNetOpts, "subnet_id")
 	require.Equal(t, interfaces[0]["network_id"], networkID, "Network ID should match")
 	require.Equal(t, interfaces[0]["subnet_id"], subnetID, "Subnet ID should match")
 }
 
+// TestUpdateAddSecGroupInInterfaceInstance обновляет и добавляет группу безопасности в интерфейс экземпляра.
 func TestUpdateAddSecGroupInInterfaceInstance(t *testing.T) {
 	networkID := terraform.Output(t, &tfNetOpts, "network_id")
 	subnetID := terraform.Output(t, &tfNetOpts, "subnet_id")
@@ -395,95 +361,47 @@ func checkUpdatedInterfaces(t *testing.T, rawOutput string, expectedInterfaces [
 
 // TestUpdateNameInstance проводит тестирование обновления имени экземпляра.
 func TestUpdateNameInstance(t *testing.T) {
-	newInstanceName := fmt.Sprintf(instanceName + string(random.UniqueId()))
+	newInstanceName := fmt.Sprintf("%s-%s", instanceName, random.UniqueId())
 	tfInstOpts.Vars["instance_name"] = newInstanceName
-	if _, err := terraform.ApplyAndIdempotentE(t, &tfInstOpts); err != nil {
-		t.Fatalf("failed to apply changes to the instance: %v", err)
-	}
-
-	updatedInstanceName, err := terraform.OutputE(t, &tfInstOpts, "instance_name")
-	if err != nil {
-		t.Fatalf("failed to get updated Instance Name: %v", err)
-	}
-	require.Equal(t, newInstanceName, updatedInstanceName, "Instance name should be updated to the new value")
-
-	// TODO: Проверка не проходит поскольку не меняется на пустое значение
-	//// Обновление имени на пустое значение
-	//tfInstOpts.Vars["instance_name"] = ""
-	//if _, err := terraform.ApplyAndIdempotentE(t, &tfInstOpts); err != nil {
-	//	t.Fatalf("failed to apply changes to clear the instance name: %v", err)
-	//}
-	//
-	//updatedInstanceName, err = terraform.OutputE(t, &tfInstOpts, "instance_name")
-	//if err != nil {
-	//	t.Fatalf("failed to get updated Instance Name after clearing: %v", err)
-	//}
-	//require.Empty(t, updatedInstanceName, "Instance name should be cleared and empty")
+	applyChanges(t, &tfInstOpts)
+	checkOutput(t, &tfInstOpts, "instance_name", newInstanceName)
 }
 
-// updateFlavorAndUpdateInstance обновляет flavor_id инстанса и проверяет изменение
+// TODO: Проверка не проходит поскольку не меняется на пустое значение
+//// Обновление имени на пустое значение
+//tfInstOpts.Vars["instance_name"] = ""
+//if _, err := terraform.ApplyAndIdempotentE(t, &tfInstOpts); err != nil {
+//	t.Fatalf("failed to apply changes to clear the instance name: %v", err)
+//}
+//
+//updatedInstanceName, err = terraform.OutputE(t, &tfInstOpts, "instance_name")
+//if err != nil {
+//	t.Fatalf("failed to get updated Instance Name after clearing: %v", err)
+//}
+//require.Empty(t, updatedInstanceName, "Instance name should be cleared and empty")
+
+// TestUpdateFlavorInstance тестирует обновление flavor_id инстанса и проверяет изменение.
 func TestUpdateFlavorInstance(t *testing.T) {
 	newFlavorID := "g1-standard-2-4"
-	updateFlavorInstance(t, &tfInstOpts, newFlavorID)
-}
-
-func updateFlavorInstance(t *testing.T, tfOpts *terraform.Options, newFlavorID string) {
-	// Изменение параметра flavor_id для Terraform конфигурации
-	tfOpts.Vars["flavor_id"] = newFlavorID
-	// Применяем изменения используя Terraform
-	if _, err := terraform.ApplyAndIdempotentE(t, tfOpts); err != nil {
-		t.Fatalf("failed to apply changes to the instance: %v", err)
-	}
-
-	// Проверка обновленного значения flavor_id с использованием функции Output, чтобы убедиться, что изменение применилось
-	updatedFlavorID, err := terraform.OutputE(t, tfOpts, "flavor_id")
-	if err != nil {
-		t.Fatalf("failed to get updated flavor ID: %v", err)
-	}
-
-	require.Equal(t, newFlavorID, updatedFlavorID, "Flavor ID should be updated to the new value")
+	tfInstOpts.Vars["flavor_id"] = newFlavorID
+	applyChanges(t, &tfInstOpts)
+	checkOutput(t, &tfInstOpts, "flavor_id", newFlavorID)
 }
 
 // TestUpdateVmStateInstance обновляет состояние VM и проверяет новое состояние.
 func TestUpdateVmStateInstance(t *testing.T) {
 	newVmState := "stopped"
-	require.NoError(t, updateVmStateInstance(t, &tfInstOpts, newVmState), "Failed to update VM state")
+	tfInstOpts.Vars["vm_state"] = newVmState
+	applyChanges(t, &tfInstOpts)
+	getAndCheckOutput(t, &tfInstOpts, "vm_state", newVmState)
+
+	// Возвращение к начальному состоянию
+	tfInstOpts.Vars["vm_state"] = instanceVmState
+	applyChanges(t, &tfInstOpts)
+	getAndCheckOutput(t, &tfInstOpts, "vm_state", instanceVmState)
 }
 
-// updateVmStateInstance изменяет переменную "vm_state" в параметрах Terraform и применяет изменение,
-// возвращая ошибку, если какой-либо шаг не удался.
-func updateVmStateInstance(t *testing.T, tfOpts *terraform.Options, newVmState string) error {
-	// Устанавливаем новое состояние VM.
-	tfOpts.Vars["vm_state"] = newVmState
-	// Применяем изменения с помощью Terraform.
-	if _, err := terraform.ApplyAndIdempotentE(t, tfOpts); err != nil {
-		t.Fatalf("applying changes to the instance failed: %s", err)
-	}
-
-	// Получаем обновленное состояние VM
-	updatedVmState, err := terraform.OutputE(t, tfOpts, "vm_state")
-	if err != nil {
-		return fmt.Errorf("retrieving updated VM state failed: %w", err)
-	}
-	require.Equal(t, newVmState, updatedVmState, "VM state should be updated to the new value.")
-
-	// Возвращаем старое значение
-	tfOpts.Vars["vm_state"] = instanceVmState
-	// Применяем изменения с помощью Terraform.
-	if _, err := terraform.ApplyAndIdempotentE(t, tfOpts); err != nil {
-		t.Fatalf("applying changes to the instance failed: %s", err)
-	}
-
-	// Получаем обновленное состояние VM
-	oldVmState, err := terraform.OutputE(t, tfOpts, "vm_state")
-	if err != nil {
-		return fmt.Errorf("retrieving updated VM state failed: %w", err)
-	}
-	require.Equal(t, instanceVmState, oldVmState, "VM state should be updated to the new value.")
-
-	return nil
-}
-
+// TestUpdateMetadataMapInstance тестирует обновление метаданных экземпляра.
 func TestUpdateMetadataMapInstance(t *testing.T) {
 	threeTags := map[string]string{
 		"foo":             "bar",
@@ -491,31 +409,10 @@ func TestUpdateMetadataMapInstance(t *testing.T) {
 		"exit":            "true",
 	}
 	tfInstOpts.Vars["metadata_map"] = threeTags
+	applyChanges(t, &tfInstOpts)
+	getAndCheckOutput(t, &tfInstOpts, "metadata_map", threeTags)
 
-	if _, err := terraform.ApplyAndIdempotentE(t, &tfInstOpts); err != nil {
-		t.Fatalf("failed to apply changes to the instance: %v", err)
-	}
-
-	updatedMetadataMapRaw, err := terraform.OutputJsonE(t, &tfInstOpts, "metadata_map")
-	if err != nil {
-		t.Fatalf("failed to get updated Metadata: %v", err)
-	}
-
-	var updatedMetadataMap map[string]string
-	if err := json.Unmarshal([]byte(updatedMetadataMapRaw), &updatedMetadataMap); err != nil {
-		t.Fatalf("failed to unmarshal updated metadata map: %v", err)
-	}
-
-	// Проверка наличия и соответствия ключей
-	for key, expectedValue := range threeTags {
-		actualValue, exists := updatedMetadataMap[key]
-		if !exists {
-			t.Errorf("key %s does not exist in the updated metadata map", key)
-		} else if actualValue != expectedValue {
-			t.Errorf("value mismatch for key '%s': expected %s, got %s", key, expectedValue, actualValue)
-		}
-	}
-
+	// Проверка на отсутствие старых значений
 	oldTags := map[string]string{
 		"type":            "magic_carpet",
 		"unicorn_access":  "true",
@@ -523,40 +420,30 @@ func TestUpdateMetadataMapInstance(t *testing.T) {
 		"enchanted_speed": "lightning-fast",
 		"fairy_lights":    "5",
 	}
+	checkAbsenceOfOldTags(t, &tfInstOpts, oldTags)
 
-	// Проверка на отсутствие старых ключей и их значений
-	for key, oldValue := range oldTags {
-		actualValue, exists := updatedMetadataMap[key]
-		if exists && actualValue == oldValue {
-			t.Errorf("old key-value pair %s:%s should not exist in the updated metadata map", key, oldValue)
-		}
-	}
-
-	// Обнуление metadata_map и повторное применение изменений
+	// Обнуление metadata_map
 	tfInstOpts.Vars["metadata_map"] = map[string]string{}
-
-	if _, err := terraform.ApplyAndIdempotentE(t, &tfInstOpts); err != nil {
-		t.Fatalf("failed to clear the metadata map: %v", err)
-	}
-
-	emptyMetadataMapRaw, err := terraform.OutputJsonE(t, &tfInstOpts, "metadata_map")
-	if err != nil {
-		t.Fatalf("failed to get empty metadata map: %v", err)
-	}
-
-	if emptyMetadataMapRaw != "{}" {
-		t.Errorf("metadata map should be empty, got: %s", emptyMetadataMapRaw)
-	}
+	applyChanges(t, &tfInstOpts)
+	getAndCheckOutput(t, &tfInstOpts, "metadata_map", "{}")
 }
 
 func TestDeleteGlobalTeardown(t *testing.T) {
 	// Очистка всех ресурсов
-	defer terraform.Destroy(t, &tfNetOpts)
-	defer terraform.Destroy(t, &tfVolOpts)
-	defer terraform.Destroy(t, &tfKeyOpts)
-	defer terraform.Destroy(t, &tfSerGOpts)
-	defer terraform.Destroy(t, &tfFipOpts)
-	defer terraform.Destroy(t, &tfRFipOpts)
-	defer terraform.Destroy(t, &tfSecGOpts)
-	defer terraform.Destroy(t, &tfInstOpts)
+	terraform.Destroy(t, &tfInstOpts)
+	terraform.Destroy(t, &tfSecGOpts)
+	terraform.Destroy(t, &tfRFipOpts)
+	terraform.Destroy(t, &tfFipOpts)
+	terraform.Destroy(t, &tfSerGOpts)
+	terraform.Destroy(t, &tfKeyOpts)
+	terraform.Destroy(t, &tfVolOpts)
+	terraform.Destroy(t, &tfNetOpts)
+	//defer terraform.Destroy(t, &tfNetOpts)
+	//defer terraform.Destroy(t, &tfVolOpts)
+	//defer terraform.Destroy(t, &tfKeyOpts)
+	//defer terraform.Destroy(t, &tfSerGOpts)
+	//defer terraform.Destroy(t, &tfFipOpts)
+	//defer terraform.Destroy(t, &tfRFipOpts)
+	//defer terraform.Destroy(t, &tfSecGOpts)
+	//defer terraform.Destroy(t, &tfInstOpts)
 }
