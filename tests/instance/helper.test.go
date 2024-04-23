@@ -224,7 +224,11 @@ func getAndCheckOutput(t *testing.T, tfOpts *terraform.Options, key string, expe
 	case string:
 		require.Equal(t, v, output)
 	case map[string]string:
-		if err := json.Unmarshal([]byte(output), &actual); err != nil {
+		outputJson, err := terraform.OutputJsonE(t, tfOpts, key)
+		if err != nil {
+			t.Fatalf("failed to get output for key %s: %v", key, err)
+		}
+		if err := json.Unmarshal([]byte(outputJson), &actual); err != nil {
 			t.Fatalf("failed to unmarshal output: %v", err)
 		}
 		require.Equal(t, v, actual)
