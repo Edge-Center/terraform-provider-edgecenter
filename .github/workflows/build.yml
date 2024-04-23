@@ -77,8 +77,7 @@ jobs:
       - name: Prepare project
         id: create_project
         run: |
-          output=$(go run ./tests/scripts/createProject.go)
-          project_id=$(echo "$output" | grep 'ID проекта:' | cut -d ' ' -f 3)
+          project_id=$(go run ./tests/scripts/createProject.go)
           echo "PROJECT_ID=$project_id" >> $GITHUB_ENV
 
       - name: Run Tests
@@ -119,8 +118,3 @@ jobs:
 
       - name: Delete Project
         run: go run ./tests/scripts/deleteProject.go
-
-#      - name: Lint Go Code
-#        uses: golangci/golangci-lint-action@v3
-#        with:
-#          version: latest

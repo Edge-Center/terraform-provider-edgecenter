@@ -57,5 +57,5 @@ func main() {
 		return
 	}
 
-	fmt.Println("ID проекта:", project.ID)
+	fmt.Println(project.ID)
 }
