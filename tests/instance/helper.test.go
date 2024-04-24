@@ -228,14 +228,18 @@ func getAndCheckOutput(t *testing.T, tfOpts *terraform.Options, key string, expe
 		if err != nil {
 			t.Fatalf("failed to get output for key %s: %v", key, err)
 		}
+		// Проверяем, является ли ожидаемый результат пустой мапой
+		if expectedMap, ok := expected.(map[string]string); ok && len(expectedMap) == 0 {
+			if outputJson != "{}" {
+				t.Fatalf("expected empty map '{}', got: %s", outputJson)
+			}
+			return // Пустая мапа соответствует ожиданиям, дальнейшие проверки не требуются
+		}
 		if err := json.Unmarshal([]byte(outputJson), &actual); err != nil {
 			t.Fatalf("failed to unmarshal output: %v", err)
 		}
-		expectedJson, _ := json.Marshal(expected) // игнорируем ошибку, так как expected подконтролен
-		var expectedNormalized interface{}
-		json.Unmarshal(expectedJson, &expectedNormalized) // денормализуем для точного сравнения
 
-		require.Equal(t, expectedNormalized, actual, "Mismatch in Terraform output for key: "+key)
+		require.Equal(t, expected, actual, "Mismatch in Terraform output for key: "+key)
 	default:
 		t.Fatalf("unknown type for comparison")
 	}
