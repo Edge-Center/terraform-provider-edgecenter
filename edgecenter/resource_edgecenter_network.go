@@ -77,7 +77,6 @@ func resourceNetwork() *schema.Resource {
 			},
 			"mtu": {
 				Type:        schema.TypeInt,
-				Optional:    true,
 				Computed:    true,
 				Description: "Maximum Transmission Unit (MTU) for the network. It determines the maximum packet size that can be transmitted without fragmentation.",
 			},

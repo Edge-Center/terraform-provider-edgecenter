@@ -37,7 +37,6 @@ resource "edgecenter_network" "network" {
 - `create_router` (Boolean) Create external router to the network, default true
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata_map` (Map of String) A map containing metadata, for example tags.
-- `mtu` (Number) Maximum Transmission Unit (MTU) for the network. It determines the maximum packet size that can be transmitted without fragmentation.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
@@ -48,6 +47,7 @@ resource "edgecenter_network" "network" {
 
 - `id` (String) The ID of this resource.
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
+- `mtu` (Number) Maximum Transmission Unit (MTU) for the network. It determines the maximum packet size that can be transmitted without fragmentation.
 
 <a id="nestedatt--metadata_read_only"></a>
 ### Nested Schema for `metadata_read_only`
