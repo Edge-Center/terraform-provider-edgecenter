@@ -214,41 +214,35 @@ func getOutput(t *testing.T, module *terraform.Options, outputName string) strin
 
 // getAndCheckOutput получает и проверяет output Terraform.
 func getAndCheckOutput(t *testing.T, tfOpts *terraform.Options, key string, expected interface{}) {
-	output, err := terraform.OutputE(t, tfOpts, key)
+	outputJson, err := terraform.OutputJsonE(t, tfOpts, key)
 	if err != nil {
-		t.Fatalf("failed to get output for key %s: %v", key, err)
+		t.Fatalf("failed to get JSON output for key %s: %v", key, err)
 	}
 
 	var actual interface{}
-	switch v := expected.(type) {
-	case string:
-		require.Equal(t, v, output)
-	case map[string]string:
-		outputJson, err := terraform.OutputJsonE(t, tfOpts, key)
-		if err != nil {
-			t.Fatalf("failed to get output for key %s: %v", key, err)
-		}
-		// Проверяем, является ли ожидаемый результат пустой мапой
-		if expectedMap, ok := expected.(map[string]string); ok {
-			var actual map[string]interface{}
-			if err := json.Unmarshal([]byte(outputJson), &actual); err != nil {
-				t.Fatalf("failed to unmarshal output: %v", err)
+	if err := json.Unmarshal([]byte(outputJson), &actual); err != nil {
+		t.Fatalf("failed to unmarshal output: %v", err)
+	}
+
+	// Преобразование map[string]interface{} в map[string]string если ожидается map[string]string
+	if expectedMap, ok := expected.(map[string]string); ok {
+		convertedActual := make(map[string]string)
+		for k, v := range actual.(map[string]interface{}) {
+			strVal, ok := v.(string)
+			if !ok {
+				t.Errorf("expected string value for key %s, got %T", k, v)
 			}
-			// Преобразование map[string]interface{} в map[string]string для корректного сравнения
-			convertedActual := make(map[string]string)
-			for k, v := range actual {
-				if strVal, ok := v.(string); ok {
-					convertedActual[k] = strVal
-				} else {
-					t.Errorf("non-string value found in key %s: value is of type %T", k, v)
-				}
-			}
-			require.Equal(t, expectedMap, convertedActual, "Mismatch in Terraform output for key: "+key)
-			return
+			convertedActual[k] = strVal
 		}
-		require.Equal(t, expected, outputJson, "Mismatch in Terraform output for key: "+key)
-	default:
-		t.Fatalf("unknown type for comparison")
+		require.Equal(t, expectedMap, convertedActual, "Mismatch in Terraform output for key: "+key)
+		return
+	}
+
+	// Проверяем, что вывод соответствует ожидаемой пустой строке или простой строке
+	if expectedStr, ok := expected.(string); ok {
+		require.Equal(t, expectedStr, outputJson, "Mismatch in Terraform output for key: "+key)
+	} else {
+		t.Fatalf("unsupported type for comparison, key %s has type %T", key, expected)
 	}
 }
 
