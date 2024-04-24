@@ -231,7 +231,11 @@ func getAndCheckOutput(t *testing.T, tfOpts *terraform.Options, key string, expe
 		if err := json.Unmarshal([]byte(outputJson), &actual); err != nil {
 			t.Fatalf("failed to unmarshal output: %v", err)
 		}
-		require.Equal(t, v, actual)
+		expectedJson, _ := json.Marshal(expected) // игнорируем ошибку, так как expected подконтролен
+		var expectedNormalized interface{}
+		json.Unmarshal(expectedJson, &expectedNormalized) // денормализуем для точного сравнения
+
+		require.Equal(t, expectedNormalized, actual, "Mismatch in Terraform output for key: "+key)
 	default:
 		t.Fatalf("unknown type for comparison")
 	}
