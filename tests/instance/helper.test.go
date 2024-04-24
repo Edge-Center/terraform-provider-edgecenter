@@ -219,28 +219,30 @@ func getAndCheckOutput(t *testing.T, tfOpts *terraform.Options, key string, expe
 		t.Fatalf("failed to get JSON output for key %s: %v", key, err)
 	}
 
-	var actual interface{}
-	if err := json.Unmarshal([]byte(outputJson), &actual); err != nil {
-		t.Fatalf("failed to unmarshal output: %v", err)
+	if expectedStr, ok := expected.(string); ok {
+		// Прямое сравнение строк, так как ожидаемое значение является строкой
+		require.Equal(t, expectedStr, outputJson, "Mismatch in Terraform output for key: "+key)
+		return
 	}
 
-	// Преобразование map[string]interface{} в map[string]string если ожидается map[string]string
+	// Обработка случая, когда ожидаемое значение является map[string]string
 	if expectedMap, ok := expected.(map[string]string); ok {
+		var actualMap map[string]interface{}
+		if err := json.Unmarshal([]byte(outputJson), &actualMap); err != nil {
+			t.Fatalf("failed to unmarshal output: %v", err)
+		}
+
+		// Преобразование map[string]interface{} в map[string]string для корректного сравнения
 		convertedActual := make(map[string]string)
-		for k, v := range actual.(map[string]interface{}) {
+		for k, v := range actualMap {
 			strVal, ok := v.(string)
 			if !ok {
 				t.Errorf("expected string value for key %s, got %T", k, v)
+				continue
 			}
 			convertedActual[k] = strVal
 		}
 		require.Equal(t, expectedMap, convertedActual, "Mismatch in Terraform output for key: "+key)
-		return
-	}
-
-	// Проверяем, что вывод соответствует ожидаемой пустой строке или простой строке
-	if expectedStr, ok := expected.(string); ok {
-		require.Equal(t, expectedStr, outputJson, "Mismatch in Terraform output for key: "+key)
 	} else {
 		t.Fatalf("unsupported type for comparison, key %s has type %T", key, expected)
 	}
