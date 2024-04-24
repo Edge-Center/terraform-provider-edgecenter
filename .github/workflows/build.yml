@@ -1,23 +1,28 @@
-name: build
+name: Build and Test Provider
 
 on:
   pull_request:
+    branches: [master, main]
+  push:
     branches: [ master, main ]
+
+
+env:
+  EC_USERNAME: ${{ secrets.EC_USERNAME }}
+  EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
+  EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
+  EC_API: ${{ secrets.EC_API }}
+  EC_CDN_URL: ${{ secrets.EC_CDN_URL }}
+  EC_DNS_API: ${{ secrets.EC_DNS_API }}
+  EC_PLATFORM: ${{ secrets.EC_PLATFORM }}
+  EC_STORAGE_API: ${{ secrets.EC_STORAGE_API }}
+  TEST_PROJECT_ID: ${{ secrets.TEST_PROJECT_ID }}
+  TEST_REGION_ID: ${{ secrets.TEST_REGION_ID }}
+  TF_ACC: ${{ secrets.TF_ACC }}
+  EC_API_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
 
 jobs:
   build:
-    env:
-      EC_USERNAME: ${{ secrets.EC_USERNAME }}
-      EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
-      EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
-      EC_API: ${{ secrets.EC_API }}
-      EC_CDN_URL: ${{ secrets.EC_CDN_URL }}
-      EC_DNS_API: ${{ secrets.EC_DNS_API }}
-      EC_PLATFORM: ${{ secrets.EC_PLATFORM }}
-      EC_STORAGE_API: ${{ secrets.EC_STORAGE_API }}
-      TEST_PROJECT_ID: ${{ secrets.TEST_PROJECT_ID }}
-      TEST_REGION_ID: ${{ secrets.TEST_REGION_ID }}
-      TF_ACC: ${{ secrets.TF_ACC }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -27,14 +32,89 @@ jobs:
         with:
           go-version: 1.20.2
 
-      - name: Linters
-        run: make linters
+      - name: Cache Go Modules
+        uses: actions/cache@v3
+        with:
+          path: /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
-      - name: Build
-        run: go build -v ./...
+      - name: Build the Provider
+        run: |
+          go build -o terraform-provider-edgecenter ./
+          chmod +x terraform-provider-edgecenter
 
-      - name: Tests data_source
-        run: go test -v ./edgecenter/test -tags cloud_data_source -short -timeout=20m
+      - name: Upload Provider as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-provider-edgecenter
+          path: terraform-provider-edgecenter
+          retention-days: 1
+          if-no-files-found: error
 
-      - name: Tests resource
-        run: go test -v ./edgecenter/test -tags cloud_resource -short -timeout=20m
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.20.2'
+
+      - name: Download the Provider
+        uses: actions/download-artifact@v3
+        with:
+          name: terraform-provider-edgecenter
+          path: ./
+
+      - name: Verify Binary
+        run: |
+          chmod +x terraform-provider-edgecenter
+
+      - name: Prepare project
+        id: create_project
+        run: |
+          project_id=$(go run ./tests/scripts/createProject.go)
+          echo "PROJECT_ID=$project_id" >> $GITHUB_ENV
+
+      - name: Run Tests
+        run: |
+          mkdir -p ./bin/ 
+          mv terraform-provider-edgecenter ./bin/ 
+          cat <<EOF > ~/.terraformrc
+          provider_installation {
+            dev_overrides { 
+                "local.edgecenter.ru/repo/edgecenter" = "$PWD/bin"
+            }
+            direct {
+              exclude = ["*/*"]  # Исключаем стандартные пути поиска провайдеров
+            }
+          }
+          EOF
+          go test -v ./tests/instance/... | tee test_output.log
+        continue-on-error: false
+
+      - name: Parse Test Results
+        run: |
+          sudo apt update
+          sudo apt install -y curl
+          curl -sLo terratest_log_parser https://github.com/gruntwork-io/terratest/releases/download/v0.13.13/terratest_log_parser_linux_amd64
+          chmod +x terratest_log_parser
+          sudo mv terratest_log_parser /usr/local/bin/
+          terratest_log_parser -testlog test_output.log -outputdir test_output
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            test_output/*.xml
+
+      - name: Publish Summary Result
+        run: cat test_output/summary.log >> $GITHUB_STEP_SUMMARY
+
+      - name: Delete Project
+        run: go run ./tests/scripts/deleteProject.go
