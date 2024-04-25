@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -99,11 +100,12 @@ func resourceL7Policy() *schema.Resource {
 			},
 
 			LBL7PolicyActionField: {
-				Description: "Enum: \"REDIRECT_PREFIX\" \"REDIRECT_TO_POOL\" \"REDIRECT_TO_URL\" \"REJECT\"\nThe action",
-				Type:        schema.TypeString,
-				Required:    true,
+				Description: fmt.Sprintf("Enum: \"%s\" \"%s\" \"%s\" \"%s\"\nThe action.",
+					edgecloudV2.L7PolicyActionRedirectPrefix, edgecloudV2.L7PolicyActionRedirectToPool, edgecloudV2.L7PolicyActionRedirectToURL, edgecloudV2.L7PolicyActionReject),
+				Type:     schema.TypeString,
+				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					"REDIRECT_TO_POOL", "REDIRECT_TO_URL", "REJECT", "REDIRECT_PREFIX",
+					string(edgecloudV2.L7PolicyActionRedirectPrefix), string(edgecloudV2.L7PolicyActionRedirectToPool), string(edgecloudV2.L7PolicyActionRedirectToURL), string(edgecloudV2.L7PolicyActionReject),
 				}, true),
 			},
 

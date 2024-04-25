@@ -2,11 +2,14 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceL7Policy() *schema.Resource {
@@ -58,9 +61,10 @@ func dataSourceL7Policy() *schema.Resource {
 				Description:   "The human-readable name of the policy",
 			},
 			LBL7PolicyActionField: {
-				Description: "Enum: \"REDIRECT_PREFIX\" \"REDIRECT_TO_POOL\" \"REDIRECT_TO_URL\" \"REJECT\"\nThe action",
-				Type:        schema.TypeString,
-				Computed:    true,
+				Description: fmt.Sprintf("Enum: \"%s\" \"%s\" \"%s\" \"%s\"\nThe action.",
+					edgecloudV2.L7PolicyActionRedirectPrefix, edgecloudV2.L7PolicyActionRedirectToPool, edgecloudV2.L7PolicyActionRedirectToURL, edgecloudV2.L7PolicyActionReject),
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			LBL7PolicyListenerIDField: {
 				Type:        schema.TypeString,
