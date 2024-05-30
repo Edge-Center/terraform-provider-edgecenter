@@ -88,40 +88,41 @@ func dataSourceInstanceV2() *schema.Resource {
 				Description: "A set defining the volumes to be attached to the instance.",
 				Elem:        &volumeElemResource,
 			},
-			InstanceInterfaceField: {
+			InstanceInterfacesField: {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "A list defining the network interfaces to be attached to the instance.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						NetworkIDField: {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "ID of the network.",
+						},
+						NetworkNameField: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Name of the network.",
+						},
+						OrderField: {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "Order of attaching interface.",
 						},
 						SubnetIDField: {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "ID of the subnet.",
 						},
 						PortIDField: {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "ID ot the port.",
 						},
 						IPAddressField: {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
-			},
-			SecurityGroupField: {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "A list of firewall configurations applied to the instance, defined by their id and name.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						NameField: {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "IP address of the interface.",
 						},
 					},
 				},
@@ -254,7 +255,7 @@ func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 	var cleanInterfaces []interface{}
-	for _, iface := range ifs {
+	for index, iface := range ifs {
 		if len(iface.IPAssignments) == 0 {
 			continue
 		}
@@ -266,13 +267,16 @@ func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m int
 
 			i[NetworkIDField] = iface.NetworkID
 			i[SubnetIDField] = subnetID
+			i[OrderField] = index + 1
 			i[PortIDField] = iface.PortID
+			i[NetworkNameField] = iface.NetworkDetails.Name
 			i[IPAddressField] = iface.IPAssignments[0].IPAddress.String()
 
 			cleanInterfaces = append(cleanInterfaces, i)
 		}
 	}
-	if err := d.Set(InstanceInterfaceField, cleanInterfaces); err != nil {
+
+	if err := d.Set(InstanceInterfacesField, cleanInterfaces); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -284,16 +288,6 @@ func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m int
 		sliced = append(sliced, mdata)
 	}
 	if err := d.Set(MetadataField, sliced); err != nil {
-		return diag.FromErr(err)
-	}
-
-	secGrps := make([]map[string]interface{}, 0, len(instance.SecurityGroups))
-	for _, sg := range instance.SecurityGroups {
-		i := make(map[string]interface{})
-		i[NameField] = sg.Name
-		secGrps = append(secGrps, i)
-	}
-	if err := d.Set(SecurityGroupField, secGrps); err != nil {
 		return diag.FromErr(err)
 	}
 
