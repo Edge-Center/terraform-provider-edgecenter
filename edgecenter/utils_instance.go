@@ -29,6 +29,8 @@ var instanceDecoderConfig = &mapstructure.DecoderConfig{
 
 type instanceInterfaces []interface{}
 
+type instanceV2Interfaces []interface{}
+
 type InstancePortSecurityOpts struct {
 	PortID               string
 	PortSecurityDisabled bool
@@ -41,7 +43,16 @@ type InstanceInterfaceWithIPAddress struct {
 	IPAddress         string
 }
 
+type InstanceInterfaceMapWithIPAddress struct {
+	InstanceInterface map[string]interface{}
+	IPAddress         string
+}
+
 func (s instanceInterfaces) Len() int {
+	return len(s)
+}
+
+func (s instanceV2Interfaces) Len() int {
 	return len(s)
 }
 
@@ -65,16 +76,45 @@ func (s instanceInterfaces) Less(i, j int) bool {
 
 	lOrder, _ := ifLeft["order"].(int)
 	rOrder, _ := ifRight["order"].(int)
-	if lOrder != rOrder {
-		return lOrder < rOrder
-	}
-	lPortID, _ := ifLeft["port_id"].(string)
-	rPortID, _ := ifRight["port_id"].(string)
 
-	return lPortID < rPortID
+	return lOrder < rOrder
+}
+
+func (s instanceV2Interfaces) Less(i, j int) bool {
+	ifLeft := s[i].(map[string]interface{})
+	ifRight := s[j].(map[string]interface{})
+
+	// only bm instance has a parent interface, and it should be attached first
+	isDefaultLeft, okLeft := ifLeft[IsDefaultField]
+	isDefaultRight, okRight := ifRight[IsDefaultField]
+	if okLeft && okRight {
+		left, _ := isDefaultLeft.(bool)
+		right, _ := isDefaultRight.(bool)
+		switch {
+		case left && !right:
+			return true
+		case right && !left:
+			return false
+		}
+	}
+
+	lOrder := ifLeft["order"].(int)
+	rOrder := ifRight["order"].(int)
+	if lOrder == 0 && rOrder != 0 {
+		return false
+	}
+	if lOrder != 0 && rOrder == 0 {
+		return true
+	}
+
+	return lOrder < rOrder
 }
 
 func (s instanceInterfaces) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s instanceV2Interfaces) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
@@ -83,8 +123,8 @@ type OrderedInterfaceOpts struct {
 	Order int
 }
 
-// decodeInstanceInterfaceOptsV2 decodes the interface and returns InstanceInterface with FloatingIP.
-func decodeInstanceInterfaceOptsV2(iFaceMap map[string]interface{}) edgecloudV2.InstanceInterface {
+// decodeInstanceInterfaceOpts decodes the interface and returns InstanceInterface with FloatingIP.
+func decodeInstanceInterfaceOpts(iFaceMap map[string]interface{}) edgecloudV2.InstanceInterface {
 	iFace := edgecloudV2.InstanceInterface{
 		Type:      edgecloudV2.InterfaceType(iFaceMap["type"].(string)),
 		NetworkID: iFaceMap["network_id"].(string),
@@ -112,25 +152,85 @@ func decodeInstanceInterfaceOptsV2(iFaceMap map[string]interface{}) edgecloudV2.
 	for i, sgID := range rawSgsIDList {
 		sgs[i] = edgecloudV2.ID{ID: sgID.(string)}
 	}
+
 	iFace.SecurityGroups = sgs
 
 	return iFace
 }
 
-// extractInstanceInterfaceToListCreateV2 creates a list of InstanceInterface objects from a list of interfaces.
-func extractInstanceInterfaceToListCreateV2(interfaces []interface{}) []edgecloudV2.InstanceInterface {
+// decodeInstanceV2InterfaceOptsCreate decodes the interface and returns InstanceInterface with FloatingIP.
+func decodeInstanceV2InterfaceOptsCreate(iFaceMap map[string]interface{}) edgecloudV2.InstanceInterface {
+	iFace := edgecloudV2.InstanceInterface{
+		Type:      edgecloudV2.InterfaceType(iFaceMap[TypeField].(string)),
+		NetworkID: iFaceMap[NetworkIDField].(string),
+		PortID:    iFaceMap[InstanceReservedFixedIPPortID].(string),
+		SubnetID:  iFaceMap[SubnetIDField].(string),
+	}
+	switch iFaceMap[InstanceInterfaceFipSourceField].(string) {
+	case "new":
+		iFace.FloatingIP = &edgecloudV2.InterfaceFloatingIP{
+			Source: edgecloudV2.NewFloatingIP,
+		}
+	case "existing":
+		iFace.FloatingIP = &edgecloudV2.InterfaceFloatingIP{
+			Source:             edgecloudV2.ExistingFloatingIP,
+			ExistingFloatingID: iFaceMap["existing_fip_id"].(string),
+		}
+	}
+	sgs := make([]edgecloudV2.ID, 0, 1)
+	iFace.SecurityGroups = sgs
+
+	return iFace
+}
+
+// extractInstanceInterfaceToListCreate creates a list of InstanceInterface objects from a list of interfaces.
+func extractInstanceInterfaceToListCreate(interfaces []interface{}) []edgecloudV2.InstanceInterface {
 	interfaceInstanceCreateOptsList := make([]edgecloudV2.InstanceInterface, 0)
 	for _, tfIFace := range interfaces {
 		iFaceMap := tfIFace.(map[string]interface{})
-		iFace := decodeInstanceInterfaceOptsV2(iFaceMap)
+		iFace := decodeInstanceInterfaceOpts(iFaceMap)
 		interfaceInstanceCreateOptsList = append(interfaceInstanceCreateOptsList, iFace)
 	}
 
 	return interfaceInstanceCreateOptsList
 }
 
-// extractInstanceInterfaceToListReadV2 creates a list of InterfaceOpts objects from a list of interfaces.
-func extractInstanceInterfaceToListReadV2(interfaces []interface{}) map[string]OrderedInterfaceOpts {
+// extractInstanceV2InterfaceOptsToListCreate creates a list of InstanceInterface objects from a list of interfaces.
+func extractInstanceV2InterfaceOptsToListCreate(interfaces []interface{}) []edgecloudV2.InstanceInterface {
+	interfaceInstanceCreateOptsList := make([]edgecloudV2.InstanceInterface, len(interfaces))
+
+	for _, tfIFace := range interfaces {
+		iFaceMap := tfIFace.(map[string]interface{})
+		isDefaultRaw := iFaceMap[IsDefaultField]
+		isDefault := isDefaultRaw.(bool)
+		iFace := decodeInstanceV2InterfaceOptsCreate(iFaceMap)
+		if isDefault {
+			interfaceInstanceCreateOptsList[0] = iFace
+		}
+	}
+	for index, tfIFace := range interfaces {
+		iFaceMap := tfIFace.(map[string]interface{})
+		isDefaultRaw := iFaceMap[IsDefaultField]
+		isDefault := isDefaultRaw.(bool)
+		if isDefault {
+			continue
+		}
+		for {
+			checkIfs := interfaceInstanceCreateOptsList[index]
+			if checkIfs.Type == "" {
+				iFace := decodeInstanceV2InterfaceOptsCreate(iFaceMap)
+				interfaceInstanceCreateOptsList[index] = iFace
+				break
+			}
+			index++
+		}
+	}
+
+	return interfaceInstanceCreateOptsList
+}
+
+// extractInstanceInterfaceToListRead creates a list of InterfaceOpts objects from a list of interfaces.
+func extractInstanceInterfaceToListRead(interfaces []interface{}) map[string]OrderedInterfaceOpts {
 	orderedInterfacesMap := make(map[string]OrderedInterfaceOpts)
 	for _, iFace := range interfaces {
 		var instanceInterfaceWithIPAddress InstanceInterfaceWithIPAddress
@@ -139,7 +239,7 @@ func extractInstanceInterfaceToListReadV2(interfaces []interface{}) map[string]O
 		}
 
 		iFaceMap := iFace.(map[string]interface{})
-		interfaceOpts := decodeInstanceInterfaceOptsV2(iFaceMap)
+		interfaceOpts := decodeInstanceInterfaceOpts(iFaceMap)
 		instanceInterfaceWithIPAddress.InstanceInterface = interfaceOpts
 		instanceInterfaceWithIPAddress.IPAddress = iFaceMap["ip_address"].(string)
 		order, _ := iFaceMap["order"].(int)
@@ -153,6 +253,35 @@ func extractInstanceInterfaceToListReadV2(interfaces []interface{}) map[string]O
 	}
 
 	return orderedInterfacesMap
+}
+
+// extractInstanceV2InterfacesOptsToListRead creates a list of InterfaceOpts objects from a list of interfaces.
+func extractInstanceV2InterfacesOptsToListRead(interfaces []interface{}) map[string]map[string]interface{} {
+	interfacesMap := make(map[string]map[string]interface{})
+	for _, iFace := range interfaces {
+		if iFace == nil {
+			continue
+		}
+		iFaceMap := iFace.(map[string]interface{})
+		if networkID, ok := iFaceMap[NetworkIDField]; ok && networkID != "" {
+			interfacesMap[networkID.(string)] = iFaceMap
+		}
+
+		if subnetID, ok := iFaceMap[SubnetIDField]; ok && subnetID != "" {
+			interfacesMap[subnetID.(string)] = iFaceMap
+		}
+
+		if portID, ok := iFaceMap[PortIDField]; ok && portID != "" {
+			interfacesMap[portID.(string)] = iFaceMap
+		}
+
+		typeStr := iFaceMap[TypeField].(string)
+		if edgecloudV2.InterfaceType(typeStr) == edgecloudV2.InterfaceTypeExternal {
+			interfacesMap[typeStr] = iFaceMap
+		}
+	}
+
+	return interfacesMap
 }
 
 // extractInstanceVolumesMap converts a slice of instance volumes into a map of volume IDs to boolean values.
@@ -599,7 +728,7 @@ func validateInstanceResourceAttrs(d *schema.ResourceData) diag.Diagnostics {
 func validateInstanceV2ResourceAttrs(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) diag.Diagnostics {
 	diags := diag.Diagnostics{}
 
-	ifsDiags := validateInterfaceAttrs(d)
+	ifsDiags := validateInterfaceOpts(d)
 	if ifsDiags.HasError() {
 		diags = append(diags, ifsDiags...)
 	}
@@ -640,6 +769,17 @@ func validateInterfaceAttrs(d *schema.ResourceData) diag.Diagnostics {
 	}
 
 	return diags
+}
+
+func validateInterfaceOpts(d *schema.ResourceData) diag.Diagnostics {
+	ifaceOptsRaw := d.Get(InstanceInterfacesField)
+	ifaceOptsSet := ifaceOptsRaw.(*schema.Set)
+	ifaceOptsList := ifaceOptsSet.List()
+	err := checkSingleDefaultIface(ifaceOptsList)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func validateBootVolumeAttrs(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.ResourceData) diag.Diagnostics {
@@ -788,6 +928,23 @@ func CheckUniqueSequentialBootIndexes(volumes map[string]map[string]interface{})
 			return fmt.Errorf("boot_index values must be sequential, but boot_index %d for volume %s is not in available sequence", bootIndex, volumeID)
 		}
 		viewedBootIndexes[bootIndex] = volumeID
+	}
+
+	return nil
+}
+
+func checkSingleDefaultIface(interfaces []interface{}) error {
+	var defaultIfsCount int
+	for _, ifs := range interfaces {
+		ifsMap := ifs.(map[string]interface{})
+		isDefaultRaw := ifsMap[IsDefaultField]
+		isDefault := isDefaultRaw.(bool)
+		if isDefault {
+			defaultIfsCount++
+		}
+	}
+	if len(interfaces) != 0 && defaultIfsCount != 1 {
+		return fmt.Errorf("count of interfaces with attribute \"is_default\" must be 1")
 	}
 
 	return nil

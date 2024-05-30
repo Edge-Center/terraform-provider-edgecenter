@@ -430,7 +430,7 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	ifs := d.Get("interface").([]interface{})
-	orderedInterfacesMap := extractInstanceInterfaceToListReadV2(ifs)
+	orderedInterfacesMap := extractInstanceInterfaceToListRead(ifs)
 	if err != nil {
 		return diag.FromErr(err)
 	}
