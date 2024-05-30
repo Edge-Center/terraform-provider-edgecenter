@@ -642,6 +642,70 @@ func removeSecurityGroupFromInstanceV2(ctx context.Context, client *edgecloudV2.
 	return nil
 }
 
+// removeSecurityGroupsFromInstancePort removes one or more security groups from a specific instance port.
+func removeSecurityGroupsFromInstancePort(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, removeSGIDs []interface{}) error {
+	if len(removeSGIDs) == 0 {
+		return nil
+	}
+	sgsToRemove := make([]string, 0, len(removeSGIDs))
+	for _, sg := range removeSGIDs {
+		sgsToRemove = append(sgsToRemove, sg.(string))
+	}
+	removeSGOpts, err := PrepareAndValidateAssignSecurityGroupRequestOpts(ctx, client, sgsToRemove, portID)
+	if err != nil {
+		return err
+	}
+	_, err = client.Instances.SecurityGroupUnAssign(ctx, instanceID, removeSGOpts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AssignSecurityGroupsToInstancePort assigns one or more security groups to a specific instance port.
+func AssignSecurityGroupsToInstancePort(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, assignSGIDs []interface{}) error {
+	if len(assignSGIDs) == 0 {
+		return nil
+	}
+	sgsToAssign := make([]string, 0, len(assignSGIDs))
+	for _, sg := range assignSGIDs {
+		sgsToAssign = append(sgsToAssign, sg.(string))
+	}
+
+	removeSGOpts, err := PrepareAndValidateAssignSecurityGroupRequestOpts(ctx, client, sgsToAssign, portID)
+	if err != nil {
+		return err
+	}
+	_, err = client.Instances.SecurityGroupAssign(ctx, instanceID, removeSGOpts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func PrepareAndValidateAssignSecurityGroupRequestOpts(ctx context.Context, client *edgecloudV2.Client, sgIDs []string, portID string) (*edgecloudV2.AssignSecurityGroupRequest, error) {
+	filteredSGs, err := utilV2.SecurityGroupListByIDs(ctx, client, sgIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	sgsNames := make([]string, len(filteredSGs))
+	for idx, sg := range filteredSGs {
+		sgsNames[idx] = sg.Name
+	}
+
+	portSGNames := edgecloudV2.PortsSecurityGroupNames{
+		SecurityGroupNames: sgsNames,
+		PortID:             portID,
+	}
+
+	sgOpts := edgecloudV2.AssignSecurityGroupRequest{PortsSecurityGroupNames: []edgecloudV2.PortsSecurityGroupNames{portSGNames}}
+
+	return &sgOpts, nil
+}
+
 // attachSecurityGroupToInstance attaches one or more security groups to a specific instance port.
 func attachSecurityGroupToInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, addSGs []edgecloudV2.ID) error {
 	for _, sg := range addSGs {

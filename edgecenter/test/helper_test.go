@@ -23,6 +23,8 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
+const FlavorG1Standart24 = "g1-standard-2-4"
+
 func createTestNetwork(client *edgecloud.ServiceClient, opts networks.CreateOpts) (string, error) {
 	result, err := networks.Create(client, opts).Extract()
 	if err != nil {
