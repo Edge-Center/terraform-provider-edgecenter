@@ -14,7 +14,7 @@ import (
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
-func TestAccInstanceDataSource(t *testing.T) {
+func TestAccInstanceV2DataSource(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	cfg, err := createTestConfig()
@@ -50,10 +50,9 @@ func TestAccInstanceDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	bootIndex := 0
 	opts := edgecloudV2.InstanceCreateRequest{
-		Names:  []string{instanceTestName},
+		Names:  []string{instanceV2TestName},
 		Flavor: flavorTest,
 		Volumes: []edgecloudV2.InstanceVolumeCreate{{
 			Source:    edgecloudV2.VolumeSourceExistingVolume,
@@ -75,10 +74,10 @@ func TestAccInstanceDataSource(t *testing.T) {
 
 	instanceID := taskResultCreate.Instances[0]
 
-	resourceName := "data.edgecenter_instance.acctest"
+	resourceName := "data.edgecenter_instanceV2.acctest"
 	tpl := func(name string) string {
 		return fmt.Sprintf(`
-			data "edgecenter_instance" "acctest" {
+			data "edgecenter_instanceV2" "acctest" {
 			  %s
               %s
               name = "%s"
@@ -91,10 +90,10 @@ func TestAccInstanceDataSource(t *testing.T) {
 		ProviderFactories: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: tpl(instanceTestName),
+				Config: tpl(instanceV2TestName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "name", instanceTestName),
+					resource.TestCheckResourceAttr(resourceName, "name", instanceV2TestName),
 					resource.TestCheckResourceAttr(resourceName, "id", instanceID),
 				),
 			},

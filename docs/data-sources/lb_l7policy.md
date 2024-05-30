@@ -51,7 +51,7 @@ output "view" {
 ### Read-Only
 
 - `action` (String) Enum: "REDIRECT_PREFIX" "REDIRECT_TO_POOL" "REDIRECT_TO_URL" "REJECT"
-The action
+The action.
 - `created_at` (String) The datetime when the L7 policy was created
 - `listener_id` (String) The ID of the listener
 - `operating_status` (String) The operating status

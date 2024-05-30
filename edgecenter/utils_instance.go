@@ -9,11 +9,13 @@ import (
 	"io"
 	"log"
 	"reflect"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
+	"golang.org/x/sync/errgroup"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
@@ -192,7 +194,8 @@ func volumeUniqueID(i interface{}) int {
 	e := i.(map[string]interface{})
 	h := md5.New()
 	io.WriteString(h, e["volume_id"].(string))
-	return int(binary.BigEndian.Uint64(h.Sum(nil)))
+	ans := int(binary.BigEndian.Uint32(h.Sum(nil)))
+	return ans
 }
 
 // isInterfaceAttachedV2 checks if an interface is attached to a list of instances.Interface objects based on the subnet ID or external interface type.
@@ -233,6 +236,7 @@ func extractVolumesMapV2(volumes []interface{}) ([]edgecloudV2.InstanceVolumeCre
 		if err != nil {
 			return nil, err
 		}
+		V.Source = edgecloudV2.VolumeSourceExistingVolume
 		vols[i] = V
 	}
 
@@ -583,9 +587,36 @@ func getSecurityGroupsDifferenceV2(sl1, sl2 []edgecloudV2.ID) (diff []edgecloudV
 
 func validateInstanceResourceAttrs(d *schema.ResourceData) diag.Diagnostics {
 	diags := diag.Diagnostics{}
-	iOldRaw, iNewRaw := d.GetChange("interface")
-	_, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
-	for _, ifs := range ifsNewSlice {
+
+	ifsDiags := validateInterfaceAttrs(d)
+	if ifsDiags.HasError() {
+		diags = append(diags, ifsDiags...)
+	}
+
+	return diags
+}
+
+func validateInstanceV2ResourceAttrs(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+
+	ifsDiags := validateInterfaceAttrs(d)
+	if ifsDiags.HasError() {
+		diags = append(diags, ifsDiags...)
+	}
+
+	bootVolumeDiags := validateBootVolumeAttrs(ctx, client, d)
+	if bootVolumeDiags.HasError() {
+		diags = append(diags, bootVolumeDiags...)
+	}
+
+	return diags
+}
+
+func validateInterfaceAttrs(d *schema.ResourceData) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	ifsRaw := d.Get("interface")
+	ifsSlice := ifsRaw.([]interface{})
+	for _, ifs := range ifsSlice {
 		iNew := ifs.(map[string]interface{})
 		var isPortSecDisabled, isSecGroupExists bool
 		if v, ok := iNew["port_security_disabled"]; ok {
@@ -609,4 +640,175 @@ func validateInstanceResourceAttrs(d *schema.ResourceData) diag.Diagnostics {
 	}
 
 	return diags
+}
+
+func validateBootVolumeAttrs(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.ResourceData) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	bootVolumes := d.Get("boot_volumes").(*schema.Set).List()
+	bootVolumesMap := extractVolumesIntoMap(bootVolumes)
+
+	err := CheckUniqueSequentialBootIndexes(bootVolumesMap)
+	if err != nil {
+		diags = diag.FromErr(err)
+	}
+
+	err = CheckAllImagesIsBootable(ctx, clientV2, bootVolumesMap)
+	if err != nil {
+		diags = append(diags, diag.FromErr(err)...)
+	}
+
+	return diags
+}
+
+// VolumeV2StateRefreshFuncV2 returns a StateRefreshFunc to track the state of attaching volume using its volumeID.
+func VolumeV2StateRefreshFuncV2(ctx context.Context, client *edgecloudV2.Client, volumeID string) retry.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		volume, _, err := client.Volumes.Get(ctx, volumeID)
+		if err != nil {
+			var errDefault404 edgecloud.Default404Error
+			if errors.As(err, &errDefault404) {
+				return volume, "DELETED", nil
+			}
+			return nil, "", err
+		}
+		attachments := volume.Attachments
+		if len(attachments) == 0 {
+			return volume, "", errors.New("volume is not attached yet")
+		}
+
+		return volume, volume.Attachments[0].ServerID, nil
+	}
+}
+
+func EnrichVolumeData(instanceVolumes []edgecloudV2.Volume, volumesState map[string]map[string]interface{}) []interface{} {
+	enrichedVolumesData := make([]interface{}, 0, len(instanceVolumes))
+	for _, vol := range instanceVolumes {
+		v := make(map[string]interface{})
+		stateVol, ok := volumesState[vol.ID]
+		if !ok {
+			continue
+		}
+		if bootIndex, bootIndexOk := stateVol["boot_index"]; bootIndexOk {
+			v["boot_index"] = bootIndex
+		}
+		if attachTag, attachTagOk := stateVol["attachment_tag"]; attachTagOk {
+			v["attachment_tag"] = attachTag
+		}
+		v["volume_id"] = vol.ID
+		v["type_name"] = vol.VolumeType
+		v["size"] = vol.Size
+		v["name"] = vol.Name
+		enrichedVolumesData = append(enrichedVolumesData, v)
+	}
+
+	return enrichedVolumesData
+}
+
+func PrepareVolumesDataToSet(instanceVolumes []edgecloudV2.Volume) (bootVolumes, dataVolumes []interface{}) { // nolint:nonamedreturns
+	bootVolumesData := make([]interface{}, 0, len(instanceVolumes))
+	dataVolumesData := make([]interface{}, 0, len(instanceVolumes))
+	for _, vol := range instanceVolumes {
+		v := make(map[string]interface{})
+		v["volume_id"] = vol.ID
+		v["type_name"] = vol.VolumeType
+		v["size"] = vol.Size
+		v["name"] = vol.Name
+		switch vol.Bootable {
+		case true:
+			bootVolumesData = append(bootVolumesData, v)
+		case false:
+			dataVolumesData = append(dataVolumesData, v)
+		}
+	}
+
+	return bootVolumesData, dataVolumesData
+}
+
+func UpdateVolumes(ctx context.Context, d *schema.ResourceData, client *edgecloudV2.Client, instanceID string, oldVolumesRaw, newVolumesRaw interface{}) error {
+	oldVolumes := extractInstanceVolumesMap(oldVolumesRaw.(*schema.Set).List())
+	newVolumes := extractInstanceVolumesMap(newVolumesRaw.(*schema.Set).List())
+
+	vDetachOpts := edgecloudV2.VolumeDetachRequest{InstanceID: d.Id()}
+	for vid := range oldVolumes {
+		if isAttached := newVolumes[vid]; isAttached {
+			// mark as already attached
+			newVolumes[vid] = false
+			continue
+		}
+		if _, _, err := client.Volumes.Detach(ctx, vid, &vDetachOpts); err != nil {
+			return err
+		}
+	}
+
+	// range over not attached volumes
+	vAttachOpts := edgecloudV2.VolumeAttachRequest{InstanceID: d.Id()}
+	for vid, ok := range newVolumes {
+		if ok {
+			if _, _, err := client.Volumes.Attach(ctx, vid, &vAttachOpts); err != nil {
+				return err
+			}
+			startStateConf := &retry.StateChangeConf{
+				Target:     []string{instanceID},
+				Refresh:    VolumeV2StateRefreshFuncV2(ctx, client, vid),
+				Timeout:    d.Timeout(schema.TimeoutUpdate),
+				Delay:      2 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
+			_, err := startStateConf.WaitForStateContext(ctx)
+			if err != nil {
+				return fmt.Errorf("error waiting for volume (%s) to become attached: %w", vid, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func CheckUniqueSequentialBootIndexes(volumes map[string]map[string]interface{}) error {
+	viewedBootIndexes := make(map[int]string)
+	sequentialBootIndexes := make(map[int]struct{})
+
+	index := 0
+	for range volumes {
+		sequentialBootIndexes[index] = struct{}{}
+		index++
+	}
+
+	for _, vol := range volumes {
+		bootIndexRaw, ok := vol["boot_index"]
+		if !ok {
+			continue
+		}
+		bootIndex := bootIndexRaw.(int)
+		if volID, ok := viewedBootIndexes[bootIndex]; ok {
+			return fmt.Errorf("boot_index values must be unique, but boot_index %d for volume %s is duplicate", bootIndex, volID)
+		}
+		volumeID := vol["volume_id"].(string)
+		if _, ok := sequentialBootIndexes[bootIndex]; !ok {
+			return fmt.Errorf("boot_index values must be sequential, but boot_index %d for volume %s is not in available sequence", bootIndex, volumeID)
+		}
+		viewedBootIndexes[bootIndex] = volumeID
+	}
+
+	return nil
+}
+
+func CheckAllImagesIsBootable(ctx context.Context, client *edgecloudV2.Client, volumes map[string]map[string]interface{}) error {
+	group, groupCtx := errgroup.WithContext(ctx)
+	for _, vol := range volumes {
+		volumeID := vol["volume_id"].(string)
+		group.Go(func() error {
+			volume, _, err := client.Volumes.Get(groupCtx, volumeID)
+			if err != nil {
+				return err
+			}
+			if !volume.Bootable {
+				return fmt.Errorf("volume %s in block `boot_volumes` is not bootable", volumeID)
+			}
+			return nil
+		})
+	}
+	err := group.Wait()
+
+	return err
 }
