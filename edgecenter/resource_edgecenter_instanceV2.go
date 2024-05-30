@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -21,26 +22,25 @@ import (
 )
 
 const (
-	InstanceVolumeSizeField               = "size"
-	InstanceVolumeIDField                 = "volume_id"
-	InstanceBootVolumesField              = "boot_volumes"
-	InstanceDataVolumesField              = "data_volumes"
-	InstanceInterfaceField                = "interface"
-	InstanceVMStateField                  = "vm_state"
-	InstanceAddressesField                = "addresses"
-	InstanceAddressesAddrField            = "addr"
-	InstanceAddressesNetField             = "net"
-	InstanceNameTemplateField             = "name_template"
-	InstanceBootVolumesBootIndexField     = "boot_index"
-	InstanceVolumesAttachmentTagField     = "attachment_tag"
-	InstanceInterfaceFipSourceField       = "fip_source"
-	InstanceInterfaceExistingFipIDField   = "existing_fip_id"
-	InstanceInterfacePortSecDisabledField = "port_security_disabled"
-	InstanceKeypairNameField              = "keypair_name"
-	InstanceServerGroupField              = "server_group"
-	InstanceConfigurationField            = "configuration"
-	InstanceUserDataField                 = "user_data"
-	InstanceAllowAppPortsField            = "allow_app_ports"
+	InstanceVolumeSizeField            = "size"
+	InstanceVolumeIDField              = "volume_id"
+	InstanceBootVolumesField           = "boot_volumes"
+	InstanceDataVolumesField           = "data_volumes"
+	InstanceInterfacesField            = "interfaces"
+	InstanceVMStateField               = "vm_state"
+	InstanceAddressesField             = "addresses"
+	InstanceAddressesAddrField         = "addr"
+	InstanceAddressesNetField          = "net"
+	InstanceNameTemplateField          = "name_template"
+	InstanceBootVolumesBootIndexField  = "boot_index"
+	InstanceVolumesAttachmentTagField  = "attachment_tag"
+	InstanceInterfaceFipSourceField    = "fip_source"
+	InstanceKeypairNameField           = "keypair_name"
+	InstanceServerGroupField           = "server_group"
+	InstanceConfigurationField         = "configuration"
+	InstanceUserDataField              = "user_data"
+	InstanceAllowAppPortsField         = "allow_app_ports"
+	InstanceReservedFixedIPPortIDField = "reserved_fixed_ip_port_id"
 )
 
 func resourceInstanceV2() *schema.Resource {
@@ -185,65 +185,62 @@ func resourceInstanceV2() *schema.Resource {
 					},
 				},
 			},
-			InstanceInterfaceField: {
-				Type:        schema.TypeList,
+			InstanceInterfacesField: {
+				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "A list defining the network interfaces to be attached to the instance.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						TypeField: {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", edgecloudV2.InterfaceTypeSubnet, edgecloudV2.InterfaceTypeAnySubnet, edgecloudV2.InterfaceTypeExternal, edgecloudV2.InterfaceTypeReservedFixedIP),
-						},
-						OrderField: {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Description: "Order of attaching interface",
-							Computed:    true,
-						},
-						NetworkIDField: {
-							Type:        schema.TypeString,
-							Description: "Required if type is 'subnet' or 'any_subnet'.",
-							Optional:    true,
-							Computed:    true,
-						},
-						SubnetIDField: {
-							Type:        schema.TypeString,
-							Description: "Required if type is 'subnet'.",
-							Optional:    true,
-							Computed:    true,
-						},
-						// nested map is not supported, in this case, you do not need to use the list for the map
-						InstanceInterfaceFipSourceField: {
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
+							// Type any_subnet is excluded, because options for this type is not unique (what is not suitable for the TypeSet)
+							Description:  fmt.Sprintf("Available values are '%s', '%s', '%s'. You can't create more than one interface on the same subnet", edgecloudV2.InterfaceTypeSubnet, edgecloudV2.InterfaceTypeExternal, edgecloudV2.InterfaceTypeReservedFixedIP),
+							ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.InterfaceTypeSubnet), string(edgecloudV2.InterfaceTypeExternal), string(edgecloudV2.InterfaceTypeReservedFixedIP)}, true),
 						},
-						InstanceInterfaceExistingFipIDField: {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						PortIDField: {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "required if type is  'reserved_fixed_ip'",
-							Optional:    true,
-						},
-						SecurityGroupsField: {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "list of security group IDs",
-							Elem:        &schema.Schema{Type: schema.TypeString},
-						},
-						IPAddressField: {
-							Type:     schema.TypeString,
-							Computed: true,
-							Optional: true,
-						},
-						InstanceInterfacePortSecDisabledField: {
+						IsDefaultField: {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
+							Description: `This field determines whether this interface will be connected first. 
+The first connected interface defines the default routing. If you change this attribute, the IP address of interfaces 
+connected earlier than the selected new default interface will change, if the reserved IP address is not used in these 
+interfaces. You must always have exactly one interface with set attribute 'is_default.'`,
+						},
+						NetworkIDField: {
+							Type:         schema.TypeString,
+							Description:  "Required if type is 'subnet' or 'any_subnet'.",
+							Optional:     true,
+							Default:      "",
+							ValidateFunc: validation.IsUUID,
+						},
+						NetworkNameField: {
+							Type:        schema.TypeString,
+							Description: "Name of the network.",
+							Computed:    true,
+						},
+						SubnetIDField: {
+							Type:         schema.TypeString,
+							Description:  "Required if type is 'subnet'.",
+							Optional:     true,
+							Default:      "",
+							ValidateFunc: validation.IsUUID,
+						},
+						InstanceReservedFixedIPPortIDField: {
+							Default:      "",
+							Type:         schema.TypeString,
+							Description:  "required if type is  'reserved_fixed_ip'",
+							Optional:     true,
+							ValidateFunc: validation.IsUUID,
+						},
+						IPAddressField: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "IP address of the interface.",
+						},
+						PortIDField: {
+							Type:     schema.TypeString,
+							Computed: true,
 						},
 					},
 				},
@@ -257,25 +254,6 @@ func resourceInstanceV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The ID (uuid) of the server group to which the instance should belong.",
-			},
-			SecurityGroupField: {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "A list of firewall configurations applied to the instance, defined by their ID and name.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						IDField: {
-							Type:        schema.TypeString,
-							Description: "Firewall unique id (uuid)",
-							Required:    true,
-						},
-						NameField: {
-							Type:        schema.TypeString,
-							Description: "Firewall name",
-							Required:    true,
-						},
-					},
-				},
 			},
 			PasswordField: {
 				Type:         schema.TypeString,
@@ -327,7 +305,6 @@ from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."
 			},
 			FlavorField: {
 				Type:        schema.TypeMap,
-				Optional:    true,
 				Computed:    true,
 				Description: `A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.`,
 			},
@@ -398,13 +375,12 @@ func resourceInstanceCreateV2(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	createOpts := edgecloudV2.InstanceCreateRequest{
-		Flavor:         d.Get(FlavorIDField).(string),
-		KeypairName:    d.Get(InstanceKeypairNameField).(string),
-		Username:       d.Get(UsernameField).(string),
-		Password:       d.Get(PasswordField).(string),
-		SecurityGroups: []edgecloudV2.ID{},
-		ServerGroupID:  d.Get(InstanceServerGroupField).(string),
-		AllowAppPorts:  d.Get(InstanceAllowAppPortsField).(bool),
+		Flavor:        d.Get(FlavorIDField).(string),
+		KeypairName:   d.Get(InstanceKeypairNameField).(string),
+		Username:      d.Get(UsernameField).(string),
+		Password:      d.Get(PasswordField).(string),
+		ServerGroupID: d.Get(InstanceServerGroupField).(string),
+		AllowAppPorts: d.Get(InstanceAllowAppPortsField).(bool),
 	}
 
 	if userData, ok := d.GetOk(InstanceUserDataField); ok {
@@ -437,9 +413,15 @@ func resourceInstanceCreateV2(ctx context.Context, d *schema.ResourceData, m int
 		createOpts.Volumes = append(createOpts.Volumes, vs...)
 	}
 
-	ifs := d.Get(InstanceInterfaceField).([]interface{})
+	ifsRaw := d.Get(InstanceInterfacesField)
+	ifsSet := ifsRaw.(*schema.Set)
+	ifs := ifsSet.List()
 	if len(ifs) > 0 {
-		ifaceCreateOptsList := extractInstanceInterfaceToListCreateV2(ifs)
+		sort.Sort(instanceV2Interfaces(ifs))
+		ifaceCreateOptsList, err := prepareInstanceInterfaceCreateOpts(ctx, clientV2, ifs)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 		createOpts.Interfaces = ifaceCreateOptsList
 	}
 
@@ -460,15 +442,6 @@ func resourceInstanceCreateV2(ctx context.Context, d *schema.ResourceData, m int
 		createOpts.Configuration = conf
 	}
 
-	if v, ok := d.GetOk(SecurityGroupsField); ok {
-		securityGroups := v.([]interface{})
-		sgsList := make([]edgecloudV2.ID, 0, len(securityGroups))
-		for _, sg := range securityGroups {
-			sgsList = append(sgsList, edgecloudV2.ID{ID: sg.(string)})
-		}
-		createOpts.SecurityGroups = sgsList
-	}
-
 	log.Printf("[DEBUG] Instance create options: %+v", createOpts)
 
 	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Instances.Create, &createOpts, clientV2, InstanceCreateTimeout)
@@ -479,13 +452,6 @@ func resourceInstanceCreateV2(ctx context.Context, d *schema.ResourceData, m int
 	instanceID := taskResult.Instances[0]
 	log.Printf("[DEBUG] Instance id (%s)", instanceID)
 	d.SetId(instanceID)
-
-	// Code below adjusts all interfaces PortSecurityDisabled opt
-	log.Println("[DEBUG] ports security options adjusting...")
-	diagsAdjust := adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifs)
-	if len(diagsAdjust) != 0 {
-		return append(diags, diagsAdjust...)
-	}
 
 	resourceInstanceReadV2(ctx, d, m)
 
@@ -552,76 +518,48 @@ func resourceInstanceReadV2(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	instancePorts, _, err := clientV2.Instances.PortsList(ctx, instanceID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	secGroups := prepareSecurityGroupsV2(instancePorts)
-
-	if err := d.Set(SecurityGroupField, secGroups); err != nil {
-		return diag.FromErr(err)
-	}
-
 	interfacesListAPI, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	ifs := d.Get(InstanceInterfaceField).([]interface{})
-	sort.Sort(instanceInterfaces(ifs))
-	orderedInterfacesMap := extractInstanceInterfaceToListReadV2(ifs)
-	var interfacesList []interface{}
+	ifsOptsSet := d.Get(InstanceInterfacesField).(*schema.Set)
+	ifs := ifsOptsSet.List()
+	interfacesMap := extractInstanceV2InterfacesOptsToListRead(ifs)
+
+	var interfacesOptsList []interface{}
+
 	for _, iFace := range interfacesListAPI {
 		if len(iFace.IPAssignments) == 0 {
 			continue
 		}
-
-		portID := iFace.PortID
 		for _, assignment := range iFace.IPAssignments {
 			subnetID := assignment.SubnetID
-
-			var interfaceOpts OrderedInterfaceOpts
-			var orderedInterfaceOpts OrderedInterfaceOpts
 			var ok bool
-
-			// we need to match our interfaces with api's interfaces
-			// but with don't have any unique value, that's why we use exactly that list of keys
+			interfaceOptsMap := make(map[string]interface{})
+			var ifsMap map[string]interface{}
 			for _, k := range []string{subnetID, iFace.PortID, iFace.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
-				if orderedInterfaceOpts, ok = orderedInterfacesMap[k]; ok {
-					interfaceOpts = orderedInterfaceOpts
+				if k == string(edgecloudV2.InterfaceTypeExternal) && !iFace.NetworkDetails.External {
+					continue
+				}
+				ifsMap, ok = interfacesMap[k]
+				if ok {
+					interfaceOptsMap = ifsMap
 					break
 				}
 			}
-
 			if !ok {
-				continue
+				interfaceOptsMap[NetworkIDField] = iFace.NetworkID
+				interfaceOptsMap[SubnetIDField] = assignment.SubnetID
 			}
-
-			i := make(map[string]interface{})
-			i[TypeField] = interfaceOpts.InstanceInterface.Type
-			i[OrderField] = interfaceOpts.Order
-			i[NetworkIDField] = iFace.NetworkID
-			i[SubnetIDField] = subnetID
-			i[PortIDField] = iFace.PortID
-			i[InstanceInterfacePortSecDisabledField] = !iFace.PortSecurityEnabled
-
-			if interfaceOpts.InstanceInterface.FloatingIP != nil {
-				i[InstanceInterfaceFipSourceField] = interfaceOpts.InstanceInterface.FloatingIP.Source
-				i[InstanceInterfaceExistingFipIDField] = interfaceOpts.InstanceInterface.FloatingIP.ExistingFloatingID
-			}
-			i[IPAddressField] = assignment.IPAddress.String()
-			if port, err := findInstancePortV2(portID, instancePorts); err == nil {
-				sgs := make([]string, len(port.SecurityGroups))
-				for i, sg := range port.SecurityGroups {
-					sgs[i] = sg.ID
-				}
-				i[SecurityGroupsField] = sgs
-			}
-
-			interfacesList = append(interfacesList, i)
+			interfaceOptsMap[IPAddressField] = assignment.IPAddress.String()
+			interfaceOptsMap[NetworkNameField] = iFace.NetworkDetails.Name
+			interfaceOptsMap[PortIDField] = iFace.PortID
+			interfacesOptsList = append(interfacesOptsList, interfaceOptsMap)
 		}
 	}
-	if err := d.Set(InstanceInterfaceField, interfacesList); err != nil {
+
+	if err := d.Set(InstanceInterfacesField, schema.NewSet(ifsOptsSet.F, interfacesOptsList)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -717,130 +655,111 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 		}
 	}
 
-	if d.HasChange(InstanceInterfaceField) {
-		iOldRaw, iNewRaw := d.GetChange(InstanceInterfaceField)
-		ifsOldSlice, ifsNewSlice := iOldRaw.([]interface{}), iNewRaw.([]interface{})
-		sort.Sort(instanceInterfaces(ifsOldSlice))
-		sort.Sort(instanceInterfaces(ifsNewSlice))
+	if d.HasChange(InstanceInterfacesField) {
+		iOldRaw, iNewRaw := d.GetChange(InstanceInterfacesField)
+		ifsOldSet, ifsNewSet := iOldRaw.(*schema.Set), iNewRaw.(*schema.Set)
+		ifsOldSlice, ifsNewSlice := ifsOldSet.List(), ifsNewSet.List()
+		sort.Sort(instanceV2Interfaces(ifsOldSlice))
+		sort.Sort(instanceV2Interfaces(ifsNewSlice))
+		ifsToDetach := ifsOldSet.Difference(ifsNewSet)
+		ifsToAttach := ifsNewSet.Difference(ifsOldSet)
 
-		diagsAdjust := adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifsNewSlice)
-		if len(diagsAdjust) != 0 {
-			return diagsAdjust
+		defaultNewIfsRaw := ifsNewSlice[0]
+		defaultNewIfs := defaultNewIfsRaw.(map[string]interface{})
+		defaultIfsSubnetID := defaultNewIfs[SubnetIDField].(string)
+		defaultIfsType := defaultNewIfs[TypeField].(string)
+		defaultIfsReservedFixedIPPortID := defaultNewIfs[InstanceReservedFixedIPPortIDField].(string)
+
+		var indexNewDefaultInOldSlice int
+		var maxAPIIndexToDetach int
+
+		interfacesListAPI, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
+		if err != nil {
+			return diag.FromErr(err)
 		}
+
+		indexAPIDefaultIfs := slices.IndexFunc(interfacesListAPI, func(portInterface edgecloudV2.InstancePortInterface) bool {
+			if ((portInterface.PortID == defaultIfsReservedFixedIPPortID) && defaultIfsReservedFixedIPPortID != "") ||
+				(portInterface.NetworkDetails.External && defaultIfsType == string(edgecloudV2.InterfaceTypeExternal)) {
+				return true
+			}
+			for _, ipAssigment := range portInterface.IPAssignments {
+				if ipAssigment.SubnetID == defaultIfsSubnetID && defaultIfsSubnetID != "" {
+					return true
+				}
+			}
+			return false
+		})
 
 		switch {
-		// the same number of interfaces
-		case len(ifsOldSlice) == len(ifsNewSlice):
-			for idx, item := range ifsOldSlice {
-				iOld := item.(map[string]interface{})
-				iNew := ifsNewSlice[idx].(map[string]interface{})
+		case indexAPIDefaultIfs >= 0:
+			maxAPIIndexToDetach = indexAPIDefaultIfs - 1
+		default:
+			maxAPIIndexToDetach = len(interfacesListAPI) - 1
+		}
 
-				sgsIDsOld := getSecurityGroupsIDsV2(iOld[SecurityGroupsField].([]interface{}))
-				sgsIDsNew := getSecurityGroupsIDsV2(iNew[SecurityGroupsField].([]interface{}))
-				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
-					portID := iOld[PortIDField].(string)
-					removeSGs := getSecurityGroupsDifferenceV2(sgsIDsNew, sgsIDsOld)
-					if err := removeSecurityGroupFromInstanceV2(ctx, clientV2, instanceID, portID, removeSGs); err != nil {
-						return diag.FromErr(err)
-					}
-					addSGs := getSecurityGroupsDifferenceV2(sgsIDsOld, sgsIDsNew)
-					if err := attachSecurityGroupToInstanceV2(ctx, clientV2, instanceID, portID, addSGs); err != nil {
-						return diag.FromErr(err)
-					}
-				}
+		ifsToReattach := make(map[string]struct{}, len(interfacesListAPI))
+		for index := 0; index <= maxAPIIndexToDetach; index++ {
+			ifsToReattach[interfacesListAPI[index].PortID] = struct{}{}
+		}
 
-				differentFields := getMapDifference(iOld, iNew, []string{SecurityGroupsField, InstanceInterfacePortSecDisabledField})
-				if len(differentFields) > 0 {
-					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
-						return diag.FromErr(err)
-					}
-					if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iNew); err != nil {
-						return diag.FromErr(err)
-					}
-				}
+		indexNewDefaultInOldSlice = slices.IndexFunc(ifsOldSlice, func(iface interface{}) bool {
+			ifaceMap := iface.(map[string]interface{})
+			subnetID := ifaceMap[SubnetIDField].(string)
+			reservedFixedPortID := ifaceMap[InstanceReservedFixedIPPortIDField].(string)
+			ifaceType := ifaceMap[TypeField].(string)
+
+			if ((subnetID == defaultIfsSubnetID) && subnetID != "") ||
+				((reservedFixedPortID == defaultIfsReservedFixedIPPortID) && reservedFixedPortID != "") ||
+				((ifaceType == defaultIfsType) && (defaultIfsType == string(edgecloudV2.InterfaceTypeExternal))) {
+				return true
 			}
 
-		// new interfaces > old interfaces - need to attach new
-		case len(ifsOldSlice) < len(ifsNewSlice):
-			for idx, item := range ifsOldSlice {
-				iOld := item.(map[string]interface{})
-				iNew := ifsNewSlice[idx].(map[string]interface{})
+			return false
+		})
 
-				sgsIDsOld := getSecurityGroupsIDsV2(iOld[SecurityGroupsField].([]interface{}))
-				sgsIDsNew := getSecurityGroupsIDsV2(iNew[SecurityGroupsField].([]interface{}))
-				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
-					portID := iOld[PortIDField].(string)
-					removeSGs := getSecurityGroupsDifferenceV2(sgsIDsNew, sgsIDsOld)
-					if err := removeSecurityGroupFromInstanceV2(ctx, clientV2, instanceID, portID, removeSGs); err != nil {
-						return diag.FromErr(err)
-					}
+		// if new is_default iface exists in old state, it is no need detach and attach this iface again
+		if indexNewDefaultInOldSlice >= 0 {
+			ifsToDetach.Remove(ifsOldSlice[indexNewDefaultInOldSlice])
+			ifsToAttach.Remove(defaultNewIfsRaw)
+		}
 
-					addSGs := getSecurityGroupsDifferenceV2(sgsIDsOld, sgsIDsNew)
-					if err := attachSecurityGroupToInstanceV2(ctx, clientV2, instanceID, portID, addSGs); err != nil {
-						return diag.FromErr(err)
-					}
+		// choose ifaces that need reattach to make iface with field is_default first attached
+		for _, iface := range ifsOldSlice {
+			ifaceMap := iface.(map[string]interface{})
+			portID := ifaceMap[PortIDField].(string)
+			if _, ok := ifsToReattach[portID]; ok {
+				ifsToDetach.Add(iface)
+				if ifsNewSet.Contains(iface) {
+					ifsToAttach.Add(iface)
 				}
-
-				differentFields := getMapDifference(iOld, iNew, []string{SecurityGroupsField, InstanceInterfacePortSecDisabledField})
-				if len(differentFields) > 0 {
-					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
-						return diag.FromErr(err)
-					}
-					if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iNew); err != nil {
-						return diag.FromErr(err)
-					}
-				}
-			}
-
-			for _, item := range ifsNewSlice[len(ifsOldSlice):] {
-				iNew := item.(map[string]interface{})
-				if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iNew); err != nil {
-					return diag.FromErr(err)
-				}
-			}
-
-		// old interfaces > new interfaces - need to detach old
-		case len(ifsOldSlice) > len(ifsNewSlice):
-			for idx, item := range ifsOldSlice[:len(ifsNewSlice)] {
-				iOld := item.(map[string]interface{})
-				iNew := ifsNewSlice[idx].(map[string]interface{})
-
-				sgsIDsOld := getSecurityGroupsIDsV2(iOld[SecurityGroupsField].([]interface{}))
-				sgsIDsNew := getSecurityGroupsIDsV2(iNew[SecurityGroupsField].([]interface{}))
-				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
-					portID := iOld[PortIDField].(string)
-					removeSGs := getSecurityGroupsDifferenceV2(sgsIDsNew, sgsIDsOld)
-					if err := removeSecurityGroupFromInstanceV2(ctx, clientV2, instanceID, portID, removeSGs); err != nil {
-						return diag.FromErr(err)
-					}
-
-					addSGs := getSecurityGroupsDifferenceV2(sgsIDsOld, sgsIDsNew)
-					if err := attachSecurityGroupToInstanceV2(ctx, clientV2, instanceID, portID, addSGs); err != nil {
-						return diag.FromErr(err)
-					}
-				}
-
-				differentFields := getMapDifference(iOld, iNew, []string{SecurityGroupsField, InstanceInterfacePortSecDisabledField})
-				if len(differentFields) > 0 {
-					if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
-						return diag.FromErr(err)
-					}
-					if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iNew); err != nil {
-						return diag.FromErr(err)
-					}
-				}
-			}
-
-			for _, item := range ifsOldSlice[len(ifsNewSlice):] {
-				iOld := item.(map[string]interface{})
-				if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iOld); err != nil {
-					return diag.FromErr(err)
-				}
+			} else {
+				break
 			}
 		}
-		diagsAdjust = adjustAllPortsSecurityDisabledOpt(ctx, clientV2, instanceID, ifsNewSlice)
-		if len(diagsAdjust) != 0 {
-			return diagsAdjust
+
+		ifsToDetachList := ifsToDetach.List()
+		ifsToAttachList := ifsToAttach.List()
+		sort.Sort(instanceV2Interfaces(ifsToAttachList))
+
+		for _, item := range ifsToDetachList {
+			detachIfs := item.(map[string]interface{})
+			if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, detachIfs); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
+		if len(ifsToAttachList) > 0 {
+			defaultSG, err := utilV2.FindDefaultSG(ctx, clientV2)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			for _, item := range ifsToAttachList {
+				attachIfs := item.(map[string]interface{})
+				if err := attachInstanceV2InterfaceToInstance(ctx, clientV2, instanceID, attachIfs, defaultSG); err != nil {
+					return diag.FromErr(err)
+				}
+			}
 		}
 	}
 

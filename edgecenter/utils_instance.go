@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"reflect"
+	"slices"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -29,6 +30,8 @@ var instanceDecoderConfig = &mapstructure.DecoderConfig{
 
 type instanceInterfaces []interface{}
 
+type instanceV2Interfaces []interface{}
+
 type InstancePortSecurityOpts struct {
 	PortID               string
 	PortSecurityDisabled bool
@@ -41,7 +44,16 @@ type InstanceInterfaceWithIPAddress struct {
 	IPAddress         string
 }
 
+type InstanceInterfaceMapWithIPAddress struct {
+	InstanceInterface map[string]interface{}
+	IPAddress         string
+}
+
 func (s instanceInterfaces) Len() int {
+	return len(s)
+}
+
+func (s instanceV2Interfaces) Len() int {
 	return len(s)
 }
 
@@ -65,16 +77,23 @@ func (s instanceInterfaces) Less(i, j int) bool {
 
 	lOrder, _ := ifLeft["order"].(int)
 	rOrder, _ := ifRight["order"].(int)
-	if lOrder != rOrder {
-		return lOrder < rOrder
-	}
-	lPortID, _ := ifLeft["port_id"].(string)
-	rPortID, _ := ifRight["port_id"].(string)
 
-	return lPortID < rPortID
+	return lOrder < rOrder
+}
+
+func (s instanceV2Interfaces) Less(i, j int) bool { //nolint:revive
+	ifRight := s[j].(map[string]interface{})
+
+	isDefaultRight := ifRight[IsDefaultField].(bool)
+
+	return !isDefaultRight
 }
 
 func (s instanceInterfaces) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s instanceV2Interfaces) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
@@ -83,8 +102,8 @@ type OrderedInterfaceOpts struct {
 	Order int
 }
 
-// decodeInstanceInterfaceOptsV2 decodes the interface and returns InstanceInterface with FloatingIP.
-func decodeInstanceInterfaceOptsV2(iFaceMap map[string]interface{}) edgecloudV2.InstanceInterface {
+// decodeInstanceInterfaceOpts decodes the interface and returns InstanceInterface with FloatingIP.
+func decodeInstanceInterfaceOpts(iFaceMap map[string]interface{}) edgecloudV2.InstanceInterface {
 	iFace := edgecloudV2.InstanceInterface{
 		Type:      edgecloudV2.InterfaceType(iFaceMap["type"].(string)),
 		NetworkID: iFaceMap["network_id"].(string),
@@ -112,25 +131,64 @@ func decodeInstanceInterfaceOptsV2(iFaceMap map[string]interface{}) edgecloudV2.
 	for i, sgID := range rawSgsIDList {
 		sgs[i] = edgecloudV2.ID{ID: sgID.(string)}
 	}
+
 	iFace.SecurityGroups = sgs
 
 	return iFace
 }
 
-// extractInstanceInterfaceToListCreateV2 creates a list of InstanceInterface objects from a list of interfaces.
-func extractInstanceInterfaceToListCreateV2(interfaces []interface{}) []edgecloudV2.InstanceInterface {
+// decodeInstanceV2InterfaceOptsCreate decodes the interface and returns InstanceInterface with FloatingIP.
+func decodeInstanceV2InterfaceOptsCreate(iFaceMap map[string]interface{}) edgecloudV2.InstanceInterface {
+	iFace := edgecloudV2.InstanceInterface{
+		Type:      edgecloudV2.InterfaceType(iFaceMap[TypeField].(string)),
+		NetworkID: iFaceMap[NetworkIDField].(string),
+		PortID:    iFaceMap[InstanceReservedFixedIPPortIDField].(string),
+		SubnetID:  iFaceMap[SubnetIDField].(string),
+	}
+	sgs := make([]edgecloudV2.ID, 0, 1)
+	iFace.SecurityGroups = sgs
+
+	return iFace
+}
+
+// extractInstanceInterfaceToListCreate creates a list of InstanceInterface objects from a list of interfaces.
+func extractInstanceInterfaceToListCreate(interfaces []interface{}) []edgecloudV2.InstanceInterface {
 	interfaceInstanceCreateOptsList := make([]edgecloudV2.InstanceInterface, 0)
 	for _, tfIFace := range interfaces {
 		iFaceMap := tfIFace.(map[string]interface{})
-		iFace := decodeInstanceInterfaceOptsV2(iFaceMap)
+		iFace := decodeInstanceInterfaceOpts(iFaceMap)
 		interfaceInstanceCreateOptsList = append(interfaceInstanceCreateOptsList, iFace)
 	}
 
 	return interfaceInstanceCreateOptsList
 }
 
-// extractInstanceInterfaceToListReadV2 creates a list of InterfaceOpts objects from a list of interfaces.
-func extractInstanceInterfaceToListReadV2(interfaces []interface{}) map[string]OrderedInterfaceOpts {
+// extractInstanceV2InterfaceOptsToListCreate creates a list of InstanceInterface objects from a list of interfaces.
+func extractInstanceV2InterfaceOptsToListCreate(interfaces []interface{}) []edgecloudV2.InstanceInterface {
+	interfaceInstanceCreateOptsList := make([]edgecloudV2.InstanceInterface, len(interfaces))
+	for index, tfIFace := range interfaces {
+		iFaceMap := tfIFace.(map[string]interface{})
+		iFace := decodeInstanceV2InterfaceOptsCreate(iFaceMap)
+		interfaceInstanceCreateOptsList[index] = iFace
+	}
+	return interfaceInstanceCreateOptsList
+}
+
+// prepareInstanceInterfaceCreateOpts prepares interface options for instance create request.
+func prepareInstanceInterfaceCreateOpts(ctx context.Context, client *edgecloudV2.Client, interfaces []interface{}) ([]edgecloudV2.InstanceInterface, error) {
+	ifsOpts := extractInstanceV2InterfaceOptsToListCreate(interfaces)
+	defaultSG, err := utilV2.FindDefaultSG(ctx, client)
+	if err != nil {
+		return nil, err
+	}
+	for idx := range ifsOpts {
+		ifsOpts[idx].SecurityGroups = []edgecloudV2.ID{{ID: defaultSG.ID}}
+	}
+	return ifsOpts, nil
+}
+
+// extractInstanceInterfaceToListRead creates a list of InterfaceOpts objects from a list of interfaces.
+func extractInstanceInterfaceToListRead(interfaces []interface{}) map[string]OrderedInterfaceOpts {
 	orderedInterfacesMap := make(map[string]OrderedInterfaceOpts)
 	for _, iFace := range interfaces {
 		var instanceInterfaceWithIPAddress InstanceInterfaceWithIPAddress
@@ -139,7 +197,7 @@ func extractInstanceInterfaceToListReadV2(interfaces []interface{}) map[string]O
 		}
 
 		iFaceMap := iFace.(map[string]interface{})
-		interfaceOpts := decodeInstanceInterfaceOptsV2(iFaceMap)
+		interfaceOpts := decodeInstanceInterfaceOpts(iFaceMap)
 		instanceInterfaceWithIPAddress.InstanceInterface = interfaceOpts
 		instanceInterfaceWithIPAddress.IPAddress = iFaceMap["ip_address"].(string)
 		order, _ := iFaceMap["order"].(int)
@@ -153,6 +211,38 @@ func extractInstanceInterfaceToListReadV2(interfaces []interface{}) map[string]O
 	}
 
 	return orderedInterfacesMap
+}
+
+// extractInstanceV2InterfacesOptsToListRead creates a list of InterfaceOpts objects from a list of interfaces.
+func extractInstanceV2InterfacesOptsToListRead(interfaces []interface{}) map[string]map[string]interface{} {
+	interfacesMap := make(map[string]map[string]interface{})
+	for _, iFace := range interfaces {
+		if iFace == nil {
+			continue
+		}
+		iFaceMap := iFace.(map[string]interface{})
+		if networkID, ok := iFaceMap[NetworkIDField]; ok && networkID != "" {
+			interfacesMap[networkID.(string)] = iFaceMap
+		}
+
+		if subnetID, ok := iFaceMap[SubnetIDField]; ok && subnetID != "" {
+			interfacesMap[subnetID.(string)] = iFaceMap
+		}
+
+		if portID, ok := iFaceMap[PortIDField]; ok && portID != "" {
+			interfacesMap[portID.(string)] = iFaceMap
+		}
+		if reservedFixedIPPortID, ok := iFaceMap[InstanceReservedFixedIPPortIDField]; ok && reservedFixedIPPortID != "" {
+			interfacesMap[reservedFixedIPPortID.(string)] = iFaceMap
+		}
+
+		typeStr := iFaceMap[TypeField].(string)
+		if edgecloudV2.InterfaceType(typeStr) == edgecloudV2.InterfaceTypeExternal {
+			interfacesMap[typeStr] = iFaceMap
+		}
+	}
+
+	return interfacesMap
 }
 
 // extractInstanceVolumesMap converts a slice of instance volumes into a map of volume IDs to boolean values.
@@ -392,6 +482,42 @@ func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client
 	return nil
 }
 
+// attachInstanceV2InterfaceToInstance attach interface to instanceV2.
+func attachInstanceV2InterfaceToInstance(ctx context.Context, client *edgecloudV2.Client, instanceID string, iface map[string]interface{}, defaultSG *edgecloudV2.SecurityGroup) error {
+	iType := edgecloudV2.InterfaceType(iface[TypeField].(string))
+	opts := edgecloudV2.InstanceAttachInterfaceRequest{
+		Type:           iType,
+		SecurityGroups: []edgecloudV2.ID{{ID: defaultSG.ID}},
+	}
+
+	switch iType { // nolint: exhaustive
+	case edgecloudV2.InterfaceTypeSubnet:
+		opts.SubnetID = iface[SubnetIDField].(string)
+	case edgecloudV2.InterfaceTypeAnySubnet:
+		opts.NetworkID = iface[NetworkIDField].(string)
+	case edgecloudV2.InterfaceTypeReservedFixedIP:
+		opts.PortID = iface[InstanceReservedFixedIPPortIDField].(string)
+	}
+
+	log.Printf("[DEBUG] attach interface: %+v", opts)
+	results, _, err := client.Instances.AttachInterface(ctx, instanceID, &opts)
+	if err != nil {
+		return fmt.Errorf("cannot attach interface: %s. Error: %w", iType, err)
+	}
+
+	taskID := results.Tasks[0]
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID)
+	if err != nil {
+		return err
+	}
+
+	if task.State == edgecloudV2.TaskStateError {
+		return fmt.Errorf("cannot attach interface with opts: %v", opts)
+	}
+
+	return nil
+}
+
 // adjustPortSecurityDisabledOptV2 aligns the state of the interface (port_security_disabled) with what is specified in the
 // iface["port_security_disabled"].
 func adjustPortSecurityDisabledOptV2(ctx context.Context, client *edgecloudV2.Client, interfacesListAPI []edgecloudV2.InstancePortInterface, iface map[string]interface{}) error {
@@ -599,7 +725,7 @@ func validateInstanceResourceAttrs(d *schema.ResourceData) diag.Diagnostics {
 func validateInstanceV2ResourceAttrs(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) diag.Diagnostics {
 	diags := diag.Diagnostics{}
 
-	ifsDiags := validateInterfaceAttrs(d)
+	ifsDiags := validateInterfaceOpts(ctx, client, d)
 	if ifsDiags.HasError() {
 		diags = append(diags, ifsDiags...)
 	}
@@ -640,6 +766,34 @@ func validateInterfaceAttrs(d *schema.ResourceData) diag.Diagnostics {
 	}
 
 	return diags
+}
+
+func validateInterfaceOpts(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) diag.Diagnostics {
+	ifaceOptsRaw := d.Get(InstanceInterfacesField)
+	ifaceOptsSet := ifaceOptsRaw.(*schema.Set)
+	ifaceOptsList := ifaceOptsSet.List()
+
+	err := checkIfaceAttrCombinations(ifaceOptsList)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = checkSingleDefaultIface(ifaceOptsList)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = checkSingleExternalIface(ifaceOptsList)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = checkUniqueIfaceSubnets(ctx, client, ifaceOptsList)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
 func validateBootVolumeAttrs(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.ResourceData) diag.Diagnostics {
@@ -793,6 +947,86 @@ func CheckUniqueSequentialBootIndexes(volumes map[string]map[string]interface{})
 	return nil
 }
 
+func checkSingleDefaultIface(interfaces []interface{}) error {
+	var defaultIfsCount int
+	for _, ifs := range interfaces {
+		ifsMap := ifs.(map[string]interface{})
+		isDefaultRaw := ifsMap[IsDefaultField]
+		isDefault := isDefaultRaw.(bool)
+		if isDefault {
+			defaultIfsCount++
+		}
+	}
+	if len(interfaces) != 0 && defaultIfsCount != 1 {
+		return fmt.Errorf("you must always have exactly one interface with set attribute 'is_default = true'")
+	}
+
+	return nil
+}
+
+func checkSingleExternalIface(interfaces []interface{}) error {
+	var externalIfsCount int
+	for _, ifs := range interfaces {
+		ifsMap := ifs.(map[string]interface{})
+		ifaceType := ifsMap[TypeField].(string)
+		if ifaceType == "external" {
+			externalIfsCount++
+		}
+	}
+	if externalIfsCount > 1 {
+		return fmt.Errorf("you can have no more than one interface with the type 'external.'")
+	}
+
+	return nil
+}
+
+func checkUniqueIfaceSubnets(ctx context.Context, client *edgecloudV2.Client, interfaces []interface{}) error {
+	subnets := make(map[string]interface{})
+
+	reservedExists := slices.IndexFunc(interfaces, func(i interface{}) bool {
+		ifsMap := i.(map[string]interface{})
+		ifsType := ifsMap[TypeField].(string)
+		return ifsType == string(edgecloudV2.InterfaceTypeReservedFixedIP)
+	})
+
+	var reservedIPS []edgecloudV2.ReservedFixedIP
+	var err error
+	if reservedExists >= 0 {
+		reservedIPS, _, err = client.ReservedFixedIP.List(ctx, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, ifs := range interfaces {
+		ifsMap := ifs.(map[string]interface{})
+		ifaceType := ifsMap[TypeField].(string)
+		switch ifaceType {
+		case string(edgecloudV2.InterfaceTypeSubnet):
+			subnetID := ifsMap[SubnetIDField].(string)
+			if existingIface, ok := subnets[subnetID]; ok {
+				return fmt.Errorf("%w:%#v and %#v", edgecloudV2.ErrMultipleIfaceWithSameSubnet, existingIface, ifs)
+			}
+			subnets[subnetID] = ifs
+		case string(edgecloudV2.InterfaceTypeReservedFixedIP):
+			portID := ifsMap[InstanceReservedFixedIPPortIDField].(string)
+			reservedFixedIPIndex := slices.IndexFunc(reservedIPS, func(reservedFixedIP edgecloudV2.ReservedFixedIP) bool {
+				return reservedFixedIP.PortID == portID
+			})
+			if reservedFixedIPIndex < 0 {
+				return fmt.Errorf("%w: reserved_fixed_ip_port_id = %s", edgecloudV2.ErrResourceDoesntExist, portID)
+			}
+			reservedFixedIP := reservedIPS[reservedFixedIPIndex]
+			if existingIface, ok := subnets[reservedFixedIP.SubnetID]; ok {
+				return fmt.Errorf("%w:%#v and %#v", edgecloudV2.ErrMultipleIfaceWithSameSubnet, existingIface, ifs)
+			}
+			subnets[reservedFixedIP.SubnetID] = ifs
+		}
+	}
+
+	return nil
+}
+
 func CheckAllImagesIsBootable(ctx context.Context, client *edgecloudV2.Client, volumes map[string]map[string]interface{}) error {
 	group, groupCtx := errgroup.WithContext(ctx)
 	for _, vol := range volumes {
@@ -811,4 +1045,36 @@ func CheckAllImagesIsBootable(ctx context.Context, client *edgecloudV2.Client, v
 	err := group.Wait()
 
 	return err
+}
+
+func checkIfaceAttrCombinations(ifaces []interface{}) error {
+	for _, ifs := range ifaces {
+		ifsMap := ifs.(map[string]interface{})
+		ifsType := ifsMap[TypeField].(string)
+		subnetID := ifsMap[SubnetIDField].(string)
+		networkID := ifsMap[NetworkIDField].(string)
+		reservedFixedIPPortID := ifsMap[InstanceReservedFixedIPPortIDField].(string)
+		switch ifsType {
+		case string(edgecloudV2.InterfaceTypeReservedFixedIP):
+			if reservedFixedIPPortID == "" {
+				return fmt.Errorf("attribute \"%s\" must be set for \"%s\" interface type", InstanceReservedFixedIPPortIDField, ifsType)
+			}
+			if subnetID != "" || networkID != "" {
+				return fmt.Errorf("you can't use \"%s\", \"%s\" attributes for \"%s\" interface type", NetworkIDField, SubnetIDField, ifsType)
+			}
+		case string(edgecloudV2.InterfaceTypeExternal):
+			if subnetID != "" || networkID != "" || reservedFixedIPPortID != "" {
+				return fmt.Errorf("you can't use \"%s\", \"%s\", \"%s\" attributes for \"%s\" interface type", NetworkIDField, SubnetIDField, InstanceReservedFixedIPPortIDField, ifsType)
+			}
+		case string(edgecloudV2.InterfaceTypeSubnet):
+			if subnetID == "" || networkID == "" {
+				return fmt.Errorf("attributes \"%s\", \"%s\" must be set for \"%s\" interface type", NetworkIDField, SubnetIDField, ifsType)
+			}
+			if reservedFixedIPPortID != "" {
+				return fmt.Errorf("you can't use \"%s\" attribute for \"%s\" interface type", InstanceReservedFixedIPPortIDField, ifsType)
+			}
+		}
+	}
+
+	return nil
 }

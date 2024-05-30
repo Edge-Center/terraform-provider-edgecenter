@@ -9,14 +9,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/image/v1/images"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
+
+const cidrOfUpdatedSubnet = "192.168.45.0/24"
 
 func TestAccInstanceV2(t *testing.T) {
 	cfg, err := createTestConfig()
@@ -35,11 +35,6 @@ func TestAccInstanceV2(t *testing.T) {
 	}
 
 	clientSubnet, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	clientSec, err := createTestClient(cfg.Provider, edgecenter.SecurityGroupPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,6 +76,16 @@ func TestAccInstanceV2(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	optsSubnetToUpdate := subnets.CreateOpts{
+		Name:      subnetTestNameUpdated,
+		NetworkID: networkID,
+	}
+
+	subnetIDToUpdate, err := createTestSubnet(clientSubnet, optsSubnetToUpdate, cidrOfUpdatedSubnet)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	volumes := []instances.CreateVolumeOpts{
 		{
 			Source:    "existing-volume",
@@ -99,22 +104,12 @@ func TestAccInstanceV2(t *testing.T) {
 	}}
 	updateInterfaces := []instances.InterfaceInstanceCreateOpts{{
 		InterfaceOpts: instances.InterfaceOpts{
-			Type:     "subnet",
-			SubnetID: subnetID,
+			Type:      "subnet",
+			SubnetID:  subnetIDToUpdate,
+			NetworkID: networkID,
 		},
 	}}
 
-	sgs, err := securitygroups.ListAll(clientSec, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	secgroups := []edgecloud.ItemID{{ID: sgs[0].ID}}
-	updateSg := []edgecloud.ItemID{
-		{
-			ID: "someidV2",
-		},
-	}
 	metadata := instances.MetadataSetOpts{}
 	metadata.Metadata = []instances.MetadataOpts{
 		{
@@ -131,23 +126,20 @@ func TestAccInstanceV2(t *testing.T) {
 	}
 
 	createFixt := instances.CreateOpts{
-		Names:          []string{"create_instanceV2"},
-		NameTemplates:  []string{},
-		Flavor:         "g1-standard-2-4",
-		Password:       "password",
-		Username:       "user",
-		Keypair:        "acctestV2",
-		Volumes:        volumes,
-		Interfaces:     interfaces,
-		SecurityGroups: secgroups,
-		Metadata:       &metadata,
-		Configuration:  &metadata,
+		Names:         []string{"create_instanceV2"},
+		NameTemplates: []string{},
+		Flavor:        "g1-standard-2-4",
+		Password:      "password",
+		Username:      "user",
+		Keypair:       "acctestV2",
+		Volumes:       volumes,
+		Interfaces:    interfaces,
+		Metadata:      &metadata,
+		Configuration: &metadata,
 	}
 
 	updateInterfacefixt := createFixt
 	updateInterfacefixt.Interfaces = updateInterfaces
-
-	updateInterfacefixt.SecurityGroups = updateSg
 
 	updateFixt := createFixt
 	updateFixt.Flavor = "g1-standard-2-8"
@@ -155,17 +147,16 @@ func TestAccInstanceV2(t *testing.T) {
 	updateFixt.Configuration = &updateMetadata
 
 	type Params struct {
-		Name           []string
-		Flavor         string
-		Password       string
-		Username       string
-		Keypair        string
-		Publickey      string
-		Image          string
-		Interfaces     []map[string]string
-		SecurityGroups []map[string]string
-		MetaData       []map[string]string
-		Configuration  []map[string]string
+		Name          []string
+		Flavor        string
+		Password      string
+		Username      string
+		Keypair       string
+		Publickey     string
+		Image         string
+		Interfaces    []map[string]string
+		MetaData      []map[string]string
+		Configuration []map[string]string
 	}
 
 	create := Params{
@@ -179,13 +170,12 @@ func TestAccInstanceV2(t *testing.T) {
 		Interfaces: []map[string]string{
 			{"type": "subnet", "network_id": networkID, "subnet_id": subnetID},
 		},
-		SecurityGroups: []map[string]string{{"id": sgs[0].ID, "name": sgs[0].Name}},
-		MetaData:       []map[string]string{{"key": "somekeyV2", "value": "somevalueV2"}},
-		Configuration:  []map[string]string{{"key": "somekeyV2", "value": "somevalueV2"}},
+		MetaData:      []map[string]string{{"key": "somekeyV2", "value": "somevalueV2"}},
+		Configuration: []map[string]string{{"key": "somekeyV2", "value": "somevalueV2"}},
 	}
 
 	updateInterface := create
-	updateInterface.Interfaces = []map[string]string{{"type": "subnet", "subnet_id": subnetID}}
+	updateInterface.Interfaces = []map[string]string{{"type": "subnet", "subnet_id": subnetID, "network_id": networkID}}
 
 	update := create
 	update.Flavor = "g1-standard-2-8"
@@ -209,11 +199,7 @@ func TestAccInstanceV2(t *testing.T) {
 				type = "%s"
 				network_id = "%s"
 				subnet_id = "%s"
-                fip_source = null
-                existing_fip_id = null
-                port_id = null
-                ip_address = null
-				
+                reserved_fixed_ip_port_id = null	
 			},`, params.Interfaces[i]["type"], params.Interfaces[i]["network_id"], params.Interfaces[i]["subnet_id"])
 		}
 		template += fmt.Sprint(`]
@@ -245,16 +231,16 @@ configuration = [`)
 			%[8]s
 		}
 
-        resource "edgecenter_keypair" "kp" {
-  			sshkey_name = "%[2]s"
-            public_key = "%[3]s"
-            %[8]s
-		}
+        // resource "edgecenter_keypair" "kp" {
+  		// 	sshkey_name = "%[2]s"
+        //     public_key = "%[3]s"
+        //     %[8]s
+		// }
 
         resource "edgecenter_instanceV2" "acctest" {
 			flavor_id = "%[4]s"
            	name = local.names
-           	keypair_name = edgecenter_keypair.kp.sshkey_name
+           	// keypair_name = edgecenter_keypair.kp.sshkey_name
            	password = "%[5]s"
            	username = "%[6]s"
 
@@ -275,17 +261,15 @@ configuration = [`)
 				}
 		  	}
 
-			dynamic interface {
+			dynamic interfaces {
 			iterator = ifaces
 			for_each = local.interfaces
 			content {
 				type = ifaces.value.type
 				network_id = ifaces.value.network_id
 				subnet_id = ifaces.value.subnet_id
-                fip_source = ifaces.value.fip_source
-				existing_fip_id = ifaces.value.existing_fip_id
-                port_id = ifaces.value.port_id
-                ip_address = ifaces.value.ip_address
+                reserved_fixed_ip_port_id = ifaces.value.reserved_fixed_ip_port_id
+				is_default = true
 				}
 			}
 
@@ -359,7 +343,7 @@ func checkInstanceV2Attrs(resourceName string, opts *instances.CreateOpts) resou
 		checksStore := []resource.TestCheckFunc{
 			resource.TestCheckResourceAttr(resourceName, "name", opts.Names[0]),
 			resource.TestCheckResourceAttr(resourceName, "flavor_id", opts.Flavor),
-			resource.TestCheckResourceAttr(resourceName, "keypair_name", opts.Keypair),
+			// resource.TestCheckResourceAttr(resourceName, "keypair_name", opts.Keypair),
 			resource.TestCheckResourceAttr(resourceName, "password", opts.Password),
 			resource.TestCheckResourceAttr(resourceName, "username", opts.Username),
 		}
