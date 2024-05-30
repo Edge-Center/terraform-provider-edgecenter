@@ -40,7 +40,7 @@ var volumeElemResource = schema.Resource{
 func dataSourceInstanceV2() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceInstanceV2Read,
-		Description: `A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.`,
+		Description: `A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal too.`,
 		Schema: map[string]*schema.Schema{
 			ProjectIDField: {
 				Type:         schema.TypeInt,

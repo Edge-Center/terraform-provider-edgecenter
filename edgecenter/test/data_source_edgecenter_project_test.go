@@ -15,6 +15,9 @@ import (
 
 func TestAccProjectDataSource(t *testing.T) {
 	t.Parallel()
+	// TODO https://tracker.yandex.ru/CLOUDDEV-877 fix, add new project state "SCHEDULED_FOR_DELETION" in go client
+	t.Skip("temporary skipped, required to fix project states validating")
+
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)

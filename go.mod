@@ -1,6 +1,5 @@
 module github.com/Edge-Center/terraform-provider-edgecenter
 
-//TODO https://tracker.yandex.ru/CLOUDDEV-456: update golang version
 go 1.22.0
 
 require (
@@ -9,7 +8,7 @@ require (
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0
 	github.com/Edge-Center/edgecentercdn-go v0.1.5
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
-	github.com/Edge-Center/edgecentercloud-go/v2 v2.1.3
+	github.com/Edge-Center/edgecentercloud-go/v2 v2.1.4-0.20240703075841-dfdec037dd37
 	github.com/connerdouglass/go-retry v1.0.1
 	github.com/hashicorp/go-cty v1.4.1-0.20200723130312-85980079f637
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.29.0
