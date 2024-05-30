@@ -27,6 +27,7 @@ import (
 //nolint:unused
 const (
 	instanceTestName   = "test-vm"
+	instanceV2TestName = "test-vmV2"
 	clusterTestName    = "test-cluster"
 	poolTestName       = "test-pool"
 	lbTestName         = "test-lb"
