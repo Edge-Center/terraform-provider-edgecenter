@@ -173,25 +173,61 @@ func ExtractHostAndPath(uri string) (string, string, error) {
 // and region ID if they exist in the terraform configuration.
 // Use new version Edgecenterclient-go V2.
 // nolint: nonamedreturns
-func GetRegionIDandProjectID(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) (regionID, projectID int, err error) {
-	projectID, err = GetProjectV2(ctx, client, d.Get("project_id").(int), d.Get("project_name").(string))
+func GetRegionIDandProjectID(
+	ctx context.Context,
+	client *edgecloudV2.Client,
+	d *schema.ResourceData,
+) (regionID int, projectID int, err error) {
+	regionID, err = GetRegionID(ctx, client, d)
+	if err != nil {
+		return 0, 0, err
+	}
+	projectID, err = GetProjectID(ctx, client, d)
 	if err != nil {
 		return 0, 0, err
 	}
 
+	return regionID, projectID, nil
+}
+
+func GetRegionID(
+	ctx context.Context,
+	client *edgecloudV2.Client,
+	d *schema.ResourceData,
+) (int, error) {
 	rID, IDOk := d.GetOk("region_id")
 	rName, NameOk := d.GetOk("region_name")
 
 	if !IDOk && !NameOk {
-		return 0, projectID, err
+		return 0, fmt.Errorf("both parameters and region_id and region_name are not provided")
 	}
 
-	regionID, err = GetRegionV2(ctx, client, rID.(int), rName.(string))
+	regionID, err := GetRegionV2(ctx, client, rID.(int), rName.(string))
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to get region: %w", err)
+		return 0, fmt.Errorf("failed to get region: %w", err)
 	}
 
-	return regionID, projectID, nil
+	return regionID, nil
+}
+
+func GetProjectID(
+	ctx context.Context,
+	client *edgecloudV2.Client,
+	d *schema.ResourceData,
+) (int, error) {
+	pID, IDOk := d.GetOk("project_id")
+	pName, NameOk := d.GetOk("project_name")
+
+	if !IDOk && !NameOk {
+		return 0, fmt.Errorf("both parameters and project_id and project_name are not provided")
+	}
+
+	project, err := GetProjectV2(ctx, client, strconv.Itoa(pID.(int)), pName.(string))
+	if err != nil {
+		return 0, err
+	}
+
+	return project.ID, nil
 }
 
 func validateURLFunc(v interface{}, attributeName string) (warnings []string, errors []error) { //nolint:nonamedreturns

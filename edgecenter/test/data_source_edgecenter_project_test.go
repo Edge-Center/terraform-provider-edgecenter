@@ -55,6 +55,8 @@ func TestAccProjectDataSource(t *testing.T) {
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", project.Name),
 					resource.TestCheckResourceAttr(resourceName, "id", strconv.Itoa(project.ID)),
+					resource.TestCheckResourceAttr(resourceName, "client_id", strconv.Itoa(project.ClientID)),
+					resource.TestCheckResourceAttr(resourceName, "description", project.Description),
 				),
 			},
 		},

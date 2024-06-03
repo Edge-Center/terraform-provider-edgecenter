@@ -60,6 +60,7 @@ const (
 
 type VarName string
 
+//lint:ignore
 const (
 	EC_USERNAME_VAR           VarName = "EC_USERNAME"
 	EC_PASSWORD_VAR           VarName = "EC_PASSWORD"
@@ -88,6 +89,7 @@ func getEnv(name VarName) string {
 	return os.Getenv(string(name))
 }
 
+//revive:disable
 var (
 	EC_USERNAME           = getEnv(EC_USERNAME_VAR)
 	EC_PASSWORD           = getEnv(EC_PASSWORD_VAR)

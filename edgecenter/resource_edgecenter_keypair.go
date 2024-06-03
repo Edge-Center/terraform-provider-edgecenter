@@ -68,7 +68,7 @@ func resourceKeypairCreate(ctx context.Context, d *schema.ResourceData, m interf
 	config := m.(*Config)
 	clientV2 := config.CloudClient
 
-	_, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	projectID, err := GetProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -106,7 +106,7 @@ func resourceKeypairRead(ctx context.Context, d *schema.ResourceData, m interfac
 	config := m.(*Config)
 	clientV2 := config.CloudClient
 
-	_, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	projectID, err := GetProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -140,7 +140,7 @@ func resourceKeypairDelete(ctx context.Context, d *schema.ResourceData, m interf
 	config := m.(*Config)
 	clientV2 := config.CloudClient
 
-	_, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	projectID, err := GetProjectID(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -31,14 +31,17 @@ const (
 	CreatedAtField               = "created_at"
 	UpdatedAtField               = "updated_at"
 	IDField                      = "id"
+	ClientIDField                = "client_id"
 	NameField                    = "name"
 	TagsField                    = "tags"
+	DescriptionField             = "description"
+	StateField                   = "state"
+	IsDefaultField               = "is_default"
 	TypeField                    = "type"
 	KeyField                     = "key"
 	OperatingStatusField         = "operating_status"
 	ProvisioningStatusField      = "provisioning_status"
-
-	LifecyclePolicyResource = "edgecenter_lifecyclepolicy"
+	LifecyclePolicyResource      = "edgecenter_lifecyclepolicy"
 )
 
 func Provider() *schema.Provider {
@@ -128,14 +131,9 @@ func Provider() *schema.Provider {
 				Description: "DNS API (define only if you want to override DNS API endpoint)",
 				DefaultFunc: schema.EnvDefaultFunc("EC_DNS_API", ""),
 			},
-			"edgecenter_client_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Client id",
-				DefaultFunc: schema.EnvDefaultFunc("EC_CLIENT_ID", ""),
-			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"edgecenter_project":           resourceProject(),
 			"edgecenter_volume":            resourceVolume(),
 			"edgecenter_network":           resourceNetwork(),
 			"edgecenter_subnet":            resourceSubnet(),
@@ -208,7 +206,11 @@ func Provider() *schema.Provider {
 	return p
 }
 
-func providerConfigure(_ context.Context, d *schema.ResourceData, terraformVersion string) (interface{}, diag.Diagnostics) {
+func providerConfigure(
+	_ context.Context,
+	d *schema.ResourceData,
+	terraformVersion string,
+) (*Config, diag.Diagnostics) {
 	username := d.Get("user_name").(string)
 	password := d.Get("password").(string)
 	permanentToken := d.Get(ProviderOptPermanentToken).(string)
@@ -245,7 +247,6 @@ func providerConfigure(_ context.Context, d *schema.ResourceData, terraformVersi
 		platform = apiEndpoint + "/iam"
 	}
 
-	clientID := d.Get("edgecenter_client_id").(string)
 	userAgent := fmt.Sprintf("terraform/%s", terraformVersion)
 
 	var diags diag.Diagnostics
@@ -277,7 +278,6 @@ func providerConfigure(_ context.Context, d *schema.ResourceData, terraformVersi
 			Username:    username,
 			Password:    password,
 			AllowReauth: true,
-			ClientID:    clientID,
 		})
 	}
 	if err != nil {
