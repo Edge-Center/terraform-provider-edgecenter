@@ -86,6 +86,21 @@ func dataSourceLBListener() *schema.Resource {
 				Computed:    true,
 				Description: "The allowed CIDRs for listener.",
 			},
+			"timeout_client_data": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The timeout for the frontend client inactivity (in milliseconds).",
+			},
+			"timeout_member_data": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The timeout for the backend member inactivity (in milliseconds).",
+			},
+			"timeout_member_connect": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The timeout for the backend member connection (in milliseconds).",
+			},
 		},
 	}
 }
@@ -136,6 +151,9 @@ func dataSourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m int
 	d.Set("project_id", d.Get("project_id").(int))
 	d.Set("region_id", d.Get("region_id").(int))
 	d.Set("allowed_cidrs", listener.AllowedCIDRs)
+	d.Set("timeout_member_data", listener.TimeoutMemberData)
+	d.Set("timeout_client_data", listener.TimeoutClientData)
+	d.Set("timeout_member_connect", listener.TimeoutMemberConnect)
 
 	l7Policies, err := GetListenerL7PolicyUUIDS(ctx, clientV2, listener.ID)
 	if err != nil {

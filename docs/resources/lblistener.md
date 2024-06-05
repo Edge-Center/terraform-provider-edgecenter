@@ -56,6 +56,9 @@ resource "edgecenter_lblistener" "listener" {
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 - `secret_id` (String) The identifier for the associated secret, typically used for SSL configurations.
 - `sni_secret_id` (List of String) List of secret identifiers used for Server Name Indication (SNI).
+- `timeout_client_data` (String) The uuid for the load balancer.
+- `timeout_member_connect` (String) The uuid for the load balancer.
+- `timeout_member_data` (String) The uuid for the load balancer.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only

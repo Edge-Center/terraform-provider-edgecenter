@@ -14,10 +14,13 @@ import (
 )
 
 const (
-	LBListenersPoint        = "lblisteners"
-	LBListenerCreateTimeout = 2400 * time.Second
-	LBListenerUpdateTimeout = 2400 * time.Second
-	LBListenerDeleteTimeout = 2400 * time.Second
+	LBListenersPoint            = "lblisteners"
+	LBListenerCreateTimeout     = 2400 * time.Second
+	LBListenerUpdateTimeout     = 2400 * time.Second
+	LBListenerDeleteTimeout     = 2400 * time.Second
+	TimeoutMemberConnectDefault = 5000
+	TimeoutMemberDataDefault    = 50000
+	TimeoutClientDataDefault    = 50000
 )
 
 func resourceLbListener() *schema.Resource {
@@ -156,6 +159,24 @@ func resourceLbListener() *schema.Resource {
 				Computed:    true,
 				Description: "The timestamp of the last update (use with update context).",
 			},
+			"timeout_client_data": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The timeout for the frontend client inactivity (in milliseconds).",
+				Default:     TimeoutClientDataDefault,
+			},
+			"timeout_member_data": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The timeout for the backend member inactivity (in milliseconds).",
+				Default:     TimeoutMemberDataDefault,
+			},
+			"timeout_member_connect": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The timeout for the backend member connection (in milliseconds).",
+				Default:     TimeoutMemberConnectDefault,
+			},
 		},
 	}
 }
@@ -169,12 +190,32 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
+	timeoutClientData := TimeoutClientDataDefault
+	timeoutMemberData := TimeoutMemberDataDefault
+	timeoutMemberConnect := TimeoutMemberConnectDefault
+
+	timeoutCD, ok := d.Get("timeout_client_data").(int)
+	if ok {
+		timeoutMemberConnect = timeoutCD
+	}
+	timeoutMD, ok := d.Get("timeout_member_data").(int)
+	if ok {
+		timeoutClientData = timeoutMD
+	}
+	timeoutMC, ok := d.Get("timeout_member_connect").(int)
+	if ok {
+		timeoutMemberData = timeoutMC
+	}
 	opts := edgecloudV2.ListenerCreateRequest{
 		Name:             d.Get("name").(string),
 		Protocol:         edgecloudV2.LoadbalancerListenerProtocol(d.Get("protocol").(string)),
 		ProtocolPort:     d.Get("protocol_port").(int),
 		LoadbalancerID:   d.Get("loadbalancer_id").(string),
 		InsertXForwarded: d.Get("insert_x_forwarded").(bool),
+
+		TimeoutClientData:    timeoutClientData,
+		TimeoutMemberData:    timeoutMemberData,
+		TimeoutMemberConnect: timeoutMemberConnect,
 	}
 	secretID := d.Get("secret_id").(string)
 	sniSecretIDRaw := d.Get("sni_secret_id").([]interface{})
@@ -242,22 +283,25 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	lb, _, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
+	listener, _, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.Set("name", lb.Name)
-	d.Set("protocol", lb.Protocol)
-	d.Set("protocol_port", lb.ProtocolPort)
-	d.Set("pool_count", lb.PoolCount)
-	d.Set("operating_status", lb.OperatingStatus)
-	d.Set("provisioning_status", lb.ProvisioningStatus)
-	d.Set("secret_id", lb.SecretID)
-	d.Set("sni_secret_id", lb.SNISecretID)
-	d.Set("allowed_cidrs", lb.AllowedCIDRs)
+	d.Set("name", listener.Name)
+	d.Set("protocol", listener.Protocol)
+	d.Set("protocol_port", listener.ProtocolPort)
+	d.Set("pool_count", listener.PoolCount)
+	d.Set("operating_status", listener.OperatingStatus)
+	d.Set("provisioning_status", listener.ProvisioningStatus)
+	d.Set("secret_id", listener.SecretID)
+	d.Set("sni_secret_id", listener.SNISecretID)
+	d.Set("allowed_cidrs", listener.AllowedCIDRs)
+	d.Set("timeout_member_data", listener.TimeoutMemberData)
+	d.Set("timeout_client_data", listener.TimeoutClientData)
+	d.Set("timeout_member_connect", listener.TimeoutMemberConnect)
 
-	l7Policies, err := GetListenerL7PolicyUUIDS(ctx, clientV2, lb.ID)
+	l7Policies, err := GetListenerL7PolicyUUIDS(ctx, clientV2, listener.ID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -318,6 +362,27 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 		}
 		opts.AllowedCIDRs = &allowedCIDRs
 		changed = true
+	}
+	if d.HasChange("timeout_client_data") {
+		timeoutCD, ok := d.Get("timeout_client_data").(int)
+		if ok {
+			opts.TimeoutMemberConnect = timeoutCD
+			changed = true
+		}
+	}
+	if d.HasChange("timeout_client_data") {
+		timeoutMD, ok := d.Get("timeout_member_data").(int)
+		if ok {
+			opts.TimeoutClientData = timeoutMD
+			changed = true
+		}
+	}
+	if d.HasChange("timeout_client_data") {
+		timeoutMC, ok := d.Get("timeout_member_connect").(int)
+		if ok {
+			opts.TimeoutMemberData = timeoutMC
+			changed = true
+		}
 	}
 
 	if changed {
