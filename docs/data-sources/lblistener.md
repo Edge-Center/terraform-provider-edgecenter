@@ -62,3 +62,6 @@ output "view" {
 - `protocol` (String) Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'
 - `protocol_port` (Number) The port on which the protocol is bound.
 - `provisioning_status` (String) The current provisioning status of the load balancer.
+- `timeout_client_data` (Number) The timeout for the frontend client inactivity (in milliseconds).
+- `timeout_member_connect` (Number) The timeout for the backend member connection (in milliseconds).
+- `timeout_member_data` (Number) The timeout for the backend member inactivity (in milliseconds).

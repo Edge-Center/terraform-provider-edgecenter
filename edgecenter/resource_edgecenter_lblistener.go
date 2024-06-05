@@ -15,6 +15,9 @@ import (
 
 const (
 	LBListenersPoint        = "lblisteners"
+	TimeoutClientData       = "timeout_client_data"
+	TimeoutMemberData       = "timeout_member_data"
+	TimeoutMemberConnect    = "timeout_member_connect"
 	LBListenerCreateTimeout = 2400 * time.Second
 	LBListenerUpdateTimeout = 2400 * time.Second
 	LBListenerDeleteTimeout = 2400 * time.Second
@@ -156,6 +159,24 @@ func resourceLbListener() *schema.Resource {
 				Computed:    true,
 				Description: "The timestamp of the last update (use with update context).",
 			},
+			TimeoutClientData: {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: "The timeout for the frontend client inactivity (in milliseconds).",
+			},
+			TimeoutMemberData: {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: "The timeout for the backend member inactivity (in milliseconds).",
+			},
+			TimeoutMemberConnect: {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: "The timeout for the backend member connection (in milliseconds).",
+			},
 		},
 	}
 }
@@ -176,6 +197,22 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 		LoadbalancerID:   d.Get("loadbalancer_id").(string),
 		InsertXForwarded: d.Get("insert_x_forwarded").(bool),
 	}
+	timeoutCD, ok := d.GetOk(TimeoutClientData)
+	if ok {
+		typedTimeoutCD := timeoutCD.(int)
+		opts.TimeoutClientData = &typedTimeoutCD
+	}
+	timeoutMD, ok := d.GetOk(TimeoutMemberData)
+	if ok {
+		typedTimeoutMD := timeoutMD.(int)
+		opts.TimeoutMemberData = &typedTimeoutMD
+	}
+	timeoutMC, ok := d.GetOk(TimeoutMemberConnect)
+	if ok {
+		typedTimeoutMC := timeoutMC.(int)
+		opts.TimeoutMemberConnect = &typedTimeoutMC
+	}
+
 	secretID := d.Get("secret_id").(string)
 	sniSecretIDRaw := d.Get("sni_secret_id").([]interface{})
 
@@ -242,22 +279,25 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	lb, _, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
+	listener, _, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.Set("name", lb.Name)
-	d.Set("protocol", lb.Protocol)
-	d.Set("protocol_port", lb.ProtocolPort)
-	d.Set("pool_count", lb.PoolCount)
-	d.Set("operating_status", lb.OperatingStatus)
-	d.Set("provisioning_status", lb.ProvisioningStatus)
-	d.Set("secret_id", lb.SecretID)
-	d.Set("sni_secret_id", lb.SNISecretID)
-	d.Set("allowed_cidrs", lb.AllowedCIDRs)
+	d.Set("name", listener.Name)
+	d.Set("protocol", listener.Protocol)
+	d.Set("protocol_port", listener.ProtocolPort)
+	d.Set("pool_count", listener.PoolCount)
+	d.Set("operating_status", listener.OperatingStatus)
+	d.Set("provisioning_status", listener.ProvisioningStatus)
+	d.Set("secret_id", listener.SecretID)
+	d.Set("sni_secret_id", listener.SNISecretID)
+	d.Set("allowed_cidrs", listener.AllowedCIDRs)
+	d.Set(TimeoutClientData, listener.TimeoutClientData)
+	d.Set(TimeoutMemberData, listener.TimeoutMemberData)
+	d.Set(TimeoutMemberConnect, listener.TimeoutMemberConnect)
 
-	l7Policies, err := GetListenerL7PolicyUUIDS(ctx, clientV2, lb.ID)
+	l7Policies, err := GetListenerL7PolicyUUIDS(ctx, clientV2, listener.ID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -318,6 +358,30 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 		}
 		opts.AllowedCIDRs = &allowedCIDRs
 		changed = true
+	}
+	if d.HasChange(TimeoutClientData) {
+		timeoutCD, ok := d.GetOk(TimeoutClientData)
+		if ok {
+			typedTimeoutCD := timeoutCD.(int)
+			opts.TimeoutClientData = &typedTimeoutCD
+			changed = true
+		}
+	}
+	if d.HasChange(TimeoutMemberData) {
+		timeoutMD, ok := d.GetOk(TimeoutMemberData)
+		if ok {
+			typedTimeoutMD := timeoutMD.(int)
+			opts.TimeoutMemberData = &typedTimeoutMD
+			changed = true
+		}
+	}
+	if d.HasChange(TimeoutMemberConnect) {
+		timeoutMC, ok := d.GetOk(TimeoutMemberConnect)
+		if ok {
+			typedTimeoutMC := timeoutMC.(int)
+			opts.TimeoutMemberConnect = &typedTimeoutMC
+			changed = true
+		}
 	}
 
 	if changed {

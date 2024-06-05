@@ -56,6 +56,9 @@ resource "edgecenter_lblistener" "listener" {
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 - `secret_id` (String) The identifier for the associated secret, typically used for SSL configurations.
 - `sni_secret_id` (List of String) List of secret identifiers used for Server Name Indication (SNI).
+- `timeout_client_data` (Number) The timeout for the frontend client inactivity (in milliseconds).
+- `timeout_member_connect` (Number) The timeout for the backend member connection (in milliseconds).
+- `timeout_member_data` (Number) The timeout for the backend member inactivity (in milliseconds).
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
