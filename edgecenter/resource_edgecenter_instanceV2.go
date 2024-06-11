@@ -203,8 +203,8 @@ func resourceInstanceV2() *schema.Resource {
 							Optional: true,
 							Default:  false,
 							Description: `This field determines whether this interface will be connected first. 
-The first connected interface defines the default routing. If you change this attribute, the IP address of interfaces 
-connected earlier than the selected new default interface will change, if the reserved IP address is not used in these 
+The first connected interface defines the default routing. WARNING: if you change this attribute, interfaces 
+connected earlier than the selected new default interface will be reattached and it's IP addresses can be changed, if the reserved IP address is not used in these 
 interfaces. You must always have exactly one interface with set attribute 'is_default.'`,
 						},
 						NetworkIDField: {

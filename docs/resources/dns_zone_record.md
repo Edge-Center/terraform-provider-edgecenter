@@ -14,7 +14,7 @@ Represent DNS Zone Record resource. https://dns.edgecenter.ru/zones
 
 ```terraform
 provider "edgecenter" {
-  permanent_api_token = "179...............45b54d"
+  permanent_api_token = "179$...............45b54d"
 }
 
 //
