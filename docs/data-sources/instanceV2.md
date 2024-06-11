@@ -58,7 +58,7 @@ output "view" {
 - `flavor` (Map of String) A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.
 - `flavor_id` (String) The ID of the flavor to be used for the instance, determining its compute and memory, for example 'g1-standard-2-4'.
 - `id` (String) The ID of this resource.
-- `interface` (List of Object) A list defining the network interfaces to be attached to the instance. (see [below for nested schema](#nestedatt--interface))
+- `interfaces` (List of Object) A list defining the network interfaces to be attached to the instance. (see [below for nested schema](#nestedatt--interfaces))
 - `metadata` (List of Object) (see [below for nested schema](#nestedatt--metadata))
 - `security_group` (List of Object) A list of firewall configurations applied to the instance, defined by their id and name. (see [below for nested schema](#nestedatt--security_group))
 - `status` (String) The current status of the instance. This is computed automatically and can be used to track the instance's state.
@@ -104,13 +104,15 @@ Read-Only:
 - `volume_id` (String)
 
 
-<a id="nestedatt--interface"></a>
-### Nested Schema for `interface`
+<a id="nestedatt--interfaces"></a>
+### Nested Schema for `interfaces`
 
 Read-Only:
 
 - `ip_address` (String)
 - `network_id` (String)
+- `network_name` (String)
+- `order` (Number)
 - `port_id` (String)
 - `subnet_id` (String)
 

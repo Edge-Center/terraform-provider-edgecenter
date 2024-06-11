@@ -150,7 +150,7 @@ resource "edgecenter_instanceV2" "v" {
 
 - `boot_volumes` (Block Set, Min: 1) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedblock--boot_volumes))
 - `flavor_id` (String) The ID of the flavor to be used for the instance, determining its compute and memory, for example 'g1-standard-2-4'.
-- `interface` (Block List, Min: 1) A list defining the network interfaces to be attached to the instance. (see [below for nested schema](#nestedblock--interface))
+- `interfaces` (Block Set, Min: 1) A list defining the network interfaces to be attached to the instance. (see [below for nested schema](#nestedblock--interfaces))
 
 ### Optional
 
@@ -201,21 +201,28 @@ Read-Only:
 - `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.
 
 
-<a id="nestedblock--interface"></a>
-### Nested Schema for `interface`
+<a id="nestedblock--interfaces"></a>
+### Nested Schema for `interfaces`
+
+Required:
+
+- `type` (String) Available values are 'subnet', 'any_subnet', 'external', 'reserved_fixed_ip'
 
 Optional:
 
 - `existing_fip_id` (String)
-- `fip_source` (String)
-- `ip_address` (String)
+- `fip_source` (String) Indicates whether the floating IP for this subnet will be new or reused. Available values are "new" or "existing".
+- `is_default` (Boolean) This field determines whether this interface will be connected first. The first connected interface defines the default routing. If you change this attribute, the IP address of interfaces connected earlier than the selected new default interface will change, if the reserved IP address is not used in these interfaces.
 - `network_id` (String) Required if type is 'subnet' or 'any_subnet'.
-- `order` (Number) Order of attaching interface
-- `port_id` (String) required if type is  'reserved_fixed_ip'
-- `port_security_disabled` (Boolean)
-- `security_groups` (List of String) list of security group IDs
+- `reserved_fixed_ip_port_id` (String) required if type is  'reserved_fixed_ip'
 - `subnet_id` (String) Required if type is 'subnet'.
-- `type` (String) Available value is 'subnet', 'any_subnet', 'external', 'reserved_fixed_ip'
+
+Read-Only:
+
+- `ip_address` (String) IP address of the interface.
+- `network_name` (String) Name of the network.
+- `order` (Number) Order of attaching interface.
+- `port_id` (String)
 
 
 <a id="nestedblock--addresses"></a>
