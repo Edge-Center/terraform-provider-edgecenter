@@ -163,19 +163,8 @@ func decodeInstanceV2InterfaceOptsCreate(iFaceMap map[string]interface{}) edgecl
 	iFace := edgecloudV2.InstanceInterface{
 		Type:      edgecloudV2.InterfaceType(iFaceMap[TypeField].(string)),
 		NetworkID: iFaceMap[NetworkIDField].(string),
-		PortID:    iFaceMap[InstanceReservedFixedIPPortID].(string),
+		PortID:    iFaceMap[InstanceReservedFixedIPPortIDField].(string),
 		SubnetID:  iFaceMap[SubnetIDField].(string),
-	}
-	switch iFaceMap[InstanceInterfaceFipSourceField].(string) {
-	case "new":
-		iFace.FloatingIP = &edgecloudV2.InterfaceFloatingIP{
-			Source: edgecloudV2.NewFloatingIP,
-		}
-	case "existing":
-		iFace.FloatingIP = &edgecloudV2.InterfaceFloatingIP{
-			Source:             edgecloudV2.ExistingFloatingIP,
-			ExistingFloatingID: iFaceMap["existing_fip_id"].(string),
-		}
 	}
 	sgs := make([]edgecloudV2.ID, 0, 1)
 	iFace.SecurityGroups = sgs
@@ -273,6 +262,9 @@ func extractInstanceV2InterfacesOptsToListRead(interfaces []interface{}) map[str
 
 		if portID, ok := iFaceMap[PortIDField]; ok && portID != "" {
 			interfacesMap[portID.(string)] = iFaceMap
+		}
+		if reservedFixedIPPortID, ok := iFaceMap[InstanceReservedFixedIPPortIDField]; ok && reservedFixedIPPortID != "" {
+			interfacesMap[reservedFixedIPPortID.(string)] = iFaceMap
 		}
 
 		typeStr := iFaceMap[TypeField].(string)
@@ -502,6 +494,42 @@ func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client
 	} else {
 		opts.SecurityGroups = []edgecloudV2.ID{}
 	}
+	log.Printf("[DEBUG] attach interface: %+v", opts)
+	results, _, err := client.Instances.AttachInterface(ctx, instanceID, &opts)
+	if err != nil {
+		return fmt.Errorf("cannot attach interface: %s. Error: %w", iType, err)
+	}
+
+	taskID := results.Tasks[0]
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID)
+	if err != nil {
+		return err
+	}
+
+	if task.State == edgecloudV2.TaskStateError {
+		return fmt.Errorf("cannot attach interface with opts: %v", opts)
+	}
+
+	return nil
+}
+
+// attachInstanceV2InterfaceToInstance attach interface to instanceV2.
+func attachInstanceV2InterfaceToInstance(ctx context.Context, client *edgecloudV2.Client, instanceID string, iface map[string]interface{}) error {
+	iType := edgecloudV2.InterfaceType(iface[TypeField].(string))
+	opts := edgecloudV2.InstanceAttachInterfaceRequest{
+		Type:           iType,
+		SecurityGroups: make([]edgecloudV2.ID, 0),
+	}
+
+	switch iType { // nolint: exhaustive
+	case edgecloudV2.InterfaceTypeSubnet:
+		opts.SubnetID = iface[SubnetIDField].(string)
+	case edgecloudV2.InterfaceTypeAnySubnet:
+		opts.NetworkID = iface[NetworkIDField].(string)
+	case edgecloudV2.InterfaceTypeReservedFixedIP:
+		opts.PortID = iface[InstanceReservedFixedIPPortIDField].(string)
+	}
+
 	log.Printf("[DEBUG] attach interface: %+v", opts)
 	results, _, err := client.Instances.AttachInterface(ctx, instanceID, &opts)
 	if err != nil {
@@ -775,10 +803,22 @@ func validateInterfaceOpts(d *schema.ResourceData) diag.Diagnostics {
 	ifaceOptsRaw := d.Get(InstanceInterfacesField)
 	ifaceOptsSet := ifaceOptsRaw.(*schema.Set)
 	ifaceOptsList := ifaceOptsSet.List()
-	err := checkSingleDefaultIface(ifaceOptsList)
+
+	err := checkIfaceAttrCombinations(ifaceOptsList)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	err = checkSingleDefaultIface(ifaceOptsList)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = checkSingleExternalIface(ifaceOptsList)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }
 
@@ -944,7 +984,23 @@ func checkSingleDefaultIface(interfaces []interface{}) error {
 		}
 	}
 	if len(interfaces) != 0 && defaultIfsCount != 1 {
-		return fmt.Errorf("count of interfaces with attribute \"is_default\" must be 1")
+		return fmt.Errorf("you must always have exactly one interface with set attribute 'is_default = true'")
+	}
+
+	return nil
+}
+
+func checkSingleExternalIface(interfaces []interface{}) error {
+	var externalIfsCount int
+	for _, ifs := range interfaces {
+		ifsMap := ifs.(map[string]interface{})
+		ifaceType := ifsMap[TypeField].(string)
+		if ifaceType == "external" {
+			externalIfsCount++
+		}
+	}
+	if externalIfsCount > 1 {
+		return fmt.Errorf("you can have no more than one interface with the type 'external.'")
 	}
 
 	return nil
@@ -968,4 +1024,36 @@ func CheckAllImagesIsBootable(ctx context.Context, client *edgecloudV2.Client, v
 	err := group.Wait()
 
 	return err
+}
+
+func checkIfaceAttrCombinations(ifaces []interface{}) error {
+	for _, ifs := range ifaces {
+		ifsMap := ifs.(map[string]interface{})
+		ifsType := ifsMap[TypeField].(string)
+		subnetID := ifsMap[SubnetIDField].(string)
+		networkID := ifsMap[NetworkIDField].(string)
+		reservedFixedIPPortID := ifsMap[InstanceReservedFixedIPPortIDField].(string)
+		switch ifsType {
+		case string(edgecloudV2.InterfaceTypeReservedFixedIP):
+			if reservedFixedIPPortID == "" {
+				return fmt.Errorf("attribute \"%s\" must be set for \"%s\" interface type", InstanceReservedFixedIPPortIDField, ifsType)
+			}
+			if subnetID != "" || networkID != "" {
+				return fmt.Errorf("you can't use \"%s\", \"%s\" attributes for \"%s\" interface type", NetworkIDField, SubnetIDField, ifsType)
+			}
+		case string(edgecloudV2.InterfaceTypeExternal):
+			if subnetID != "" || networkID != "" || reservedFixedIPPortID != "" {
+				return fmt.Errorf("you can't use \"%s\", \"%s\", \"%s\" attributes for \"%s\" interface type", NetworkIDField, SubnetIDField, InstanceReservedFixedIPPortIDField, ifsType)
+			}
+		case string(edgecloudV2.InterfaceTypeSubnet):
+			if subnetID == "" || networkID == "" {
+				return fmt.Errorf("attributes \"%s\", \"%s\" must be set for \"%s\" interface type", NetworkIDField, SubnetIDField, ifsType)
+			}
+			if reservedFixedIPPortID != "" {
+				return fmt.Errorf("you can't use \"%s\" attribute for \"%s\" interface type", InstanceReservedFixedIPPortIDField, ifsType)
+			}
+		}
+	}
+
+	return nil
 }

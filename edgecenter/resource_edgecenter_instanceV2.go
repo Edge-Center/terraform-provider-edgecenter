@@ -21,25 +21,25 @@ import (
 )
 
 const (
-	InstanceVolumeSizeField           = "size"
-	InstanceVolumeIDField             = "volume_id"
-	InstanceBootVolumesField          = "boot_volumes"
-	InstanceDataVolumesField          = "data_volumes"
-	InstanceInterfacesField           = "interfaces"
-	InstanceVMStateField              = "vm_state"
-	InstanceAddressesField            = "addresses"
-	InstanceAddressesAddrField        = "addr"
-	InstanceAddressesNetField         = "net"
-	InstanceNameTemplateField         = "name_template"
-	InstanceBootVolumesBootIndexField = "boot_index"
-	InstanceVolumesAttachmentTagField = "attachment_tag"
-	InstanceInterfaceFipSourceField   = "fip_source"
-	InstanceKeypairNameField          = "keypair_name"
-	InstanceServerGroupField          = "server_group"
-	InstanceConfigurationField        = "configuration"
-	InstanceUserDataField             = "user_data"
-	InstanceAllowAppPortsField        = "allow_app_ports"
-	InstanceReservedFixedIPPortID     = "reserved_fixed_ip_port_id"
+	InstanceVolumeSizeField            = "size"
+	InstanceVolumeIDField              = "volume_id"
+	InstanceBootVolumesField           = "boot_volumes"
+	InstanceDataVolumesField           = "data_volumes"
+	InstanceInterfacesField            = "interfaces"
+	InstanceVMStateField               = "vm_state"
+	InstanceAddressesField             = "addresses"
+	InstanceAddressesAddrField         = "addr"
+	InstanceAddressesNetField          = "net"
+	InstanceNameTemplateField          = "name_template"
+	InstanceBootVolumesBootIndexField  = "boot_index"
+	InstanceVolumesAttachmentTagField  = "attachment_tag"
+	InstanceInterfaceFipSourceField    = "fip_source"
+	InstanceKeypairNameField           = "keypair_name"
+	InstanceServerGroupField           = "server_group"
+	InstanceConfigurationField         = "configuration"
+	InstanceUserDataField              = "user_data"
+	InstanceAllowAppPortsField         = "allow_app_ports"
+	InstanceReservedFixedIPPortIDField = "reserved_fixed_ip_port_id"
 )
 
 func resourceInstanceV2() *schema.Resource {
@@ -191,10 +191,11 @@ func resourceInstanceV2() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						TypeField: {
-							Type:         schema.TypeString,
-							Required:     true,
-							Description:  fmt.Sprintf("Available values are '%s', '%s', '%s', '%s'", edgecloudV2.InterfaceTypeSubnet, edgecloudV2.InterfaceTypeAnySubnet, edgecloudV2.InterfaceTypeExternal, edgecloudV2.InterfaceTypeReservedFixedIP),
-							ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.InterfaceTypeSubnet), string(edgecloudV2.InterfaceTypeAnySubnet), string(edgecloudV2.InterfaceTypeExternal), string(edgecloudV2.InterfaceTypeReservedFixedIP)}, true),
+							Type:     schema.TypeString,
+							Required: true,
+							// Type any_subnet is excluded, because options for this type is not unique (what is not suitable for the TypeSet)
+							Description:  fmt.Sprintf("Available values are '%s', '%s', '%s'. You can't create more than one interface on the same subnet", edgecloudV2.InterfaceTypeSubnet, edgecloudV2.InterfaceTypeExternal, edgecloudV2.InterfaceTypeReservedFixedIP),
+							ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.InterfaceTypeSubnet), string(edgecloudV2.InterfaceTypeExternal), string(edgecloudV2.InterfaceTypeReservedFixedIP)}, true),
 						},
 						OrderField: {
 							Computed:    true,
@@ -202,10 +203,13 @@ func resourceInstanceV2() *schema.Resource {
 							Description: "Order of attaching interface.",
 						},
 						IsDefaultField: {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Default:     false,
-							Description: "This field determines whether this interface will be connected first. The first connected interface defines the default routing. If you change this attribute, the IP address of interfaces connected earlier than the selected new default interface will change, if the reserved IP address is not used in these interfaces.",
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+							Description: `This field determines whether this interface will be connected first. 
+The first connected interface defines the default routing. If you change this attribute, the IP address of interfaces 
+connected earlier than the selected new default interface will change, if the reserved IP address is not used in these 
+interfaces. You must always have exactly one interface with set attribute 'is_default.'`,
 						},
 						NetworkIDField: {
 							Type:         schema.TypeString,
@@ -226,7 +230,7 @@ func resourceInstanceV2() *schema.Resource {
 							Default:      "",
 							ValidateFunc: validation.IsUUID,
 						},
-						InstanceReservedFixedIPPortID: {
+						InstanceReservedFixedIPPortIDField: {
 							Default:      "",
 							Type:         schema.TypeString,
 							Description:  "required if type is  'reserved_fixed_ip'",
@@ -254,25 +258,6 @@ func resourceInstanceV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The ID (uuid) of the server group to which the instance should belong.",
-			},
-			SecurityGroupField: {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "A list of firewall configurations applied to the instance, defined by their ID and name.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						IDField: {
-							Type:        schema.TypeString,
-							Description: "Firewall unique id (uuid)",
-							Required:    true,
-						},
-						NameField: {
-							Type:        schema.TypeString,
-							Description: "Firewall name",
-							Required:    true,
-						},
-					},
-				},
 			},
 			PasswordField: {
 				Type:         schema.TypeString,
@@ -324,7 +309,6 @@ from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."
 			},
 			FlavorField: {
 				Type:        schema.TypeMap,
-				Optional:    true,
 				Computed:    true,
 				Description: `A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.`,
 			},
@@ -395,11 +379,10 @@ func resourceInstanceCreateV2(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	createOpts := edgecloudV2.InstanceCreateRequest{
-		Flavor:      d.Get(FlavorIDField).(string),
-		KeypairName: d.Get(InstanceKeypairNameField).(string),
-		Username:    d.Get(UsernameField).(string),
-		Password:    d.Get(PasswordField).(string),
-		// SecurityGroups: []edgecloudV2.ID{},
+		Flavor:        d.Get(FlavorIDField).(string),
+		KeypairName:   d.Get(InstanceKeypairNameField).(string),
+		Username:      d.Get(UsernameField).(string),
+		Password:      d.Get(PasswordField).(string),
 		ServerGroupID: d.Get(InstanceServerGroupField).(string),
 		AllowAppPorts: d.Get(InstanceAllowAppPortsField).(bool),
 	}
@@ -541,16 +524,6 @@ func resourceInstanceReadV2(ctx context.Context, d *schema.ResourceData, m inter
 	dataVolumesState := extractVolumesIntoMap(dataVolumesSet.List())
 	enrichedDataVolumesData := EnrichVolumeData(instanceVolumes, dataVolumesState)
 	if err := d.Set(InstanceDataVolumesField, schema.NewSet(dataVolumesSet.F, enrichedDataVolumesData)); err != nil {
-		return diag.FromErr(err)
-	}
-
-	instancePorts, _, err := clientV2.Instances.PortsList(ctx, instanceID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	secGroups := prepareSecurityGroupsV2(instancePorts)
-
-	if err := d.Set(SecurityGroupField, secGroups); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -709,7 +682,7 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 		subnetID := defaultNewIfs[SubnetIDField].(string)
 		networkID := defaultNewIfs[NetworkIDField].(string)
 		typeIfs := defaultNewIfs[TypeField].(string)
-		reservedFixedIPPortID := defaultNewIfs[InstanceReservedFixedIPPortID].(string)
+		reservedFixedIPPortID := defaultNewIfs[InstanceReservedFixedIPPortIDField].(string)
 
 		var indexNewDefaultInOldSlice int
 		var maxOrderToDetach int
@@ -761,7 +734,7 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 		}
 		for _, item := range ifsToAttachList {
 			attachIfs := item.(map[string]interface{})
-			if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, attachIfs); err != nil {
+			if err := attachInstanceV2InterfaceToInstance(ctx, clientV2, instanceID, attachIfs); err != nil {
 				return diag.FromErr(err)
 			}
 		}
