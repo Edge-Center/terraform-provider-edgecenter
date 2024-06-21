@@ -222,7 +222,7 @@ func GetProjectID(
 		return 0, fmt.Errorf("both parameters and project_id and project_name are not provided")
 	}
 
-	project, err := GetProjectV2(ctx, client, strconv.Itoa(pID.(int)), pName.(string))
+	project, err := GetProjectV2(ctx, client, pID.(int), pName.(string))
 	if err != nil {
 		return 0, err
 	}

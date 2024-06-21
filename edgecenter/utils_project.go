@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
@@ -60,10 +59,10 @@ func GetProject(provider *edgecloud.ProviderClient, projectID int, projectName s
 func GetProjectV2(
 	ctx context.Context,
 	clientV2 *edgecloudV2.Client,
-	projectID,
+	projectID int,
 	projectName string,
 ) (*edgecloudV2.Project, error) {
-	if projectID != "" {
+	if projectID != 0 {
 		p, err := GetProjectByIDV2(ctx, clientV2, projectID)
 		if err != nil {
 			return nil, err
@@ -112,17 +111,17 @@ func findProjectByNameV2(
 // Returns the project if found, otherwise returns an error.
 func findProjectByIDV2(
 	arr []edgecloudV2.Project,
-	id string,
+	id int,
 ) (*edgecloudV2.Project, error) {
 	// TODO remove when upgrading to a new version golang and use slices.IndexFunc - https://tracker.yandex.ru/CLOUDDEV-456.
 	index := IndexFunc(arr, func(p edgecloudV2.Project) bool {
-		return strconv.Itoa(p.ID) == id
+		return p.ID == id
 	})
 	if index != -1 {
 		return &arr[index], nil
 	}
 
-	return nil, fmt.Errorf("project with id %s not found", id)
+	return nil, fmt.Errorf("project with id %d not found", id)
 }
 
 // GetProjectByNameV2 returns a valid project for a resource.
@@ -158,7 +157,7 @@ func GetProjectByNameV2(
 func GetProjectByIDV2(
 	ctx context.Context,
 	client *edgecloudV2.Client,
-	projectID string,
+	projectID int,
 ) (*edgecloudV2.Project, error) {
 	log.Println("[DEBUG] Try to get project ID")
 	projectsList, _, err := client.Projects.List(ctx, nil)

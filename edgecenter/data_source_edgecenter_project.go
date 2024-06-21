@@ -15,7 +15,7 @@ func dataSourceProject() *schema.Resource {
 		Description: "Represent project data.",
 		Schema: map[string]*schema.Schema{
 			IDField: {
-				Type:         schema.TypeString,
+				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
 				Description:  "Project ID.",
@@ -65,9 +65,9 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interf
 	clientV2 := config.CloudClient
 
 	projectName := d.Get(NameField).(string)
-	projectID := d.Get(IDField).(string)
+	projectID := d.Get(IDField).(int)
 
-	log.Printf("[DEBUG] project id = %s", projectID)
+	log.Printf("[DEBUG] project id = %d", projectID)
 
 	project, err := GetProjectV2(ctx, clientV2, projectID, projectName)
 	if err != nil {
