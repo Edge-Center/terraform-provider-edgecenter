@@ -242,7 +242,6 @@ resource "edgecenter_lbmember" "lbm2" {
 - `api_endpoint` (String) A single API endpoint for all products. Will be used when specific product API url is not defined.
 - `edgecenter_api` (String, Deprecated) Region API
 - `edgecenter_cdn_api` (String) CDN API (define only if you want to override CDN API endpoint)
-- `edgecenter_client_id` (String) Client id
 - `edgecenter_cloud_api` (String) Region API (define only if you want to override Region API endpoint)
 - `edgecenter_dns_api` (String) DNS API (define only if you want to override DNS API endpoint)
 - `edgecenter_platform` (String, Deprecated) Platform URL is used for generate JWT

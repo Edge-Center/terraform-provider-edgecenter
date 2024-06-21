@@ -28,7 +28,7 @@ data "edgecenter_project" "pr" {
 ### Optional
 
 - `client_id` (Number) The ID of the client.
-- `id` (String) Project ID.
+- `id` (Number) Project ID.
 - `name` (String) Displayed project name.
 
 ### Read-Only

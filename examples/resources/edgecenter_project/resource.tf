@@ -3,6 +3,6 @@ provider "edgecenter" {
 }
 
 resource "edgecenter_project" "project_resource_name" {
-  name = "test"
+  name        = "test"
   description = "test description"
 }
