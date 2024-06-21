@@ -175,7 +175,7 @@ func ExtractHostAndPath(uri string) (string, string, error) {
 // nolint: nonamedreturns
 func GetRegionIDandProjectID(
 	ctx context.Context,
-	client *edgecloudV2.Client,
+	client edgecloudV2.Client,
 	d *schema.ResourceData,
 ) (regionID int, projectID int, err error) {
 	regionID, err = GetRegionID(ctx, client, d)
@@ -192,7 +192,7 @@ func GetRegionIDandProjectID(
 
 func GetRegionID(
 	ctx context.Context,
-	client *edgecloudV2.Client,
+	client edgecloudV2.Client,
 	d *schema.ResourceData,
 ) (int, error) {
 	rID, IDOk := d.GetOk("region_id")
@@ -212,7 +212,7 @@ func GetRegionID(
 
 func GetProjectID(
 	ctx context.Context,
-	client *edgecloudV2.Client,
+	client edgecloudV2.Client,
 	d *schema.ResourceData,
 ) (int, error) {
 	pID, IDOk := d.GetOk("project_id")

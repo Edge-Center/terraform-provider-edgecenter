@@ -502,7 +502,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	log.Printf("[DEBUG] Instance create options: %+v", createOpts)
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Instances.Create, &createOpts, clientV2, InstanceCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Instances.Create, &createOpts, &clientV2, InstanceCreateTimeout)
 	if err != nil {
 		return diag.Errorf("error creating instance: %s", err)
 	}
@@ -755,7 +755,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 		taskID := result.Tasks[0]
 		log.Printf("[DEBUG] Task id (%s)", taskID)
-		task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, InstanceUpdateTimeout)
+		task, err := utilV2.WaitAndGetTaskInfo(ctx, &clientV2, taskID, InstanceUpdateTimeout)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -1044,7 +1044,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 	}
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, InstanceDeleteTimeout)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, &clientV2, taskID, InstanceDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

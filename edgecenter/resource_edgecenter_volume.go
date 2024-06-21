@@ -165,7 +165,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Volumes.Create, opts, clientV2, VolumeCreatingTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Volumes.Create, opts, &clientV2, VolumeCreatingTimeout)
 	if err != nil {
 		return diag.Errorf("error creating volume: %s", err)
 	}
@@ -267,7 +267,7 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 				if err != nil {
 					return diag.FromErr(err)
 				}
-				if err = utilV2.WaitForTaskComplete(ctx, clientV2, task.Tasks[0], volumeExtendingTimeout); err != nil {
+				if err = utilV2.WaitForTaskComplete(ctx, &clientV2, task.Tasks[0], volumeExtendingTimeout); err != nil {
 					return diag.FromErr(err)
 				}
 			} else {
@@ -339,7 +339,7 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	log.Printf("[INFO] Deleting volume: %s", d.Id())
-	if err = utilV2.DeleteResourceIfExist(ctx, clientV2, clientV2.Volumes, d.Id(), volumeDeletingTimeout); err != nil {
+	if err = utilV2.DeleteResourceIfExist(ctx, &clientV2, clientV2.Volumes, d.Id(), volumeDeletingTimeout); err != nil {
 		return diag.Errorf("Error deleting volume: %s", err)
 	}
 	d.SetId("")

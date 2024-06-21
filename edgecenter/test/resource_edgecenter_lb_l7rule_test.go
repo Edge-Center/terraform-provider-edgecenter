@@ -53,7 +53,7 @@ func TestAccLBL7RuleResource(t *testing.T) {
 	}
 
 	t.Log("trying to create l7Policy...")
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.L7Policies.Create, &l7CreateOpts, client, edgecenter.LBL7PolicyCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.L7Policies.Create, &l7CreateOpts, &client, edgecenter.LBL7PolicyCreateTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -172,7 +172,7 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	taskID := results.Tasks[0]
 
-	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, LBMemberCreateTimeout)
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, &clientV2, taskID, LBMemberCreateTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -285,7 +285,7 @@ func resourceLBMemberUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	taskID := results.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, LBMemberUpdateTimeout)
+	err = utilV2.WaitForTaskComplete(ctx, &clientV2, taskID, LBMemberUpdateTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -325,7 +325,7 @@ func resourceLBMemberDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	taskID := results.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, LBMemberDeleteTimeout)
+	err = utilV2.WaitForTaskComplete(ctx, &clientV2, taskID, LBMemberDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -316,6 +316,8 @@ func TestAccInstance(t *testing.T) {
 		return template + "\n}"
 	}
 
+	t.Log(instanceTemplate(&create))
+
 	resourceName := "edgecenter_instance.acctest"
 
 	resource.Test(t, resource.TestCase{

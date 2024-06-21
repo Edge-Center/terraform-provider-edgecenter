@@ -333,7 +333,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 			}
 
 			taskID := results.Tasks[0]
-			err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, LBListenerDeleteTimeout)
+			err = utilV2.WaitForTaskComplete(ctx, &clientV2, taskID, LBListenerDeleteTimeout)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -355,7 +355,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 				opts.SNISecretID = sniSecretID
 			}
 
-			_, err = utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.ListenerCreate, &opts, clientV2, LBListenerCreateTimeout)
+			_, err = utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.ListenerCreate, &opts, &clientV2, LBListenerCreateTimeout)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -378,7 +378,7 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 			taskID := task.Tasks[0]
 
-			err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, LBListenerUpdateTimeout)
+			err = utilV2.WaitForTaskComplete(ctx, &clientV2, taskID, LBListenerUpdateTimeout)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -432,7 +432,7 @@ func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m i
 
 	taskID := results.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, LoadBalancerDeleteTimeout)
+	err = utilV2.WaitForTaskComplete(ctx, &clientV2, taskID, LoadBalancerDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

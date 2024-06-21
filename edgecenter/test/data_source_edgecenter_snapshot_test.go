@@ -38,7 +38,7 @@ func TestAccSnapshotDataSource(t *testing.T) {
 		VolumeID: volumeID,
 	}
 
-	taskResultCreate, err := utilV2.ExecuteAndExtractTaskResult(ctx, cfg.CloudClient.Snapshots.Create, &snapshotOpts, cfg.CloudClient)
+	taskResultCreate, err := utilV2.ExecuteAndExtractTaskResult(ctx, cfg.CloudClient.Snapshots.Create, &snapshotOpts, &cfg.CloudClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestAccSnapshotDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = utilV2.WaitForTaskComplete(ctx, cfg.CloudClient, taskSnapshotsDelete.Tasks[0])
+	err = utilV2.WaitForTaskComplete(ctx, &cfg.CloudClient, taskSnapshotsDelete.Tasks[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestAccSnapshotDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = utilV2.WaitForTaskComplete(ctx, cfg.CloudClient, taskVolumesDelete.Tasks[0])
+	err = utilV2.WaitForTaskComplete(ctx, &cfg.CloudClient, taskVolumesDelete.Tasks[0])
 	if err != nil {
 		t.Fatal(err)
 	}

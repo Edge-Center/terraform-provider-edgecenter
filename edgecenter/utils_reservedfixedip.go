@@ -12,7 +12,7 @@ import (
 
 const ReservedFixedIPVIPDisabledPortSecurityErrMsg = "Port Security must be enabled in order to have allowed address pairs on a port"
 
-func assignAllowedAddressPairs(ctx context.Context, client *edgecloudV2.Client, portID string, allowedAddressPairs []interface{}) error {
+func assignAllowedAddressPairs(ctx context.Context, client edgecloudV2.Client, portID string, allowedAddressPairs []interface{}) error {
 	allowedAddressPairsRequest := edgecloudV2.PortsAllowedAddressPairsRequest{}
 	for _, p := range allowedAddressPairs {
 		pair := p.(map[string]interface{})
@@ -30,7 +30,7 @@ func assignAllowedAddressPairs(ctx context.Context, client *edgecloudV2.Client, 
 	return nil
 }
 
-func retryReplaceInstancePorts(ctx context.Context, client *edgecloudV2.Client, portID string, addInstancePortsRequest edgecloudV2.AddInstancePortsRequest) error {
+func retryReplaceInstancePorts(ctx context.Context, client edgecloudV2.Client, portID string, addInstancePortsRequest edgecloudV2.AddInstancePortsRequest) error {
 	return retry.Run(
 		ctx,
 		retry.Limit(4),                 // <-- Limit retries
@@ -46,7 +46,7 @@ func retryReplaceInstancePorts(ctx context.Context, client *edgecloudV2.Client, 
 		})
 }
 
-func retryAddInstancePorts(ctx context.Context, client *edgecloudV2.Client, portID string, addInstancePortsRequest edgecloudV2.AddInstancePortsRequest) error {
+func retryAddInstancePorts(ctx context.Context, client edgecloudV2.Client, portID string, addInstancePortsRequest edgecloudV2.AddInstancePortsRequest) error {
 	return retry.Run(
 		ctx,
 		retry.Limit(4),                 // <-- Limit retries
@@ -62,7 +62,7 @@ func retryAddInstancePorts(ctx context.Context, client *edgecloudV2.Client, port
 		})
 }
 
-func retryAllowedAddressPairs(ctx context.Context, client *edgecloudV2.Client, portID string, allowedAddressPairs []interface{}) error {
+func retryAllowedAddressPairs(ctx context.Context, client edgecloudV2.Client, portID string, allowedAddressPairs []interface{}) error {
 	return retry.Run(
 		ctx,
 		retry.Limit(4),                 // <-- Limit retries

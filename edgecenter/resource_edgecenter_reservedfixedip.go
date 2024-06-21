@@ -239,7 +239,7 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 
 	opts.Type = edgecloudV2.ReservedFixedIPType(portType)
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.ReservedFixedIP.Create, opts, clientV2, ReservedFixedIPCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.ReservedFixedIP.Create, opts, &clientV2, ReservedFixedIPCreateTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -485,7 +485,7 @@ func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, 
 
 	taskID := results.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, ReservedFixedIPDeleteTimeout)
+	err = utilV2.WaitForTaskComplete(ctx, &clientV2, taskID, ReservedFixedIPDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

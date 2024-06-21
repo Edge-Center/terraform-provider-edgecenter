@@ -171,7 +171,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
 
-	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, NetworkCreatingTimeout)
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, &clientV2, taskID, NetworkCreatingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -304,7 +304,7 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
 
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, NetworkDeletingTimeout)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, &clientV2, taskID, NetworkDeletingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

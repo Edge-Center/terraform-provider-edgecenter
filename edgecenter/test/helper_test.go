@@ -225,8 +225,8 @@ func createTestLoadBalancerWithListener(client *edgecloud.ServiceClient, opts lo
 	return lbID.(string), nil
 }
 
-func createTestLoadBalancerWithListenerV2(ctx context.Context, client *edgecloudV2.Client, opts edgecloudV2.LoadbalancerCreateRequest) (string, error) {
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Loadbalancers.Create, &opts, client, edgecenter.LoadBalancerCreateTimeout)
+func createTestLoadBalancerWithListenerV2(ctx context.Context, client edgecloudV2.Client, opts edgecloudV2.LoadbalancerCreateRequest) (string, error) {
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Loadbalancers.Create, &opts, &client, edgecenter.LoadBalancerCreateTimeout)
 	if err != nil {
 		return "", err
 	}
@@ -259,8 +259,8 @@ func createTestVolume(client *edgecloud.ServiceClient, opts volumes.CreateOpts) 
 	return volumeID.(string), nil
 }
 
-func createTestVolumeV2(ctx context.Context, client *edgecloudV2.Client, opts *edgecloudV2.VolumeCreateRequest) (string, error) {
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Volumes.Create, opts, client)
+func createTestVolumeV2(ctx context.Context, client edgecloudV2.Client, opts *edgecloudV2.VolumeCreateRequest) (string, error) {
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Volumes.Create, opts, &client)
 	if err != nil {
 		return "", err
 	}

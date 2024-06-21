@@ -50,7 +50,7 @@ func TestAccLBL7PolicyDataSource(t *testing.T) {
 		RedirectPrefix: "https://test-prfix.ru/",
 	}
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.L7Policies.Create, &l7CreateOpts, client, edgecenter.LBL7PolicyCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.L7Policies.Create, &l7CreateOpts, &client, edgecenter.LBL7PolicyCreateTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}

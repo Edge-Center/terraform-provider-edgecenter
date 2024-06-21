@@ -257,7 +257,7 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		SessionPersistence:    sessionOpts,
 	}
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.PoolCreate, &edgecloudV2.PoolCreateRequest{LoadbalancerPoolCreateRequest: opts}, clientV2, LBPoolsCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Loadbalancers.PoolCreate, &edgecloudV2.PoolCreateRequest{LoadbalancerPoolCreateRequest: opts}, &clientV2, LBPoolsCreateTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -387,7 +387,7 @@ func resourceLBPoolUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	taskID := task.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, LBPoolsUpdateTimeout)
+	err = utilV2.WaitForTaskComplete(ctx, &clientV2, taskID, LBPoolsUpdateTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -425,7 +425,7 @@ func resourceLBPoolDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	taskID := results.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, LBPoolsDeleteTimeout)
+	err = utilV2.WaitForTaskComplete(ctx, &clientV2, taskID, LBPoolsDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -295,7 +295,7 @@ func providerConfigure(
 	cdnService := cdn.NewService(cdnProvider)
 
 	config := Config{
-		CloudClient: cloudClient,
+		CloudClient: *cloudClient,
 		Provider:    provider,
 		CDNClient:   cdnService,
 	}
@@ -348,5 +348,5 @@ func InitCloudClient(ctx context.Context, d *schema.ResourceData, m interface{})
 	clientV2.Region = regionID
 	clientV2.Project = projectID
 
-	return clientV2, nil
+	return &clientV2, nil
 }

@@ -360,7 +360,7 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 		createRequest.Metadata = *metadata
 	}
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Instances.BareMetalCreateInstance, &createRequest, clientV2, bmCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Instances.BareMetalCreateInstance, &createRequest, &clientV2, bmCreateTimeout)
 	if err != nil {
 		return diag.Errorf("error creating instance: %s", err)
 	}
@@ -718,7 +718,7 @@ func resourceBmInstanceDelete(ctx context.Context, d *schema.ResourceData, m int
 	}
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, bmDeleteTimeout)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, &clientV2, taskID, bmDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

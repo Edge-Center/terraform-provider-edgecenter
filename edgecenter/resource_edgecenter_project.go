@@ -155,7 +155,7 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	taskID := results.Tasks[0]
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, ProjectDeleteTimeout)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, &clientV2, taskID, ProjectDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

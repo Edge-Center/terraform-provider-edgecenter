@@ -177,7 +177,7 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		opts.Expiration = &rawTime
 	}
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Secrets.CreateV2, opts, clientV2, SecretCreatingTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Secrets.CreateV2, opts, &clientV2, SecretCreatingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -264,7 +264,7 @@ func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	taskID := results.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, SecretDeletingTimeout)
+	err = utilV2.WaitForTaskComplete(ctx, &clientV2, taskID, SecretDeletingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

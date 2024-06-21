@@ -58,7 +58,7 @@ func GetProject(provider *edgecloud.ProviderClient, projectID int, projectName s
 
 func GetProjectV2(
 	ctx context.Context,
-	clientV2 *edgecloudV2.Client,
+	clientV2 edgecloudV2.Client,
 	projectID int,
 	projectName string,
 ) (*edgecloudV2.Project, error) {
@@ -156,7 +156,7 @@ func GetProjectByNameV2(
 // Returns an error if the project is not found or there is an issue with the client.
 func GetProjectByIDV2(
 	ctx context.Context,
-	client *edgecloudV2.Client,
+	client edgecloudV2.Client,
 	projectID int,
 ) (*edgecloudV2.Project, error) {
 	log.Println("[DEBUG] Try to get project ID")

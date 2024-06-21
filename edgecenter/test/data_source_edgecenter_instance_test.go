@@ -67,7 +67,7 @@ func TestAccInstanceDataSource(t *testing.T) {
 		},
 	}
 
-	taskResultCreate, err := utilV2.ExecuteAndExtractTaskResult(ctx, cfg.CloudClient.Instances.Create, &opts, cfg.CloudClient)
+	taskResultCreate, err := utilV2.ExecuteAndExtractTaskResult(ctx, cfg.CloudClient.Instances.Create, &opts, &cfg.CloudClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestAccInstanceDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = utilV2.WaitAndGetTaskInfo(ctx, cfg.CloudClient, taskResultDelete.Tasks[0])
+	_, err = utilV2.WaitAndGetTaskInfo(ctx, &cfg.CloudClient, taskResultDelete.Tasks[0])
 	if err != nil {
 		t.Fatal(err)
 	}

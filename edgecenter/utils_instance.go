@@ -260,7 +260,7 @@ func isInterfaceContains(verifiable map[string]interface{}, ifsSet []interface{}
 }
 
 // ServerV2StateRefreshFuncV2 returns a StateRefreshFunc to track the state of an instance using its instanceID.
-func ServerV2StateRefreshFuncV2(ctx context.Context, client *edgecloudV2.Client, instanceID string) retry.StateRefreshFunc {
+func ServerV2StateRefreshFuncV2(ctx context.Context, client edgecloudV2.Client, instanceID string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		s, _, err := client.Instances.Get(ctx, instanceID)
 		if err != nil {
@@ -325,7 +325,7 @@ func getMapDifference(iMapOld, iMapNew map[string]interface{}, uncheckedKeys []s
 }
 
 // detachInterfaceFromInstanceV2 detaches interface from an instance.
-func detachInterfaceFromInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID string, iface map[string]interface{}) error {
+func detachInterfaceFromInstanceV2(ctx context.Context, client edgecloudV2.Client, instanceID string, iface map[string]interface{}) error {
 	var opts edgecloudV2.InstanceDetachInterfaceRequest
 	opts.PortID = iface["port_id"].(string)
 	opts.IPAddress = iface["ip_address"].(string)
@@ -338,7 +338,7 @@ func detachInterfaceFromInstanceV2(ctx context.Context, client *edgecloudV2.Clie
 	}
 
 	taskID := result.Tasks[0]
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, &client, taskID)
 	if err != nil {
 		return err
 	}
@@ -351,7 +351,7 @@ func detachInterfaceFromInstanceV2(ctx context.Context, client *edgecloudV2.Clie
 }
 
 // attachInterfaceToInstance attach interface to instance.
-func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID string, iface map[string]interface{}) error {
+func attachInterfaceToInstanceV2(ctx context.Context, client edgecloudV2.Client, instanceID string, iface map[string]interface{}) error {
 	iType := edgecloudV2.InterfaceType(iface["type"].(string))
 	opts := edgecloudV2.InstanceAttachInterfaceRequest{Type: iType}
 
@@ -376,7 +376,7 @@ func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client
 	}
 
 	taskID := results.Tasks[0]
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, &client, taskID)
 	if err != nil {
 		return err
 	}
@@ -390,7 +390,7 @@ func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client
 
 // adjustPortSecurityDisabledOptV2 aligns the state of the interface (port_security_disabled) with what is specified in the
 // iface["port_security_disabled"].
-func adjustPortSecurityDisabledOptV2(ctx context.Context, client *edgecloudV2.Client, interfacesListAPI []edgecloudV2.InstancePortInterface, iface map[string]interface{}) error {
+func adjustPortSecurityDisabledOptV2(ctx context.Context, client edgecloudV2.Client, interfacesListAPI []edgecloudV2.InstancePortInterface, iface map[string]interface{}) error {
 	portSecurityDisabled := iface["port_security_disabled"].(bool)
 	IPAddress := iface["ip_address"].(string)
 	subnetID := iface["subnet_id"].(string)
@@ -429,7 +429,7 @@ LOOP:
 	return nil
 }
 
-func adjustAllPortsSecurityDisabledOpt(ctx context.Context, client *edgecloudV2.Client, instanceID string, ifs []interface{}) diag.Diagnostics {
+func adjustAllPortsSecurityDisabledOpt(ctx context.Context, client edgecloudV2.Client, instanceID string, ifs []interface{}) diag.Diagnostics {
 	diags := diag.Diagnostics{}
 	interfacesListAPI, _, err := client.Instances.InterfaceList(ctx, instanceID)
 	if err != nil {
@@ -448,7 +448,7 @@ func adjustAllPortsSecurityDisabledOpt(ctx context.Context, client *edgecloudV2.
 }
 
 // deleteServerGroupV2 removes a server group from an instance.
-func deleteServerGroupV2(ctx context.Context, client *edgecloudV2.Client, instanceID string) error {
+func deleteServerGroupV2(ctx context.Context, client edgecloudV2.Client, instanceID string) error {
 	log.Printf("[DEBUG] remove server group from instance: %s", instanceID)
 
 	results, _, err := client.Instances.RemoveFromServerGroup(ctx, instanceID)
@@ -456,7 +456,7 @@ func deleteServerGroupV2(ctx context.Context, client *edgecloudV2.Client, instan
 		return fmt.Errorf("error from removing server group. instanceId: %s, err: %w", instanceID, err)
 	}
 	taskID := results.Tasks[0]
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, &client, taskID)
 	if err != nil {
 		return err
 	}
@@ -469,7 +469,7 @@ func deleteServerGroupV2(ctx context.Context, client *edgecloudV2.Client, instan
 }
 
 // addServerGroupV2 adds a server group to an instance.
-func addServerGroupV2(ctx context.Context, client *edgecloudV2.Client, instanceID, sgID string) error {
+func addServerGroupV2(ctx context.Context, client edgecloudV2.Client, instanceID, sgID string) error {
 	log.Printf("[DEBUG] add server group to instance: %s", instanceID)
 
 	results, _, err := client.Instances.PutIntoServerGroup(ctx, instanceID, &edgecloudV2.InstancePutIntoServerGroupRequest{ServerGroupID: sgID})
@@ -477,7 +477,7 @@ func addServerGroupV2(ctx context.Context, client *edgecloudV2.Client, instanceI
 		return fmt.Errorf("failed to add server group %s to instance %s: %w", sgID, instanceID, err)
 	}
 	taskID := results.Tasks[0]
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, &client, taskID)
 	if err != nil {
 		return err
 	}
@@ -490,7 +490,7 @@ func addServerGroupV2(ctx context.Context, client *edgecloudV2.Client, instanceI
 }
 
 // removeSecurityGroupFromInstanceV2 removes one or more security groups from a specific instance port.
-func removeSecurityGroupFromInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, removeSGs []edgecloudV2.ID) error {
+func removeSecurityGroupFromInstanceV2(ctx context.Context, client edgecloudV2.Client, instanceID, portID string, removeSGs []edgecloudV2.ID) error {
 	for _, sg := range removeSGs {
 		sgInfo, _, err := client.SecurityGroups.Get(ctx, sg.ID)
 		if err != nil {
@@ -513,7 +513,7 @@ func removeSecurityGroupFromInstanceV2(ctx context.Context, client *edgecloudV2.
 }
 
 // attachSecurityGroupToInstance attaches one or more security groups to a specific instance port.
-func attachSecurityGroupToInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, addSGs []edgecloudV2.ID) error {
+func attachSecurityGroupToInstanceV2(ctx context.Context, client edgecloudV2.Client, instanceID, portID string, addSGs []edgecloudV2.ID) error {
 	for _, sg := range addSGs {
 		sgInfo, _, err := client.SecurityGroups.Get(ctx, sg.ID)
 		if err != nil {

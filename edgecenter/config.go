@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	Provider      *edgecloud.ProviderClient
-	CloudClient   *edgecloudV2.Client
+	CloudClient   edgecloudV2.Client
 	CDNClient     cdn.ClientService
 	StorageClient *storageSDK.SDK
 	DNSClient     *dnsSDK.Client

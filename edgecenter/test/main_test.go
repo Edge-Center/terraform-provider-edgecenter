@@ -319,7 +319,7 @@ func createTestConfig() (*edgecenter.Config, error) {
 
 	config := edgecenter.Config{
 		Provider:      provider,
-		CloudClient:   cloudClient,
+		CloudClient:   *cloudClient,
 		CDNClient:     cdnService,
 		StorageClient: storageClient,
 		DNSClient:     dnsClient,

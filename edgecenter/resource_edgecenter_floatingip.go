@@ -199,7 +199,7 @@ func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m int
 		opts.Metadata = *meta
 	}
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Floatingips.Create, opts, clientV2, FloatingIPCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Floatingips.Create, opts, &clientV2, FloatingIPCreateTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -357,7 +357,7 @@ func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	taskID := results.Tasks[0]
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, FloatingIPDeleteTimeout)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, &clientV2, taskID, FloatingIPDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}

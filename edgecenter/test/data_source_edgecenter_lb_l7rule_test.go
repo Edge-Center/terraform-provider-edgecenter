@@ -54,7 +54,7 @@ func TestAccLBL7RuleDataSource(t *testing.T) {
 	}
 
 	t.Log("trying to create l7Policy...")
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.L7Policies.Create, &l7CreateOpts, client, edgecenter.LBL7PolicyCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.L7Policies.Create, &l7CreateOpts, &client, edgecenter.LBL7PolicyCreateTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestAccLBL7RuleDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ruleTask, err := utilV2.WaitAndGetTaskInfo(ctx, client, result.Tasks[0])
+	ruleTask, err := utilV2.WaitAndGetTaskInfo(ctx, &client, result.Tasks[0])
 	if err != nil {
 		t.Fatal(err)
 	}

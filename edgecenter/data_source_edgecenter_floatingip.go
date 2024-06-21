@@ -154,13 +154,13 @@ func dataSourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m int
 	var foundFloatingIP *edgecloudV2.FloatingIP
 
 	if id, ok := d.GetOk("id"); ok {
-		floatingIP, err := util.FloatingIPDetailedByID(ctx, clientV2, id.(string))
+		floatingIP, err := util.FloatingIPDetailedByID(ctx, &clientV2, id.(string))
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		foundFloatingIP = floatingIP
 	} else if floatingIPAddress, ok := d.GetOk("floating_ip_address"); ok {
-		floatingIP, err := util.FloatingIPDetailedByIPAddress(ctx, clientV2, floatingIPAddress.(string))
+		floatingIP, err := util.FloatingIPDetailedByIPAddress(ctx, &clientV2, floatingIPAddress.(string))
 		if err != nil {
 			return diag.FromErr(err)
 		}

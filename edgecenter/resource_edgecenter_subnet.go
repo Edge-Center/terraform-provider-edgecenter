@@ -248,7 +248,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	log.Printf("Create subnet ops: %+v", createOpts)
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Subnetworks.Create, createOpts, clientV2, SubnetCreatingTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.Subnetworks.Create, createOpts, &clientV2, SubnetCreatingTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -438,7 +438,7 @@ func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	taskID := results.Tasks[0]
 
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
+	err = utilV2.WaitForTaskComplete(ctx, &clientV2, taskID)
 	if err != nil {
 		return diag.FromErr(err)
 	}

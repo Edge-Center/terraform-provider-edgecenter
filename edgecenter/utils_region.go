@@ -73,7 +73,7 @@ func findRegionByNameV2(arr []edgecloudV2.Region, name string) (int, error) {
 // If the regionID is provided, it will be returned directly.
 // If regionName is provided instead, the function will search for the region by name and return its ID.
 // Returns an error if the region is not found or there is an issue with the client.
-func GetRegionV2(ctx context.Context, client *edgecloudV2.Client, regionID int, regionName string) (int, error) {
+func GetRegionV2(ctx context.Context, client edgecloudV2.Client, regionID int, regionName string) (int, error) {
 	if regionID != 0 {
 		return regionID, nil
 	}
