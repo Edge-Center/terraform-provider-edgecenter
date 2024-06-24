@@ -70,12 +70,10 @@ resource "edgecenter_instanceV2" "instance" {
     volume_id = edgecenter_volume.second_volume.id
   }
 
-  interface {
-    type                   = "subnet"
-    network_id             = edgecenter_network.network.id
-    subnet_id              = edgecenter_subnet.subnet.id
-    security_groups        = ["d75db0b2-58f1-4a11-88c6-a932bb897310"]
-    port_security_disabled = true
+  interfaces {
+    type       = "subnet"
+    network_id = edgecenter_network.network.id
+    subnet_id  = edgecenter_subnet.subnet.id
   }
 
   metadata_map = {
@@ -159,7 +157,6 @@ resource "edgecenter_instanceV2" "v" {
 - `configuration` (Block List) A list of key-value pairs specifying configuration settings for the instance when created 
 from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."} (see [below for nested schema](#nestedblock--configuration))
 - `data_volumes` (Block Set) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedblock--data_volumes))
-- `flavor` (Map of String) A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.
 - `keypair_name` (String) The name of the key pair to be associated with the instance for SSH access.
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata_map` (Map of String) A map containing metadata, for example tags.
@@ -179,8 +176,8 @@ allowing you to start or stop the VM. Possible values are stopped and active.
 
 ### Read-Only
 
+- `flavor` (Map of String) A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.
 - `id` (String) The ID of this resource.
-- `security_group` (List of Object) A list of firewall configurations applied to the instance, defined by their ID and name. (see [below for nested schema](#nestedatt--security_group))
 
 <a id="nestedblock--boot_volumes"></a>
 ### Nested Schema for `boot_volumes`
@@ -206,13 +203,14 @@ Read-Only:
 
 Required:
 
-- `type` (String) Available values are 'subnet', 'any_subnet', 'external', 'reserved_fixed_ip'
+- `type` (String) Available values are 'subnet', 'external', 'reserved_fixed_ip'. You can't create more than one interface on the same subnet
 
 Optional:
 
-- `existing_fip_id` (String)
-- `fip_source` (String) Indicates whether the floating IP for this subnet will be new or reused. Available values are "new" or "existing".
-- `is_default` (Boolean) This field determines whether this interface will be connected first. The first connected interface defines the default routing. If you change this attribute, the IP address of interfaces connected earlier than the selected new default interface will change, if the reserved IP address is not used in these interfaces.
+- `is_default` (Boolean) This field determines whether this interface will be connected first. 
+The first connected interface defines the default routing. If you change this attribute, the IP address of interfaces 
+connected earlier than the selected new default interface will change, if the reserved IP address is not used in these 
+interfaces. You must always have exactly one interface with set attribute 'is_default.'
 - `network_id` (String) Required if type is 'subnet' or 'any_subnet'.
 - `reserved_fixed_ip_port_id` (String) required if type is  'reserved_fixed_ip'
 - `subnet_id` (String) Required if type is 'subnet'.
@@ -267,15 +265,6 @@ Read-Only:
 - `name` (String) The name assigned to the volume. Defaults to 'system'.
 - `size` (Number) The size of the volume, specified in gigabytes (GB).
 - `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.
-
-
-<a id="nestedatt--security_group"></a>
-### Nested Schema for `security_group`
-
-Read-Only:
-
-- `id` (String)
-- `name` (String)
 
 ## Import
 
