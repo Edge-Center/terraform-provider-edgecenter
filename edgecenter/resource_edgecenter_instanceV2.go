@@ -322,40 +322,6 @@ from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."
 allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceVMStateStopped, InstanceVMStateActive),
 				ValidateFunc: validation.StringInSlice([]string{InstanceVMStateActive, InstanceVMStateStopped}, true),
 			},
-			InstanceAddressesField: {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Computed:    true,
-				Description: `A list of network addresses associated with the instance, for example "pub_net": [...]`,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						InstanceAddressesNetField: {
-							Type:     schema.TypeList,
-							Required: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									InstanceAddressesAddrField: {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The net ip address, for example '45.147.163.112'.",
-									},
-									TypeField: {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The net type, for example 'fixed'.",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			LastUpdatedField: {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "The timestamp of the last update (use with update context).",
-			},
 		},
 	}
 }
@@ -576,23 +542,6 @@ func resourceInstanceReadV2(ctx context.Context, d *schema.ResourceData, m inter
 		if err = d.Set(MetadataField, newMetadata); err != nil {
 			return diag.FromErr(err)
 		}
-	}
-
-	addresses := []map[string][]map[string]string{}
-	for _, data := range instance.Addresses {
-		d := map[string][]map[string]string{}
-		netd := make([]map[string]string, len(data))
-		for i, iaddr := range data {
-			ndata := make(map[string]string, 2)
-			ndata[TypeField] = iaddr.Type
-			ndata[InstanceAddressesAddrField] = iaddr.Address.String()
-			netd[i] = ndata
-		}
-		d[InstanceAddressesNetField] = netd
-		addresses = append(addresses, d)
-	}
-	if err := d.Set(InstanceAddressesField, addresses); err != nil {
-		return diag.FromErr(err)
 	}
 
 	log.Println("[DEBUG] Finish Instance reading")
@@ -836,8 +785,6 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 			}
 		}
 	}
-
-	d.Set(LastUpdatedField, time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish Instance updating")
 
 	return resourceInstanceReadV2(ctx, d, m)
