@@ -421,7 +421,10 @@ func resourceInstanceCreateV2(ctx context.Context, d *schema.ResourceData, m int
 	ifsSet := ifsRaw.(*schema.Set)
 	ifs := ifsSet.List()
 	if len(ifs) > 0 {
-		ifaceCreateOptsList := extractInstanceV2InterfaceOptsToListCreate(ifs)
+		ifaceCreateOptsList, err := prepareInstanceInterfaceCreateOpts(ctx, clientV2, ifs)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 		createOpts.Interfaces = ifaceCreateOptsList
 	}
 
@@ -440,15 +443,6 @@ func resourceInstanceCreateV2(ctx context.Context, d *schema.ResourceData, m int
 			return diag.FromErr(err)
 		}
 		createOpts.Configuration = conf
-	}
-
-	if v, ok := d.GetOk(SecurityGroupsField); ok {
-		securityGroups := v.([]interface{})
-		sgsList := make([]edgecloudV2.ID, 0, len(securityGroups))
-		for _, sg := range securityGroups {
-			sgsList = append(sgsList, edgecloudV2.ID{ID: sg.(string)})
-		}
-		createOpts.SecurityGroups = sgsList
 	}
 
 	log.Printf("[DEBUG] Instance create options: %+v", createOpts)
@@ -732,10 +726,17 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 				return diag.FromErr(err)
 			}
 		}
-		for _, item := range ifsToAttachList {
-			attachIfs := item.(map[string]interface{})
-			if err := attachInstanceV2InterfaceToInstance(ctx, clientV2, instanceID, attachIfs); err != nil {
+
+		if len(ifsToAttachList) > 0 {
+			defaultSG, err := utilV2.FindDefaultSG(ctx, clientV2)
+			if err != nil {
 				return diag.FromErr(err)
+			}
+			for _, item := range ifsToAttachList {
+				attachIfs := item.(map[string]interface{})
+				if err := attachInstanceV2InterfaceToInstance(ctx, clientV2, instanceID, attachIfs, defaultSG); err != nil {
+					return diag.FromErr(err)
+				}
 			}
 		}
 	}

@@ -218,6 +218,19 @@ func extractInstanceV2InterfaceOptsToListCreate(interfaces []interface{}) []edge
 	return interfaceInstanceCreateOptsList
 }
 
+// prepareInstanceInterfaceCreateOpts prepares interface options for instance create request.
+func prepareInstanceInterfaceCreateOpts(ctx context.Context, client *edgecloudV2.Client, interfaces []interface{}) ([]edgecloudV2.InstanceInterface, error) {
+	ifsOpts := extractInstanceV2InterfaceOptsToListCreate(interfaces)
+	defaultSG, err := utilV2.FindDefaultSG(ctx, client)
+	if err != nil {
+		return nil, err
+	}
+	for idx := range ifsOpts {
+		ifsOpts[idx].SecurityGroups = []edgecloudV2.ID{{ID: defaultSG.ID}}
+	}
+	return ifsOpts, nil
+}
+
 // extractInstanceInterfaceToListRead creates a list of InterfaceOpts objects from a list of interfaces.
 func extractInstanceInterfaceToListRead(interfaces []interface{}) map[string]OrderedInterfaceOpts {
 	orderedInterfacesMap := make(map[string]OrderedInterfaceOpts)
@@ -514,11 +527,11 @@ func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client
 }
 
 // attachInstanceV2InterfaceToInstance attach interface to instanceV2.
-func attachInstanceV2InterfaceToInstance(ctx context.Context, client *edgecloudV2.Client, instanceID string, iface map[string]interface{}) error {
+func attachInstanceV2InterfaceToInstance(ctx context.Context, client *edgecloudV2.Client, instanceID string, iface map[string]interface{}, defaultSG *edgecloudV2.SecurityGroup) error {
 	iType := edgecloudV2.InterfaceType(iface[TypeField].(string))
 	opts := edgecloudV2.InstanceAttachInterfaceRequest{
 		Type:           iType,
-		SecurityGroups: make([]edgecloudV2.ID, 0),
+		SecurityGroups: []edgecloudV2.ID{{ID: defaultSG.ID}},
 	}
 
 	switch iType { // nolint: exhaustive
