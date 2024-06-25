@@ -266,7 +266,11 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	createSecurityGroupOpts.SecurityGroupRules = rules
 
 	if metadataRaw, ok := d.GetOk("metadata_map"); ok {
-		createSecurityGroupOpts.Metadata = metadataRaw.(edgecloudV2.Metadata)
+		metadataMap, err := MapInterfaceToMapString(metadataRaw)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		createSecurityGroupOpts.Metadata = *metadataMap
 	}
 
 	opts := edgecloudV2.SecurityGroupCreateRequest{
