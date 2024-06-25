@@ -7,12 +7,13 @@ require (
 	github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.2
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0
 	github.com/Edge-Center/edgecentercdn-go v0.1.5
-	github.com/Edge-Center/edgecentercloud-go v1.1.0
-	github.com/Edge-Center/edgecentercloud-go/v2 v2.1.1
+	github.com/Edge-Center/edgecentercloud-go v1.2.0
+	github.com/Edge-Center/edgecentercloud-go/v2 v2.1.2
 	github.com/connerdouglass/go-retry v1.0.1
 	github.com/hashicorp/go-cty v1.4.1-0.20200723130312-85980079f637
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.33.0
 	github.com/mitchellh/mapstructure v1.5.0
+	golang.org/x/sync v0.7.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -24,7 +25,7 @@ require (
 	github.com/avast/retry-go/v4 v4.6.0 // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/fatih/color v1.17.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.4 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
@@ -39,7 +40,7 @@ require (
 	github.com/go-openapi/validate v0.24.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.18.0 // indirect
+	github.com/go-playground/validator/v10 v10.22.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -50,7 +51,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-plugin v1.6.1 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.6 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/hc-install v0.6.4 // indirect
@@ -76,7 +77,7 @@ require (
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.8.3 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
@@ -86,13 +87,12 @@ require (
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
-	golang.org/x/crypto v0.23.0 // indirect
+	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
-	golang.org/x/tools v0.13.0 // indirect
+	golang.org/x/net v0.26.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240515191416-fc5f0ca64291 // indirect
 	google.golang.org/grpc v1.63.2 // indirect
