@@ -271,7 +271,7 @@ interfaces. You must always have exactly one interface with set attribute 'is_de
 				RequiredWith: []string{PasswordField},
 				Description:  "The username to be used for accessing the instance. Required with password.",
 			},
-			MetadataMapField: {
+			MetadataField: {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Description: "A map containing metadata, for example tags.",
@@ -428,7 +428,7 @@ func resourceInstanceCreateV2(ctx context.Context, d *schema.ResourceData, m int
 		createOpts.Interfaces = ifaceCreateOptsList
 	}
 
-	if metadataRaw, ok := d.GetOk(MetadataMapField); ok {
+	if metadataRaw, ok := d.GetOk(MetadataField); ok {
 		metadata, err := MapInterfaceToMapString(metadataRaw)
 		if err != nil {
 			diag.FromErr(err)
@@ -570,17 +570,19 @@ func resourceInstanceReadV2(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	metadata := d.Get(MetadataMapField).(map[string]interface{})
-	newMetadata := make(map[string]interface{}, len(metadata))
-	for k := range metadata {
-		md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
-		if err != nil {
-			return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
+	if metadataRaw, ok := d.GetOk(MetadataField); ok {
+		metadata := metadataRaw.(map[string]interface{})
+		newMetadata := make(map[string]interface{}, len(metadata))
+		for k := range metadata {
+			md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
+			if err != nil {
+				return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
+			}
+			newMetadata[k] = md.Value
 		}
-		newMetadata[k] = md.Value
-	}
-	if err := d.Set(MetadataMapField, newMetadata); err != nil {
-		return diag.FromErr(err)
+		if err = d.Set(MetadataField, newMetadata); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	addresses := []map[string][]map[string]string{}
@@ -648,8 +650,8 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 		}
 	}
 
-	if d.HasChange(MetadataMapField) {
-		omd, nmd := d.GetChange(MetadataMapField)
+	if d.HasChange(MetadataField) {
+		omd, nmd := d.GetChange(MetadataField)
 		if !reflect.DeepEqual(omd, nmd) {
 			MetaData := make(edgecloudV2.Metadata)
 			for k, v := range nmd.(map[string]interface{}) {
