@@ -61,7 +61,7 @@ resource "edgecenter_instanceV2" "instance" {
     subnet_id  = edgecenter_subnet.subnet.id
   }
 
-  metadata_map = {
+  metadata = {
     some_key = "some_value"
     stage    = "dev"
   }

@@ -76,7 +76,7 @@ resource "edgecenter_instanceV2" "instance" {
     subnet_id  = edgecenter_subnet.subnet.id
   }
 
-  metadata_map = {
+  metadata = {
     some_key = "some_value"
     stage    = "dev"
   }
@@ -159,7 +159,7 @@ from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."
 - `data_volumes` (Block Set) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedblock--data_volumes))
 - `keypair_name` (String) The name of the key pair to be associated with the instance for SSH access.
 - `last_updated` (String) The timestamp of the last update (use with update context).
-- `metadata_map` (Map of String) A map containing metadata, for example tags.
+- `metadata` (Map of String) A map containing metadata, for example tags.
 - `name` (String) The name of the instance.
 - `name_template` (String) A template used to generate the instance name. This field cannot be used with 'name_templates'.
 - `password` (String) The password to be used for accessing the instance. Required with username.
