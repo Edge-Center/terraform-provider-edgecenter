@@ -128,19 +128,11 @@ func dataSourceInstanceV2() *schema.Resource {
 				},
 			},
 			MetadataField: {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						KeyField: {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						ValueField: {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "A map containing metadata, for example tags.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
 				},
 			},
 			FlavorField: {
@@ -280,14 +272,11 @@ func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	sliced := make([]map[string]interface{}, 0, len(instance.Metadata))
-	for k, data := range instance.Metadata {
-		mdata := make(map[string]interface{}, 2)
-		mdata[KeyField] = k
-		mdata[ValueField] = data
-		sliced = append(sliced, mdata)
+	metadata := make(map[string]interface{}, len(instance.Metadata))
+	for key, value := range instance.Metadata {
+		metadata[key] = value
 	}
-	if err := d.Set(MetadataField, sliced); err != nil {
+	if err = d.Set(MetadataField, metadata); err != nil {
 		return diag.FromErr(err)
 	}
 
