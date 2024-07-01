@@ -279,15 +279,8 @@ func createTestConfig() (*edgecenter.Config, error) {
 	}
 
 	userAgent := fmt.Sprintf("terraform/%s", terraformVersion)
-	cloudClient, err := edgecloudV2.NewWithRetries(nil,
-		edgecloudV2.SetUserAgent(userAgent),
-		edgecloudV2.SetAPIKey(os.Getenv("EC_PERMANENT_TOKEN")),
-		edgecloudV2.SetBaseURL(os.Getenv("EC_API")),
-	)
-	if err != nil {
-		return nil, err
-	}
-	cloudClient.Region, cloudClient.Project, err = getRegionIDAndProjectID()
+	permanentToken := os.Getenv("EC_PERMANENT_TOKEN")
+	ecAPI := os.Getenv("EC_API")
 
 	if err != nil {
 		return nil, err
@@ -317,15 +310,30 @@ func createTestConfig() (*edgecenter.Config, error) {
 		}
 	}
 
-	config := edgecenter.Config{
-		Provider:      provider,
-		CloudClient:   cloudClient,
-		CDNClient:     cdnService,
-		StorageClient: storageClient,
-		DNSClient:     dnsClient,
-	}
+	config := edgecenter.NewConfig(provider, cdnService, storageClient, dnsClient, permanentToken, ecAPI, userAgent)
 
 	return &config, nil
+}
+
+func createTestCloudClient() (*edgecloudV2.Client, error) { //nolint:unused
+	config, err := createTestConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := edgecloudV2.NewWithRetries(nil,
+		edgecloudV2.SetUserAgent(config.UserAgent),
+		edgecloudV2.SetAPIKey(config.PermanentToken),
+		edgecloudV2.SetBaseURL(config.CloudBaseURL),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error from creating cloud client: %w", err)
+	}
+	client.Region, client.Project, err = getRegionIDAndProjectID()
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 //nolint:unused

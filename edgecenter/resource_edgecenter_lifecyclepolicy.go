@@ -269,16 +269,10 @@ func resourceLifecyclePolicy() *schema.Resource {
 }
 
 func resourceLifecyclePolicyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	config := m.(*Config)
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy creating")
 	opts, err := buildLifecyclePolicyCreateOptsV2(d)
@@ -296,19 +290,14 @@ func resourceLifecyclePolicyCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceLifecyclePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	config := m.(*Config)
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 	id := d.Id()
-	d.Set("region_id", regionID)
-	d.Set("project_id", projectID)
+	d.Set("region_id", clientV2.Region)
+	d.Set("project_id", clientV2.Project)
 	integerID, err := strconv.Atoi(id)
 	if err != nil {
 		return diag.Errorf("Error converting lifecycle policy ID to integer: %s", err)
@@ -337,16 +326,11 @@ func resourceLifecyclePolicyRead(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	config := m.(*Config)
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 	id := d.Id()
 	integerID, err := strconv.Atoi(id)
 	if err != nil {
@@ -380,16 +364,11 @@ func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceLifecyclePolicyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	config := m.(*Config)
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 	id := d.Id()
 	integerID, err := strconv.Atoi(id)
 	if err != nil {

@@ -176,16 +176,11 @@ func resourceReservedFixedIP() *schema.Resource {
 func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	opts := &edgecloudV2.ReservedFixedIPCreateRequest{}
 
@@ -283,16 +278,11 @@ func resourceReservedFixedIPCreate(ctx context.Context, d *schema.ResourceData, 
 func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	reservedFixedIP, resp, err := clientV2.ReservedFixedIP.Get(ctx, d.Id())
 	if err != nil {
@@ -358,16 +348,11 @@ func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m 
 func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP updating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	_, isVipNew := d.GetChange("is_vip")
 	isVip := isVipNew.(bool)
@@ -454,16 +439,11 @@ func resourceReservedFixedIPUpdate(ctx context.Context, d *schema.ResourceData, 
 func resourceReservedFixedIPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ReservedFixedIP deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	isVip := d.Get("is_vip").(bool)
 	if isVip {

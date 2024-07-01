@@ -44,6 +44,11 @@ const (
 	LifecyclePolicyResource      = "edgecenter_lifecyclepolicy"
 )
 
+type CloudClientConf struct {
+	DoNotUseRegionID  bool
+	DoNotUseProjectID bool
+}
+
 func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -253,7 +258,6 @@ func providerConfigure(
 
 	var err error
 	var provider *edgecloud.ProviderClient
-	var cloudClient *edgecloudV2.Client
 
 	if permanentToken != "" {
 		provider, err = ec.APITokenClient(edgecloud.APITokenOptions{
@@ -262,14 +266,6 @@ func providerConfigure(
 		})
 		if err != nil {
 			return nil, diag.FromErr(fmt.Errorf("edgecloud provider client create error: %w", err))
-		}
-		cloudClient, err = edgecloudV2.NewWithRetries(nil,
-			edgecloudV2.SetUserAgent(userAgent),
-			edgecloudV2.SetAPIKey(permanentToken),
-			edgecloudV2.SetBaseURL(cloudAPI),
-		)
-		if err != nil {
-			return nil, diag.FromErr(fmt.Errorf("edgecloud client create error: %w", err))
 		}
 	} else {
 		provider, err = ec.AuthenticatedClient(edgecloud.AuthOptions{
@@ -295,9 +291,11 @@ func providerConfigure(
 	cdnService := cdn.NewService(cdnProvider)
 
 	config := Config{
-		CloudClient: cloudClient,
-		Provider:    provider,
-		CDNClient:   cdnService,
+		PermanentToken: permanentToken,
+		CloudBaseURL:   cloudAPI,
+		UserAgent:      userAgent,
+		Provider:       provider,
+		CDNClient:      cdnService,
 	}
 
 	if storageAPI != "" {
@@ -336,17 +334,42 @@ func providerConfigure(
 	return &config, diags
 }
 
-func InitCloudClient(ctx context.Context, d *schema.ResourceData, m interface{}) (*edgecloudV2.Client, error) {
+func InitCloudClient(
+	ctx context.Context,
+	d *schema.ResourceData,
+	m interface{},
+	clientConf *CloudClientConf,
+) (*edgecloudV2.Client, error) {
 	config := m.(*Config)
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	client, err := config.newCloudClient()
 	if err != nil {
 		return nil, err
 	}
+	var projectID, regionID int
+	switch clientConf {
+	case nil:
+		regionID, projectID, err = GetRegionIDandProjectID(ctx, client, d)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		if !clientConf.DoNotUseRegionID {
+			regionID, err = GetRegionID(ctx, client, d)
+			if err != nil {
+				return nil, err
+			}
+		}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
+		if !clientConf.DoNotUseProjectID {
+			projectID, err = GetProjectID(ctx, client, d)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 
-	return clientV2, nil
+	client.Region = regionID
+	client.Project = projectID
+
+	return client, nil
 }

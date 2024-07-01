@@ -27,8 +27,16 @@ func dataSourceRegionRead(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Println("[DEBUG] Start Region reading")
 
 	name := d.Get("name").(string)
-	config := m.(*Config)
-	clientV2 := config.CloudClient
+
+	clientConf := CloudClientConf{
+		DoNotUseRegionID:  true,
+		DoNotUseProjectID: true,
+	}
+	clientV2, err := InitCloudClient(ctx, d, m, &clientConf)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	regionID, err := GetRegionV2(ctx, clientV2, 0, name)
 	if err != nil {
 		return diag.FromErr(err)

@@ -108,7 +108,7 @@ func dataSourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m inter
 	log.Println("[DEBUG] Start snapshot reading")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}

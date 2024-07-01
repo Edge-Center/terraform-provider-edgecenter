@@ -146,16 +146,11 @@ func resourceLoadBalancerV2() *schema.Resource {
 func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	opts := &edgecloudV2.LoadbalancerCreateRequest{
 		Name:         d.Get("name").(string),
@@ -196,16 +191,11 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	lb, _, err := clientV2.Loadbalancers.Get(ctx, d.Id())
 	if err != nil {
@@ -246,16 +236,11 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 
 func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer updating")
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	if d.HasChange("name") {
 		opts := &edgecloudV2.Name{
@@ -291,16 +276,11 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 func resourceLoadBalancerV2Delete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	id := d.Id()
 	results, resp, err := clientV2.Loadbalancers.Delete(ctx, id)

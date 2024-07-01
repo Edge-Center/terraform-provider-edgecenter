@@ -61,8 +61,15 @@ func dataSourceProject() *schema.Resource {
 
 func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Project reading")
-	config := m.(*Config)
-	clientV2 := config.CloudClient
+
+	clientConf := CloudClientConf{
+		DoNotUseRegionID:  true,
+		DoNotUseProjectID: true,
+	}
+	clientV2, err := InitCloudClient(ctx, d, m, &clientConf)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	projectName := d.Get(NameField).(string)
 	projectID := d.Get(IDField).(int)

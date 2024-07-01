@@ -19,11 +19,10 @@ func TestAccLBL7RuleResource(t *testing.T) {
 	//TODO: CLOUDDEV-862
 	t.Skip("skipping test due to issue with IPv6 validation")
 
-	cfg, err := createTestConfig()
+	client, err := createTestCloudClient()
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := cfg.CloudClient
 
 	t.Parallel()
 
@@ -131,8 +130,10 @@ func TestAccLBL7RuleResource(t *testing.T) {
 }
 
 func testAccLBL7RuleDestroy(s *terraform.State) error {
-	config := testAccProvider.Meta().(*edgecenter.Config)
-	client := config.CloudClient
+	client, err := createTestCloudClient()
+	if err != nil {
+		return err
+	}
 	ctx := context.Background()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type == "edgecenter_lb_l7rule" {

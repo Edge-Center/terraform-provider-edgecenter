@@ -183,16 +183,11 @@ func resourceSubnet() *schema.Resource {
 func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Subnet creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	createOpts := &edgecloudV2.SubnetworkCreateRequest{
 		Name:                   d.Get("name").(string),
@@ -267,19 +262,14 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 	log.Println("[DEBUG] Start subnet reading")
 	log.Printf("[DEBUG] Start subnet reading%s", d.State())
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
-	subnetID := d.Id()
-	log.Printf("[DEBUG] Subnet id = %s", subnetID)
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-
+	subnetID := d.Id()
+	log.Printf("[DEBUG] Subnet id = %s", subnetID)
 	subnet, _, err := clientV2.Subnetworks.Get(ctx, subnetID)
 	if err != nil {
 		return diag.Errorf("cannot get subnet with ID: %s. Error: %s", subnetID, err)
@@ -335,16 +325,11 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Println("[DEBUG] Start subnet updating")
 	subnetID := d.Id()
 	log.Printf("[DEBUG] Subnet id = %s", subnetID)
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	updateOpts := &edgecloudV2.SubnetworkUpdateRequest{}
 
@@ -412,20 +397,14 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start subnet deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	subnetID := d.Id()
-	log.Printf("[DEBUG] Subnet id = %s", subnetID)
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-
+	subnetID := d.Id()
+	log.Printf("[DEBUG] Subnet id = %s", subnetID)
 	results, resp, err := clientV2.Subnetworks.Delete(ctx, subnetID)
 	if err != nil {
 		if resp.StatusCode == http.StatusNotFound {

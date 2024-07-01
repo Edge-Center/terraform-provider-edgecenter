@@ -99,17 +99,11 @@ func resourceServerGroup() *schema.Resource {
 func resourceServerGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ServerGroup creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
 
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	opts := edgecloudV2.ServerGroupCreateRequest{
 		Name:   d.Get("name").(string),
@@ -131,18 +125,14 @@ func resourceServerGroupCreate(ctx context.Context, d *schema.ResourceData, m in
 func resourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ServerGroup reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-	d.Set("project_id", projectID)
-	d.Set("region_id", regionID)
+	d.Set("project_id", clientV2.Project)
+	d.Set("region_id", clientV2.Region)
 
 	serverGroup, _, err := clientV2.ServerGroups.Get(ctx, d.Id())
 	if err != nil {
@@ -171,16 +161,11 @@ func resourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m inte
 func resourceServerGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ServerGroup deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	_, err = clientV2.ServerGroups.Delete(ctx, d.Id())
 	if err != nil {

@@ -141,15 +141,10 @@ func dataSourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m int
 	log.Println("[DEBUG] Start FloatingIP reading")
 	var diags diag.Diagnostics
 
-	config := m.(*Config)
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	var foundFloatingIP *edgecloudV2.FloatingIP
 

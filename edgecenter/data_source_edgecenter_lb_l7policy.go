@@ -139,7 +139,7 @@ func dataSourceL7Policy() *schema.Resource {
 }
 
 func datasourceL7PolicyV2Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -185,7 +185,7 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 	log.Println("[DEBUG] Start LBListener creating")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -274,7 +274,7 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 	log.Println("[DEBUG] Start LBListener reading")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -315,7 +315,7 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener updating")
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -409,7 +409,7 @@ func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m int
 	log.Println("[DEBUG] Start LBListener deleting")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}

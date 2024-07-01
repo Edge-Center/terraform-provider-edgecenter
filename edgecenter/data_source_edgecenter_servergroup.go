@@ -72,16 +72,11 @@ func dataSourceServerGroup() *schema.Resource {
 
 func dataSourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start ServerGroup reading")
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, clientID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = clientID
 
 	var serverGroup edgecloudV2.ServerGroup
 	serverGroups, _, err := clientV2.ServerGroups.List(ctx)

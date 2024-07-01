@@ -273,17 +273,11 @@ func resourceBmInstance() *schema.Resource {
 func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start BaremetalInstance creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
 
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	ifs := d.Get("interface").([]interface{})
 	// sort interfaces by 'is_parent' at first and by 'order' key to attach it in right order
@@ -382,21 +376,17 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Baremetal Instance reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
+
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-	d.Set("region_id", regionID)
-	d.Set("project_id", projectID)
+	d.Set("region_id", clientV2.Region)
+	d.Set("project_id", clientV2.Project)
 
 	instance, resp, err := clientV2.Instances.Get(ctx, instanceID)
 	if err != nil {
@@ -573,16 +563,11 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 	log.Println("[DEBUG] Start Baremetal Instance updating")
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	if d.HasChange("name") {
 		nameTemplates := d.Get("name_templates").([]interface{})
@@ -697,16 +682,12 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 func resourceBmInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Baremetal Instance deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 	instanceID := d.Id()
 
 	var delOpts edgecloudV2.InstanceDeleteOptions

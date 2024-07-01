@@ -136,11 +136,8 @@ func resourceNetwork() *schema.Resource {
 func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Network creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	var err error
-	clientV2.Region, clientV2.Project, err = GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -198,11 +195,8 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interfac
 	log.Println("[DEBUG] Start network reading")
 	log.Printf("[DEBUG] Start network reading%s", d.State())
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	var err error
-	clientV2.Region, clientV2.Project, err = GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -244,11 +238,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	networkID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", networkID)
 
-	config := m.(*Config)
-	clientV2 := config.CloudClient
-
-	var err error
-	clientV2.Region, clientV2.Project, err = GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -287,11 +277,8 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 	networkID := d.Id()
 	log.Printf("[DEBUG] Network id = %s", networkID)
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	var err error
-	clientV2.Region, clientV2.Project, err = GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}

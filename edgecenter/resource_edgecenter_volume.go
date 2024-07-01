@@ -39,7 +39,10 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 				d.SetId(volumeID)
 
 				config := m.(*Config)
-				clientV2 := config.CloudClient
+				clientV2, err := config.newCloudClient()
+				if err != nil {
+					return nil, err
+				}
 
 				clientV2.Region = regionID
 				clientV2.Project = projectID
@@ -149,16 +152,11 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start volume creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	opts, err := getVolumeDataV2(d)
 	if err != nil {
@@ -189,16 +187,12 @@ func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface
 	log.Println("[DEBUG] Start volume reading")
 	log.Printf("[DEBUG] Start volume reading%s", d.State())
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 
@@ -235,16 +229,11 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Println("[DEBUG] Start volume updating")
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	volume, _, err := clientV2.Volumes.Get(ctx, volumeID)
 	if err != nil {
@@ -313,16 +302,12 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start volume deleting")
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 

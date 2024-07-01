@@ -175,16 +175,11 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	opts := &edgecloudV2.FloatingIPCreateRequest{
 		PortID:         d.Get("port_id").(string),
@@ -222,16 +217,12 @@ func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m int
 func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 	floatingIPs, response, err := clientV2.Floatingips.List(ctx)
 	if err != nil {
 		log.Printf("[WARN] Error while GET list floatingIPs. StstusCode: %d.", response.StatusCode)
@@ -284,16 +275,12 @@ func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m inter
 
 func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP updating")
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 	if d.HasChanges("fixed_ip_address", "port_id") {
 		oldFixedIP, newFixedIP := d.GetChange("fixed_ip_address")
 		oldPortID, newPortID := d.GetChange("port_id")
@@ -338,16 +325,11 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	id := d.Id()
 

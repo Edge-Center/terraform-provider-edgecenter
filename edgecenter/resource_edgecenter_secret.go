@@ -154,16 +154,11 @@ func resourceSecret() *schema.Resource {
 func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Secret creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	opts := &edgecloudV2.SecretCreateRequestV2{
 		Name: d.Get("name").(string),
@@ -198,20 +193,14 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start secret reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	secretID := d.Id()
-	log.Printf("[DEBUG] Secret id = %s", secretID)
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-
+	secretID := d.Id()
+	log.Printf("[DEBUG] Secret id = %s", secretID)
 	secret, _, err := clientV2.Secrets.Get(ctx, secretID)
 	if err != nil {
 		return diag.Errorf("cannot get secret with ID: %s. Error: %s", secretID, err.Error())
@@ -238,19 +227,14 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start secret deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	secretID := d.Id()
-	log.Printf("[DEBUG] Secret id = %s", secretID)
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
+	secretID := d.Id()
+	log.Printf("[DEBUG] Secret id = %s", secretID)
 
 	results, resp, err := clientV2.Secrets.Delete(ctx, secretID)
 	if err != nil {

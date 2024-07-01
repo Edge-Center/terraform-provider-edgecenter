@@ -116,16 +116,11 @@ func resourceSnapshot() *schema.Resource {
 func resourceSnapshotCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start snapshot creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	opts := getSnapshotData(d)
 
@@ -149,20 +144,14 @@ func resourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Println("[DEBUG] Start snapshot reading")
 	log.Printf("[DEBUG] Start snapshot reading %s", d.State())
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	snapshotID := d.Id()
-	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-
+	snapshotID := d.Id()
+	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
 	snapshot, _, err := clientV2.Snapshots.Get(ctx, snapshotID)
 	if err != nil {
 		return diag.Errorf("cannot get snapshot with ID: %s. Error: %s", snapshotID, err)
@@ -189,16 +178,10 @@ func resourceSnapshotUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	snapshotID := d.Id()
 
 	if d.HasChange("metadata") {
-		config := m.(*Config)
-		clientV2 := config.CloudClient
-
-		regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+		clientV2, err := InitCloudClient(ctx, d, m, nil)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		clientV2.Region = regionID
-		clientV2.Project = projectID
 
 		newMeta := prepareRawMetadata(d.Get("metadata").(map[string]interface{}))
 
@@ -217,20 +200,14 @@ func resourceSnapshotUpdate(ctx context.Context, d *schema.ResourceData, m inter
 func resourceSnapshotDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start snapshot deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	snapshotID := d.Id()
-	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-
+	snapshotID := d.Id()
+	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
 	results, resp, err := clientV2.Snapshots.Delete(ctx, snapshotID)
 	if err != nil {
 		if resp.StatusCode == http.StatusNotFound {

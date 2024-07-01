@@ -73,8 +73,16 @@ func resourceProject() *schema.Resource {
 
 func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Project creating")
-	config := m.(*Config)
-	clientV2 := config.CloudClient
+
+	clientConf := CloudClientConf{
+		DoNotUseRegionID:  true,
+		DoNotUseProjectID: true,
+	}
+	clientV2, err := InitCloudClient(ctx, d, m, &clientConf)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	opts := &edgecloudV2.ProjectCreateRequest{
 		Name:        d.Get(NameField).(string),
 		Description: d.Get(DescriptionField).(string),
@@ -101,8 +109,14 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start FloatingIP reading")
-	config := m.(*Config)
-	clientV2 := config.CloudClient
+	clientConf := CloudClientConf{
+		DoNotUseRegionID:  true,
+		DoNotUseProjectID: true,
+	}
+	clientV2, err := InitCloudClient(ctx, d, m, &clientConf)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	project, response, err := clientV2.Projects.Get(ctx, d.Id())
 	if err != nil {
@@ -125,15 +139,21 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 
 func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Project updating")
-	config := m.(*Config)
-	clientV2 := config.CloudClient
+	clientConf := CloudClientConf{
+		DoNotUseRegionID:  true,
+		DoNotUseProjectID: true,
+	}
+	clientV2, err := InitCloudClient(ctx, d, m, &clientConf)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	updateOpts := edgecloudV2.ProjectUpdateRequest{}
 
 	updateOpts.Name = d.Get(NameField).(string)
 	updateOpts.Description = d.Get(DescriptionField).(string)
 
-	_, _, err := clientV2.Projects.Update(ctx, d.Id(), &updateOpts)
+	_, _, err = clientV2.Projects.Update(ctx, d.Id(), &updateOpts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -144,8 +164,14 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Project deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
+	clientConf := CloudClientConf{
+		DoNotUseRegionID:  true,
+		DoNotUseProjectID: true,
+	}
+	clientV2, err := InitCloudClient(ctx, d, m, &clientConf)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	id := d.Id()
 

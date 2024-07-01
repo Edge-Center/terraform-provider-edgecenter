@@ -14,12 +14,10 @@ import (
 )
 
 func TestAccSnapshotDataSource(t *testing.T) {
-	cfg, err := createTestConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	ctx := context.Background()
+
+	client, err := createTestCloudClient()
 
 	volumeOpts := edgecloudV2.VolumeCreateRequest{
 		Name:     "test-snapshot-volume",
@@ -28,7 +26,7 @@ func TestAccSnapshotDataSource(t *testing.T) {
 		TypeName: edgecloudV2.VolumeTypeStandard,
 	}
 
-	volumeID, err := createTestVolumeV2(ctx, cfg.CloudClient, &volumeOpts)
+	volumeID, err := createTestVolumeV2(ctx, client, &volumeOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +36,7 @@ func TestAccSnapshotDataSource(t *testing.T) {
 		VolumeID: volumeID,
 	}
 
-	taskResultCreate, err := utilV2.ExecuteAndExtractTaskResult(ctx, cfg.CloudClient.Snapshots.Create, &snapshotOpts, cfg.CloudClient)
+	taskResultCreate, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Snapshots.Create, &snapshotOpts, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,29 +69,29 @@ func TestAccSnapshotDataSource(t *testing.T) {
 		},
 	})
 
-	taskSnapshotsDelete, _, err := cfg.CloudClient.Snapshots.Delete(ctx, snapshotID)
+	taskSnapshotsDelete, _, err := client.Snapshots.Delete(ctx, snapshotID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = utilV2.WaitForTaskComplete(ctx, cfg.CloudClient, taskSnapshotsDelete.Tasks[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := utilV2.ResourceIsDeleted(ctx, cfg.CloudClient.Snapshots.Get, snapshotID); err != nil {
-		t.Fatal(err)
-	}
-
-	taskVolumesDelete, _, err := cfg.CloudClient.Volumes.Delete(ctx, volumeID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = utilV2.WaitForTaskComplete(ctx, cfg.CloudClient, taskVolumesDelete.Tasks[0])
+	err = utilV2.WaitForTaskComplete(ctx, client, taskSnapshotsDelete.Tasks[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := utilV2.ResourceIsDeleted(ctx, cfg.CloudClient.Volumes.Get, volumeID); err != nil {
+	if err := utilV2.ResourceIsDeleted(ctx, client.Snapshots.Get, snapshotID); err != nil {
+		t.Fatal(err)
+	}
+
+	taskVolumesDelete, _, err := client.Volumes.Delete(ctx, volumeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = utilV2.WaitForTaskComplete(ctx, client, taskVolumesDelete.Tasks[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := utilV2.ResourceIsDeleted(ctx, client.Volumes.Get, volumeID); err != nil {
 		t.Fatal(err)
 	}
 }

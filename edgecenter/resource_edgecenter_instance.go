@@ -398,17 +398,11 @@ allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceV
 func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Instance creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
 
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	diags = validateInstanceResourceAttrs(d)
 	if diags.HasError() {
@@ -528,21 +522,17 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Instance reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
+
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-	d.Set("region_id", regionID)
-	d.Set("project_id", projectID)
+	d.Set("region_id", clientV2.Region)
+	d.Set("project_id", clientV2.Project)
 
 	instance, resp, err := clientV2.Instances.Get(ctx, instanceID)
 	if err != nil {
@@ -719,17 +709,11 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	instanceID := d.Id()
 
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
-	config := m.(*Config)
 
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	diags := validateInstanceResourceAttrs(d)
 	if diags.HasError() {
@@ -1024,16 +1008,12 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Instance deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 

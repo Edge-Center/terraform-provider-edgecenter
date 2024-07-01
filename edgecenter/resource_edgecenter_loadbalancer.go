@@ -45,7 +45,10 @@ func resourceLoadBalancer() *schema.Resource {
 				d.SetId(lbID)
 
 				config := m.(*Config)
-				clientV2 := config.CloudClient
+				clientV2, err := config.newCloudClient()
+				if err != nil {
+					return nil, err
+				}
 
 				clientV2.Region = regionID
 				clientV2.Project = projectID
@@ -224,16 +227,11 @@ func resourceLoadBalancerCreate(_ context.Context, _ *schema.ResourceData, _ int
 func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	lb, _, err := clientV2.Loadbalancers.Get(ctx, d.Id())
 	if err != nil {
@@ -295,16 +293,11 @@ func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m int
 
 func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer updating")
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	if d.HasChange("name") {
 		opts := &edgecloudV2.Name{
@@ -408,16 +401,11 @@ func resourceLoadBalancerUpdate(ctx context.Context, d *schema.ResourceData, m i
 func resourceLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	id := d.Id()
 	results, resp, err := clientV2.Loadbalancers.Delete(ctx, id)

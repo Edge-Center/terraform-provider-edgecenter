@@ -254,18 +254,16 @@ func TestAccInstance(t *testing.T) {
 			%[8]s
 		}
 
-		// TODO: enable keypair after fix https://tracker.yandex.ru/CLOUDDEV-832
-        // resource "edgecenter_keypair" "kp" {
-  		// 	sshkey_name = "%[2]s"
-        //     public_key = "%[3]s"
-        //     %[8]s
-		// }
+        resource "edgecenter_keypair" "kp" {
+  			sshkey_name = "%[2]s"
+            public_key = "%[3]s"
+            %[8]s
+		}
 
         resource "edgecenter_instance" "acctest" {
 			flavor_id = "%[4]s"
            	name = local.names
-		    // TODO: enable keypair after fix https://tracker.yandex.ru/CLOUDDEV-832
-           	// keypair_name = edgecenter_keypair.kp.sshkey_name
+           	keypair_name = edgecenter_keypair.kp.sshkey_name
            	password = "%[5]s"
            	username = "%[6]s"
 
@@ -372,8 +370,7 @@ func checkInstanceAttrs(resourceName string, opts *instances.CreateOpts) resourc
 		checksStore := []resource.TestCheckFunc{
 			resource.TestCheckResourceAttr(resourceName, "name", opts.Names[0]),
 			resource.TestCheckResourceAttr(resourceName, "flavor_id", opts.Flavor),
-			// TODO: enable keypair after fix https://tracker.yandex.ru/CLOUDDEV-832
-			// resource.TestCheckResourceAttr(resourceName, "keypair_name", opts.Keypair),
+			resource.TestCheckResourceAttr(resourceName, "keypair_name", opts.Keypair),
 			resource.TestCheckResourceAttr(resourceName, "password", opts.Password),
 			resource.TestCheckResourceAttr(resourceName, "username", opts.Username),
 		}

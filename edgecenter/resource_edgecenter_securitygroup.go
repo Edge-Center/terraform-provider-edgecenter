@@ -215,19 +215,14 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	var diags diag.Diagnostics
-	config := m.(*Config)
 
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.Set("region_id", regionID)
-	d.Set("project_id", projectID)
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
+	d.Set("region_id", clientV2.Region)
+	d.Set("project_id", clientV2.Project)
 
 	rawRules := d.Get("security_group_rules").(*schema.Set).List()
 	rules := make([]edgecloudV2.RuleCreateRequest, len(rawRules))
@@ -297,16 +292,11 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start SecurityGroup reading")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	sg, _, err := clientV2.SecurityGroups.Get(ctx, d.Id())
 	if err != nil {
@@ -404,16 +394,10 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 		return diag.Errorf("at least one 'egress' rule should be set")
 	}
 
-	config := m.(*Config)
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	gid := d.Id()
 
@@ -484,19 +468,13 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 func resourceSecurityGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start SecurityGroup deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	sgID := d.Id()
 
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-
+	sgID := d.Id()
 	_, err = clientV2.SecurityGroups.Delete(ctx, sgID)
 	if err != nil {
 		return diag.FromErr(err)

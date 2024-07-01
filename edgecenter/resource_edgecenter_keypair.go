@@ -65,10 +65,11 @@ func resourceKeypairCreate(ctx context.Context, d *schema.ResourceData, m interf
 	log.Println("[DEBUG] Start KeyPair creating")
 
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	projectID, err := GetProjectID(ctx, clientV2, d)
+	clientConf := CloudClientConf{
+		DoNotUseRegionID: true,
+	}
+	clientV2, err := InitCloudClient(ctx, d, m, &clientConf)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -76,12 +77,11 @@ func resourceKeypairCreate(ctx context.Context, d *schema.ResourceData, m interf
 	// To work with KeyPairsV2 endpoints, you only need a project.
 	// Therefore, a stub with a value of 1 is applied for the region.
 	clientV2.Region = 1
-	clientV2.Project = projectID
 
 	opts := &edgecloudV2.KeyPairCreateRequestV2{
 		SSHKeyName: d.Get("sshkey_name").(string),
 		PublicKey:  d.Get("public_key").(string),
-		ProjectID:  projectID,
+		ProjectID:  clientV2.Project,
 	}
 
 	kp, _, err := clientV2.KeyPairs.CreateV2(ctx, opts)
@@ -103,10 +103,10 @@ func resourceKeypairRead(ctx context.Context, d *schema.ResourceData, m interfac
 	log.Println("[DEBUG] Start KeyPair reading")
 
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
-
-	projectID, err := GetProjectID(ctx, clientV2, d)
+	clientConf := CloudClientConf{
+		DoNotUseRegionID: true,
+	}
+	clientV2, err := InitCloudClient(ctx, d, m, &clientConf)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -114,7 +114,6 @@ func resourceKeypairRead(ctx context.Context, d *schema.ResourceData, m interfac
 	// To work with KeyPairsV2 endpoints, you only need a project.
 	// Therefore, a stub with a value of 1 is applied for the region.
 	clientV2.Region = 1
-	clientV2.Project = projectID
 
 	kpID := d.Id()
 	kp, _, err := clientV2.KeyPairs.GetV2(ctx, kpID)
@@ -126,7 +125,7 @@ func resourceKeypairRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("public_key", kp.PublicKey)
 	d.Set("sshkey_id", kp.SSHKeyID)
 	d.Set("fingerprint", kp.Fingerprint)
-	d.Set("project_id", projectID)
+	d.Set("project_id", clientV2.Project)
 
 	log.Println("[DEBUG] Finish KeyPair reading")
 
@@ -137,10 +136,10 @@ func resourceKeypairDelete(ctx context.Context, d *schema.ResourceData, m interf
 	log.Println("[DEBUG] Start KeyPair deleting")
 
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
-
-	projectID, err := GetProjectID(ctx, clientV2, d)
+	clientConf := CloudClientConf{
+		DoNotUseRegionID: true,
+	}
+	clientV2, err := InitCloudClient(ctx, d, m, &clientConf)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -148,7 +147,6 @@ func resourceKeypairDelete(ctx context.Context, d *schema.ResourceData, m interf
 	// To work with KeyPairsV2 endpoints, you only need a project.
 	// Therefore, a stub with a value of 1 is applied for the region.
 	clientV2.Region = 1
-	clientV2.Project = projectID
 
 	kpID := d.Id()
 	if _, err := clientV2.KeyPairs.DeleteV2(ctx, kpID); err != nil {

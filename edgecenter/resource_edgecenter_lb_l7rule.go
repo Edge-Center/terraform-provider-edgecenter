@@ -145,7 +145,7 @@ func resourceL7Rule() *schema.Resource {
 func resourceL7RuleV2Create(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start L7 policy creating")
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -199,7 +199,7 @@ func resourceL7RuleV2Create(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func resourceL7RuleV2Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -236,7 +236,7 @@ func resourceL7RuleV2Read(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceL7RuleV2Update(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -300,7 +300,7 @@ func resourceL7RuleV2Update(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func resourceL7RuleV2Delete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}

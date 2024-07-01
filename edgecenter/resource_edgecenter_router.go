@@ -180,16 +180,11 @@ func resourceRouter() *schema.Resource {
 func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start router creating")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	createOpts := edgecloudV2.RouterCreateRequest{}
 
@@ -244,21 +239,16 @@ func resourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface
 	log.Println("[DEBUG] Start router reading")
 	log.Printf("[DEBUG] Start router reading%s", d.State())
 	var diags diag.Diagnostics
-	config := m.(*Config)
 	routerID := d.Id()
 	log.Printf("[DEBUG] Router id = %s", routerID)
 
-	clientV2 := config.CloudClient
-
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-	d.Set("region_id", regionID)
-	d.Set("project_id", projectID)
+	d.Set("region_id", clientV2.Region)
+	d.Set("project_id", clientV2.Project)
 
 	router, _, err := clientV2.Routers.Get(ctx, routerID)
 	if err != nil {
@@ -330,16 +320,11 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Println("[DEBUG] Start router updating")
 	routerID := d.Id()
 	log.Printf("[DEBUG] Router id = %s", routerID)
-	config := m.(*Config)
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	clientV2.Region = regionID
-	clientV2.Project = projectID
 
 	updateOpts := edgecloudV2.RouterUpdateRequest{}
 
@@ -423,18 +408,13 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start router deleting")
 	var diags diag.Diagnostics
-	config := m.(*Config)
-	routerID := d.Id()
-	clientV2 := config.CloudClient
 
-	regionID, projectID, err := GetRegionIDandProjectID(ctx, clientV2, d)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clientV2.Region = regionID
-	clientV2.Project = projectID
-
+	routerID := d.Id()
 	results, _, err := clientV2.Routers.Delete(ctx, routerID)
 	if err != nil {
 		return diag.FromErr(err)

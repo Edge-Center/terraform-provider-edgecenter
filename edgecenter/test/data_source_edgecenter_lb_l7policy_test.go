@@ -14,14 +14,13 @@ import (
 )
 
 func TestAccLBL7PolicyDataSource(t *testing.T) {
-	//TODO: CLOUDDEV-862
+	// TODO: CLOUDDEV-862
 	t.Skip("skipping test due to issue with IPv6 validation")
 
-	cfg, err := createTestConfig()
+	client, err := createTestCloudClient()
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := cfg.CloudClient
 
 	t.Parallel()
 
