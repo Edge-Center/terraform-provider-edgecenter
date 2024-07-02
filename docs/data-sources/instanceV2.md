@@ -59,7 +59,7 @@ output "view" {
 - `flavor_id` (String) The ID of the flavor to be used for the instance, determining its compute and memory, for example 'g1-standard-2-4'.
 - `id` (String) The ID of this resource.
 - `interfaces` (List of Object) A list defining the network interfaces to be attached to the instance. (see [below for nested schema](#nestedatt--interfaces))
-- `metadata` (List of Object) (see [below for nested schema](#nestedatt--metadata))
+- `metadata` (Map of String) A map containing metadata, for example tags.
 - `status` (String) The current status of the instance. This is computed automatically and can be used to track the instance's state.
 - `vm_state` (String) The current virtual machine state of the instance, 
 allowing you to start or stop the VM. Possible values are stopped and active.
@@ -114,12 +114,3 @@ Read-Only:
 - `order` (Number)
 - `port_id` (String)
 - `subnet_id` (String)
-
-
-<a id="nestedatt--metadata"></a>
-### Nested Schema for `metadata`
-
-Read-Only:
-
-- `key` (String)
-- `value` (String)
