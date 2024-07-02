@@ -103,13 +103,11 @@ resource "edgecenter_instanceV2" "instance" {
 
 ### Optional
 
-- `addresses` (Block List) A list of network addresses associated with the instance, for example "pub_net": [...] (see [below for nested schema](#nestedblock--addresses))
 - `allow_app_ports` (Boolean) A boolean indicating whether to allow application ports on the instance.
 - `configuration` (Block List) A list of key-value pairs specifying configuration settings for the instance when created 
 from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."} (see [below for nested schema](#nestedblock--configuration))
 - `data_volumes` (Block Set) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedblock--data_volumes))
 - `keypair_name` (String) The name of the key pair to be associated with the instance for SSH access.
-- `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata` (Map of String) A map containing metadata, for example tags.
 - `name` (String) The name of the instance.
 - `name_template` (String) A template used to generate the instance name. This field cannot be used with 'name_templates'.
@@ -171,23 +169,6 @@ Read-Only:
 - `ip_address` (String) IP address of the interface.
 - `network_name` (String) Name of the network.
 - `port_id` (String)
-
-
-<a id="nestedblock--addresses"></a>
-### Nested Schema for `addresses`
-
-Required:
-
-- `net` (Block List, Min: 1) (see [below for nested schema](#nestedblock--addresses--net))
-
-<a id="nestedblock--addresses--net"></a>
-### Nested Schema for `addresses.net`
-
-Required:
-
-- `addr` (String) The net ip address, for example '45.147.163.112'.
-- `type` (String) The net type, for example 'fixed'.
-
 
 
 <a id="nestedblock--configuration"></a>
