@@ -52,7 +52,6 @@ output "view" {
 
 ### Read-Only
 
-- `addresses` (List of Object) A list of network addresses associated with the instance, for example "pub_net": [...]. (see [below for nested schema](#nestedatt--addresses))
 - `boot_volumes` (List of Object) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedatt--boot_volumes))
 - `data_volumes` (List of Object) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedatt--data_volumes))
 - `flavor` (Map of String) A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.
@@ -63,23 +62,6 @@ output "view" {
 - `status` (String) The current status of the instance. This is computed automatically and can be used to track the instance's state.
 - `vm_state` (String) The current virtual machine state of the instance, 
 allowing you to start or stop the VM. Possible values are stopped and active.
-
-<a id="nestedatt--addresses"></a>
-### Nested Schema for `addresses`
-
-Read-Only:
-
-- `net` (List of Object) (see [below for nested schema](#nestedobjatt--addresses--net))
-
-<a id="nestedobjatt--addresses--net"></a>
-### Nested Schema for `addresses.net`
-
-Read-Only:
-
-- `addr` (String)
-- `type` (String)
-
-
 
 <a id="nestedatt--boot_volumes"></a>
 ### Nested Schema for `boot_volumes`

@@ -159,31 +159,6 @@ func dataSourceInstanceV2() *schema.Resource {
 				Description: fmt.Sprintf(`The current virtual machine state of the instance, 
 allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceVMStateStopped, InstanceVMStateActive),
 			},
-			InstanceAddressesField: {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: `A list of network addresses associated with the instance, for example "pub_net": [...].`,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						InstanceAddressesNetField: {
-							Type:     schema.TypeList,
-							Computed: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									InstanceAddressesAddrField: {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									TypeField: {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 		},
 	}
 }
@@ -288,23 +263,6 @@ func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m int
 		sliced = append(sliced, mdata)
 	}
 	if err := d.Set(MetadataField, sliced); err != nil {
-		return diag.FromErr(err)
-	}
-
-	addresses := []map[string][]map[string]string{}
-	for _, data := range instance.Addresses {
-		d := map[string][]map[string]string{}
-		netd := make([]map[string]string, len(data))
-		for i, iaddr := range data {
-			ndata := make(map[string]string, 2)
-			ndata[TypeField] = iaddr.Type
-			ndata[InstanceAddressesAddrField] = iaddr.Address.String()
-			netd[i] = ndata
-		}
-		d[InstanceAddressesNetField] = netd
-		addresses = append(addresses, d)
-	}
-	if err := d.Set(InstanceAddressesField, addresses); err != nil {
 		return diag.FromErr(err)
 	}
 
