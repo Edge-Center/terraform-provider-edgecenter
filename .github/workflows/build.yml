@@ -2,7 +2,7 @@ name: build
 
 on:
   pull_request:
-    branches: [ master, main, release-cloud]
+    branches: [ master, main, release-cloud, instanceV2]
 
 jobs:
   build:

@@ -30,6 +30,7 @@ const (
 	ProjectNameField             = "project_name"
 	CreatedAtField               = "created_at"
 	UpdatedAtField               = "updated_at"
+	LastUpdatedField             = "last_updated"
 	IDField                      = "id"
 	ClientIDField                = "client_id"
 	NameField                    = "name"
@@ -38,7 +39,29 @@ const (
 	StateField                   = "state"
 	IsDefaultField               = "is_default"
 	TypeField                    = "type"
+	TypeNameField                = "type_name"
+	OrderField                   = "order"
 	KeyField                     = "key"
+	NetworkIDField               = "network_id"
+	NetworkNameField             = "network_name"
+	SubnetIDField                = "subnet_id"
+	SubnetNameField              = "subnet_name"
+	PortIDField                  = "port_id"
+	IsParentField                = "is_parent"
+	PasswordField                = "password"
+	UsernameField                = "username"
+	MetadataMapField             = "metadata_map"
+	IPAddressField               = "ip_address"
+	SecurityGroupField           = "security_group"
+	SecurityGroupsField          = "security_groups"
+	MetadataField                = "metadata"
+	ValueField                   = "value"
+	FlavorField                  = "flavor"
+	FlavorNameField              = "flavor_name"
+	FlavorIDField                = "flavor_id"
+	RAMField                     = "ram"
+	VCPUsField                   = "vcpus"
+	StatusField                  = "status"
 	OperatingStatusField         = "operating_status"
 	ProvisioningStatusField      = "provisioning_status"
 	LifecyclePolicyResource      = "edgecenter_lifecyclepolicy"
@@ -139,6 +162,7 @@ func Provider() *schema.Provider {
 			"edgecenter_subnet":            resourceSubnet(),
 			"edgecenter_router":            resourceRouter(),
 			"edgecenter_instance":          resourceInstance(),
+			"edgecenter_instanceV2":        resourceInstanceV2(),
 			"edgecenter_keypair":           resourceKeypair(),
 			"edgecenter_reservedfixedip":   resourceReservedFixedIP(),
 			"edgecenter_floatingip":        resourceFloatingIP(),
@@ -180,6 +204,7 @@ func Provider() *schema.Provider {
 			"edgecenter_lblistener":        dataSourceLBListener(),
 			"edgecenter_lbpool":            dataSourceLBPool(),
 			"edgecenter_instance":          dataSourceInstance(),
+			"edgecenter_instanceV2":        dataSourceInstanceV2(),
 			"edgecenter_floatingip":        dataSourceFloatingIP(),
 			"edgecenter_storage_s3":        dataSourceStorageS3(),
 			"edgecenter_storage_s3_bucket": dataSourceStorageS3Bucket(),

@@ -460,7 +460,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	ifs := d.Get("interface").([]interface{})
 	if len(ifs) > 0 {
-		ifaceCreateOptsList := extractInstanceInterfaceToListCreateV2(ifs)
+		ifaceCreateOptsList := extractInstanceInterfaceToListCreate(ifs)
 		createOpts.Interfaces = ifaceCreateOptsList
 	}
 
@@ -604,7 +604,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	ifs := d.Get("interface").([]interface{})
 	sort.Sort(instanceInterfaces(ifs))
-	orderedInterfacesMap := extractInstanceInterfaceToListReadV2(ifs)
+	orderedInterfacesMap := extractInstanceInterfaceToListRead(ifs)
 	var interfacesList []interface{}
 	for _, iFace := range interfacesListAPI {
 		if len(iFace.IPAssignments) == 0 {
@@ -673,7 +673,6 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 			}
 			mdata["key"] = md.Key
 			mdata["value"] = md.Value
-
 			sliced[i] = mdata
 		}
 		d.Set("metadata", sliced)
