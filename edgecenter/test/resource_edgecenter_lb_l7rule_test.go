@@ -16,6 +16,9 @@ import (
 )
 
 func TestAccLBL7RuleResource(t *testing.T) {
+	//TODO: CLOUDDEV-862
+	t.Skip("skipping test due to issue with IPv6 validation")
+
 	cfg, err := createTestConfig()
 	if err != nil {
 		t.Fatal(err)
