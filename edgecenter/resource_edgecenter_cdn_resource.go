@@ -1127,6 +1127,7 @@ func resourceCDNResourceUpdate(ctx context.Context, d *schema.ResourceData, m in
 	req.OriginGroup = d.Get("origin_group").(int)
 	req.SSlEnabled = d.Get("ssl_enabled").(bool)
 	req.SSLData = d.Get("ssl_data").(int)
+	req.SSLAutomated = d.Get("ssl_automated").(bool)
 	req.OriginProtocol = resources.Protocol(d.Get("origin_protocol").(string))
 	req.Options = listToResourceOptions(d.Get("options").([]interface{}))
 	for _, hostname := range d.Get("secondary_hostnames").(*schema.Set).List() {

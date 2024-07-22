@@ -19,6 +19,9 @@ import (
 )
 
 func TestAccRouter(t *testing.T) {
+	//TODO: CLOUDDEV-862
+	t.Skip("skipping test due to issue with IPv6 validation")
+
 	t.Parallel()
 	cfg, err := createTestConfig()
 	if err != nil {
