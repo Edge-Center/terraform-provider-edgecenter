@@ -3,12 +3,12 @@
 page_title: "edgecenter_instanceV2 Data Source - edgecenter"
 subcategory: ""
 description: |-
-  A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.
+  A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal too.
 ---
 
 # edgecenter_instanceV2 (Data Source)
 
-A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.
+A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal too.
 
 ## Example Usage
 
