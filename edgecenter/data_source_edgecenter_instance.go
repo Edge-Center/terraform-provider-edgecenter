@@ -14,8 +14,9 @@ import (
 
 func dataSourceInstance() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceInstanceRead,
-		Description: `A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.`,
+		ReadContext:        dataSourceInstanceRead,
+		Description:        `A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.`,
+		DeprecationMessage: "!> **WARNING:** This data-source is deprecated and will be removed in the next major version. Use edgecenter_instanceV2 data-source instead",
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:         schema.TypeInt,
