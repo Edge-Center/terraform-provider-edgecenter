@@ -77,7 +77,7 @@ func resourceInstancePortSecurity() *schema.Resource {
 					"\"security_groups\" field. You can't change port security of a public network port. When this field " +
 					"has value \"true\" all security groups will be deleted. When this field switched back to value " +
 					"\"false\" or deleted, default security group will be attached.",
-				Default:  false,
+				Computed: true,
 				Optional: true,
 			},
 			PortIDField: {
@@ -99,6 +99,7 @@ func resourceInstancePortSecurity() *schema.Resource {
 							Set:         schema.HashString,
 							Description: "A set of security groups IDs that need to be attached.",
 							Optional:    true,
+							Computed:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						AllSecurityGroupIDsField: {
@@ -250,16 +251,18 @@ func resourceInstancePortSecurityRead(ctx context.Context, d *schema.ResourceDat
 	sgsMap[OverwriteExistingField] = enforce
 
 	sgIDsRaw, sgIDsRawOk := sgsMapState[SecurityGroupIDsField]
-	if sgIDsRawOk {
-		sgIDsSet := sgIDsRaw.(*schema.Set)
-		sgsMap[SecurityGroupIDsField] = sgIDsSet
-	}
-
 	allSgIDs := make([]interface{}, len(instancePort.SecurityGroups))
 	for idx, sg := range instancePort.SecurityGroups {
 		allSgIDs[idx] = sg.ID
 	}
-	sgsMap[AllSecurityGroupIDsField] = schema.NewSet(schema.HashString, allSgIDs)
+	allSgIDsSet := schema.NewSet(schema.HashString, allSgIDs)
+
+	if sgIDsRawOk {
+		sgIDsSet := sgIDsRaw.(*schema.Set)
+		sgsMap[SecurityGroupIDsField] = allSgIDsSet.Intersection(sgIDsSet)
+	}
+
+	sgsMap[AllSecurityGroupIDsField] = allSgIDsSet
 
 	sgsList := []interface{}{sgsMap}
 	err = d.Set(SecurityGroupsField, schema.NewSet(sgsSetState.F, sgsList))
