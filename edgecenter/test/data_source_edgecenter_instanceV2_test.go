@@ -17,12 +17,12 @@ import (
 func TestAccInstanceV2DataSource(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	cfg, err := createTestConfig()
+	client, err := createTestCloudClient()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	imgs, _, err := cfg.CloudClient.Images.List(ctx, nil)
+	imgs, _, err := client.Images.List(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestAccInstanceV2DataSource(t *testing.T) {
 		ImageID:  img.ID,
 	}
 
-	volumeID, err := createTestVolumeV2(ctx, cfg.CloudClient, &optsV)
+	volumeID, err := createTestVolumeV2(ctx, client, &optsV)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestAccInstanceV2DataSource(t *testing.T) {
 		},
 	}
 
-	taskResultCreate, err := utilV2.ExecuteAndExtractTaskResult(ctx, cfg.CloudClient.Instances.Create, &opts, cfg.CloudClient)
+	taskResultCreate, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Instances.Create, &opts, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,16 +103,16 @@ func TestAccInstanceV2DataSource(t *testing.T) {
 		Volumes: []string{volumeID},
 	}
 
-	taskResultDelete, _, err := cfg.CloudClient.Instances.Delete(ctx, instanceID, &optsInstDel)
+	taskResultDelete, _, err := client.Instances.Delete(ctx, instanceID, &optsInstDel)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = utilV2.WaitAndGetTaskInfo(ctx, cfg.CloudClient, taskResultDelete.Tasks[0])
+	_, err = utilV2.WaitAndGetTaskInfo(ctx, client, taskResultDelete.Tasks[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := utilV2.ResourceIsDeleted(ctx, cfg.CloudClient.Instances.Get, instanceID); err != nil {
+	if err := utilV2.ResourceIsDeleted(ctx, client.Instances.Get, instanceID); err != nil {
 		t.Fatal(err)
 	}
 

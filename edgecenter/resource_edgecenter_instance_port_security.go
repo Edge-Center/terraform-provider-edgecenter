@@ -132,7 +132,7 @@ func resourceInstancePortSecurityCreate(ctx context.Context, d *schema.ResourceD
 	ctx, cancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
 	defer cancel()
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -216,7 +216,7 @@ func resourceInstancePortSecurityRead(ctx context.Context, d *schema.ResourceDat
 	ctx, cancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutRead))
 	defer cancel()
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -281,7 +281,7 @@ func resourceInstancePortSecurityUpdate(ctx context.Context, d *schema.ResourceD
 	ctx, cancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 	defer cancel()
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -387,7 +387,7 @@ func resourceInstancePortSecurityDelete(ctx context.Context, d *schema.ResourceD
 	defer cancel()
 
 	var diags diag.Diagnostics
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}

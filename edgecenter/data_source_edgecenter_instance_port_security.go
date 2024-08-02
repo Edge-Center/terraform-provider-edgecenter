@@ -79,7 +79,7 @@ func dataSourceInstancePortSecurityRead(ctx context.Context, d *schema.ResourceD
 	log.Println("[DEBUG] Start instance_port_security reading")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}

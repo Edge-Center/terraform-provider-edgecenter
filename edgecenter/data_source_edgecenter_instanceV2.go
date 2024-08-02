@@ -159,7 +159,7 @@ func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m int
 	log.Println("[DEBUG] Start Instance reading")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}

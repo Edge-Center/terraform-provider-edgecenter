@@ -330,7 +330,7 @@ func resourceInstanceCreateV2(ctx context.Context, d *schema.ResourceData, m int
 	log.Println("[DEBUG] Start Instance creating")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -432,7 +432,7 @@ func resourceInstanceReadV2(ctx context.Context, d *schema.ResourceData, m inter
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -554,7 +554,7 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 	instanceID := d.Id()
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -794,7 +794,7 @@ func resourceInstanceDeleteV2(ctx context.Context, d *schema.ResourceData, m int
 	log.Println("[DEBUG] Start Instance deleting")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m)
+	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}

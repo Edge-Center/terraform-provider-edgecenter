@@ -27,7 +27,10 @@ func TestAccInstancePortSecurityDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := cfg.CloudClient
+	client, err := createTestCloudClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ctx := context.Background()
 
