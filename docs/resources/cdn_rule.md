@@ -43,9 +43,11 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_1" {
     rewrite {
       body = "/(.*) /$1"
     }
-    webp {
-      jpg_quality = 55
-      png_quality = 66
+    image_stack {
+      quality      = 80
+      avif_enabled = true
+      webp_enabled = false
+      png_lossless = true
     }
     ignore_query_string {
       value = true
