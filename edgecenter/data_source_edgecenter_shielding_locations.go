@@ -6,9 +6,10 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/Edge-Center/edgecentercdn-go/shielding"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercdn-go/shielding"
 )
 
 func dataShieldingLocation() *schema.Resource {
@@ -57,5 +58,6 @@ func dataShieldingLocationRead(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	log.Println("[DEBUG] Finish reading shielding locations")
+
 	return nil
 }

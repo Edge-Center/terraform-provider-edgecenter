@@ -3,13 +3,14 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"github.com/Edge-Center/edgecentercdn-go/shielding"
 	"log"
 	"strconv"
 
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/edgecentercdn-go/shielding"
 )
 
 func resourceCDNShielding() *schema.Resource {
@@ -58,6 +59,7 @@ func resourceCDNShieldingRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	log.Printf("[DEBUG] Finish CDN Shielding reading for (resource_id=%d)", resourceID)
+
 	return nil
 }
 
@@ -78,6 +80,7 @@ func resourceCDNShieldingUpdate(ctx context.Context, d *schema.ResourceData, m i
 	resourceCDNShieldingRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN Shielding updating.")
+
 	return nil
 }
 
@@ -97,5 +100,6 @@ func resourceCDNShieldingDelete(ctx context.Context, d *schema.ResourceData, m i
 
 	d.SetId("")
 	log.Printf("[DEBUG] Finish CDN Origin Shielding deleting.")
+
 	return nil
 }
