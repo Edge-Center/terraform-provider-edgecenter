@@ -194,6 +194,7 @@ func Provider() *schema.Provider {
 			"edgecenter_cdn_resource":           resourceCDNResource(),
 			"edgecenter_cdn_origingroup":        resourceCDNOriginGroup(),
 			"edgecenter_cdn_rule":               resourceCDNRule(),
+			"edgecenter_cdn_shielding":          resourceCDNShielding(),
 			"edgecenter_cdn_sslcert":            resourceCDNCert(),
 			LifecyclePolicyResource:             resourceLifecyclePolicy(),
 			"edgecenter_lb_l7policy":            resourceL7Policy(),
@@ -228,6 +229,7 @@ func Provider() *schema.Provider {
 			"edgecenter_lb_l7policy":            dataSourceL7Policy(),
 			"edgecenter_lb_l7rule":              datasourceL7Rule(),
 			"edgecenter_instance_port_security": dataSourceInstancePortSecurity(),
+			"edgecenter_cdn_shielding_location": dataShieldingLocation(),
 		},
 	}
 

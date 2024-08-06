@@ -45,9 +45,11 @@ resource "edgecenter_cdn_resource" "cdn_example_com" {
     rewrite {
       body = "/(.*) /$1"
     }
-    webp {
-      jpg_quality = 55
-      png_quality = 66
+    image_stack {
+      quality      = 80
+      avif_enabled = true
+      webp_enabled = false
+      png_lossless = true
     }
 
     tls_versions {

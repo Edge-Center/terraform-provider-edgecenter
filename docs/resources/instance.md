@@ -217,15 +217,12 @@ Optional:
 - `attachment_tag` (String)
 - `boot_index` (Number) If boot_index==0 volumes can not detached
 - `delete_on_termination` (Boolean)
+- `id` (String)
 - `image_id` (String)
 - `name` (String) The name assigned to the volume. Defaults to 'system'.
 - `size` (Number) The size of the volume, specified in gigabytes (GB).
 - `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.
 - `volume_id` (String)
-
-Read-Only:
-
-- `id` (String) The ID of this resource.
 
 
 <a id="nestedblock--addresses"></a>

@@ -3,7 +3,7 @@
 page_title: "edgecenter_instance_port_security Data Source - edgecenter"
 subcategory: ""
 description: |-
-  Represent instanceportsecurity data_source.
+  Represent instance_port_security data_source.
 ---
 
 # edgecenter_instance_port_security (Data Source)

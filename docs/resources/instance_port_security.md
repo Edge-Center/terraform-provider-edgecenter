@@ -3,7 +3,7 @@
 page_title: "edgecenter_instance_port_security Resource - edgecenter"
 subcategory: ""
 description: |-
-  Represent instanceportsecurity resource
+  Represent instance_port_security resource
 ---
 
 # edgecenter_instance_port_security (Resource)
