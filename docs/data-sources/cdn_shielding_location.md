@@ -13,8 +13,8 @@ Represent shielding locations.
 ## Example Usage
 
 ```terraform
-provider edgecenter {
- permanent_api_token = "29422$4ceea35....1513a61c87c68809a4"
+provider "edgecenter" {
+  permanent_api_token = "29422$4ceea35....1513a61c87c68809a4"
 }
 
 data "edgecenter_cdn_shielding_location" "shield_dc" {
@@ -22,8 +22,8 @@ data "edgecenter_cdn_shielding_location" "shield_dc" {
 }
 
 resource "edgecenter_cdn_shielding" "shielding" {
-    resource_id = 1
-    shielding_pop = data.edgecenter_cdn_shielding_location.shield_dc.id
+  resource_id   = 1
+  shielding_pop = data.edgecenter_cdn_shielding_location.shield_dc.id
 }
 ```
 
