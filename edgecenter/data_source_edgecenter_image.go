@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -41,10 +40,19 @@ func dataSourceImage() *schema.Resource {
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the image. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
+			},
 			"name": {
-				Type:        schema.TypeString,
-				Description: "The name of the image. Use 'os-version', for example 'ubuntu-20.04'.",
-				Required:    true,
+				Type:         schema.TypeString,
+				Description:  "The name of the image. Use 'os-version', for example 'ubuntu-20.04'. Use only with uniq name. Either 'id' or 'name' must be specified.",
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			"is_baremetal": {
 				Type:        schema.TypeBool,
@@ -116,7 +124,8 @@ func dataSourceImage() *schema.Resource {
 
 func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Image reading")
-	name := d.Get("name").(string)
+
+	imageID := d.Get("id").(string)
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
@@ -155,18 +164,30 @@ func dataSourceImageRead(ctx context.Context, d *schema.ResourceData, m interfac
 		}
 	}
 
-	var found bool
-	var image edgecloudV2.Image
-	for _, img := range allImages {
-		if strings.HasPrefix(strings.ToLower(img.Name), strings.ToLower(name)) {
-			image = img
-			found = true
-			break
+	var image *edgecloudV2.Image
+	switch {
+	case imageID != "":
+		image, _, err = clientV2.Images.Get(ctx, imageID)
+		if err != nil {
+			return diag.Errorf("cannot get image with ID %s. Error: %s", imageID, err.Error())
 		}
-	}
+	default:
+		name := d.Get("name").(string)
 
-	if !found {
-		return diag.Errorf("image with name %s not found", name)
+		var foundImages []edgecloudV2.Image
+		for _, img := range allImages {
+			if name == img.Name {
+				foundImages = append(foundImages, img)
+			}
+		}
+
+		if len(foundImages) == 0 {
+			return diag.Errorf("image with name %s does not exist", name)
+		} else if len(foundImages) > 1 {
+			return diag.Errorf("multiple images found with name %s. Use image_id instead of name.", name)
+		}
+
+		image = &foundImages[0]
 	}
 
 	d.SetId(image.ID)
