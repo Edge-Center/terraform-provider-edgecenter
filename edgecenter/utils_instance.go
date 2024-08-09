@@ -708,23 +708,30 @@ func PrepareAndValidateAssignSecurityGroupRequestOpts(ctx context.Context, clien
 
 // attachSecurityGroupToInstance attaches one or more security groups to a specific instance port.
 func attachSecurityGroupToInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, addSGs []edgecloudV2.ID) error {
+	if len(addSGs) == 0 {
+		return nil
+	}
+
+	sgsNames := make([]string, 0, len(addSGs))
 	for _, sg := range addSGs {
 		sgInfo, _, err := client.SecurityGroups.Get(ctx, sg.ID)
 		if err != nil {
 			return err
 		}
+		sgsNames = append(sgsNames, sgInfo.Name)
+	}
 
-		portSGNames := edgecloudV2.PortsSecurityGroupNames{
-			SecurityGroupNames: []string{sgInfo.Name},
+	sgOpts := edgecloudV2.AssignSecurityGroupRequest{
+		PortsSecurityGroupNames: []edgecloudV2.PortsSecurityGroupNames{{
+			SecurityGroupNames: sgsNames,
 			PortID:             portID,
-		}
-		sgOpts := edgecloudV2.AssignSecurityGroupRequest{PortsSecurityGroupNames: []edgecloudV2.PortsSecurityGroupNames{portSGNames}}
+		}},
+	}
 
-		log.Printf("[DEBUG] attach security group opts: %+v", sgOpts)
+	log.Printf("[DEBUG] attach security group opts: %+v", sgOpts)
 
-		if _, err := client.Instances.SecurityGroupAssign(ctx, instanceID, &sgOpts); err != nil {
-			return fmt.Errorf("cannot attach security group. Error: %w", err)
-		}
+	if _, err := client.Instances.SecurityGroupAssign(ctx, instanceID, &sgOpts); err != nil {
+		return fmt.Errorf("cannot attach security group. Error: %w", err)
 	}
 
 	return nil
