@@ -38,7 +38,7 @@ func resourceInstance() *schema.Resource {
 		UpdateContext:      resourceInstanceUpdate,
 		DeleteContext:      resourceInstanceDelete,
 		Description:        "A cloud instance is a virtual machine in a cloud environment.",
-		DeprecationMessage: "!> **WARNING:** This resource is deprecated and will be removed in the next major version. Use edgecenter_instnaceV2 resource instead",
+		DeprecationMessage: "!> **WARNING:** This resource is deprecated and will be removed in the next major version. Use edgecenter_instanceV2 resource instead",
 
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
