@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"slices"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
@@ -228,8 +229,7 @@ func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m inter
 		log.Printf("[WARN] Error while GET list floatingIPs. StstusCode: %d.", response.StatusCode)
 		return diag.FromErr(err)
 	}
-	// TODO remove when upgrading to a new version golang and use slices.IndexFunc - https://tracker.yandex.ru/CLOUDDEV-456.
-	index := IndexFunc(floatingIPs, func(f edgecloudV2.FloatingIP) bool {
+	index := slices.IndexFunc(floatingIPs, func(f edgecloudV2.FloatingIP) bool {
 		return f.ID == d.Id()
 	})
 	if index == -1 {

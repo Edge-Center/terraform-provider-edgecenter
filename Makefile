@@ -42,6 +42,10 @@ install_jq:
 install_godotenv:
 	go install github.com/joho/godotenv/cmd/godotenv@latest
 
+install_tfplugindocs:
+	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.19.4
+	make tidy
+	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.19.4
 
 download_env_file:
 	@if [ -z "${VAULT_TOKEN}" ] || [ -z "${VAULT_ADDR}" ]; then \
@@ -52,7 +56,7 @@ download_env_file:
 tidy:
 	go mod tidy
 
-init: create_bin install_jq install_godotenv download_env_file tidy
+init: create_bin install_jq install_godotenv install_tfplugindocs download_env_file tidy
 # BUILD
 build: tidy
 	mkdir -p $(PLUGIN_PATH)
@@ -87,8 +91,6 @@ docs_fmt:
 	terraform fmt -recursive ./examples/
 
 docs: docs_fmt
-	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.18
-	make tidy
-	tfplugindocs --tf-version=1.7.0 --provider-name=edgecenter
+	tfplugindocs --provider-name=edgecenter
 
 .PHONY: tidy build build_debug err_check linters linters_docker envs_reader test_cloud_data_source test_cloud_resource test_not_cloud install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs

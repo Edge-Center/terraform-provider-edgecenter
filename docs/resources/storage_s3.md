@@ -28,7 +28,7 @@ resource "edgecenter_storage_s3" "example_s3" {
 
 ### Required
 
-- `location` (String) A location of new storage resource. One of (s-ed1, s-darz1, s-ws1, s-dt2, s-drc2)
+- `location` (String) A location of new storage resource. list of location allowed for you provided by https://apidocs.edgecenter.ru/storage#tag/Locations or  https://storage.edgecenter.ru/storage/list
 - `name` (String) A name of new storage resource.
 
 ### Optional

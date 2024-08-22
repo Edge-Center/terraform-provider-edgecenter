@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
@@ -97,8 +98,7 @@ func findProjectByNameV2(
 	arr []edgecloudV2.Project,
 	name string,
 ) (*edgecloudV2.Project, error) {
-	// TODO remove when upgrading to a new version golang and use slices.IndexFunc - https://tracker.yandex.ru/CLOUDDEV-456.
-	index := IndexFunc(arr, func(p edgecloudV2.Project) bool { return p.Name == name })
+	index := slices.IndexFunc(arr, func(p edgecloudV2.Project) bool { return p.Name == name })
 	if index != -1 {
 		return &arr[index], nil
 	}
@@ -113,8 +113,7 @@ func findProjectByIDV2(
 	arr []edgecloudV2.Project,
 	id int,
 ) (*edgecloudV2.Project, error) {
-	// TODO remove when upgrading to a new version golang and use slices.IndexFunc - https://tracker.yandex.ru/CLOUDDEV-456.
-	index := IndexFunc(arr, func(p edgecloudV2.Project) bool {
+	index := slices.IndexFunc(arr, func(p edgecloudV2.Project) bool {
 		return p.ID == id
 	})
 	if index != -1 {

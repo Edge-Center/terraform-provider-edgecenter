@@ -245,14 +245,27 @@ func validateURLFunc(v interface{}, attributeName string) (warnings []string, er
 	return warnings, errors
 }
 
-// IndexFunc returns the first index i satisfying f(s[i]),
-// or -1 if none do.
-// TODO remove when upgrading to a new version - https://tracker.yandex.ru/CLOUDDEV-456.
-func IndexFunc[E any](s []E, f func(E) bool) int {
-	for i := range s {
-		if f(s[i]) {
-			return i
+// Filter iterates over elements of the collection, returning a slice of
+// all elements for which the predicate returns true.
+// - arr []T is a slice of elements of type T.
+// - predicate func(T) bool is a function that takes an element of type T and returns bool.
+func Filter[T any](arr []T, predicate func(T) bool) []T {
+	var result []T
+	for _, elem := range arr {
+		if predicate(elem) {
+			result = append(result, elem)
 		}
 	}
-	return -1
+	return result
+}
+
+// Reduce accumulates a value based on a reduction function and initial accumulator value.
+// - arr []T is a slice of elements of type T.
+// - reduceFunc func(U, T) U is a function that takes an accumulator of type U and an element of type T, and returns a new accumulator of type U.
+// - acc U is the initial value of the accumulator of type U.
+func Reduce[T any, U any](arr []T, reduceFunc func(U, T) U, acc U) U {
+	for _, elem := range arr {
+		acc = reduceFunc(acc, elem)
+	}
+	return acc
 }

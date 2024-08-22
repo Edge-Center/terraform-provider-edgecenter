@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/locations"
 	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storages"
 )
 
@@ -57,20 +59,10 @@ func resourceStorageS3() *schema.Resource {
 				Description: "A name of new storage resource.",
 			},
 			StorageSchemaLocation: {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
-					val := v.(string)
-					allowed := []string{"s-ed1", "s-darz1", "s-ws1", "s-dt2", "s-drc2"}
-					for _, el := range allowed {
-						if el == val {
-							return nil
-						}
-					}
-					return diag.Errorf(`must be one of %+v`, allowed)
-				},
-				Description: "A location of new storage resource. One of (s-ed1, s-darz1, s-ws1, s-dt2, s-drc2)",
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "A location of new storage resource. list of location allowed for you provided by https://apidocs.edgecenter.ru/storage#tag/Locations or  https://storage.edgecenter.ru/storage/list",
 			},
 			StorageS3SchemaGenerateAccessKey: {
 				Type:        schema.TypeString,
@@ -132,10 +124,27 @@ func resourceStorageS3Create(ctx context.Context, d *schema.ResourceData, m inte
 	if name != "" {
 		opts = append(opts, func(opt *storages.StorageCreateHTTPParams) { opt.Body.Name = name })
 	}
+	availableLocation, err := client.LocationsList([]func(opt *locations.LocationListHTTPParams){
+		func(opt *locations.LocationListHTTPParams) { opt.Context = ctx },
+	}...)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	var allowedLocations []string
+	for _, loc := range availableLocation {
+		if loc.AllowForNewStorage == "allow" {
+			allowedLocations = append(allowedLocations, loc.Name)
+		}
+	}
+	i := slices.Index(allowedLocations, location)
+	if i == -1 {
+		return diag.Errorf("Wrong name of location: %s, available locations: %v",
+			location, strings.Join(allowedLocations, ", "))
+	}
 
 	result, err := client.CreateStorage(opts...)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("create storage: %w", err))
+		return diag.FromErr(fmt.Errorf("create storage %w", err))
 	}
 	d.SetId(fmt.Sprintf("%d", result.ID))
 	*id = int(result.ID)
@@ -193,9 +202,10 @@ func resourceStorageS3Read(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	_ = d.Set(StorageSchemaID, st.ID)
 	_ = d.Set(StorageSchemaLocation, st.Location)
-	_ = d.Set(StorageSchemaGenerateEndpoint, fmt.Sprintf("%s.cloud.edgecenter.ru/%s", st.Location, st.Name))
-	_ = d.Set(StorageSchemaGenerateHTTPEndpoint, fmt.Sprintf("https://%s.cloud.edgecenter.ru/{bucket_name}", st.Location))
-	_ = d.Set(StorageSchemaGenerateS3Endpoint, fmt.Sprintf("https://%s.cloud.edgecenter.ru", st.Location))
+
+	_ = d.Set(StorageSchemaGenerateEndpoint, st.Address)
+	_ = d.Set(StorageSchemaGenerateHTTPEndpoint, fmt.Sprintf("https://%s/{bucket_name}", st.Address))
+	_ = d.Set(StorageSchemaGenerateS3Endpoint, fmt.Sprintf("https://%s", st.Address))
 
 	return nil
 }
