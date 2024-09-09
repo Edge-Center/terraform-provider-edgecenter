@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
@@ -88,14 +89,20 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 				Description: "The name of the volume.",
 			},
 			"size": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "The size of the volume, specified in gigabytes (GB).",
+				Type:          schema.TypeInt,
+				Optional:      true,
+				Computed:      true,
+				Description:   "The size of the volume, specified in gigabytes (GB). Optional when creating from an image (will use the image's size). Mandatory if not creating from a snapshot or image. Must be greater than the current size when updating.",
+				ValidateFunc:  validation.IntAtLeast(0),
+				ConflictsWith: []string{"snapshot_id"},
 			},
 			"type_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				Description:   "The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard' if not specified.",
+				ValidateFunc:  validation.StringInSlice([]string{"ssd_hiiops", "standard", "cold", "ultra"}, false),
+				ConflictsWith: []string{"snapshot_id"},
 			},
 			"image_id": {
 				Type:        schema.TypeString,
@@ -104,10 +111,11 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 				Description: "(ForceNew) The ID of the image to create the volume from. This field is mandatory if creating a volume from an image.",
 			},
 			"snapshot_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "(ForceNew) The ID of the snapshot to create the volume from. This field is mandatory if creating a volume from a snapshot.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Description:   "(ForceNew) The ID of the snapshot to create the volume from. This field is mandatory if creating a volume from a snapshot.",
+				ConflictsWith: []string{"size", "type_name"},
 			},
 			"last_updated": {
 				Type:        schema.TypeString,
@@ -158,7 +166,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	opts, err := getVolumeDataV2(d)
+	opts, err := getVolumeDataV2(ctx, d, clientV2)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -171,9 +179,6 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	VolumeID := taskResult.Volumes[0]
 
 	log.Printf("[DEBUG] Volume id (%s)", VolumeID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	d.SetId(VolumeID)
 	resourceVolumeRead(ctx, d, m)
@@ -235,11 +240,6 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	volume, _, err := clientV2.Volumes.Get(ctx, volumeID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		_, _, err := clientV2.Volumes.Rename(ctx, volumeID, &edgecloudV2.Name{Name: newName})
@@ -249,34 +249,38 @@ func resourceVolumeUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	if d.HasChange("size") {
-		newSize := d.Get("size").(int)
-		if newSize != 0 {
-			if volume.Size < newSize {
-				task, _, err := clientV2.Volumes.Extend(ctx, volumeID, &edgecloudV2.VolumeExtendSizeRequest{Size: newSize})
-				if err != nil {
-					return diag.FromErr(err)
-				}
-				if err = utilV2.WaitForTaskComplete(ctx, clientV2, task.Tasks[0], volumeExtendingTimeout); err != nil {
-					return diag.FromErr(err)
-				}
-			} else {
-				return diag.Errorf("Validation error: unable to update size field because new volume size must be greater than current size")
-			}
+		oldSize, newSize := d.GetChange("size")
+		if newSize.(int) <= oldSize.(int) {
+			return diag.Errorf("new volume size (%d GB) must be greater than current size (%d GB)", newSize.(int), oldSize.(int))
+		}
+
+		task, _, err := clientV2.Volumes.Extend(ctx, volumeID, &edgecloudV2.VolumeExtendSizeRequest{Size: newSize.(int)})
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if err = utilV2.WaitForTaskComplete(ctx, clientV2, task.Tasks[0], volumeExtendingTimeout); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
 	if d.HasChange("type_name") {
-		newTN := d.Get("type_name")
-		newVolumeType, err := edgecloudV2.VolumeType(newTN.(string)).ValidOrNil()
-		if err != nil {
-			return diag.FromErr(err)
-		}
+		oldTN, newTN := d.GetChange("type_name")
+		if newTN.(string) != "" && newTN.(string) != oldTN.(string) {
+			newVolumeType, err := edgecloudV2.VolumeType(newTN.(string)).ValidOrNil()
+			if err != nil {
+				return diag.FromErr(err)
+			}
 
-		_, _, err = clientV2.Volumes.ChangeType(ctx, volumeID, &edgecloudV2.VolumeChangeTypeRequest{
-			VolumeType: *newVolumeType,
-		})
-		if err != nil {
-			return diag.FromErr(err)
+			if newVolumeType != nil {
+				req := &edgecloudV2.VolumeChangeTypeRequest{
+					VolumeType: *newVolumeType,
+				}
+				_, _, err = clientV2.Volumes.ChangeType(ctx, volumeID, req)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+			}
 		}
 	}
 
@@ -332,34 +336,65 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	return nil
 }
 
-func getVolumeDataV2(d *schema.ResourceData) (*edgecloudV2.VolumeCreateRequest, error) {
-	volumeData := edgecloudV2.VolumeCreateRequest{}
-	volumeData.Source = edgecloudV2.VolumeSourceNewVolume
-	volumeData.Name = d.Get("name").(string)
-	volumeData.Size = d.Get("size").(int)
+func getVolumeDataV2(ctx context.Context, d *schema.ResourceData, clientV2 *edgecloudV2.Client) (*edgecloudV2.VolumeCreateRequest, error) {
+	volumeData := edgecloudV2.VolumeCreateRequest{
+		Name:     d.Get("name").(string),
+		TypeName: edgecloudV2.VolumeTypeStandard,
+	}
+
+	size, ok := d.GetOk("size")
+	if ok {
+		volumeData.Size = size.(int)
+	}
 
 	imageID := d.Get("image_id").(string)
-	if imageID != "" {
+	snapshotID := d.Get("snapshot_id").(string)
+
+	switch {
+	case imageID != "" && snapshotID != "":
+		return nil, fmt.Errorf("cannot create volume from both image and snapshot")
+	case imageID != "":
 		volumeData.Source = edgecloudV2.VolumeSourceImage
 		volumeData.ImageID = imageID
-	}
+	case snapshotID != "":
+		if volumeData.Size != 0 {
+			return nil, fmt.Errorf("size cannot be specified when creating volume from snapshot")
+		}
 
-	snapshotID := d.Get("snapshot_id").(string)
-	if snapshotID != "" {
+		if _, ok := d.GetOk("type_name"); ok {
+			return nil, fmt.Errorf("type_name cannot be specified when creating volume from snapshot")
+		}
+
 		volumeData.Source = edgecloudV2.VolumeSourceSnapshot
 		volumeData.SnapshotID = snapshotID
-		if volumeData.Size != 0 {
-			log.Println("[DEBUG] Size must be equal or larger to respective snapshot size")
+
+		snapshot, _, err := clientV2.Snapshots.Get(ctx, snapshotID)
+		if err != nil {
+			return nil, fmt.Errorf("error getting snapshot info: %w", err)
 		}
+
+		if volumeType, ok := snapshot.Metadata["volume_type"]; ok {
+			volumeData.TypeName = edgecloudV2.VolumeType(volumeType)
+		}
+	default:
+		if volumeData.Size == 0 {
+			return nil, fmt.Errorf("size is required when not creating from snapshot or image")
+		}
+		volumeData.Source = edgecloudV2.VolumeSourceNewVolume
 	}
 
-	typeName := d.Get("type_name").(string)
-	if typeName != "" {
-		modifiedTypeName, err := edgecloudV2.VolumeType(typeName).ValidOrNil()
+	if volumeData.Size < 0 {
+		return nil, fmt.Errorf("volume size cannot be negative")
+	}
+
+	if typeName, ok := d.GetOk("type_name"); ok {
+		volumeType, err := edgecloudV2.VolumeType(typeName.(string)).ValidOrNil()
 		if err != nil {
-			return nil, fmt.Errorf("checking Volume validation error: %w", err)
+			return nil, fmt.Errorf("invalid volume type: %w", err)
 		}
-		volumeData.TypeName = *modifiedTypeName
+		if volumeType != nil {
+			volumeData.TypeName = *volumeType
+		}
 	}
 
 	if metadataRaw, ok := d.GetOk("metadata_map"); ok {
@@ -367,7 +402,6 @@ func getVolumeDataV2(d *schema.ResourceData) (*edgecloudV2.VolumeCreateRequest, 
 		if err != nil {
 			return nil, fmt.Errorf("volume metadata error: %w", err)
 		}
-
 		volumeData.Metadata = *meta
 	}
 
