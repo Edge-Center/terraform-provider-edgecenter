@@ -401,6 +401,19 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 
 	gid := d.Id()
 
+	if d.HasChange("name") {
+		newName := d.Get("name").(string)
+		req := &edgecloudV2.SecurityGroupUpdateRequest{
+			Name:         newName,
+			ChangedRules: []edgecloudV2.ChangedRules{},
+		}
+		_, _, err := clientV2.SecurityGroups.Update(ctx, gid, req)
+		if err != nil {
+			return diag.Errorf("Error updating security group name: %s", err)
+		}
+		log.Printf("[DEBUG] SecurityGroup name updated to: %s", newName)
+	}
+
 	if d.HasChange("security_group_rules") {
 		oldRulesRaw, newRulesRaw := d.GetChange("security_group_rules")
 		oldRules := oldRulesRaw.(*schema.Set)
