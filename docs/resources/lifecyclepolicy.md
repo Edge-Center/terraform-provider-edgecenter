@@ -93,7 +93,7 @@ Read-Only:
 Optional:
 
 - `day` (String) Either single asterisk or comma-separated list of integers (1-31)
-- `day_of_week` (String) Either single asterisk or comma-separated list of integers (0-6)
+- `day_of_week` (String) Either single asterisk or lowercase three-letter abbreviations of weekdays comma-separated (e.g., 'mon,tue,wed,thu,fri,sat,sun')
 - `hour` (String) Either single asterisk or comma-separated list of integers (0-23)
 - `minute` (String) Either single asterisk or comma-separated list of integers (0-59)
 - `month` (String) Either single asterisk or comma-separated list of integers (1-12)

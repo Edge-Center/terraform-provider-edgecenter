@@ -6,6 +6,7 @@ import (
 	"log"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -161,48 +162,61 @@ func resourceLifecyclePolicy() *schema.Resource {
 							MinItems:    1,
 							MaxItems:    1,
 							Description: "Use for taking actions at specified moments of time. Exactly one of interval and cron blocks should be provided",
-							Elem: &schema.Resource{ // TODO: validate?
+							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"timezone": {
-										Type:     schema.TypeString,
-										Optional: true,
-										Default:  "UTC",
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "UTC",
+										DiffSuppressFunc: suppressEquivalentCronDiffs,
 									},
 									"month": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Default:     "*",
-										Description: cronScheduleParamDescription(1, 12),
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "*",
+										ValidateFunc:     validateCronField(1, 12),
+										Description:      cronScheduleParamDescription(1, 12),
+										DiffSuppressFunc: suppressEquivalentCronDiffs,
 									},
 									"week": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Default:     "*",
-										Description: cronScheduleParamDescription(1, 53),
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "*",
+										ValidateFunc:     validateCronField(1, 53),
+										Description:      cronScheduleParamDescription(1, 53),
+										DiffSuppressFunc: suppressEquivalentCronDiffs,
 									},
 									"day": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Default:     "*",
-										Description: cronScheduleParamDescription(1, 31),
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "*",
+										ValidateFunc:     validateCronField(1, 31),
+										Description:      cronScheduleParamDescription(1, 31),
+										DiffSuppressFunc: suppressEquivalentCronDiffs,
 									},
 									"day_of_week": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Default:     "*",
-										Description: cronScheduleParamDescription(0, 6),
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "*",
+										Description:      "Use lowercase three-letter abbreviations of weekdays comma-separated (e.g., 'mon,tue,wed') or '*' for any day.",
+										ValidateFunc:     validateDaysOfWeek,
+										DiffSuppressFunc: suppressEquivalentCronDiffs,
 									},
 									"hour": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Default:     "*",
-										Description: cronScheduleParamDescription(0, 23),
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "*",
+										ValidateFunc:     validateCronField(0, 23),
+										Description:      cronScheduleParamDescription(0, 23),
+										DiffSuppressFunc: suppressEquivalentCronDiffs,
 									},
 									"minute": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Default:     "0",
-										Description: cronScheduleParamDescription(0, 59),
+										Type:             schema.TypeString,
+										Optional:         true,
+										Default:          "0",
+										ValidateFunc:     validateCronField(0, 59),
+										Description:      cronScheduleParamDescription(0, 59),
+										DiffSuppressFunc: suppressEquivalentCronDiffs,
 									},
 								},
 							},
@@ -358,6 +372,40 @@ func resourceLifecyclePolicyUpdate(ctx context.Context, d *schema.ResourceData, 
 			return diag.Errorf("Error adding volumes to lifecycle policy: %s", err)
 		}
 	}
+
+	if d.HasChange("schedule") {
+		oldSchedules, newSchedules := d.GetChange("schedule")
+
+		oldScheduleIDs := make([]string, 0)
+		for _, schedule := range oldSchedules.([]interface{}) {
+			scheduleMap := schedule.(map[string]interface{})
+			if id, ok := scheduleMap["id"].(string); ok && id != "" {
+				oldScheduleIDs = append(oldScheduleIDs, id)
+			}
+		}
+
+		if len(oldScheduleIDs) > 0 {
+			req := &edgecloudV2.LifeCyclePolicyRemoveSchedulesRequest{ScheduleIDs: oldScheduleIDs}
+			_, _, err = clientV2.LifeCyclePolicies.RemoveSchedules(ctx, integerID, req)
+			if err != nil {
+				return diag.Errorf("Error removing old schedules from lifecycle policy: %s", err)
+			}
+		}
+
+		expanded, err := expandSchedulesV2(newSchedules.([]interface{}))
+		if err != nil {
+			return diag.Errorf("Error expanding new schedules: %s", err)
+		}
+
+		if len(expanded) > 0 {
+			req := &edgecloudV2.LifeCyclePolicyAddSchedulesRequest{Schedules: expanded}
+			_, _, err = clientV2.LifeCyclePolicies.AddSchedules(ctx, integerID, req)
+			if err != nil {
+				return diag.Errorf("Error adding new schedules to lifecycle policy: %s", err)
+			}
+		}
+	}
+
 	log.Printf("[DEBUG] Finish of LifecyclePolicy %v updating", integerID)
 
 	return resourceLifecyclePolicyRead(ctx, d, m)
@@ -396,14 +444,27 @@ func expandIntervalScheduleV2(flat map[string]interface{}) *edgecloudV2.LifeCycl
 }
 
 func expandCronScheduleV2(flat map[string]interface{}) *edgecloudV2.LifeCyclePolicyCreateCronScheduleRequest {
+	normalizeField := func(value interface{}) string {
+		str, ok := value.(string)
+		if !ok {
+			return ""
+		}
+
+		if str == "*" {
+			return str
+		}
+
+		return strings.Join(splitByCommaOrSpace(str), ",")
+	}
+
 	return &edgecloudV2.LifeCyclePolicyCreateCronScheduleRequest{
-		Timezone:  flat["timezone"].(string),
-		Week:      flat["week"].(string),
-		DayOfWeek: flat["day_of_week"].(string),
-		Month:     flat["month"].(string),
-		Day:       flat["day"].(string),
-		Hour:      flat["hour"].(string),
-		Minute:    flat["minute"].(string),
+		Timezone:  normalizeField(flat["timezone"]),
+		Week:      normalizeField(flat["week"]),
+		DayOfWeek: normalizeField(flat["day_of_week"]),
+		Month:     normalizeField(flat["month"]),
+		Day:       normalizeField(flat["day"]),
+		Hour:      normalizeField(flat["hour"]),
+		Minute:    normalizeField(flat["minute"]),
 	}
 }
 
@@ -522,14 +583,21 @@ func flattenIntervalScheduleV2(expanded edgecloudV2.LifeCyclePolicyIntervalSched
 }
 
 func flattenCronScheduleV2(expanded edgecloudV2.LifeCyclePolicyCronSchedule) interface{} {
+	normalizeField := func(value string) string {
+		if value == "*" {
+			return value
+		}
+		return strings.Join(splitByCommaOrSpace(value), ",")
+	}
+
 	return []map[string]string{{
 		"timezone":    expanded.Timezone,
-		"week":        expanded.Week,
-		"day_of_week": expanded.DayOfWeek,
-		"month":       expanded.Month,
-		"day":         expanded.Day,
-		"hour":        expanded.Hour,
-		"minute":      expanded.Minute,
+		"week":        normalizeField(expanded.Week),
+		"day_of_week": normalizeField(expanded.DayOfWeek),
+		"month":       normalizeField(expanded.Month),
+		"day":         normalizeField(expanded.Day),
+		"hour":        normalizeField(expanded.Hour),
+		"minute":      normalizeField(expanded.Minute),
 	}}
 }
 
@@ -590,4 +658,109 @@ func intervalScheduleParamDescription(unit string) string {
 
 func retentionTimerParamDescription(unit string) string {
 	return fmt.Sprintf("Number of %ss to wait before deleting snapshot", unit)
+}
+
+func validateDaysOfWeek(v interface{}, k string) ([]string, []error) {
+	var errors []error
+
+	value, ok := v.(string)
+	if !ok {
+		errors = append(errors, fmt.Errorf("expected type of %s to be string", k))
+		return nil, errors
+	}
+
+	days := splitByCommaOrSpace(value)
+
+	if len(days) == 1 && days[0] == "*" {
+		return nil, nil
+	}
+
+	if len(days) > 7 {
+		errors = append(errors, fmt.Errorf("too many days specified: %d. Maximum allowed is 7 days", len(days)))
+		return nil, errors
+	}
+
+	validDaysMap := map[string]bool{
+		"mon": true, "tue": true, "wed": true, "thu": true,
+		"fri": true, "sat": true, "sun": true,
+	}
+
+	seenDays := make(map[string]bool)
+	for _, day := range days {
+		day = strings.ToLower(strings.TrimSpace(day))
+		if day == "" {
+			errors = append(errors, fmt.Errorf("empty day of week found. Please use lowercase three-letter abbreviations of weekdays (e.g., 'mon', 'tue')"))
+			continue
+		}
+		if day == "*" {
+			errors = append(errors, fmt.Errorf("'*' cannot be used with specific days. Use either '*' for all days or specify individual days"))
+			continue
+		}
+		if !validDaysMap[day] {
+			errors = append(errors, fmt.Errorf("invalid day of week: '%s'. Please use lowercase three-letter abbreviations of weekdays (e.g., 'mon', 'tue')", day))
+			continue
+		}
+		if seenDays[day] {
+			errors = append(errors, fmt.Errorf("duplicate day of week found: '%s'. Each day should be specified only once", day))
+			continue
+		}
+		seenDays[day] = true
+	}
+
+	return nil, errors
+}
+
+func validateCronField(min, max int) func(v interface{}, k string) ([]string, []error) {
+	return func(v interface{}, k string) ([]string, []error) {
+		var errors []error
+
+		value, ok := v.(string)
+		if !ok {
+			errors = append(errors, fmt.Errorf("expected type of %s to be string", k))
+			return nil, errors
+		}
+
+		if value == "*" {
+			return nil, nil
+		}
+
+		fields := splitByCommaOrSpace(value)
+
+		for _, field := range fields {
+			num, err := strconv.Atoi(field)
+			if err != nil {
+				errors = append(errors, fmt.Errorf("invalid value for %s: %s. Must be a number or '*'", k, field))
+				continue
+			}
+			if num < min || num > max {
+				errors = append(errors, fmt.Errorf("value %d for %s is out of range (%d-%d)", num, k, min, max))
+			}
+		}
+
+		return nil, errors
+	}
+}
+
+func splitByCommaOrSpace(s string) []string {
+	commaFields := strings.Split(s, ",")
+
+	result := make([]string, 0, len(commaFields))
+	for _, field := range commaFields {
+		trimmed := strings.TrimSpace(field)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+
+	return result
+}
+
+func suppressEquivalentCronDiffs(_, oldValue, newValue string, _ *schema.ResourceData) bool {
+	normalizeField := func(value string) string {
+		if value == "*" {
+			return value
+		}
+		return strings.Join(splitByCommaOrSpace(value), ",")
+	}
+	return normalizeField(oldValue) == normalizeField(newValue)
 }
