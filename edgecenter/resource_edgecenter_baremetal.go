@@ -292,6 +292,16 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 			PortID:    raw["port_id"].(string),
 		}
 
+		if interfaceOpts.NetworkID != "" {
+			network, _, err := clientV2.Networks.Get(ctx, interfaceOpts.NetworkID)
+			if err != nil {
+				return diag.Errorf("Error getting network information: %s", err)
+			}
+			if network.Type == "vxlan" {
+				return diag.Errorf("VxLAN networks are not supported for baremetal instances")
+			}
+		}
+
 		fipSource := raw["fip_source"].(string)
 		fipID := raw["existing_fip_id"].(string)
 		if fipSource != "" {
