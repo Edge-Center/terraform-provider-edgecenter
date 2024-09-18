@@ -37,7 +37,6 @@ resource "edgecenter_volume" "volume" {
 ### Required
 
 - `name` (String) The name of the volume.
-- `size` (Number) The size of the volume, specified in gigabytes (GB).
 
 ### Optional
 
@@ -49,6 +48,7 @@ resource "edgecenter_volume" "volume" {
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 - `snapshot_id` (String) (ForceNew) The ID of the snapshot to create the volume from. This field is mandatory if creating a volume from a snapshot.
+- `size` (Number) The size of the volume, specified in gigabytes (GB). Mandatory if not creating from a snapshot.
 - `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard'.
 
 ### Read-Only
