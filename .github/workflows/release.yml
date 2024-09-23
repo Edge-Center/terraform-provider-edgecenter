@@ -47,3 +47,11 @@ jobs:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
 #          # GitHub sets this automatically
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run update release in S3
+        run: |
+          docker run \
+            -e S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }} \
+            -e S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }} \
+            -e S3_ENDPOINT=${{ secrets.S3_ENDPOINT }} \
+            docker.k8s-dt-1.cloud.ecnl.ru/cloud-scripts:terraS3-v0.1.34
