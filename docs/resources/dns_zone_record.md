@@ -127,7 +127,7 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone_caa" {
 
 ### Optional
 
-- `filter` (Block Set) (see [below for nested schema](#nestedblock--filter))
+- `filter` (Block List) (see [below for nested schema](#nestedblock--filter))
 - `ttl` (Number) A ttl of DNS Zone Record resource.
 
 ### Read-Only
