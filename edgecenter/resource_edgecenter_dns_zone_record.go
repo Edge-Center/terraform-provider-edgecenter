@@ -199,7 +199,7 @@ func resourceDNSZoneRecord() *schema.Resource {
 				},
 			},
 			DNSZoneRecordSchemaFilter: {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -518,7 +518,7 @@ func resourceDNSZoneRecordDelete(ctx context.Context, d *schema.ResourceData, m 
 
 func fillRRSet(d *schema.ResourceData, rType string, rrSet *dnssdk.RRSet) error {
 	// set filters
-	for _, resource := range d.Get(DNSZoneRecordSchemaFilter).(*schema.Set).List() {
+	for _, resource := range d.Get(DNSZoneRecordSchemaFilter).([]interface{}) {
 		filter := dnssdk.RecordFilter{}
 		filterData := resource.(map[string]interface{})
 		name := filterData[DNSZoneRecordSchemaFilterType].(string)
