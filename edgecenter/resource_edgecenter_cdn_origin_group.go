@@ -24,35 +24,35 @@ func resourceCDNOriginGroup() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Name of the origin group",
+				Description: "Add the source group name.",
 			},
 			"use_next": {
 				Type:        schema.TypeBool,
 				Required:    true,
-				Description: "This options have two possible values: true — The option is active. In case the origin responds with 4XX or 5XX codes, use the next origin from the list. false — The option is disabled.",
+				Description: "Specify whether or not the CDN will use the next source in the list if your source responds with an HTTP status code of 4XX or 5XX.",
 			},
 			"origin": {
 				Type:        schema.TypeSet,
 				Required:    true,
-				Description: "Contains information about all IP address or Domain names of your origin and the port if custom",
+				Description: "Add information about your sources.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"source": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "IP address or Domain name of your origin and the port if custom",
+							Description: "Enter the source’s domain name or the IP address with a custom port (if any).",
 						},
 						"enabled": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Computed:    true,
-							Description: "The setting allows to enable or disable an Origin source in the Origins group",
+							Description: "Enable or disable the source. The source group must contain at least one enabled source.",
 						},
 						"backup": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Computed:    true,
-							Description: "true — The option is active. The origin will not be used until one of active origins become unavailable. false — The option is disabled.",
+							Description: "If set to \"true\", this source will not be used until one of the active sources becomes unavailable.",
 						},
 						"id": {
 							Type:     schema.TypeInt,

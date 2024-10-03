@@ -22,12 +22,12 @@ func resourceCDNShielding() *schema.Resource {
 			"resource_id": {
 				Type:        schema.TypeInt,
 				Required:    true,
-				Description: "CDN resource ID",
+				Description: "Enter the CDN resource ID to which the Origin shielding should be applied.",
 			},
 			"shielding_pop": {
 				Type:        schema.TypeInt,
 				Required:    true,
-				Description: "ID of the shielding pop",
+				Description: "Set the origin shielding location ID or disable the option using the null value.",
 			},
 		},
 		CreateContext: resourceCDNShieldingUpdate,

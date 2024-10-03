@@ -39,12 +39,12 @@ resource "edgecenter_cdn_sslcert" "cdnopt_cert" {
 
 ### Required
 
-- `cert` (String, Sensitive) The public part of the SSL certificate. All chain of the SSL certificate should be added.
-- `name` (String) Name of the SSL certificate. Must be unique.
-- `private_key` (String, Sensitive) The private key of the SSL certificate.
+- `cert` (String, Sensitive) Enter the public part of the SSL certificate. Add all the certificate chains. Each certificate chain should be separated by '\n'.
+- `name` (String) Enter the SSL certificate name. It must be unique.
+- `private_key` (String, Sensitive) Enter the private key of the SSL certificate. Add all the certificate chains. The private key should be separated by '\n', as shown in the example.
 
 ### Read-Only
 
-- `automated` (Boolean) The way SSL certificate was issued.
-- `has_related_resources` (Boolean) It shows if the SSL certificate is used by a CDN resource.
+- `automated` (Boolean) Shows how the SSL certificate was added to the account. If set to "true", this is an automatically issued Let's Encrypt certificate. If set to "false", the SSL certificate was added by a user.
+- `has_related_resources` (Boolean) If set to "true", the SSL certificate is used by a CDN resource.
 - `id` (String) The ID of this resource.

@@ -46,8 +46,8 @@ resource "edgecenter_cdn_shielding" "shielding" {
 
 ### Required
 
-- `resource_id` (Number) CDN resource ID
-- `shielding_pop` (Number) ID of the shielding pop
+- `resource_id` (Number) Enter the CDN resource ID to which the Origin shielding should be applied.
+- `shielding_pop` (Number) Set the origin shielding location ID or disable the option using the null value.
 
 ### Read-Only
 
