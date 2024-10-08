@@ -37,9 +37,9 @@ resource "edgecenter_cdn_origingroup" "origin_group_1" {
 
 ### Required
 
-- `name` (String) Name of the origin group
-- `origin` (Block Set, Min: 1) Contains information about all IP address or Domain names of your origin and the port if custom (see [below for nested schema](#nestedblock--origin))
-- `use_next` (Boolean) This options have two possible values: true — The option is active. In case the origin responds with 4XX or 5XX codes, use the next origin from the list. false — The option is disabled.
+- `name` (String) Add the source group name.
+- `origin` (Block Set, Min: 1) Add information about your sources. (see [below for nested schema](#nestedblock--origin))
+- `use_next` (Boolean) Specify whether or not the CDN will use the next source in the list if your source responds with an HTTP status code of 4XX or 5XX.
 
 ### Read-Only
 
@@ -50,12 +50,12 @@ resource "edgecenter_cdn_origingroup" "origin_group_1" {
 
 Required:
 
-- `source` (String) IP address or Domain name of your origin and the port if custom
+- `source` (String) Enter the source’s domain name or the IP address with a custom port (if any).
 
 Optional:
 
-- `backup` (Boolean) true — The option is active. The origin will not be used until one of active origins become unavailable. false — The option is disabled.
-- `enabled` (Boolean) The setting allows to enable or disable an Origin source in the Origins group
+- `backup` (Boolean) If set to "true", this source will not be used until one of the active sources becomes unavailable.
+- `enabled` (Boolean) Enable or disable the source. The source group must contain at least one enabled source.
 
 Read-Only:
 
