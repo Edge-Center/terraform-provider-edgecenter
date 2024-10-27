@@ -126,7 +126,7 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 			"metadata_map": {
 				Type:        schema.TypeMap,
 				Optional:    true,
-				Computed:    true,
+				Computed:    false,
 				Description: "A map containing metadata, for example tags.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -212,7 +212,7 @@ func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface
 	d.Set("region_id", volume.RegionID)
 	d.Set("project_id", volume.ProjectID)
 
-	metadataMap, metadataReadOnly := PrepareMetadata(volume.Metadata)
+	metadataMap, metadataReadOnly := PrepareMetadata(volume.MetadataDetailed)
 
 	if err = d.Set("metadata_map", metadataMap); err != nil {
 		return diag.FromErr(err)
