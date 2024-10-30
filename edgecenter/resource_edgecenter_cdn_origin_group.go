@@ -61,6 +61,11 @@ func resourceCDNOriginGroup() *schema.Resource {
 					},
 				},
 			},
+			"consistent_balancing": {
+				Type:        schema.TypeBool,
+				Required:    true,
+				Description: "Consistent load balancing (consistent hashing) for the source group",
+			},
 		},
 		CreateContext: resourceCDNOriginGroupCreate,
 		ReadContext:   resourceCDNOriginGroupRead,
@@ -79,6 +84,7 @@ func resourceCDNOriginGroupCreate(ctx context.Context, d *schema.ResourceData, m
 	req.Name = d.Get("name").(string)
 	req.UseNext = d.Get("use_next").(bool)
 	req.Origins = setToOriginRequests(d.Get("origin").(*schema.Set))
+	req.ConsistentBalancing = d.Get("consistent_balancing").(bool)
 
 	result, err := client.OriginGroups().Create(ctx, &req)
 	if err != nil {
@@ -114,6 +120,7 @@ func resourceCDNOriginGroupRead(ctx context.Context, d *schema.ResourceData, m i
 	if err := d.Set("origin", originsToSet(result.Origins)); err != nil {
 		return diag.FromErr(err)
 	}
+	d.Set("consistent_balancing", result.ConsistentBalancing)
 
 	log.Println("[DEBUG] Finish CDN OriginGroup reading")
 
@@ -135,6 +142,7 @@ func resourceCDNOriginGroupUpdate(ctx context.Context, d *schema.ResourceData, m
 	req.Name = d.Get("name").(string)
 	req.UseNext = d.Get("use_next").(bool)
 	req.Origins = setToOriginRequests(d.Get("origin").(*schema.Set))
+	req.ConsistentBalancing = d.Get("consistent_balancing").(bool)
 
 	if _, err := client.OriginGroups().Update(ctx, id, &req); err != nil {
 		return diag.FromErr(err)
