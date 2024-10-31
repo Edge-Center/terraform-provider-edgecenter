@@ -17,11 +17,29 @@ provider "edgecenter" {
   permanent_api_token = "251$d3361.............1b35f26d8"
 }
 
+variable "region_id" {
+  type        = number
+  description = "The region id variable indicates in which region the resource should be created"
+  default     = 1
+}
+
+variable "project_id" {
+  type        = number
+  description = "The project id variable specifies in which project the resource should be created"
+  default     = 1
+}
+
+variable "image_id" {
+  type        = string
+  description = " The ID of the image to create the volume from. This field is mandatory if creating a volume from an image. Example view 'f4ce3d30-e29c-4cfd-811f-46f383b6081f'."
+  default     = "f4ce3d30-e29c-4cfd-811f-46f383b6081f"
+}
+
 resource "edgecenter_network" "network" {
   name       = "network_example"
   type       = "vxlan"
-  region_id  = 1
-  project_id = 1
+  region_id  = var.region_id
+  project_id = var.project_id
 }
 
 resource "edgecenter_subnet" "subnet" {
@@ -36,25 +54,38 @@ resource "edgecenter_subnet" "subnet" {
   }
 
   gateway_ip = "192.168.10.1"
-  region_id  = 1
-  project_id = 1
+  region_id  = var.region_id
+  project_id = var.project_id
 }
 
 resource "edgecenter_volume" "first_volume" {
   name       = "boot volume"
   type_name  = "ssd_hiiops"
   size       = 5
-  image_id   = "f4ce3d30-e29c-4cfd-811f-46f383b6081f"
-  region_id  = 1
-  project_id = 1
+  region_id  = var.region_id
+  project_id = var.project_id
+  image_id   = var.image_id
 }
 
 resource "edgecenter_volume" "second_volume" {
   name       = "second volume"
   type_name  = "ssd_hiiops"
   size       = 5
-  region_id  = 1
-  project_id = 1
+  region_id  = var.region_id
+  project_id = var.project_id
+}
+
+resource "edgecenter_securitygroup" "sg" {
+  name       = "example_security_group"
+  region_id  = var.region_id
+  project_id = var.project_id
+  security_group_rules {
+    direction      = "egress"
+    ethertype      = "IPv4"
+    protocol       = "tcp"
+    port_range_min = 19990
+    port_range_max = 19990
+  }
 }
 
 resource "edgecenter_instanceV2" "instance" {
@@ -77,7 +108,7 @@ resource "edgecenter_instanceV2" "instance" {
     subnet_id  = edgecenter_subnet.subnet.id
   }
 
-  metadata_map = {
+  metadata = {
     some_key = "some_value"
     stage    = "dev"
   }
@@ -87,12 +118,12 @@ resource "edgecenter_instanceV2" "instance" {
     value = "some_data"
   }
 
-  region_id  = 1
-  project_id = 1
+  region_id  = var.region_id
+  project_id = var.project_id
 }
 
 resource "edgecenter_instance_port_security" "port_security" {
-  port_id                = [for iface in edgecenter_instanceV2.instance.interfaces : iface.port_id if iface.subnet_id == edgecenter_subnet.subnet1.id][0]
+  port_id                = [for iface in edgecenter_instanceV2.instance.interfaces : iface.port_id if iface.subnet_id == edgecenter_subnet.subnet.id][0]
   instance_id            = edgecenter_instanceV2.instance.id
   region_id              = var.region_id
   project_id             = var.project_id
