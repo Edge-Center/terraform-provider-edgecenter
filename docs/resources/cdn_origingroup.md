@@ -29,6 +29,7 @@ resource "edgecenter_cdn_origingroup" "origin_group_1" {
     enabled = true
     backup  = true
   }
+  consistent_balancing = true
 }
 ```
 
@@ -37,6 +38,7 @@ resource "edgecenter_cdn_origingroup" "origin_group_1" {
 
 ### Required
 
+- `consistent_balancing` (Boolean) Consistent load balancing (consistent hashing) for the source group
 - `name` (String) Add the source group name.
 - `origin` (Block Set, Min: 1) Add information about your sources. (see [below for nested schema](#nestedblock--origin))
 - `use_next` (Boolean) Specify whether or not the CDN will use the next source in the list if your source responds with an HTTP status code of 4XX or 5XX.
