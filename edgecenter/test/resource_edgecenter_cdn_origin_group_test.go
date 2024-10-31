@@ -38,6 +38,7 @@ func TestAccOriginGroup(t *testing.T) {
 			    source = "yandex.ru"
 			    enabled = true
 			  }
+			  consistent_balancing = true
 			}
 		`, params.Source, params.Enabled)
 	}

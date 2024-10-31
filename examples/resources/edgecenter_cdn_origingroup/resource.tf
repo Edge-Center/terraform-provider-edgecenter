@@ -14,4 +14,5 @@ resource "edgecenter_cdn_origingroup" "origin_group_1" {
     enabled = true
     backup  = true
   }
+  consistent_balancing = true
 }
