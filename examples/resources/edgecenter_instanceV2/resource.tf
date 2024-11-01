@@ -25,19 +25,13 @@ resource "edgecenter_subnet" "subnet" {
   project_id = 1
 }
 
-data "edgecenter_image" "ubuntu" {
-  name       = "ubuntu-20.04"
-  region_id  = 1
-  project_id = 1
-}
-
 resource "edgecenter_volume" "first_volume" {
   name       = "boot volume"
   type_name  = "ssd_hiiops"
   size       = 5
   region_id  = 1
   project_id = 1
-  image_id   = data.edgecenter_image.ubuntu.id
+  image_id   = "f4ce3d30-e29c-4cfd-811f-46f383b6081f"
 }
 
 resource "edgecenter_volume" "second_volume" {
@@ -96,8 +90,7 @@ resource "edgecenter_instanceV2" "instance" {
 }
 
 resource "edgecenter_instance_port_security" "port_security" {
-  for_each               = { for iface in edgecenter_instanceV2.instance.interfaces : iface.port_id => iface if iface.subnet_id == edgecenter_subnet.subnet.id }
-  port_id                = each.key
+  port_id                = [for iface in edgecenter_instanceV2.instance.interfaces : iface.port_id if iface.subnet_id == edgecenter_subnet.subnet.id][0]
   instance_id            = edgecenter_instanceV2.instance.id
   region_id              = 1
   project_id             = 1
