@@ -29,9 +29,9 @@ resource "edgecenter_volume" "first_volume" {
   name       = "boot volume"
   type_name  = "ssd_hiiops"
   size       = 5
-  image_id   = "f4ce3d30-e29c-4cfd-811f-46f383b6081f"
   region_id  = 1
   project_id = 1
+  image_id   = "f4ce3d30-e29c-4cfd-811f-46f383b6081f"
 }
 
 resource "edgecenter_volume" "second_volume" {
@@ -40,6 +40,19 @@ resource "edgecenter_volume" "second_volume" {
   size       = 5
   region_id  = 1
   project_id = 1
+}
+
+resource "edgecenter_securitygroup" "sg" {
+  name       = "example_security_group"
+  region_id  = 1
+  project_id = 1
+  security_group_rules {
+    direction      = "egress"
+    ethertype      = "IPv4"
+    protocol       = "tcp"
+    port_range_min = 19990
+    port_range_max = 19990
+  }
 }
 
 resource "edgecenter_instanceV2" "instance" {
@@ -62,7 +75,7 @@ resource "edgecenter_instanceV2" "instance" {
     subnet_id  = edgecenter_subnet.subnet.id
   }
 
-  metadata_map = {
+  metadata = {
     some_key = "some_value"
     stage    = "dev"
   }
@@ -77,16 +90,13 @@ resource "edgecenter_instanceV2" "instance" {
 }
 
 resource "edgecenter_instance_port_security" "port_security" {
-  port_id                = [for iface in edgecenter_instanceV2.instance.interfaces : iface.port_id if iface.subnet_id == edgecenter_subnet.subnet1.id][0]
+  port_id                = [for iface in edgecenter_instanceV2.instance.interfaces : iface.port_id if iface.subnet_id == edgecenter_subnet.subnet.id][0]
   instance_id            = edgecenter_instanceV2.instance.id
-  region_id              = var.region_id
-  project_id             = var.project_id
+  region_id              = 1
+  project_id             = 1
   port_security_disabled = false
   security_groups {
     overwrite_existing = true
     security_group_ids = [edgecenter_securitygroup.sg.id]
   }
 }
-
-
-
