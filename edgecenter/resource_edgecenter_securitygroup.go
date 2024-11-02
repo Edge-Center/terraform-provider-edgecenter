@@ -158,13 +158,13 @@ func resourceSecurityGroup() *schema.Resource {
 						"port_range_min": {
 							Type:         schema.TypeInt,
 							Optional:     true,
-							Default:      1,
+							Computed:     true,
 							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 						"port_range_max": {
 							Type:         schema.TypeInt,
 							Optional:     true,
-							Default:      65535,
+							Computed:     true,
 							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 						"description": {
@@ -250,8 +250,13 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 			return diag.FromErr(fmt.Errorf("value of the port_range_min cannot be greater than port_range_max"))
 		}
 
-		sgrOpts.PortRangeMax = &portRangeMax
-		sgrOpts.PortRangeMin = &portRangeMin
+		if portRangeMax != 0 {
+			sgrOpts.PortRangeMax = &portRangeMax
+		}
+
+		if portRangeMin != 0 {
+			sgrOpts.PortRangeMin = &portRangeMin
+		}
 
 		rules[i] = sgrOpts
 	}
