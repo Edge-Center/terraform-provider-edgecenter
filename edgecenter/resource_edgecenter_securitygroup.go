@@ -6,17 +6,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
@@ -24,6 +21,19 @@ const (
 )
 
 var ErrCannotDeleteSGRule = errors.New("error when deleting security group rule")
+
+func validatePortRange(val interface{}, key string) (warns []string, errs []error) {
+	v, ok := val.(string)
+	if !ok || v == "" {
+		return
+	}
+
+	port, err := strconv.Atoi(v)
+	if err != nil || port < 1 || port > 65535 {
+		errs = append(errs, fmt.Errorf("%q must be an integer between 1 and 65535, got %q", key, v))
+	}
+	return
+}
 
 func resourceSecurityGroup() *schema.Resource {
 	return &schema.Resource{
@@ -160,14 +170,12 @@ func resourceSecurityGroup() *schema.Resource {
 						"port_range_min": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							Computed:     true,
-							ValidateFunc: validation.StringMatch(regexp.MustCompile(`^$|^[1-9][0-9]{0,4}$`), "must be a valid integer between 1 and 65535 or empty"),
+							ValidateFunc: validatePortRange,
 						},
 						"port_range_max": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							Computed:     true,
-							ValidateFunc: validation.StringMatch(regexp.MustCompile(`^$|^[1-9][0-9]{0,4}$`), "must be a valid integer between 1 and 65535 or empty"),
+							ValidateFunc: validatePortRange,
 						},
 						"description": {
 							Type:     schema.TypeString,
