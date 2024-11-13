@@ -18,8 +18,8 @@ func secGroupUniqueID(i interface{}) int {
 	io.WriteString(h, e["direction"].(string))
 	io.WriteString(h, e["ethertype"].(string))
 	io.WriteString(h, proto)
-	io.WriteString(h, strconv.Itoa(e["port_range_min"].(int)))
-	io.WriteString(h, strconv.Itoa(e["port_range_max"].(int)))
+	io.WriteString(h, e["port_range_min"].(string))
+	io.WriteString(h, e["port_range_max"].(string))
 	io.WriteString(h, e["description"].(string))
 	io.WriteString(h, e["remote_ip_prefix"].(string))
 
