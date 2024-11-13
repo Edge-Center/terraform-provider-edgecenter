@@ -3,10 +3,10 @@ package edgecenter
 import (
 	"crypto/md5"
 	"encoding/binary"
-	"fmt"
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"io"
 	"strconv"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 // secGroupUniqueID generates a unique ID for a security group rule using its properties.
@@ -39,15 +39,8 @@ func extractSecurityGroupRuleCreateRequestV2(r interface{}, gid string) edgeclou
 
 	minP, maxP := rule["port_range_min"].(string), rule["port_range_max"].(string)
 	if minP != "" && maxP != "" {
-		minPort, err := strconv.Atoi(minP)
-		if err != nil {
-			fmt.Errorf("error convert string to int in minPort: %w", err)
-		}
-
-		maxPort, err := strconv.Atoi(maxP)
-		if err != nil {
-			fmt.Errorf("error convert string to int in maxPort: %w", err)
-		}
+		minPort, _ := strconv.Atoi(minP)
+		maxPort, _ := strconv.Atoi(maxP)
 
 		opts.PortRangeMin = &minPort
 		opts.PortRangeMax = &maxPort

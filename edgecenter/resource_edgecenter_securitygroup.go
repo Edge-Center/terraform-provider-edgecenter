@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
@@ -21,19 +22,6 @@ const (
 )
 
 var ErrCannotDeleteSGRule = errors.New("error when deleting security group rule")
-
-func validatePortRange(val interface{}, key string) (warns []string, errs []error) {
-	v, ok := val.(string)
-	if !ok || v == "" {
-		return
-	}
-
-	port, err := strconv.Atoi(v)
-	if err != nil || port < 1 || port > 65535 {
-		errs = append(errs, fmt.Errorf("%q must be an integer between 1 and 65535, got %q", key, v))
-	}
-	return
-}
 
 func resourceSecurityGroup() *schema.Resource {
 	return &schema.Resource{
@@ -168,14 +156,28 @@ func resourceSecurityGroup() *schema.Resource {
 							Description: fmt.Sprintf("Available value is %s", strings.Join(edgecloudV2.SecurityGroupRuleProtocol("").StringList(), ",")),
 						},
 						"port_range_min": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validatePortRange,
+							Type:     schema.TypeString,
+							Optional: true,
+							ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
+								val := v.(string)
+								port, _ := strconv.Atoi(val)
+								if port < 1 || port > 65535 {
+									return diag.Errorf("wrong port_range_min %q, available value between 1 and 65535", val)
+								}
+								return nil
+							},
 						},
 						"port_range_max": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validatePortRange,
+							Type:     schema.TypeString,
+							Optional: true,
+							ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
+								val := v.(string)
+								port, _ := strconv.Atoi(val)
+								if port < 1 || port > 65535 {
+									return diag.Errorf("wrong port_range_max %q, available value between 1 and 65535", val)
+								}
+								return nil
+							},
 						},
 						"description": {
 							Type:     schema.TypeString,
@@ -262,7 +264,6 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 		}
 
 		portRangeMaxItn, err := strconv.Atoi(portRangeMax)
-
 		if err != nil {
 			return diag.FromErr(err)
 		}
