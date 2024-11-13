@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -156,16 +158,16 @@ func resourceSecurityGroup() *schema.Resource {
 							Description: fmt.Sprintf("Available value is %s", strings.Join(edgecloudV2.SecurityGroupRuleProtocol("").StringList(), ",")),
 						},
 						"port_range_min": {
-							Type:         schema.TypeInt,
+							Type:         schema.TypeString,
 							Optional:     true,
 							Computed:     true,
-							ValidateFunc: validation.IntBetween(1, 65535),
+							ValidateFunc: validation.StringMatch(regexp.MustCompile(`^$|^[1-9][0-9]{0,4}$`), "must be a valid integer between 1 and 65535 or empty"),
 						},
 						"port_range_max": {
-							Type:         schema.TypeInt,
+							Type:         schema.TypeString,
 							Optional:     true,
 							Computed:     true,
-							ValidateFunc: validation.IntBetween(1, 65535),
+							ValidateFunc: validation.StringMatch(regexp.MustCompile(`^$|^[1-9][0-9]{0,4}$`), "must be a valid integer between 1 and 65535 or empty"),
 						},
 						"description": {
 							Type:     schema.TypeString,
@@ -243,19 +245,30 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 			sgrOpts.RemoteIPPrefix = &remoteIPPrefix
 		}
 
-		portRangeMin := rule["port_range_min"].(int)
-		portRangeMax := rule["port_range_max"].(int)
+		portRangeMin := rule["port_range_min"].(string)
+		portRangeMax := rule["port_range_max"].(string)
 
-		if portRangeMin > portRangeMax {
+		portRangeMinItn, err := strconv.Atoi(portRangeMin)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		portRangeMaxItn, err := strconv.Atoi(portRangeMax)
+
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if portRangeMinItn > portRangeMaxItn {
 			return diag.FromErr(fmt.Errorf("value of the port_range_min cannot be greater than port_range_max"))
 		}
 
-		if portRangeMax != 0 {
-			sgrOpts.PortRangeMax = &portRangeMax
+		if portRangeMax != "" {
+			sgrOpts.PortRangeMax = &portRangeMinItn
 		}
 
-		if portRangeMin != 0 {
-			sgrOpts.PortRangeMin = &portRangeMin
+		if portRangeMin != "" {
+			sgrOpts.PortRangeMin = &portRangeMaxItn
 		}
 
 		rules[i] = sgrOpts
@@ -350,13 +363,13 @@ func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m in
 			r["protocol"] = sgr.Protocol.String()
 		}
 
-		r["port_range_max"] = 65535
+		r["port_range_max"] = ""
 		if sgr.PortRangeMax != nil {
-			r["port_range_max"] = *sgr.PortRangeMax
+			r["port_range_max"] = strconv.Itoa(*sgr.PortRangeMax)
 		}
-		r["port_range_min"] = 1
+		r["port_range_min"] = ""
 		if sgr.PortRangeMin != nil {
-			r["port_range_min"] = *sgr.PortRangeMin
+			r["port_range_min"] = strconv.Itoa(*sgr.PortRangeMin)
 		}
 
 		r["description"] = ""
