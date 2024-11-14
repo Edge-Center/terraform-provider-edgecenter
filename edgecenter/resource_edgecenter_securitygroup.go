@@ -258,17 +258,23 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 		portRangeMin := rule["port_range_min"].(string)
 		portRangeMax := rule["port_range_max"].(string)
 
-		portRangeMinItn, err := strconv.Atoi(portRangeMin)
-		if err != nil {
-			return diag.FromErr(err)
+		var portRangeMinItn, portRangeMaxItn int
+
+		if portRangeMin != "" {
+			portRangeMinItn, err = strconv.Atoi(portRangeMin)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 		}
 
-		portRangeMaxItn, err := strconv.Atoi(portRangeMax)
-		if err != nil {
-			return diag.FromErr(err)
+		if portRangeMax != "" {
+			portRangeMaxItn, err = strconv.Atoi(portRangeMax)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 		}
 
-		if portRangeMinItn > portRangeMaxItn {
+		if portRangeMin != "" && portRangeMax != "" && portRangeMinItn > portRangeMaxItn {
 			return diag.FromErr(fmt.Errorf("value of the port_range_min cannot be greater than port_range_max"))
 		}
 
