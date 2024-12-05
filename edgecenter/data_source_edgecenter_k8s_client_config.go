@@ -2,18 +2,17 @@ package edgecenter
 
 import (
 	"context"
-	"log"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
 )
 
 func dataSourceK8sClientConfig() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceK8sReadClientConfig,
-		Description: "Represent k8s cluster with one default pool.",
+		DeprecationMessage: "!> **WARNING:** This data source is deprecated and will be removed in the next major version. Data source \"edgecenter_k8s_client_config\" unavailable.",
+		ReadContext:        dataSourceK8sReadClientConfig,
+		Description:        "Represent k8s cluster with one default pool. \n\n **WARNING:** Data source \"edgecenter_k8s_client_config\" is deprecated and unavailable.",
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:         schema.TypeInt,
@@ -58,42 +57,6 @@ func dataSourceK8sClientConfig() *schema.Resource {
 	}
 }
 
-func dataSourceK8sReadClientConfig(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start K8s client config reading")
-	var diags diag.Diagnostics
-	config := m.(*Config)
-	provider := config.Provider
-
-	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	clusterID := d.Get("cluster_id").(string)
-
-	d.SetId(clusterID)
-
-	getConfigResult, err := clusters.GetConfig(client, clusterID).Extract()
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	clusterConfig, err := parseK8sConfig(getConfigResult.Config)
-	if err != nil {
-		return diag.Errorf("failed to parse k8s config: %s", err)
-	}
-
-	clientCertificateData := clusterConfig.Users[0].User.ClientCertificateData
-	if err := d.Set("client_certificate_data", clientCertificateData); err != nil {
-		return diag.Errorf("couldn't get client_certificate_data: %s", err)
-	}
-
-	clientKeyData := clusterConfig.Users[0].User.ClientKeyData
-	if err := d.Set("client_key_data", clientKeyData); err != nil {
-		return diag.Errorf("couldn't get client_key_data: %s", err)
-	}
-
-	log.Println("[DEBUG] Finish K8s client config reading")
-
-	return diags
+func dataSourceK8sReadClientConfig(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
+	return diag.FromErr(fmt.Errorf("data source \"edgecenter_k8s_client_config\" is deprecated and unavailable"))
 }

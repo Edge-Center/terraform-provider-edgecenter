@@ -4,11 +4,14 @@ page_title: "edgecenter_k8s_client_config Data Source - edgecenter"
 subcategory: ""
 description: |-
   Represent k8s cluster with one default pool.
+  WARNING: Data source "edgecenter_k8s_client_config" is deprecated and unavailable.
 ---
 
 # edgecenter_k8s_client_config (Data Source)
 
-Represent k8s cluster with one default pool.
+Represent k8s cluster with one default pool. 
+
+ **WARNING:** Data source "edgecenter_k8s_client_config" is deprecated and unavailable.
 
 ## Example Usage
 

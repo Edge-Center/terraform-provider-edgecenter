@@ -1,24 +1,17 @@
 package edgecenter
 
-import (
-	"net"
-
-	"gopkg.in/yaml.v3"
-
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-)
-
-func parseCIDRFromString(cidr string) (edgecloud.CIDR, error) {
-	var ecCIDR edgecloud.CIDR
-	_, netIPNet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return ecCIDR, err
-	}
-	ecCIDR.IP = netIPNet.IP
-	ecCIDR.Mask = netIPNet.Mask
-
-	return ecCIDR, nil
-}
+// Temporary comment by CLOUDDEV-642
+// func parseCIDRFromString(cidr string) (edgecloud.CIDR, error) {
+//	var ecCIDR edgecloud.CIDR
+//	_, netIPNet, err := net.ParseCIDR(cidr)
+//	if err != nil {
+//		return ecCIDR, err
+//	}
+//	ecCIDR.IP = netIPNet.IP
+//	ecCIDR.Mask = netIPNet.Mask
+//
+//	return ecCIDR, nil
+// }
 
 type K8sConfig struct {
 	APIVersion     string   `yaml:"apiVersion"`
@@ -51,11 +44,12 @@ type K8sConfig struct {
 	} `yaml:"users"`
 }
 
-func parseK8sConfig(data string) (*K8sConfig, error) {
-	var config K8sConfig
-	err := yaml.Unmarshal([]byte(data), &config)
-	if err != nil {
-		return nil, err
-	}
-	return &config, nil
-}
+// Temporary comment by CLOUDDEV-642
+// func parseK8sConfig(data string) (*K8sConfig, error) {
+//	var config K8sConfig
+//	err := yaml.Unmarshal([]byte(data), &config)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return &config, nil
+// }
