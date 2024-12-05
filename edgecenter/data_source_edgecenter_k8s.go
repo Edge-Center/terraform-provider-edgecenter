@@ -218,6 +218,6 @@ func dataSourceK8s() *schema.Resource {
 	}
 }
 
-func dataSourceK8sRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceK8sRead(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("resource \"edgecenter_k8s\" is deprecated and unavailable"))
 }

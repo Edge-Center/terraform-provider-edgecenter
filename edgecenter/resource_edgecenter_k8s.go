@@ -263,18 +263,18 @@ func resourceK8s() *schema.Resource {
 	}
 }
 
-func resourceK8sCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sCreate(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("resource \"edgecenter_k8s\" is deprecated and unavailable"))
 }
 
-func resourceK8sRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sRead(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("resource \"edgecenter_k8s\" is deprecated and unavailable"))
 }
 
-func resourceK8sUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sUpdate(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("resource \"edgecenter_k8s\" is deprecated and unavailable"))
 }
 
-func resourceK8sDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sDelete(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("resource \"edgecenter_k8s\" is deprecated and unavailable"))
 }

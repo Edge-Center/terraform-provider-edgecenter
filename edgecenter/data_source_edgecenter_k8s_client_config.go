@@ -56,6 +56,6 @@ func dataSourceK8sClientConfig() *schema.Resource {
 	}
 }
 
-func dataSourceK8sReadClientConfig(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceK8sReadClientConfig(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("data source \"edgecenter_k8s_client_config\" is deprecated and unavailable"))
 }

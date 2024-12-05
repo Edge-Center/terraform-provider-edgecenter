@@ -120,18 +120,18 @@ func resourceK8sPool() *schema.Resource {
 	}
 }
 
-func resourceK8sPoolCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sPoolCreate(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("resource \"edgecenter_k8s_pool\" is deprecated and unavailable"))
 }
 
-func resourceK8sPoolRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sPoolRead(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("resource \"edgecenter_k8s_pool\" is deprecated and unavailable"))
 }
 
-func resourceK8sPoolUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sPoolUpdate(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("resource \"edgecenter_k8s_pool\" is deprecated and unavailable"))
 }
 
-func resourceK8sPoolDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceK8sPoolDelete(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("resource \"edgecenter_k8s_pool\" is deprecated and unavailable"))
 }

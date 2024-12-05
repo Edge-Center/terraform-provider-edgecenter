@@ -117,6 +117,6 @@ func dataSourceK8sPool() *schema.Resource {
 	}
 }
 
-func dataSourceK8sPoolRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceK8sPoolRead(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return diag.FromErr(fmt.Errorf("data source \"edgecenter_k8s_pool\" is deprecated and unavailable"))
 }
