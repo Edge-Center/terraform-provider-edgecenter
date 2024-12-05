@@ -13,8 +13,9 @@ import (
 
 func dataSourceK8sPool() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceK8sPoolRead,
-		Description: "Represent k8s cluster's pool.",
+		DeprecationMessage: "!> **WARNING:** This data source is deprecated and will be removed in the next major version. Data source \"edgecenter_k8s_pool\" unavailable.",
+		ReadContext:        dataSourceK8sPoolRead,
+		Description:        "Represent k8s cluster's pool.",
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:         schema.TypeInt,
