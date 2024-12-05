@@ -2,19 +2,17 @@ package edgecenter
 
 import (
 	"context"
-	"log"
-	"time"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/pools"
 )
 
 func dataSourceK8sPool() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceK8sPoolRead,
-		Description: "Represent k8s cluster's pool.",
+		DeprecationMessage: "!> **WARNING:** This data source is deprecated and will be removed in the next major version. Data source \"edgecenter_k8s_pool\" unavailable.",
+		ReadContext:        dataSourceK8sPoolRead,
+		Description:        "Represent k8s cluster's pool.\n\n **WARNING:** Data source \"edgecenter_k8s_pool\" is deprecated and unavailable.",
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:         schema.TypeInt,
@@ -120,56 +118,6 @@ func dataSourceK8sPool() *schema.Resource {
 	}
 }
 
-func dataSourceK8sPoolRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start K8s pool reading")
-	var diags diag.Diagnostics
-	config := m.(*Config)
-	provider := config.Provider
-
-	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	clusterID := d.Get("cluster_id").(string)
-	poolID := d.Get("pool_id").(string)
-
-	pool, err := pools.Get(client, clusterID, poolID).Extract()
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId(pool.UUID)
-
-	d.Set("name", pool.Name)
-	d.Set("cluster_id", clusterID)
-	d.Set("is_default", pool.IsDefault)
-	d.Set("flavor_id", pool.FlavorID)
-	d.Set("min_node_count", pool.MinNodeCount)
-	d.Set("max_node_count", pool.MaxNodeCount)
-	d.Set("node_count", pool.NodeCount)
-	d.Set("docker_volume_type", pool.DockerVolumeType.String())
-	d.Set("docker_volume_size", pool.DockerVolumeSize)
-	d.Set("stack_id", pool.StackID)
-	d.Set("created_at", pool.CreatedAt.Format(time.RFC850))
-
-	nodeAddresses := make([]string, len(pool.NodeAddresses))
-	for i, na := range pool.NodeAddresses {
-		nodeAddresses[i] = na.String()
-	}
-	d.Set("node_addresses", nodeAddresses)
-
-	poolInstances, err := pools.InstancesAll(client, clusterID, poolID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	nodeNames := make([]string, len(poolInstances))
-	for j, instance := range poolInstances {
-		nodeNames[j] = instance.Name
-	}
-	d.Set("node_names", nodeNames)
-
-	log.Println("[DEBUG] Finish K8s pool reading")
-
-	return diags
+func dataSourceK8sPoolRead(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
+	return diag.FromErr(fmt.Errorf("data source \"edgecenter_k8s_pool\" is deprecated and unavailable"))
 }

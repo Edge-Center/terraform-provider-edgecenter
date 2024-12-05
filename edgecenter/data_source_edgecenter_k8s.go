@@ -2,20 +2,17 @@ package edgecenter
 
 import (
 	"context"
-	"log"
-	"time"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/pools"
 )
 
 func dataSourceK8s() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceK8sRead,
-		Description: "Represent k8s cluster with one default pool.",
+		DeprecationMessage: "!> **WARNING:** This data source is deprecated and will be removed in the next major version. Data source \"edgecenter_k8s\" unavailable.",
+		ReadContext:        dataSourceK8sRead,
+		Description:        "Represent k8s cluster with one default pool.\n\n **WARNING:** Data source \"edgecenter_k8s\" is deprecated and unavailable.",
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:         schema.TypeInt,
@@ -222,109 +219,6 @@ func dataSourceK8s() *schema.Resource {
 	}
 }
 
-func dataSourceK8sRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start K8s reading")
-	var diags diag.Diagnostics
-	config := m.(*Config)
-	provider := config.Provider
-
-	client, err := CreateClient(provider, d, K8sPoint, VersionPointV1)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	clusterID := d.Get("cluster_id").(string)
-	cluster, err := clusters.Get(client, clusterID).Extract()
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(cluster.UUID)
-
-	d.Set("name", cluster.Name)
-	d.Set("fixed_network", cluster.FixedNetwork)
-	d.Set("fixed_subnet", cluster.FixedSubnet)
-	d.Set("master_lb_floating_ip_enabled", cluster.FloatingIPEnabled)
-	d.Set("keypair", cluster.KeyPair)
-	d.Set("node_count", cluster.NodeCount)
-	d.Set("status", cluster.Status)
-	d.Set("status_reason", cluster.StatusReason)
-
-	masterAddresses := make([]string, len(cluster.MasterAddresses))
-	for i, addr := range cluster.MasterAddresses {
-		masterAddresses[i] = addr.String()
-	}
-	if err := d.Set("master_addresses", masterAddresses); err != nil {
-		return diag.FromErr(err)
-	}
-
-	nodeAddresses := make([]string, len(cluster.NodeAddresses))
-	for i, addr := range cluster.NodeAddresses {
-		nodeAddresses[i] = addr.String()
-	}
-	if err := d.Set("node_addresses", nodeAddresses); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.Set("container_version", cluster.ContainerVersion)
-	d.Set("api_address", cluster.APIAddress.String())
-	d.Set("user_id", cluster.UserID)
-	d.Set("discovery_url", cluster.DiscoveryURL.String())
-
-	d.Set("health_status", cluster.HealthStatus)
-	if err := d.Set("health_status_reason", cluster.HealthStatusReason); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("faults", cluster.Faults); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.Set("master_flavor_id", cluster.MasterFlavorID)
-	d.Set("cluster_template_id", cluster.ClusterTemplateID)
-	d.Set("version", cluster.Version)
-	d.Set("updated_at", cluster.UpdatedAt.Format(time.RFC850))
-	d.Set("created_at", cluster.CreatedAt.Format(time.RFC850))
-
-	var pool pools.ClusterPool
-	for _, p := range cluster.Pools {
-		if p.IsDefault {
-			pool = p
-		}
-	}
-
-	p := make(map[string]interface{})
-	p["uuid"] = pool.UUID
-	p["name"] = pool.Name
-	p["flavor_id"] = pool.FlavorID
-	p["min_node_count"] = pool.MinNodeCount
-	p["max_node_count"] = pool.MaxNodeCount
-	p["node_count"] = pool.NodeCount
-	p["docker_volume_type"] = pool.DockerVolumeType.String()
-	p["docker_volume_size"] = pool.DockerVolumeSize
-	p["stack_id"] = pool.StackID
-	p["created_at"] = pool.CreatedAt.Format(time.RFC850)
-
-	if err := d.Set("pool", []interface{}{p}); err != nil {
-		return diag.FromErr(err)
-	}
-
-	getConfigResult, err := clusters.GetConfig(client, clusterID).Extract()
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	clusterConfig, err := parseK8sConfig(getConfigResult.Config)
-	if err != nil {
-		return diag.Errorf("failed to parse k8s config: %s", err)
-	}
-
-	certificateAuthorityData := clusterConfig.Clusters[0].Cluster.CertificateAuthorityData
-	if err := d.Set("certificate_authority_data", certificateAuthorityData); err != nil {
-		return diag.Errorf("couldn't get certificate_authority_data: %s", err)
-	}
-
-	log.Println("[DEBUG] Finish K8s reading")
-
-	return diags
+func dataSourceK8sRead(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
+	return diag.FromErr(fmt.Errorf("resource \"edgecenter_k8s\" is deprecated and unavailable"))
 }
