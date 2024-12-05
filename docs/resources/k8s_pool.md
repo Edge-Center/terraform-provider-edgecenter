@@ -4,11 +4,14 @@ page_title: "edgecenter_k8s_pool Resource - edgecenter"
 subcategory: ""
 description: |-
   Represent k8s cluster's pool.
+  WARNING: Resource "edgecenter_k8s_pool" is deprecated and unavailable.
 ---
 
 # edgecenter_k8s_pool (Resource)
 
-Represent k8s cluster's pool.
+Represent k8s cluster's pool. 
+
+ **WARNING:** Resource "edgecenter_k8s_pool" is deprecated and unavailable.
 
 ## Example Usage
 

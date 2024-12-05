@@ -4,11 +4,14 @@ page_title: "edgecenter_k8s_pool Data Source - edgecenter"
 subcategory: ""
 description: |-
   Represent k8s cluster's pool.
+  WARNING: Data source "edgecenter_k8s_pool" is deprecated and unavailable.
 ---
 
 # edgecenter_k8s_pool (Data Source)
 
 Represent k8s cluster's pool.
+
+ **WARNING:** Data source "edgecenter_k8s_pool" is deprecated and unavailable.
 
 ## Example Usage
 

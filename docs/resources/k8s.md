@@ -4,11 +4,14 @@ page_title: "edgecenter_k8s Resource - edgecenter"
 subcategory: ""
 description: |-
   Represent k8s cluster with one default pool.
+  WARNING: Resource "edgecenter_k8s" is deprecated and unavailable.
 ---
 
 # edgecenter_k8s (Resource)
 
-Represent k8s cluster with one default pool.
+Represent k8s cluster with one default pool. 
+
+ **WARNING:** Resource "edgecenter_k8s" is deprecated and unavailable.
 
 ## Example Usage
 
