@@ -28,7 +28,10 @@ func resourceVolume() *schema.Resource {
 		UpdateContext: resourceVolumeUpdate,
 		DeleteContext: resourceVolumeDelete,
 		Description: `A volume is a detachable block storage device akin to a USB hard drive or SSD, but located remotely in the cloud.
-Volumes can be attached to a virtual machine and manipulated like a physical hard drive.`,
+Volumes can be attached to a virtual machine and manipulated like a physical hard drive.
+
+The disc type "infra_ssd" is an internal type of EdgeCenter. 	
+	`,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, volumeID, err := ImportStringParser(d.Id())
@@ -100,8 +103,8 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
-				Description:   "The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard' if not specified.",
-				ValidateFunc:  validation.StringInSlice([]string{"ssd_hiiops", "standard", "cold", "ultra"}, false),
+				Description:   "The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', 'infra_ssd' and 'ultra'. Defaults to 'standard' if not specified.",
+				ValidateFunc:  validation.StringInSlice([]string{"ssd_hiiops", "standard", "cold", "ultra", "infra_ssd"}, false),
 				ConflictsWith: []string{"snapshot_id"},
 			},
 			"image_id": {
