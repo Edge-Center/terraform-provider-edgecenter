@@ -100,8 +100,8 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
-				Description:   "The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', and 'ultra'. Defaults to 'standard' if not specified.",
-				ValidateFunc:  validation.StringInSlice([]string{"ssd_hiiops", "standard", "cold", "ultra"}, false),
+				Description:   "The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', 'infra-ssd' and 'ultra'. Defaults to 'standard' if not specified.",
+				ValidateFunc:  validation.StringInSlice([]string{"ssd_hiiops", "standard", "cold", "ultra", "infra-ssd"}, false),
 				ConflictsWith: []string{"snapshot_id"},
 			},
 			"image_id": {
