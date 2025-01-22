@@ -69,7 +69,7 @@ build_debug: tidy
 	go build -o bin/$(BINARY_NAME) -gcflags '-N -l'
 
 linters:
-	@test -f $(BIN_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.54.2
+	@test -f $(BIN_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s
 	@$(BIN_DIR)/golangci-lint run
 
 linters_docker: # for windows
