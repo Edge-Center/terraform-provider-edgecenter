@@ -1,77 +1,154 @@
 run:
   timeout: 10m
-  go: "1.20"
-
-issues:
-  max-per-linter: 0
-  max-same-issues: 0
-  exclude:
-    # revive, stylecheck: ignore constants in all caps
-    - don't use ALL_CAPS in Go names; use CamelCase
-    - ST1003
-    # gosec
-    - G401
-    - G501
-  exclude-rules:
-    - path: \.go
-      linters:
-        - nolintlint
-      text: should be written without leading space
-    - text: lifecyclepolicy.CreateScheduleOpts
-      linters:
-        - ireturn
-    - path: utils|_test
-      linters:
-        - wrapcheck
+  go: "1.22"
 
 linters:
-  enable-all: true
-  disable:
-    - ireturn
-    - deadcode
-    - maligned
-    - varcheck
-    - nosnakecase
-    - interfacer
-    - ifshort
-    - structcheck
-    - golint
-    - scopelint
-    - exhaustivestruct
+  # Disable all linters.
+  # Default: false
+  disable-all: true
+  # Enable specific linter
+  # https://golangci-lint.run/usage/linters/#enabled-by-default
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
+    - decorder
+    - dogsled
+    - dupword
+    - durationcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - gci
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gochecksumtype
+    - goconst
+    - gocritic
+    - godot
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - gosmopolitan
+    - govet
+    - grouper
+    - iface
+    - importas
+    - inamedparam
+    - ineffassign
+    - interfacebloat
+    - loggercheck
+    - makezero
+    - mirror
+    - misspell
+    - nakedret
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - prealloc
+    - promlinter
+    - protogetter
+    - reassign
+    - recvcheck
     - rowserrcheck
+    - sloglint
+    - spancheck
     - sqlclosecheck
-    - wastedassign
-    # skip
-    - gochecknoglobals # check that no global variables exist
-    - nilnil           # Checks that there is no simultaneous return of nil error and an invalid value.
-    - gomnd            # An analyzer to detect magic numbers.
-    - goerr113         # Golang linter to check the errors handling expressions
-    - exhaustruct      # Checks if all structure fields are initialized
-    - lll              # Reports long lines
-    - godox            # Tool for detection of FIXME, TODO and other comment keywords
-    - wsl              # Whitespace Linter - Forces you to use empty lines!
-    - forcetypeassert  # finds forced type assertions
+    - staticcheck
+    - stylecheck
+    - tagalign
+    - tagliatelle
+    - tenv
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - varnamelen
+    - whitespace
+    - wrapcheck
+    - zerologlint
     # complexity: need to refactor
-    - cyclop
-    - funlen
-    - gocognit
-    - gocyclo
-    - maintidx
-    - nestif
-    - dupl
-    - depguard
+    # - wsl
+    # - wastedassign
+    # - musttag
+    # - perfsprint
+    # - nestif
+    # - mnd
+    # - lll
+    # - ireturn
+    # - intrange
+    # - godox
+    # - gochecknoglobals
+    # - funlen
+    # - forcetypeassert
+    # - fatcontext
+    # - err113
+    # - maintidx
+    # - depguard
+    # - cyclop
+    # - copyloopvar
+    # - revive
+    # - predeclared
+    # - gocognit
+    # - errcheck
+    # - gocyclo
+    # - dupl
 
 linters-settings:
   nlreturn:
     block-size: 10
+  perfsprint:
+    # Optimizes into strings concatenation.
+    # Default: true
+    strconcat: false
   gci:
     sections:
       - standard # Standard section: captures all standard packages.
       - default # Default section: contains all imports that could not be matched to another section type.
       - prefix(github.com/Edge-Center)
-  errcheck:
-    ignore: github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set,fmt:.*,io:Close,io:WriteString
-  nakedret:
-    max-func-lines: 40
   varnamelen:
     min-name-length: 1
+  gosec:
+    excludes:
+      # Flags for potentially-unsafe casting of ints, similar problem to globally-disabled G103
+      - G115
+      - G401
+      - G501
+
+issues:
+  max-per-linter: 0
+  max-same-issues: 0
+  exclude:
+    # don't use ALL_CAPS in Go names; use CamelCase
+    - ST1003
+  exclude-rules:
+    - path: \.go
+      linters:
+        - nolintlint
+      text: should be written without leading space
+    - path: utils|_test
+      linters:
+        - wrapcheck
+        - funlen
