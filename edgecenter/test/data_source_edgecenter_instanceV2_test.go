@@ -15,6 +15,8 @@ import (
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
+const DefaultSecurityGroupID string = "594d2778-ac8d-4f1f-9ba7-4be760b48458"
+
 func TestAccInstanceV2DataSource(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -63,7 +65,7 @@ func TestAccInstanceV2DataSource(t *testing.T) {
 		Interfaces: []edgecloudV2.InstanceInterface{
 			{
 				Type:           edgecloudV2.InterfaceTypeExternal,
-				SecurityGroups: []edgecloudV2.ID{"594d2778-ac8d-4f1f-9ba7-4be760b48458"},
+				SecurityGroups: []edgecloudV2.ID{{ID: DefaultSecurityGroupID}},
 			},
 		},
 	}
