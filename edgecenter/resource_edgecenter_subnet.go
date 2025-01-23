@@ -366,6 +366,9 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 			gatewayIP := net.ParseIP(newValue.(string))
 			updateOpts.GatewayIP = &gatewayIP
 		}
+	} else {
+		gatewayIP := net.ParseIP(d.Get("gateway_ip").(string))
+		updateOpts.GatewayIP = &gatewayIP
 	}
 
 	_, _, err = clientV2.Subnetworks.Update(ctx, subnetID, updateOpts)
