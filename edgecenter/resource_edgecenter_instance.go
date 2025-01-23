@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	InstanceCreateTimeout = 1200 * time.Second
-	InstanceDeleteTimeout = 1200 * time.Second
-	InstanceUpdateTimeout = 1200 * time.Second
+	InstanceCreateTimeout = 10 * time.Minute
+	InstanceDeleteTimeout = 10 * time.Minute
+	InstanceUpdateTimeout = 10 * time.Minute
 	InstancePoint         = "instances"
 
 	InstanceVMStateActive  = "active"
