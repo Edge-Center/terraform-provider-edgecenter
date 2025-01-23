@@ -65,7 +65,7 @@ func TestAccInstanceDataSource(t *testing.T) {
 		Interfaces: []edgecloudV2.InstanceInterface{
 			{
 				Type:           edgecloudV2.InterfaceTypeExternal,
-				SecurityGroups: []edgecloudV2.ID{"594d2778-ac8d-4f1f-9ba7-4be760b48458"},
+				SecurityGroups: []edgecloudV2.ID{{ID: DefaultSecurityGroupID}},
 			},
 		},
 	}
