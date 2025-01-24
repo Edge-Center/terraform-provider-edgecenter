@@ -3,12 +3,17 @@
 page_title: "edgecenter_instance Data Source - edgecenter"
 subcategory: ""
 description: |-
+  WARNING: Data source "edgecenter_instance" is deprecated and unavailable.
+  Use "edgecenter_instanceV2" data-source instead.
   A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.
 ---
 
 # edgecenter_instance (Data Source)
 
-A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.
+**WARNING:** Data source "edgecenter_instance" is deprecated and unavailable.
+ Use "edgecenter_instanceV2" data-source instead.
+
+ A cloud instance is a virtual machine in a cloud environment. Could be used with baremetal also.
 
 ## Example Usage
 

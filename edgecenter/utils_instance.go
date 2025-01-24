@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"reflect"
 	"slices"
 	"time"
 
@@ -151,17 +150,18 @@ func decodeInstanceV2InterfaceOptsCreate(iFaceMap map[string]interface{}) edgecl
 	return iFace
 }
 
-// extractInstanceInterfaceToListCreate creates a list of InstanceInterface objects from a list of interfaces.
-func extractInstanceInterfaceToListCreate(interfaces []interface{}) []edgecloudV2.InstanceInterface {
-	interfaceInstanceCreateOptsList := make([]edgecloudV2.InstanceInterface, 0)
-	for _, tfIFace := range interfaces {
-		iFaceMap := tfIFace.(map[string]interface{})
-		iFace := decodeInstanceInterfaceOpts(iFaceMap)
-		interfaceInstanceCreateOptsList = append(interfaceInstanceCreateOptsList, iFace)
-	}
-
-	return interfaceInstanceCreateOptsList
-}
+// Temporary comment by CLOUDDEV-883
+//// extractInstanceInterfaceToListCreate creates a list of InstanceInterface objects from a list of interfaces.
+// func extractInstanceInterfaceToListCreate(interfaces []interface{}) []edgecloudV2.InstanceInterface {
+//	interfaceInstanceCreateOptsList := make([]edgecloudV2.InstanceInterface, 0)
+//	for _, tfIFace := range interfaces {
+//		iFaceMap := tfIFace.(map[string]interface{})
+//		iFace := decodeInstanceInterfaceOpts(iFaceMap)
+//		interfaceInstanceCreateOptsList = append(interfaceInstanceCreateOptsList, iFace)
+//	}
+//
+//	return interfaceInstanceCreateOptsList
+//}
 
 // extractInstanceV2InterfaceOptsToListCreate creates a list of InstanceInterface objects from a list of interfaces.
 func extractInstanceV2InterfaceOptsToListCreate(interfaces []interface{}) []edgecloudV2.InstanceInterface {
@@ -369,54 +369,57 @@ func ServerV2StateRefreshFuncV2(ctx context.Context, client *edgecloudV2.Client,
 	}
 }
 
-// findInstancePortV2 searches for the instance port with the specified portID in the given list of instance ports.
-func findInstancePortV2(portID string, ports []edgecloudV2.InstancePort) (edgecloudV2.InstancePort, error) {
-	for _, port := range ports {
-		if port.ID == portID {
-			return port, nil
-		}
-	}
+// Temporary comment by CLOUDDEV-883
+//// findInstancePortV2 searches for the instance port with the specified portID in the given list of instance ports.
+// func findInstancePortV2(portID string, ports []edgecloudV2.InstancePort) (edgecloudV2.InstancePort, error) {
+//	for _, port := range ports {
+//		if port.ID == portID {
+//			return port, nil
+//		}
+//	}
+//
+//	return edgecloudV2.InstancePort{}, fmt.Errorf("port not found")
+//}
 
-	return edgecloudV2.InstancePort{}, fmt.Errorf("port not found")
-}
+// Temporary comment by CLOUDDEV-883
+//// contains check if slice contains the element.
+// func contains[K comparable](slice []K, elm K) bool {
+//	for _, s := range slice {
+//		if s == elm {
+//			return true
+//		}
+//	}
+//	return false
+//}
 
-// contains check if slice contains the element.
-func contains[K comparable](slice []K, elm K) bool {
-	for _, s := range slice {
-		if s == elm {
-			return true
-		}
-	}
-	return false
-}
-
-// getMapDifference compares two maps and returns a map of only different values.
-// uncheckedKeys - list of keys to skip when comparing.
-func getMapDifference(iMapOld, iMapNew map[string]interface{}, uncheckedKeys []string) map[string]interface{} {
-	differentFields := make(map[string]interface{})
-
-	for oldMapK, oldMapV := range iMapOld {
-		if contains(uncheckedKeys, oldMapK) {
-			continue
-		}
-
-		if newMapV, ok := iMapNew[oldMapK]; !ok || !reflect.DeepEqual(newMapV, oldMapV) {
-			differentFields[oldMapK] = oldMapV
-		}
-	}
-
-	for newMapK, newMapV := range iMapNew {
-		if contains(uncheckedKeys, newMapK) {
-			continue
-		}
-
-		if _, ok := iMapOld[newMapK]; !ok {
-			differentFields[newMapK] = newMapV
-		}
-	}
-
-	return differentFields
-}
+// Temporary comment by CLOUDDEV-883
+//// getMapDifference compares two maps and returns a map of only different values.
+//// uncheckedKeys - list of keys to skip when comparing.
+// func getMapDifference(iMapOld, iMapNew map[string]interface{}, uncheckedKeys []string) map[string]interface{} {
+//	differentFields := make(map[string]interface{})
+//
+//	for oldMapK, oldMapV := range iMapOld {
+//		if contains(uncheckedKeys, oldMapK) {
+//			continue
+//		}
+//
+//		if newMapV, ok := iMapNew[oldMapK]; !ok || !reflect.DeepEqual(newMapV, oldMapV) {
+//			differentFields[oldMapK] = oldMapV
+//		}
+//	}
+//
+//	for newMapK, newMapV := range iMapNew {
+//		if contains(uncheckedKeys, newMapK) {
+//			continue
+//		}
+//
+//		if _, ok := iMapOld[newMapK]; !ok {
+//			differentFields[newMapK] = newMapV
+//		}
+//	}
+//
+//	return differentFields
+//}
 
 // detachInterfaceFromInstanceV2 detaches interface from an instance.
 func detachInterfaceFromInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID string, iface map[string]interface{}) error {
@@ -518,64 +521,66 @@ func attachInstanceV2InterfaceToInstance(ctx context.Context, client *edgecloudV
 	return nil
 }
 
-// adjustPortSecurityDisabledOptV2 aligns the state of the interface (port_security_disabled) with what is specified in the
-// iface["port_security_disabled"].
-func adjustPortSecurityDisabledOptV2(ctx context.Context, client *edgecloudV2.Client, interfacesListAPI []edgecloudV2.InstancePortInterface, iface map[string]interface{}) error {
-	portSecurityDisabled := iface["port_security_disabled"].(bool)
-	IPAddress := iface["ip_address"].(string)
-	subnetID := iface["subnet_id"].(string)
-	ifacePortID := iface["port_id"].(string)
+// Temporary comment by CLOUDDEV-883
+//// adjustPortSecurityDisabledOptV2 aligns the state of the interface (port_security_disabled) with what is specified in the
+//// iface["port_security_disabled"].
+// func adjustPortSecurityDisabledOptV2(ctx context.Context, client *edgecloudV2.Client, interfacesListAPI []edgecloudV2.InstancePortInterface, iface map[string]interface{}) error {
+//	portSecurityDisabled := iface["port_security_disabled"].(bool)
+//	IPAddress := iface["ip_address"].(string)
+//	subnetID := iface["subnet_id"].(string)
+//	ifacePortID := iface["port_id"].(string)
+//
+//LOOP:
+//	for _, iFace := range interfacesListAPI {
+//		if len(iFace.IPAssignments) == 0 {
+//			continue
+//		}
+//
+//		requestedIfacePortID := iFace.PortID
+//		for _, assignment := range iFace.IPAssignments {
+//			requestedIfaceSubnetID := assignment.SubnetID
+//			requestedIfaceIPAddress := assignment.IPAddress.String()
+//
+//			if subnetID == requestedIfaceSubnetID || IPAddress == requestedIfaceIPAddress || ifacePortID == requestedIfacePortID {
+//				if !iFace.PortSecurityEnabled != portSecurityDisabled {
+//					switch portSecurityDisabled {
+//					case true:
+//						if _, _, err := client.Ports.DisablePortSecurity(ctx, requestedIfacePortID); err != nil {
+//							return err
+//						}
+//					case false:
+//						if _, _, err := client.Ports.EnablePortSecurity(ctx, requestedIfacePortID); err != nil {
+//							return err
+//						}
+//					}
+//				}
+//
+//				break LOOP
+//			}
+//		}
+//	}
+//
+//	return nil
+//}
 
-LOOP:
-	for _, iFace := range interfacesListAPI {
-		if len(iFace.IPAssignments) == 0 {
-			continue
-		}
-
-		requestedIfacePortID := iFace.PortID
-		for _, assignment := range iFace.IPAssignments {
-			requestedIfaceSubnetID := assignment.SubnetID
-			requestedIfaceIPAddress := assignment.IPAddress.String()
-
-			if subnetID == requestedIfaceSubnetID || IPAddress == requestedIfaceIPAddress || ifacePortID == requestedIfacePortID {
-				if !iFace.PortSecurityEnabled != portSecurityDisabled {
-					switch portSecurityDisabled {
-					case true:
-						if _, _, err := client.Ports.DisablePortSecurity(ctx, requestedIfacePortID); err != nil {
-							return err
-						}
-					case false:
-						if _, _, err := client.Ports.EnablePortSecurity(ctx, requestedIfacePortID); err != nil {
-							return err
-						}
-					}
-				}
-
-				break LOOP
-			}
-		}
-	}
-
-	return nil
-}
-
-func adjustAllPortsSecurityDisabledOpt(ctx context.Context, client *edgecloudV2.Client, instanceID string, ifs []interface{}) diag.Diagnostics {
-	diags := diag.Diagnostics{}
-	interfacesListAPI, _, err := client.Instances.InterfaceList(ctx, instanceID)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("error from getting instance interfaces: %w", err))
-	}
-
-	for _, iface := range ifs {
-		ifaceMap := iface.(map[string]interface{})
-		err = adjustPortSecurityDisabledOptV2(ctx, client, interfacesListAPI, ifaceMap)
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("error from port securtity disable option configuring. Interface: %#v, error: %w", ifaceMap, err))
-		}
-	}
-
-	return diags
-}
+// Temporary comment by CLOUDDEV-883
+// func adjustAllPortsSecurityDisabledOpt(ctx context.Context, client *edgecloudV2.Client, instanceID string, ifs []interface{}) diag.Diagnostics {
+//	diags := diag.Diagnostics{}
+//	interfacesListAPI, _, err := client.Instances.InterfaceList(ctx, instanceID)
+//	if err != nil {
+//		return diag.FromErr(fmt.Errorf("error from getting instance interfaces: %w", err))
+//	}
+//
+//	for _, iface := range ifs {
+//		ifaceMap := iface.(map[string]interface{})
+//		err = adjustPortSecurityDisabledOptV2(ctx, client, interfacesListAPI, ifaceMap)
+//		if err != nil {
+//			return diag.FromErr(fmt.Errorf("error from port securtity disable option configuring. Interface: %#v, error: %w", ifaceMap, err))
+//		}
+//	}
+//
+//	return diags
+//}
 
 // deleteServerGroupV2 removes a server group from an instance.
 func deleteServerGroupV2(ctx context.Context, client *edgecloudV2.Client, instanceID string) error {
@@ -619,28 +624,29 @@ func addServerGroupV2(ctx context.Context, client *edgecloudV2.Client, instanceI
 	return nil
 }
 
-// removeSecurityGroupFromInstanceV2 removes one or more security groups from a specific instance port.
-func removeSecurityGroupFromInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, removeSGs []edgecloudV2.ID) error {
-	for _, sg := range removeSGs {
-		sgInfo, _, err := client.SecurityGroups.Get(ctx, sg.ID)
-		if err != nil {
-			return err
-		}
-
-		portSGNames := edgecloudV2.PortsSecurityGroupNames{
-			SecurityGroupNames: []string{sgInfo.Name},
-			PortID:             portID,
-		}
-		sgOpts := edgecloudV2.AssignSecurityGroupRequest{PortsSecurityGroupNames: []edgecloudV2.PortsSecurityGroupNames{portSGNames}}
-
-		log.Printf("[DEBUG] remove security group opts: %+v", sgOpts)
-		if _, err := client.Instances.SecurityGroupUnAssign(ctx, instanceID, &sgOpts); err != nil {
-			return fmt.Errorf("cannot remove security group. Error: %w", err)
-		}
-	}
-
-	return nil
-}
+// Temporary comment by CLOUDDEV-883
+//// removeSecurityGroupFromInstanceV2 removes one or more security groups from a specific instance port.
+// func removeSecurityGroupFromInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, removeSGs []edgecloudV2.ID) error {
+//	for _, sg := range removeSGs {
+//		sgInfo, _, err := client.SecurityGroups.Get(ctx, sg.ID)
+//		if err != nil {
+//			return err
+//		}
+//
+//		portSGNames := edgecloudV2.PortsSecurityGroupNames{
+//			SecurityGroupNames: []string{sgInfo.Name},
+//			PortID:             portID,
+//		}
+//		sgOpts := edgecloudV2.AssignSecurityGroupRequest{PortsSecurityGroupNames: []edgecloudV2.PortsSecurityGroupNames{portSGNames}}
+//
+//		log.Printf("[DEBUG] remove security group opts: %+v", sgOpts)
+//		if _, err := client.Instances.SecurityGroupUnAssign(ctx, instanceID, &sgOpts); err != nil {
+//			return fmt.Errorf("cannot remove security group. Error: %w", err)
+//		}
+//	}
+//
+//	return nil
+//}
 
 // removeSecurityGroupsFromInstancePort removes one or more security groups from a specific instance port.
 func removeSecurityGroupsFromInstancePort(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, removeSGIDs []interface{}) error {
@@ -706,56 +712,58 @@ func PrepareAndValidateAssignSecurityGroupRequestOpts(ctx context.Context, clien
 	return &sgOpts, nil
 }
 
-// attachSecurityGroupToInstance attaches one or more security groups to a specific instance port.
-func attachSecurityGroupToInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, addSGs []edgecloudV2.ID) error {
-	if len(addSGs) == 0 {
-		return nil
-	}
+// Temporary comment by CLOUDDEV-883
+//// attachSecurityGroupToInstance attaches one or more security groups to a specific instance port.
+// func attachSecurityGroupToInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID, portID string, addSGs []edgecloudV2.ID) error {
+//	if len(addSGs) == 0 {
+//		return nil
+//	}
+//
+//	sgsNames := make([]string, 0, len(addSGs))
+//	for _, sg := range addSGs {
+//		sgInfo, _, err := client.SecurityGroups.Get(ctx, sg.ID)
+//		if err != nil {
+//			return err
+//		}
+//		sgsNames = append(sgsNames, sgInfo.Name)
+//	}
+//
+//	sgOpts := edgecloudV2.AssignSecurityGroupRequest{
+//		PortsSecurityGroupNames: []edgecloudV2.PortsSecurityGroupNames{{
+//			SecurityGroupNames: sgsNames,
+//			PortID:             portID,
+//		}},
+//	}
+//
+//	log.Printf("[DEBUG] attach security group opts: %+v", sgOpts)
+//
+//	if _, err := client.Instances.SecurityGroupAssign(ctx, instanceID, &sgOpts); err != nil {
+//		return fmt.Errorf("cannot attach security group. Error: %w", err)
+//	}
+//
+//	return nil
+//}
 
-	sgsNames := make([]string, 0, len(addSGs))
-	for _, sg := range addSGs {
-		sgInfo, _, err := client.SecurityGroups.Get(ctx, sg.ID)
-		if err != nil {
-			return err
-		}
-		sgsNames = append(sgsNames, sgInfo.Name)
-	}
-
-	sgOpts := edgecloudV2.AssignSecurityGroupRequest{
-		PortsSecurityGroupNames: []edgecloudV2.PortsSecurityGroupNames{{
-			SecurityGroupNames: sgsNames,
-			PortID:             portID,
-		}},
-	}
-
-	log.Printf("[DEBUG] attach security group opts: %+v", sgOpts)
-
-	if _, err := client.Instances.SecurityGroupAssign(ctx, instanceID, &sgOpts); err != nil {
-		return fmt.Errorf("cannot attach security group. Error: %w", err)
-	}
-
-	return nil
-}
-
-// prepareSecurityGroupsV2 prepares a list of unique security groups assigned to all instance ports.
-func prepareSecurityGroupsV2(ports []edgecloudV2.InstancePort) []interface{} {
-	securityGroups := make(map[string]bool)
-	for _, port := range ports {
-		for _, sg := range port.SecurityGroups {
-			securityGroups[sg.ID] = true
-		}
-	}
-
-	result := make([]interface{}, 0, len(securityGroups))
-	for sgID := range securityGroups {
-		result = append(result, map[string]interface{}{
-			"id":   sgID,
-			"name": "",
-		})
-	}
-
-	return result
-}
+// Temporary comment by CLOUDDEV-883
+//// prepareSecurityGroupsV2 prepares a list of unique security groups assigned to all instance ports.
+// func prepareSecurityGroupsV2(ports []edgecloudV2.InstancePort) []interface{} {
+//	securityGroups := make(map[string]bool)
+//	for _, port := range ports {
+//		for _, sg := range port.SecurityGroups {
+//			securityGroups[sg.ID] = true
+//		}
+//	}
+//
+//	result := make([]interface{}, 0, len(securityGroups))
+//	for sgID := range securityGroups {
+//		result = append(result, map[string]interface{}{
+//			"id":   sgID,
+//			"name": "",
+//		})
+//	}
+//
+//	return result
+//}
 
 // getSecurityGroupsIDs converts a slice of raw security group IDs to a slice of edgecloud.ItemID.
 func getSecurityGroupsIDsV2(sgsRaw []interface{}) []edgecloudV2.ID {
@@ -766,32 +774,34 @@ func getSecurityGroupsIDsV2(sgsRaw []interface{}) []edgecloudV2.ID {
 	return sgs
 }
 
-// getSecurityGroupsDifferenceV2 finds the difference between two slices of edgecloudV2.ID.
-func getSecurityGroupsDifferenceV2(sl1, sl2 []edgecloudV2.ID) (diff []edgecloudV2.ID) { // nolint: nonamedreturns
-	set := make(map[string]bool)
-	for _, item := range sl1 {
-		set[item.ID] = true
-	}
+// Temporary comment by CLOUDDEV-883
+//// getSecurityGroupsDifferenceV2 finds the difference between two slices of edgecloudV2.ID.
+// func getSecurityGroupsDifferenceV2(sl1, sl2 []edgecloudV2.ID) (diff []edgecloudV2.ID) { // nolint: nonamedreturns
+//	set := make(map[string]bool)
+//	for _, item := range sl1 {
+//		set[item.ID] = true
+//	}
+//
+//	for _, item := range sl2 {
+//		if !set[item.ID] {
+//			diff = append(diff, item)
+//		}
+//	}
+//
+//	return diff
+//}
 
-	for _, item := range sl2 {
-		if !set[item.ID] {
-			diff = append(diff, item)
-		}
-	}
-
-	return diff
-}
-
-func validateInstanceResourceAttrs(d *schema.ResourceData) diag.Diagnostics {
-	diags := diag.Diagnostics{}
-
-	ifsDiags := validateInterfaceAttrs(d)
-	if ifsDiags.HasError() {
-		diags = append(diags, ifsDiags...)
-	}
-
-	return diags
-}
+// Temporary comment by CLOUDDEV-883
+// func validateInstanceResourceAttrs(d *schema.ResourceData) diag.Diagnostics {
+//	diags := diag.Diagnostics{}
+//
+//	ifsDiags := validateInterfaceAttrs(d)
+//	if ifsDiags.HasError() {
+//		diags = append(diags, ifsDiags...)
+//	}
+//
+//	return diags
+//}
 
 func validateInstanceV2ResourceAttrs(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) diag.Diagnostics {
 	diags := diag.Diagnostics{}
@@ -809,35 +819,36 @@ func validateInstanceV2ResourceAttrs(ctx context.Context, client *edgecloudV2.Cl
 	return diags
 }
 
-func validateInterfaceAttrs(d *schema.ResourceData) diag.Diagnostics {
-	diags := diag.Diagnostics{}
-	ifsRaw := d.Get("interface")
-	ifsSlice := ifsRaw.([]interface{})
-	for _, ifs := range ifsSlice {
-		iNew := ifs.(map[string]interface{})
-		var isPortSecDisabled, isSecGroupExists bool
-		if v, ok := iNew["port_security_disabled"]; ok {
-			isPortSecDisabled = v.(bool)
-		}
-		if v, ok := iNew["security_groups"]; ok {
-			secGroups := v.([]interface{})
-			if len(secGroups) != 0 {
-				isSecGroupExists = true
-			}
-		}
-		if isPortSecDisabled && isSecGroupExists {
-			curDiag := diag.Diagnostic{
-				Severity:      diag.Error,
-				Summary:       fmt.Sprintf("if attribute \"port_security_disabled\" for interface %+v set true, you can't set \"security_groups\" attribute", iNew),
-				Detail:        "",
-				AttributePath: nil,
-			}
-			diags = append(diags, curDiag)
-		}
-	}
-
-	return diags
-}
+// Temporary comment by CLOUDDEV-883
+// func validateInterfaceAttrs(d *schema.ResourceData) diag.Diagnostics {
+//	diags := diag.Diagnostics{}
+//	ifsRaw := d.Get("interface")
+//	ifsSlice := ifsRaw.([]interface{})
+//	for _, ifs := range ifsSlice {
+//		iNew := ifs.(map[string]interface{})
+//		var isPortSecDisabled, isSecGroupExists bool
+//		if v, ok := iNew["port_security_disabled"]; ok {
+//			isPortSecDisabled = v.(bool)
+//		}
+//		if v, ok := iNew["security_groups"]; ok {
+//			secGroups := v.([]interface{})
+//			if len(secGroups) != 0 {
+//				isSecGroupExists = true
+//			}
+//		}
+//		if isPortSecDisabled && isSecGroupExists {
+//			curDiag := diag.Diagnostic{
+//				Severity:      diag.Error,
+//				Summary:       fmt.Sprintf("if attribute \"port_security_disabled\" for interface %+v set true, you can't set \"security_groups\" attribute", iNew),
+//				Detail:        "",
+//				AttributePath: nil,
+//			}
+//			diags = append(diags, curDiag)
+//		}
+//	}
+//
+//	return diags
+//}
 
 func validateInterfaceOpts(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) diag.Diagnostics {
 	ifaceOptsRaw := d.Get(InstanceInterfacesField)

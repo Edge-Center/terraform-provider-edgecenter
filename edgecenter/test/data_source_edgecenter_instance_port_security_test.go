@@ -129,7 +129,7 @@ func TestAccInstancePortSecurityDataSource(t *testing.T) {
 		Interfaces:    interfaces,
 	}
 
-	taskInstanceResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Instances.Create, &instanceCreateOpts, client)
+	taskInstanceResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Instances.Create, &instanceCreateOpts, client, edgecenter.InstanceCreateTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}

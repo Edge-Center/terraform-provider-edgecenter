@@ -3,12 +3,17 @@
 page_title: "edgecenter_instance Resource - edgecenter"
 subcategory: ""
 description: |-
+  WARNING: Resource "instance" is deprecated and unavailable.
+  Use edgecenter_instanceV2 resource instead.
   A cloud instance is a virtual machine in a cloud environment.
 ---
 
 # edgecenter_instance (Resource)
 
-A cloud instance is a virtual machine in a cloud environment.
+**WARNING:** Resource "instance" is deprecated and unavailable.
+ Use edgecenter_instanceV2 resource instead.
+
+ A cloud instance is a virtual machine in a cloud environment.
 
 ## Example Usage
 
