@@ -166,7 +166,12 @@ func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m int
 
 	name := d.Get(NameField).(string)
 
-	insts, _, err := clientV2.Instances.List(ctx, &edgecloudV2.InstanceListOptions{Name: name})
+	options := &edgecloudV2.InstanceListOptions{
+		Name:             name,
+		IncludeBaremetal: true,
+	}
+
+	insts, _, err := clientV2.Instances.List(ctx, options)
 	if err != nil {
 		return diag.FromErr(err)
 	}
