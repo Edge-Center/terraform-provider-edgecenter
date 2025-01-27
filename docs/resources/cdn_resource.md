@@ -29,6 +29,12 @@ resource "edgecenter_cdn_origingroup" "origin_group_1" {
     enabled = true
     backup  = true
   }
+  authorization {
+    access_key_id = "test-access_key_id"
+    auth_type     = "aws_signature_v2"
+    bucket_name   = "test-bucket_name"
+    secret_key    = "key"
+  }
   consistent_balancing = true
 }
 

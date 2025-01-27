@@ -61,6 +61,36 @@ func resourceCDNOriginGroup() *schema.Resource {
 					},
 				},
 			},
+			"authorization": {
+				Type:        schema.TypeSet,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "Add information about authorization.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"auth_type": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The type of authorization on the source. It can take two values - aws_signature_v2 or aws_signature_v4.",
+						},
+						"access_key_id": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Specify the access key ID in 20 alphanumeric characters.",
+						},
+						"secret_key": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Specify the secret access key. The value must be between 32 and 40 characters and may include alphanumeric characters, slashes, pluses, hyphens, and underscores.",
+						},
+						"bucket_name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Specify the bucket name. The name is restricted to 255 symbols and may include alphanumeric characters, slashes, pluses, hyphens, and underscores.",
+						},
+					},
+				},
+			},
 			"consistent_balancing": {
 				Type:        schema.TypeBool,
 				Required:    true,
@@ -84,6 +114,7 @@ func resourceCDNOriginGroupCreate(ctx context.Context, d *schema.ResourceData, m
 	req.Name = d.Get("name").(string)
 	req.UseNext = d.Get("use_next").(bool)
 	req.Origins = setToOriginRequests(d.Get("origin").(*schema.Set))
+	req.Authorization = setToAuthRequest(d.Get("authorization").(*schema.Set))
 	req.ConsistentBalancing = d.Get("consistent_balancing").(bool)
 
 	result, err := client.OriginGroups().Create(ctx, &req)
@@ -120,6 +151,10 @@ func resourceCDNOriginGroupRead(ctx context.Context, d *schema.ResourceData, m i
 	if err := d.Set("origin", originsToSet(result.Origins)); err != nil {
 		return diag.FromErr(err)
 	}
+	if err := d.Set("authorization", authToSet(result.Authorization)); err != nil {
+		return diag.FromErr(err)
+	}
+	d.Set("consistent_balancing", result.ConsistentBalancing)
 
 	log.Println("[DEBUG] Finish CDN OriginGroup reading")
 
@@ -141,6 +176,8 @@ func resourceCDNOriginGroupUpdate(ctx context.Context, d *schema.ResourceData, m
 	req.Name = d.Get("name").(string)
 	req.UseNext = d.Get("use_next").(bool)
 	req.Origins = setToOriginRequests(d.Get("origin").(*schema.Set))
+	req.Authorization = setToAuthRequest(d.Get("authorization").(*schema.Set))
+	req.ConsistentBalancing = d.Get("consistent_balancing").(bool)
 
 	if _, err := client.OriginGroups().Update(ctx, id, &req); err != nil {
 		return diag.FromErr(err)
@@ -221,4 +258,48 @@ func originSetIDFunc(i interface{}) int {
 	io.WriteString(h, key)
 
 	return int(binary.BigEndian.Uint64(h.Sum(nil)))
+}
+
+func setToAuthRequest(set *schema.Set) *origingroups.Authorization {
+	if set.Len() == 0 {
+		return nil
+	}
+
+	fields := set.List()[0].(map[string]interface{})
+	return &origingroups.Authorization{
+		AuthType:    fields["auth_type"].(string),
+		AccessKeyID: fields["access_key_id"].(string),
+		SecretKey:   fields["secret_key"].(string),
+		BucketName:  fields["bucket_name"].(string),
+	}
+}
+
+func authToSet(auth *origingroups.Authorization) *schema.Set {
+	if auth == nil {
+		return nil
+	}
+
+	return schema.NewSet(schema.HashResource(&schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"auth_type": {
+				Type: schema.TypeString,
+			},
+			"access_key_id": {
+				Type: schema.TypeString,
+			},
+			"secret_key": {
+				Type: schema.TypeString,
+			},
+			"bucket_name": {
+				Type: schema.TypeString,
+			},
+		},
+	}), []interface{}{
+		map[string]interface{}{
+			"auth_type":     auth.AuthType,
+			"access_key_id": auth.AccessKeyID,
+			"secret_key":    auth.SecretKey,
+			"bucket_name":   auth.BucketName,
+		},
+	})
 }
