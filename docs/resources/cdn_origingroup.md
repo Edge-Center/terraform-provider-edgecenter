@@ -29,6 +29,12 @@ resource "edgecenter_cdn_origingroup" "origin_group_1" {
     enabled = true
     backup  = true
   }
+  authorization {
+    access_key_id = "test_access_key_id"
+    auth_type     = "aws_signature_v2"
+    bucket_name   = "test_bucket_name"
+    secret_key    = "keywqueiuqwiueiqweqwiueiqwiueuiqw"
+  }
   consistent_balancing = true
 }
 ```
@@ -42,6 +48,10 @@ resource "edgecenter_cdn_origingroup" "origin_group_1" {
 - `name` (String) Add the source group name.
 - `origin` (Block Set, Min: 1) Add information about your sources. (see [below for nested schema](#nestedblock--origin))
 - `use_next` (Boolean) Specify whether or not the CDN will use the next source in the list if your source responds with an HTTP status code of 4XX or 5XX.
+
+### Optional
+
+- `authorization` (Block Set, Max: 1) Add information about authorization. (see [below for nested schema](#nestedblock--authorization))
 
 ### Read-Only
 
@@ -62,3 +72,14 @@ Optional:
 Read-Only:
 
 - `id` (Number)
+
+
+<a id="nestedblock--authorization"></a>
+### Nested Schema for `authorization`
+
+Required:
+
+- `access_key_id` (String) Specify the access key ID in 20 alphanumeric characters.
+- `auth_type` (String) The type of authorization on the source. It can take two values - aws_signature_v2 or aws_signature_v4.
+- `bucket_name` (String) Specify the bucket name. The name is restricted to 255 symbols and may include alphanumeric characters, slashes, pluses, hyphens, and underscores.
+- `secret_key` (String) Specify the secret access key. The value must be between 32 and 40 characters and may include alphanumeric characters, slashes, pluses, hyphens, and underscores.

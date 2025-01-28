@@ -9,6 +9,10 @@ github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0 h1:1aPDpywWbaF7VEjP/GjVo
 github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0/go.mod h1:TcWO0BPvDsE6AGlPBqpKCZhoQ70rRlqmm85J32qcL8I=
 github.com/Edge-Center/edgecentercdn-go v0.1.10 h1:Hj+SjvPClhOYtpmoS2g33WrxyHitUBHroNSwRBZ9P1U=
 github.com/Edge-Center/edgecentercdn-go v0.1.10/go.mod h1:RwEyxwPAmxor1mZKUTa2bIU2p5qM6kcAofUkaE4O1V4=
+github.com/Edge-Center/edgecentercdn-go v0.1.11 h1:jTLxmLLmHBiIcvUsBTS5DtXB0SLFLpqKoe8ts2l9WCc=
+github.com/Edge-Center/edgecentercdn-go v0.1.11/go.mod h1:RwEyxwPAmxor1mZKUTa2bIU2p5qM6kcAofUkaE4O1V4=
+github.com/Edge-Center/edgecentercdn-go v0.1.12 h1:KxH+2pWpjGhU0KiW0u4o17AYwziJu9pDtFlfZgInZSw=
+github.com/Edge-Center/edgecentercdn-go v0.1.12/go.mod h1:RwEyxwPAmxor1mZKUTa2bIU2p5qM6kcAofUkaE4O1V4=
 github.com/Edge-Center/edgecentercloud-go v0.1.11 h1:00h5o/71lEoSdU1B4AWmviuOfO28P6nsRP+afjIsW80=
 github.com/Edge-Center/edgecentercloud-go v0.1.11/go.mod h1:kmXGtx0lL1ib+SPfJe/uIAyDHamquAvqiftoLSyhxF8=
 github.com/Edge-Center/edgecentercloud-go/v2 v2.1.4-0.20240703075841-dfdec037dd37 h1:Q2qKSUaKOxXr9s5ACVC5/zcQMjjFBTX/NUwoTQS/4m8=

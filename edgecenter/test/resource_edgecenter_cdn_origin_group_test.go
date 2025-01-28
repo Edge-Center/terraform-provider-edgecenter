@@ -38,6 +38,12 @@ func TestAccOriginGroup(t *testing.T) {
 			    source = "yandex.ru"
 			    enabled = true
 			  }
+			  authorization  {
+				access_key_id = "test_access_key_id"
+				auth_type     = "aws_signature_v2"
+				bucket_name   = "test_bucket_name"
+				secret_key    = "keywqueiuqwiueiqweqwiueiqwiueuiqw"
+			  }
 			  consistent_balancing = true
 			}
 		`, params.Source, params.Enabled)
