@@ -12,7 +12,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/types"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
@@ -20,7 +22,6 @@ import (
 const (
 	BmInstanceDeletingTimeout int = 1200
 	BmInstanceCreatingTimeout int = 3600
-	BmInstancePoint               = "bminstances"
 )
 
 var (
@@ -84,6 +85,7 @@ func resourceBmInstance() *schema.Resource {
 			"flavor_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"interface": {
 				Type:     schema.TypeList,
@@ -107,22 +109,25 @@ func resourceBmInstance() *schema.Resource {
 							Description: "Order of attaching interface. Trunk interface always attached first, fields affect only on creation",
 						},
 						"network_id": {
-							Type:        schema.TypeString,
-							Description: "required if type is 'subnet' or 'any_subnet'",
-							Optional:    true,
-							Computed:    true,
+							Type:         schema.TypeString,
+							Description:  "required if type is 'subnet' or 'any_subnet'",
+							Optional:     true,
+							Computed:     true,
+							ValidateFunc: validation.IsUUID,
 						},
 						"subnet_id": {
-							Type:        schema.TypeString,
-							Description: "required if type is 'subnet'",
-							Optional:    true,
-							Computed:    true,
+							Type:         schema.TypeString,
+							Description:  "required if type is 'subnet'",
+							Optional:     true,
+							Computed:     true,
+							ValidateFunc: validation.IsUUID,
 						},
 						"port_id": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "required if type is  'reserved_fixed_ip'",
-							Optional:    true,
+							Type:         schema.TypeString,
+							Computed:     true,
+							Description:  "required if type is  'reserved_fixed_ip'",
+							Optional:     true,
+							ValidateFunc: validation.IsUUID,
 						},
 						// nested map is not supported, in this case, you do not need to use the list for the map
 						"fip_source": {
@@ -162,6 +167,7 @@ func resourceBmInstance() *schema.Resource {
 			"image_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				ExactlyOneOf: []string{
 					"image_id",
 					"apptemplate_id",
@@ -371,9 +377,6 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 
 	instanceID := taskResult.Instances[0]
 	log.Printf("[DEBUG] Baremetal Instance id (%s)", instanceID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	d.SetId(instanceID)
 	resourceBmInstanceRead(ctx, d, m)
@@ -400,7 +403,7 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	instance, resp, err := clientV2.Instances.Get(ctx, instanceID)
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil
@@ -431,9 +434,6 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	ifs := d.Get("interface").([]interface{})
 	orderedInterfacesMap := extractInstanceInterfaceToListRead(ifs)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	var interfacesList []interface{}
 	for _, iFace := range interfacesListAPI {
@@ -633,6 +633,44 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 		ifsOld := ifsOldRaw.([]interface{})
 		ifsNew := ifsNewRaw.([]interface{})
 
+		// Get interface settings from config
+		ifsRawConfig := d.GetRawConfig().GetAttr("interface")
+		ifs := ifsRawConfig.AsValueSlice()
+
+		// Validate interface settings from config.
+		// This is necessary because the fields ‘subnet_id’, ‘network_id’, ‘port_id’ have computed options enabled.
+		for _, i := range ifs {
+			ifsMap := i.AsValueMap()
+			ifsType := ifsMap["type"].AsString()
+
+			switch ifsType {
+			case types.ExternalInterfaceType.String():
+				continue
+			case types.AnySubnetInterfaceType.String():
+				if !ifsMap["subnet_id"].IsNull() {
+					return diag.Errorf("prohibit the use of any subnet with interface type \"%s\"", ifsType)
+				}
+			case types.ReservedFixedIPType.String():
+				if !ifsMap["subnet_id"].IsNull() || !ifsMap["network_id"].IsNull() {
+					return diag.Errorf("prohibit the use of any subnet or network with interface type \"%s\"", ifsType)
+				}
+			case types.SubnetInterfaceType.String():
+				if !ifsMap["network_id"].IsNull() {
+					networkID := ifsMap["network_id"].AsString()
+					subnetID := ifsMap["subnet_id"].AsString()
+
+					subnet, _, err := clientV2.Subnetworks.Get(ctx, subnetID)
+					if err != nil {
+						return diag.Errorf("cannot get subnet with ID: %s. Error: %s", subnetID, err.Error())
+					}
+
+					if subnet.NetworkID != networkID {
+						return diag.Errorf("subnet with ID: \"%s\" does not belong to the network with ID: \"%s\"", subnetID, networkID)
+					}
+				}
+			}
+		}
+
 		for _, i := range ifsOld {
 			iface := i.(map[string]interface{})
 			if isInterfaceContains(iface, ifsNew) {
@@ -681,6 +719,13 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 				return diag.FromErr(err)
 			}
 		}
+	}
+
+	if d.HasChange("keypair_name") {
+		oldKN, _ := d.GetChange("keypair_name")
+		d.Set("keypair_name", oldKN.(string))
+
+		return diag.Errorf("changing keypair name for bare-metal instance is prohibited")
 	}
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
