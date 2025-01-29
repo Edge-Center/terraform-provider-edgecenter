@@ -87,6 +87,7 @@ func resourceSubnet() *schema.Resource {
 			"cidr": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Represents the IP address range of the subnet.",
 			},
 			"network_id": {
