@@ -20,7 +20,6 @@ import (
 const (
 	BmInstanceDeletingTimeout int = 1200
 	BmInstanceCreatingTimeout int = 3600
-	BmInstancePoint               = "bminstances"
 )
 
 var (
@@ -84,6 +83,7 @@ func resourceBmInstance() *schema.Resource {
 			"flavor_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"interface": {
 				Type:     schema.TypeList,
@@ -162,6 +162,7 @@ func resourceBmInstance() *schema.Resource {
 			"image_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				ExactlyOneOf: []string{
 					"image_id",
 					"apptemplate_id",
@@ -371,9 +372,6 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 
 	instanceID := taskResult.Instances[0]
 	log.Printf("[DEBUG] Baremetal Instance id (%s)", instanceID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	d.SetId(instanceID)
 	resourceBmInstanceRead(ctx, d, m)
@@ -400,7 +398,7 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	instance, resp, err := clientV2.Instances.Get(ctx, instanceID)
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil
@@ -431,9 +429,6 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	ifs := d.Get("interface").([]interface{})
 	orderedInterfacesMap := extractInstanceInterfaceToListRead(ifs)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	var interfacesList []interface{}
 	for _, iFace := range interfacesListAPI {
@@ -681,6 +676,13 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 				return diag.FromErr(err)
 			}
 		}
+	}
+
+	if d.HasChange("keypair_name") {
+		oldKN, _ := d.GetChange("keypair_name")
+		d.Set("keypair_name", oldKN.(string))
+
+		return diag.Errorf("changing keypair name for bare-metal instance is prohibited")
 	}
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
