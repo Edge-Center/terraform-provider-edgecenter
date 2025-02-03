@@ -647,16 +647,24 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 			switch ifsType {
 			case types.ExternalInterfaceType.String():
+				if !ifsMap["subnet_id"].IsNull() || !ifsMap["network_id"].IsNull() || !ifsMap["port_id"].IsNull() {
+					return diag.Errorf("prohibit the use of any port or network_id or subnet_id with interface type \"%s\"", ifsType)
+				}
+
 				continue
 			case types.AnySubnetInterfaceType.String():
-				if !ifsMap["subnet_id"].IsNull() {
-					return diag.Errorf("prohibit the use of any subnet with interface type \"%s\"", ifsType)
+				if !ifsMap["subnet_id"].IsNull() || !ifsMap["port_id"].IsNull() {
+					return diag.Errorf("prohibit the use of any subnet or any port with interface type \"%s\"", ifsType)
 				}
 			case types.ReservedFixedIPType.String():
 				if !ifsMap["subnet_id"].IsNull() || !ifsMap["network_id"].IsNull() {
 					return diag.Errorf("prohibit the use of any subnet or network with interface type \"%s\"", ifsType)
 				}
 			case types.SubnetInterfaceType.String():
+				if !ifsMap["port_id"].IsNull() {
+					return diag.Errorf("prohibit the use of any port with interface type \"%s\"", ifsType)
+				}
+
 				if !ifsMap["network_id"].IsNull() {
 					networkID := ifsMap["network_id"].AsString()
 					subnetID := ifsMap["subnet_id"].AsString()
