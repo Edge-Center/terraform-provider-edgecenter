@@ -634,11 +634,13 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 		ifsNew := ifsNewRaw.([]interface{})
 
 		// Get interface settings from config
+		// ToDo: CLOUDDEV-1306
 		ifsRawConfig := d.GetRawConfig().GetAttr("interface")
 		ifs := ifsRawConfig.AsValueSlice()
 
 		// Validate interface settings from config.
 		// This is necessary because the fields ‘subnet_id’, ‘network_id’, ‘port_id’ have computed options enabled.
+		// ToDo: CLOUDDEV-1306
 		for _, i := range ifs {
 			ifsMap := i.AsValueMap()
 			ifsType := ifsMap["type"].AsString()
