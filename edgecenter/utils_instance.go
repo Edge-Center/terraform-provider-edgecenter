@@ -337,15 +337,21 @@ func extractVolumesMapV2(volumes []interface{}) ([]edgecloudV2.InstanceVolumeCre
 func isInterfaceContains(verifiable map[string]interface{}, ifsSet []interface{}) bool {
 	verifiableType := verifiable["type"].(string)
 	verifiableSubnetID, _ := verifiable["subnet_id"].(string)
+	verifiableNetworkID, _ := verifiable["network_id"].(string)
 	for _, e := range ifsSet {
 		i := e.(map[string]interface{})
 		iType := i["type"].(string)
 		subnetID, _ := i["subnet_id"].(string)
+		networkID, _ := i["network_id"].(string)
 		if iType == types.ExternalInterfaceType.String() && verifiableType == types.ExternalInterfaceType.String() {
 			return true
 		}
 
-		if iType == verifiableType && subnetID == verifiableSubnetID {
+		if iType == types.SubnetInterfaceType.String() && verifiableType == types.SubnetInterfaceType.String() && subnetID == verifiableSubnetID {
+			return true
+		}
+
+		if iType == types.AnySubnetInterfaceType.String() && verifiableType == types.AnySubnetInterfaceType.String() && networkID == verifiableNetworkID {
 			return true
 		}
 	}
