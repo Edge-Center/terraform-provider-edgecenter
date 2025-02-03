@@ -86,7 +86,6 @@ func resourceSecurityGroup() *schema.Resource {
 			"metadata_map": {
 				Type:        schema.TypeMap,
 				Optional:    true,
-				Computed:    true,
 				Description: "A map containing metadata, for example tags.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,

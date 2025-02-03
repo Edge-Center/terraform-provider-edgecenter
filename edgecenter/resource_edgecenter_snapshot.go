@@ -98,9 +98,29 @@ func resourceSnapshot() *schema.Resource {
 			"metadata": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
+				},
+			},
+			"metadata_read_only": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: `A list of read-only metadata items, e.g. tags.`,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"read_only": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+					},
 				},
 			},
 			"last_updated": {
@@ -164,7 +184,13 @@ func resourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("volume_id", snapshot.VolumeID)
 	d.Set("region_id", snapshot.RegionID)
 	d.Set("project_id", snapshot.ProjectID)
-	if err := d.Set("metadata", snapshot.Metadata); err != nil {
+
+	metadata, metadataReadOnly := separateMetadata(snapshot.Metadata)
+
+	if err := d.Set("metadata", metadata); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}
 
