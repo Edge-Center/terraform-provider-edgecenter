@@ -9,9 +9,8 @@ resource "edgecenter_router" "router" {
     iterator = egi
     for_each = var.external_gateway_info
     content {
-      type        = egi.value.type
-      enable_snat = egi.value.enable_snat
-      network_id  = egi.value.network_id
+      type       = egi.value.type
+      network_id = egi.value.network_id
     }
   }
 

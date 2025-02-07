@@ -54,10 +54,6 @@ func dataSourceRouter() *schema.Resource {
 				Description: "Information related to the external gateway.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"enable_snat": {
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
 						"network_id": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -175,7 +171,6 @@ func dataSourceRouterRead(ctx context.Context, d *schema.ResourceData, m interfa
 	if len(router.ExternalGatewayInfo.ExternalFixedIPs) > 0 {
 		egi := make(map[string]interface{}, 4)
 		egilst := make([]map[string]interface{}, 1)
-		egi["enable_snat"] = router.ExternalGatewayInfo.EnableSnat
 		egi["network_id"] = router.ExternalGatewayInfo.NetworkID
 
 		efip := make([]map[string]string, len(router.ExternalGatewayInfo.ExternalFixedIPs))

@@ -5,7 +5,6 @@ package edgecenter_test
 import (
 	"fmt"
 	"net"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -99,7 +98,7 @@ func TestAccRouter(t *testing.T) {
 
 	create := Params{
 		Name:           "create_router",
-		ExtGatewayInfo: []map[string]string{{"type": "default", "enable_snat": "true", "network_id": ""}},
+		ExtGatewayInfo: []map[string]string{{"type": "default", "network_id": ""}},
 		Interfaces:     []map[string]string{{"type": "subnet", "subnet_id": subnetID}},
 		Routes:         []map[string]string{{"destination": "192.168.42.0/24", "nexthop": "192.168.42.2"}},
 	}
@@ -112,9 +111,8 @@ func TestAccRouter(t *testing.T) {
 			template += fmt.Sprintf(`
 			{
 				type = "%s"
-				enable_snat = %s
 				network_id = "%s"
-			},`, params.ExtGatewayInfo[i]["type"], params.ExtGatewayInfo[i]["enable_snat"], params.ExtGatewayInfo[i]["network_id"])
+			},`, params.ExtGatewayInfo[i]["type"], params.ExtGatewayInfo[i]["network_id"])
 		}
 
 		template += fmt.Sprint(`]
@@ -147,7 +145,6 @@ func TestAccRouter(t *testing.T) {
 			for_each = local.external_gateway_info
 			content {
 				type = egi.value.type
-				enable_snat = egi.value.enable_snat
 				network_id = egi.value.network_id
 				}
 			}
@@ -210,7 +207,6 @@ func checkRouterAttrs(resourceName string, opts *routers.CreateOpts) resource.Te
 		if ok {
 			checksStore = append(checksStore,
 				resource.TestCheckResourceAttr(resourceName, "external_gateway_info.0.type", opts.ExternalGatewayInfo.Type.String()),
-				resource.TestCheckResourceAttr(resourceName, "external_gateway_info.0.enable_snat", strconv.FormatBool(*opts.ExternalGatewayInfo.EnableSNat)),
 			)
 		}
 

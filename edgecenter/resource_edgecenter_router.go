@@ -74,7 +74,7 @@ func resourceRouter() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				MaxItems:    1,
-				Description: "Information related to the external gateway.",
+				Description: "Information related to the external gateway. If not set SNAT is disabled.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
@@ -84,9 +84,9 @@ func resourceRouter() *schema.Resource {
 							Computed:    true,
 						},
 						"enable_snat": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Computed: true,
+							Type:       schema.TypeBool,
+							Computed:   true,
+							Deprecated: "Do not set 'external_gateway_info' to disable SNAT.",
 						},
 						"network_id": {
 							Type:        schema.TypeString,
@@ -196,7 +196,7 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		createOpts.ExternalGatewayInfo = gws
+		createOpts.ExternalGatewayInfo = &gws
 	}
 
 	ifs := d.Get("interfaces").(*schema.Set)
@@ -260,7 +260,6 @@ func resourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface
 	if len(router.ExternalGatewayInfo.ExternalFixedIPs) > 0 {
 		egi := make(map[string]interface{}, 4)
 		egilst := make([]map[string]interface{}, 1)
-		egi["enable_snat"] = router.ExternalGatewayInfo.EnableSnat
 		egi["network_id"] = router.ExternalGatewayInfo.NetworkID
 
 		egist := d.Get("external_gateway_info")
@@ -378,7 +377,7 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 			return diag.FromErr(err)
 		}
 		if gws.Type == "manual" {
-			updateOpts.ExternalGatewayInfo = gws
+			updateOpts.ExternalGatewayInfo = &gws
 		}
 	}
 

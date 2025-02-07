@@ -24,9 +24,8 @@ resource "edgecenter_router" "router" {
     iterator = egi
     for_each = var.external_gateway_info
     content {
-      type        = egi.value.type
-      enable_snat = egi.value.enable_snat
-      network_id  = egi.value.network_id
+      type       = egi.value.type
+      network_id = egi.value.network_id
     }
   }
 
@@ -62,7 +61,7 @@ resource "edgecenter_router" "router" {
 
 ### Optional
 
-- `external_gateway_info` (Block List, Max: 1) Information related to the external gateway. (see [below for nested schema](#nestedblock--external_gateway_info))
+- `external_gateway_info` (Block List, Max: 1) Information related to the external gateway. If not set SNAT is disabled. (see [below for nested schema](#nestedblock--external_gateway_info))
 - `interfaces` (Block Set) Set of interfaces associated with the router. (see [below for nested schema](#nestedblock--interfaces))
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
@@ -80,12 +79,12 @@ resource "edgecenter_router" "router" {
 
 Optional:
 
-- `enable_snat` (Boolean)
 - `network_id` (String) Id of the external network
 - `type` (String) Must be 'manual' or 'default'
 
 Read-Only:
 
+- `enable_snat` (Boolean, Deprecated)
 - `external_fixed_ips` (List of Object) (see [below for nested schema](#nestedatt--external_gateway_info--external_fixed_ips))
 
 <a id="nestedatt--external_gateway_info--external_fixed_ips"></a>
