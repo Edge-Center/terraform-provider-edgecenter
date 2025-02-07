@@ -63,7 +63,6 @@ output "view" {
 
 Read-Only:
 
-- `enable_snat` (Boolean)
 - `external_fixed_ips` (List of Object) (see [below for nested schema](#nestedobjatt--external_gateway_info--external_fixed_ips))
 - `network_id` (String)
 
