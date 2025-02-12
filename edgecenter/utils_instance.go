@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -1159,4 +1160,108 @@ func checkIfaceAttrCombinations(ifaces []interface{}) error {
 	}
 
 	return nil
+}
+
+func prepareInterfacesOptsListFromAPI(interfacesListAPI []edgecloudV2.InstancePortInterface) []interface{} {
+	var interfacesOptsList []interface{}
+
+	for i, iFace := range interfacesListAPI {
+		interfaceOptsMap := make(map[string]interface{})
+
+		if len(iFace.IPAssignments) == 0 {
+			continue
+		}
+
+		if i == 0 {
+			interfaceOptsMap[IsDefaultField] = true
+		}
+
+		for _, assignment := range iFace.IPAssignments {
+			switch {
+			case iFace.NetworkDetails.External:
+				interfaceOptsMap[TypeField] = string(edgecloudV2.InterfaceTypeExternal)
+
+			case strings.Contains(iFace.Name, string(edgecloudV2.InterfaceTypeReservedFixedIP)):
+				interfaceOptsMap[InstanceReservedFixedIPPortIDField] = iFace.PortID
+				interfaceOptsMap[TypeField] = string(edgecloudV2.InterfaceTypeReservedFixedIP)
+
+			default:
+				interfaceOptsMap[TypeField] = string(edgecloudV2.InterfaceTypeSubnet)
+				interfaceOptsMap[NetworkIDField] = iFace.NetworkID
+				interfaceOptsMap[SubnetIDField] = assignment.SubnetID
+			}
+
+			interfaceOptsMap[PortIDField] = iFace.PortID
+			interfaceOptsMap[IPAddressField] = assignment.IPAddress.String()
+			interfaceOptsMap[NetworkNameField] = iFace.NetworkDetails.Name
+
+			interfacesOptsList = append(interfacesOptsList, interfaceOptsMap)
+		}
+	}
+
+	return interfacesOptsList
+}
+
+func prepareBootVolumesDataFromAPI(instanceVolumes []edgecloudV2.Volume) []interface{} {
+	enrichedBootVolumesData := make([]interface{}, 0, len(instanceVolumes))
+
+	i := 0
+	for _, volume := range instanceVolumes {
+		if !volume.Bootable {
+			continue
+		}
+
+		newVolume := make(map[string]interface{})
+
+		newVolume[NameField] = volume.Name
+		newVolume[InstanceBootVolumesBootIndexField] = i
+		newVolume[TypeNameField] = volume.VolumeType
+		newVolume[InstanceVolumeSizeField] = volume.Size
+		newVolume[InstanceVolumeIDField] = volume.ID
+
+		enrichedBootVolumesData = append(enrichedBootVolumesData, newVolume)
+
+		i++
+	}
+
+	return enrichedBootVolumesData
+}
+
+func prepareDataVolumesDataFromAPI(instanceVolumes []edgecloudV2.Volume) []interface{} {
+	enrichedDataVolumesData := make([]interface{}, 0, len(instanceVolumes))
+
+	for _, volume := range instanceVolumes {
+		if volume.Bootable {
+			continue
+		}
+
+		newVolume := make(map[string]interface{})
+
+		newVolume[NameField] = volume.Name
+		newVolume[TypeNameField] = volume.VolumeType
+		newVolume[InstanceVolumeSizeField] = volume.Size
+		newVolume[InstanceVolumeIDField] = volume.ID
+
+		enrichedDataVolumesData = append(enrichedDataVolumesData, newVolume)
+	}
+
+	return enrichedDataVolumesData
+}
+
+func prepareMetadataFromAPI(ctx context.Context, clientV2 *edgecloudV2.Client, instanceID string) (map[string]interface{}, error) {
+	newMetadata := make(map[string]interface{})
+
+	mds, _, err := clientV2.Instances.MetadataList(ctx, instanceID)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get metadata list. Error: %s", err.Error())
+	}
+
+	for _, md := range mds {
+		if md.ReadOnly {
+			continue
+		}
+		newMetadata[md.Key] = md.Value
+	}
+
+	return newMetadata, nil
 }
