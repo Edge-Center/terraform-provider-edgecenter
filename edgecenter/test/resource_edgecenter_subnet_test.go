@@ -49,7 +49,7 @@ func TestAccSubnet(t *testing.T) {
 		},
 	}
 
-	gateway := net.ParseIP("disable")
+	gateway := net.ParseIP("192.168.100.1")
 
 	updateFixt := subnets.CreateOpts{
 		Name:           "update_subnet",
@@ -90,7 +90,7 @@ func TestAccSubnet(t *testing.T) {
 		DHCP:    "false",
 		DNS:     []string{},
 		HRoutes: []map[string]string{},
-		Gateway: "disable",
+		Gateway: "192.168.100.1",
 		MetadataMap: `{
 				key3 = "val3"
 	  	}`,

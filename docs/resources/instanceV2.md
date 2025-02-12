@@ -203,7 +203,7 @@ Optional:
 The first connected interface defines the default routing. WARNING: if you change this attribute, interfaces 
 connected earlier than the selected new default interface will be reattached and it's IP addresses can be changed, if the reserved IP address is not used in these 
 interfaces. You must always have exactly one interface with set attribute 'is_default.'
-- `network_id` (String) Required if type is 'subnet' or 'any_subnet'.
+- `network_id` (String) Required if type is 'subnet'.
 - `reserved_fixed_ip_port_id` (String) required if type is  'reserved_fixed_ip'
 - `subnet_id` (String) Required if type is 'subnet'.
 

@@ -209,7 +209,7 @@ interfaces. You must always have exactly one interface with set attribute 'is_de
 						},
 						NetworkIDField: {
 							Type:         schema.TypeString,
-							Description:  "Required if type is 'subnet' or 'any_subnet'.",
+							Description:  "Required if type is 'subnet'.",
 							Optional:     true,
 							Default:      "",
 							ValidateFunc: validation.IsUUID,
@@ -471,15 +471,33 @@ func resourceInstanceReadV2(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	bootVolumesSet := d.Get(InstanceBootVolumesField).(*schema.Set)
-	bootVolumesState := extractVolumesIntoMap(bootVolumesSet.List())
-	enrichedBootVolumesData := EnrichVolumeData(instanceVolumes, bootVolumesState)
+	bootVolumesList := bootVolumesSet.List()
+
+	var enrichedBootVolumesData []interface{}
+
+	if len(bootVolumesList) == 0 {
+		enrichedBootVolumesData = prepareBootVolumesDataFromAPI(instanceVolumes)
+	} else {
+		bootVolumesState := extractVolumesIntoMap(bootVolumesList)
+		enrichedBootVolumesData = EnrichVolumeData(instanceVolumes, bootVolumesState)
+	}
+
 	if err := d.Set(InstanceBootVolumesField, schema.NewSet(bootVolumesSet.F, enrichedBootVolumesData)); err != nil {
 		return diag.FromErr(err)
 	}
 
 	dataVolumesSet := d.Get(InstanceDataVolumesField).(*schema.Set)
-	dataVolumesState := extractVolumesIntoMap(dataVolumesSet.List())
-	enrichedDataVolumesData := EnrichVolumeData(instanceVolumes, dataVolumesState)
+	dataVolumesList := dataVolumesSet.List()
+
+	var enrichedDataVolumesData []interface{}
+
+	if len(dataVolumesList) == 0 {
+		enrichedDataVolumesData = prepareDataVolumesDataFromAPI(instanceVolumes)
+	} else {
+		dataVolumesState := extractVolumesIntoMap(dataVolumesList)
+		enrichedDataVolumesData = EnrichVolumeData(instanceVolumes, dataVolumesState)
+	}
+
 	if err := d.Set(InstanceDataVolumesField, schema.NewSet(dataVolumesSet.F, enrichedDataVolumesData)); err != nil {
 		return diag.FromErr(err)
 	}
@@ -491,37 +509,46 @@ func resourceInstanceReadV2(ctx context.Context, d *schema.ResourceData, m inter
 
 	ifsOptsSet := d.Get(InstanceInterfacesField).(*schema.Set)
 	ifs := ifsOptsSet.List()
-	interfacesMap := extractInstanceV2InterfacesOptsToListRead(ifs)
 
 	var interfacesOptsList []interface{}
 
-	for _, iFace := range interfacesListAPI {
-		if len(iFace.IPAssignments) == 0 {
-			continue
-		}
-		for _, assignment := range iFace.IPAssignments {
-			subnetID := assignment.SubnetID
-			var ok bool
-			interfaceOptsMap := make(map[string]interface{})
-			var ifsMap map[string]interface{}
-			for _, k := range []string{subnetID, iFace.PortID, iFace.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
-				if k == string(edgecloudV2.InterfaceTypeExternal) && !iFace.NetworkDetails.External {
-					continue
-				}
-				ifsMap, ok = interfacesMap[k]
-				if ok {
-					interfaceOptsMap = ifsMap
-					break
-				}
+	if len(ifs) == 0 {
+		interfacesOptsList = prepareInterfacesOptsListFromAPI(interfacesListAPI)
+	} else {
+		interfacesMap := extractInstanceV2InterfacesOptsToListRead(ifs)
+		for _, iFace := range interfacesListAPI {
+			if len(iFace.IPAssignments) == 0 {
+				continue
 			}
-			if !ok {
-				interfaceOptsMap[NetworkIDField] = iFace.NetworkID
-				interfaceOptsMap[SubnetIDField] = assignment.SubnetID
+			for _, assignment := range iFace.IPAssignments {
+				subnetID := assignment.SubnetID
+
+				var ok bool
+				interfaceOptsMap := make(map[string]interface{})
+				var ifsMap map[string]interface{}
+
+				for _, k := range []string{subnetID, iFace.PortID, iFace.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
+					if k == string(edgecloudV2.InterfaceTypeExternal) && !iFace.NetworkDetails.External {
+						continue
+					}
+					ifsMap, ok = interfacesMap[k]
+					if ok {
+						interfaceOptsMap = ifsMap
+						break
+					}
+				}
+
+				if !ok {
+					interfaceOptsMap[NetworkIDField] = iFace.NetworkID
+					interfaceOptsMap[SubnetIDField] = assignment.SubnetID
+				}
+
+				interfaceOptsMap[IPAddressField] = assignment.IPAddress.String()
+				interfaceOptsMap[NetworkNameField] = iFace.NetworkDetails.Name
+				interfaceOptsMap[PortIDField] = iFace.PortID
+
+				interfacesOptsList = append(interfacesOptsList, interfaceOptsMap)
 			}
-			interfaceOptsMap[IPAddressField] = assignment.IPAddress.String()
-			interfaceOptsMap[NetworkNameField] = iFace.NetworkDetails.Name
-			interfaceOptsMap[PortIDField] = iFace.PortID
-			interfacesOptsList = append(interfacesOptsList, interfaceOptsMap)
 		}
 	}
 
@@ -529,18 +556,33 @@ func resourceInstanceReadV2(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	if metadataRaw, ok := d.GetOk(MetadataField); ok {
-		metadata := metadataRaw.(map[string]interface{})
-		newMetadata := make(map[string]interface{}, len(metadata))
-		for k := range metadata {
-			md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
-			if err != nil {
-				return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
-			}
-			newMetadata[k] = md.Value
-		}
-		if err = d.Set(MetadataField, newMetadata); err != nil {
+	// We can't use a MetadataField to check if a state file is availabl,e because the MetadataField is optional.
+	// So we will use the required InstanceInterfacesField.
+	if len(ifs) == 0 {
+		newMetadata, err := prepareMetadataFromAPI(ctx, clientV2, instanceID)
+		if err != nil {
 			return diag.FromErr(err)
+		}
+
+		if len(newMetadata) != 0 {
+			if err = d.Set(MetadataField, newMetadata); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	} else {
+		if metadataRaw, ok := d.GetOk(MetadataField); ok {
+			metadata := metadataRaw.(map[string]interface{})
+			newMetadata := make(map[string]interface{}, len(metadata))
+			for k := range metadata {
+				md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
+				if err != nil {
+					return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
+				}
+				newMetadata[k] = md.Value
+			}
+			if err = d.Set(MetadataField, newMetadata); err != nil {
+				return diag.FromErr(err)
+			}
 		}
 	}
 
