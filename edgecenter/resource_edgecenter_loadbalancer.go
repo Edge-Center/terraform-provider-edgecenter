@@ -45,7 +45,7 @@ func resourceLoadBalancer() *schema.Resource {
 				d.SetId(lbID)
 
 				config := m.(*Config)
-				clientV2, err := config.newCloudClient()
+				clientV2, err := config.NewCloudClient()
 				if err != nil {
 					return nil, err
 				}

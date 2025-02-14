@@ -43,7 +43,7 @@ The disc type "infra_ssd" is an internal type of EdgeCenter.
 				d.SetId(volumeID)
 
 				config := m.(*Config)
-				clientV2, err := config.newCloudClient()
+				clientV2, err := config.NewCloudClient()
 				if err != nil {
 					return nil, err
 				}

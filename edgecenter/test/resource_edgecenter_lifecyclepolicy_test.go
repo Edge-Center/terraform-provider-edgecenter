@@ -21,7 +21,7 @@ func TestAccLifecyclePolicy(t *testing.T) {
 	t.Parallel()
 	// Templates
 	resName := "acctest"
-	fullLPName := edgecenter.LifecyclePolicyResource + "." + resName
+	fullLPName := edgecenter.LifecyclePolicyResourceField + "." + resName
 	volumeId := "edgecenter_volume." + resName + ".id"
 	cronScheduleConfig := func(cron lifecyclepolicy.CreateCronScheduleOpts) string {
 		return fmt.Sprintf(`
@@ -81,7 +81,7 @@ resource "%s" "%s" {
 	status = "%s"
 	%s
 	%s
-}`, edgecenter.LifecyclePolicyResource, resName, projectInfo(), regionInfo(), opts.Name, opts.Status, volumes, schedules)
+}`, edgecenter.LifecyclePolicyResourceField, resName, projectInfo(), regionInfo(), opts.Name, opts.Status, volumes, schedules)
 	}
 
 	// Options
@@ -218,7 +218,7 @@ func testAccLifecyclePolicyDestroy(s *terraform.State) error {
 			if !strings.Contains(err.Error(), "not found") {
 				return err
 			}
-		} else if rs.Type == edgecenter.LifecyclePolicyResource {
+		} else if rs.Type == edgecenter.LifecyclePolicyResourceField {
 			id, err := strconv.Atoi(rs.Primary.ID)
 			if err != nil {
 				return fmt.Errorf("error converting lifecycle policy ID to integer: %s", err)
