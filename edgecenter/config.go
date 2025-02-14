@@ -40,7 +40,7 @@ func NewConfig(
 	}
 }
 
-func (c *Config) newCloudClient() (*edgecloudV2.Client, error) {
+func (c *Config) NewCloudClient() (*edgecloudV2.Client, error) {
 	cloudClient, err := edgecloudV2.NewWithRetries(nil,
 		edgecloudV2.SetUserAgent(c.UserAgent),
 		edgecloudV2.SetAPIKey(c.PermanentToken),
