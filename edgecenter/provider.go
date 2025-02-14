@@ -21,54 +21,63 @@ import (
 )
 
 const (
-	ProviderOptPermanentToken    = "permanent_api_token"
-	ProviderOptSkipCredsAuthErr  = "ignore_creds_auth_error" // nolint: gosec
-	ProviderOptSingleAPIEndpoint = "api_endpoint"
-	RegionIDField                = "region_id"
-	RegionNameField              = "region_name"
-	ProjectIDField               = "project_id"
-	ProjectNameField             = "project_name"
-	CreatedAtField               = "created_at"
-	UpdatedAtField               = "updated_at"
-	LastUpdatedField             = "last_updated"
-	IDField                      = "id"
-	InstanceIDField              = "instance_id"
-	ClientIDField                = "client_id"
-	NameField                    = "name"
-	TagsField                    = "tags"
-	DescriptionField             = "description"
-	StateField                   = "state"
-	IsDefaultField               = "is_default"
-	TypeField                    = "type"
-	TypeNameField                = "type_name"
-	OrderField                   = "order"
-	KeyField                     = "key"
-	NetworkIDField               = "network_id"
-	NetworkNameField             = "network_name"
-	SubnetIDField                = "subnet_id"
-	SubnetNameField              = "subnet_name"
-	PortIDField                  = "port_id"
-	IsParentField                = "is_parent"
-	PasswordField                = "password"
-	UsernameField                = "username"
-	MetadataMapField             = "metadata_map"
-	IPAddressField               = "ip_address"
-	SecurityGroupField           = "security_group"
-	SecurityGroupsField          = "security_groups"
-	SecurityGroupIDsField        = "security_group_ids"
-	AllSecurityGroupIDsField     = "all_security_group_ids"
-	OverwriteExistingField       = "overwrite_existing"
-	MetadataField                = "metadata"
-	ValueField                   = "value"
-	FlavorField                  = "flavor"
-	FlavorNameField              = "flavor_name"
-	FlavorIDField                = "flavor_id"
-	RAMField                     = "ram"
-	VCPUsField                   = "vcpus"
-	StatusField                  = "status"
-	OperatingStatusField         = "operating_status"
-	ProvisioningStatusField      = "provisioning_status"
-	LifecyclePolicyResource      = "edgecenter_lifecyclepolicy"
+	ProviderOptPermanentToken     = "permanent_api_token"
+	ProviderOptSkipCredsAuthErr   = "ignore_creds_auth_error" // nolint: gosec
+	ProviderOptSingleAPIEndpoint  = "api_endpoint"
+	RegionIDField                 = "region_id"
+	RegionNameField               = "region_name"
+	ProjectIDField                = "project_id"
+	ProjectNameField              = "project_name"
+	CreatedAtField                = "created_at"
+	UpdatedAtField                = "updated_at"
+	LastUpdatedField              = "last_updated"
+	IDField                       = "id"
+	InstanceIDField               = "instance_id"
+	ClientIDField                 = "client_id"
+	NameField                     = "name"
+	TagsField                     = "tags"
+	DescriptionField              = "description"
+	StateField                    = "state"
+	IsDefaultField                = "is_default"
+	TypeField                     = "type"
+	TypeNameField                 = "type_name"
+	OrderField                    = "order"
+	KeyField                      = "key"
+	NetworkIDField                = "network_id"
+	NetworkNameField              = "network_name"
+	SubnetIDField                 = "subnet_id"
+	SubnetNameField               = "subnet_name"
+	PortIDField                   = "port_id"
+	IsParentField                 = "is_parent"
+	PasswordField                 = "password"
+	UsernameField                 = "username"
+	MetadataMapField              = "metadata_map"
+	IPAddressField                = "ip_address"
+	SecurityGroupField            = "security_group"
+	SecurityGroupsField           = "security_groups"
+	SecurityGroupIDsField         = "security_group_ids"
+	AllSecurityGroupIDsField      = "all_security_group_ids"
+	OverwriteExistingField        = "overwrite_existing"
+	MetadataField                 = "metadata"
+	ValueField                    = "value"
+	FlavorField                   = "flavor"
+	FlavorNameField               = "flavor_name"
+	FlavorIDField                 = "flavor_id"
+	RAMField                      = "ram"
+	VCPUsField                    = "vcpus"
+	StatusField                   = "status"
+	OperatingStatusField          = "operating_status"
+	ProvisioningStatusField       = "provisioning_status"
+	LifecyclePolicyResourceField  = "edgecenter_lifecyclepolicy"
+	ConnectionStringField         = "connection_string"
+	ReceiveChildClientEventsField = "receive_child_client_events"
+	RoutingKeyField               = "routing_key"
+	ExchangeAMQPField             = "exchange"
+	SendUserActionLogsURLField    = "url"
+	AuthHeaderValueField          = "auth_header_value"
+	AuthHeaderNameField           = "auth_header_name"
+	ResellerIDField               = "reseller_id"
+	ImageIDsField                 = "image_ids"
 )
 
 type CloudClientConf struct {
@@ -165,71 +174,75 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"edgecenter_project":                resourceProject(),
-			"edgecenter_volume":                 resourceVolume(),
-			"edgecenter_network":                resourceNetwork(),
-			"edgecenter_subnet":                 resourceSubnet(),
-			"edgecenter_router":                 resourceRouter(),
-			"edgecenter_instance":               resourceInstance(),
-			"edgecenter_instanceV2":             resourceInstanceV2(),
-			"edgecenter_keypair":                resourceKeypair(),
-			"edgecenter_reservedfixedip":        resourceReservedFixedIP(),
-			"edgecenter_floatingip":             resourceFloatingIP(),
-			"edgecenter_loadbalancer":           resourceLoadBalancer(),
-			"edgecenter_loadbalancerv2":         resourceLoadBalancerV2(),
-			"edgecenter_lblistener":             resourceLbListener(),
-			"edgecenter_lbpool":                 resourceLBPool(),
-			"edgecenter_lbmember":               resourceLBMember(),
-			"edgecenter_securitygroup":          resourceSecurityGroup(),
-			"edgecenter_baremetal":              resourceBmInstance(),
-			"edgecenter_snapshot":               resourceSnapshot(),
-			"edgecenter_servergroup":            resourceServerGroup(),
-			"edgecenter_k8s":                    resourceK8s(),
-			"edgecenter_k8s_pool":               resourceK8sPool(),
-			"edgecenter_secret":                 resourceSecret(),
-			"edgecenter_storage_s3":             resourceStorageS3(),
-			"edgecenter_storage_s3_bucket":      resourceStorageS3Bucket(),
-			DNSZoneResource:                     resourceDNSZone(),
-			DNSZoneRecordResource:               resourceDNSZoneRecord(),
-			"edgecenter_cdn_resource":           resourceCDNResource(),
-			"edgecenter_cdn_origingroup":        resourceCDNOriginGroup(),
-			"edgecenter_cdn_rule":               resourceCDNRule(),
-			"edgecenter_cdn_shielding":          resourceCDNShielding(),
-			"edgecenter_cdn_sslcert":            resourceCDNCert(),
-			LifecyclePolicyResource:             resourceLifecyclePolicy(),
-			"edgecenter_lb_l7policy":            resourceL7Policy(),
-			"edgecenter_lb_l7rule":              resourceL7Rule(),
-			"edgecenter_instance_port_security": resourceInstancePortSecurity(),
+			"edgecenter_project":                       resourceProject(),
+			"edgecenter_volume":                        resourceVolume(),
+			"edgecenter_network":                       resourceNetwork(),
+			"edgecenter_subnet":                        resourceSubnet(),
+			"edgecenter_router":                        resourceRouter(),
+			"edgecenter_instance":                      resourceInstance(),
+			"edgecenter_instanceV2":                    resourceInstanceV2(),
+			"edgecenter_keypair":                       resourceKeypair(),
+			"edgecenter_reservedfixedip":               resourceReservedFixedIP(),
+			"edgecenter_floatingip":                    resourceFloatingIP(),
+			"edgecenter_loadbalancer":                  resourceLoadBalancer(),
+			"edgecenter_loadbalancerv2":                resourceLoadBalancerV2(),
+			"edgecenter_lblistener":                    resourceLbListener(),
+			"edgecenter_lbpool":                        resourceLBPool(),
+			"edgecenter_lbmember":                      resourceLBMember(),
+			"edgecenter_securitygroup":                 resourceSecurityGroup(),
+			"edgecenter_baremetal":                     resourceBmInstance(),
+			"edgecenter_snapshot":                      resourceSnapshot(),
+			"edgecenter_servergroup":                   resourceServerGroup(),
+			"edgecenter_k8s":                           resourceK8s(),
+			"edgecenter_k8s_pool":                      resourceK8sPool(),
+			"edgecenter_secret":                        resourceSecret(),
+			"edgecenter_storage_s3":                    resourceStorageS3(),
+			"edgecenter_storage_s3_bucket":             resourceStorageS3Bucket(),
+			DNSZoneResource:                            resourceDNSZone(),
+			DNSZoneRecordResource:                      resourceDNSZoneRecord(),
+			"edgecenter_cdn_resource":                  resourceCDNResource(),
+			"edgecenter_cdn_origingroup":               resourceCDNOriginGroup(),
+			"edgecenter_cdn_rule":                      resourceCDNRule(),
+			"edgecenter_cdn_shielding":                 resourceCDNShielding(),
+			"edgecenter_cdn_sslcert":                   resourceCDNCert(),
+			LifecyclePolicyResourceField:               resourceLifecyclePolicy(),
+			"edgecenter_lb_l7policy":                   resourceL7Policy(),
+			"edgecenter_lb_l7rule":                     resourceL7Rule(),
+			"edgecenter_instance_port_security":        resourceInstancePortSecurity(),
+			"edgecenter_useractions_subscription_amqp": resourceUserActionsSubscriptionAMQP(),
+			"edgecenter_useractions_subscription_log":  resourceUserActionsSubscriptionLog(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"edgecenter_project":                dataSourceProject(),
-			"edgecenter_region":                 dataSourceRegion(),
-			"edgecenter_securitygroup":          dataSourceSecurityGroup(),
-			"edgecenter_image":                  dataSourceImage(),
-			"edgecenter_volume":                 dataSourceVolume(),
-			"edgecenter_network":                dataSourceNetwork(),
-			"edgecenter_subnet":                 dataSourceSubnet(),
-			"edgecenter_router":                 dataSourceRouter(),
-			"edgecenter_loadbalancer":           dataSourceLoadBalancer(),
-			"edgecenter_loadbalancerv2":         dataSourceLoadBalancerV2(),
-			"edgecenter_lblistener":             dataSourceLBListener(),
-			"edgecenter_lbpool":                 dataSourceLBPool(),
-			"edgecenter_instance":               dataSourceInstance(),
-			"edgecenter_instanceV2":             dataSourceInstanceV2(),
-			"edgecenter_floatingip":             dataSourceFloatingIP(),
-			"edgecenter_storage_s3":             dataSourceStorageS3(),
-			"edgecenter_storage_s3_bucket":      dataSourceStorageS3Bucket(),
-			"edgecenter_reservedfixedip":        dataSourceReservedFixedIP(),
-			"edgecenter_servergroup":            dataSourceServerGroup(),
-			"edgecenter_snapshot":               dataSourceSnapshot(),
-			"edgecenter_k8s":                    dataSourceK8s(),
-			"edgecenter_k8s_pool":               dataSourceK8sPool(),
-			"edgecenter_k8s_client_config":      dataSourceK8sClientConfig(),
-			"edgecenter_secret":                 dataSourceSecret(),
-			"edgecenter_lb_l7policy":            dataSourceL7Policy(),
-			"edgecenter_lb_l7rule":              datasourceL7Rule(),
-			"edgecenter_instance_port_security": dataSourceInstancePortSecurity(),
-			"edgecenter_cdn_shielding_location": dataShieldingLocation(),
+			"edgecenter_project":                       dataSourceProject(),
+			"edgecenter_region":                        dataSourceRegion(),
+			"edgecenter_securitygroup":                 dataSourceSecurityGroup(),
+			"edgecenter_image":                         dataSourceImage(),
+			"edgecenter_volume":                        dataSourceVolume(),
+			"edgecenter_network":                       dataSourceNetwork(),
+			"edgecenter_subnet":                        dataSourceSubnet(),
+			"edgecenter_router":                        dataSourceRouter(),
+			"edgecenter_loadbalancer":                  dataSourceLoadBalancer(),
+			"edgecenter_loadbalancerv2":                dataSourceLoadBalancerV2(),
+			"edgecenter_lblistener":                    dataSourceLBListener(),
+			"edgecenter_lbpool":                        dataSourceLBPool(),
+			"edgecenter_instance":                      dataSourceInstance(),
+			"edgecenter_instanceV2":                    dataSourceInstanceV2(),
+			"edgecenter_floatingip":                    dataSourceFloatingIP(),
+			"edgecenter_storage_s3":                    dataSourceStorageS3(),
+			"edgecenter_storage_s3_bucket":             dataSourceStorageS3Bucket(),
+			"edgecenter_reservedfixedip":               dataSourceReservedFixedIP(),
+			"edgecenter_servergroup":                   dataSourceServerGroup(),
+			"edgecenter_snapshot":                      dataSourceSnapshot(),
+			"edgecenter_k8s":                           dataSourceK8s(),
+			"edgecenter_k8s_pool":                      dataSourceK8sPool(),
+			"edgecenter_k8s_client_config":             dataSourceK8sClientConfig(),
+			"edgecenter_secret":                        dataSourceSecret(),
+			"edgecenter_lb_l7policy":                   dataSourceL7Policy(),
+			"edgecenter_lb_l7rule":                     datasourceL7Rule(),
+			"edgecenter_instance_port_security":        dataSourceInstancePortSecurity(),
+			"edgecenter_cdn_shielding_location":        dataShieldingLocation(),
+			"edgecenter_useractions_subscription_amqp": dataUserActionsSubscriptionAMQP(),
+			"edgecenter_useractions_subscription_log":  dataUserActionsSubscriptionLog(),
 		},
 	}
 
@@ -374,7 +387,7 @@ func InitCloudClient(
 	clientConf *CloudClientConf,
 ) (*edgecloudV2.Client, error) {
 	config := m.(*Config)
-	client, err := config.newCloudClient()
+	client, err := config.NewCloudClient()
 	if err != nil {
 		return nil, err
 	}
