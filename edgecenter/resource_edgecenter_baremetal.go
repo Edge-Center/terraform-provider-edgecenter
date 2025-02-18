@@ -4,14 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"net/http"
 	"reflect"
 	"sort"
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
@@ -20,7 +23,6 @@ import (
 const (
 	BmInstanceDeletingTimeout int = 1200
 	BmInstanceCreatingTimeout int = 3600
-	BmInstancePoint               = "bminstances"
 )
 
 var (
@@ -84,9 +86,10 @@ func resourceBmInstance() *schema.Resource {
 			"flavor_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"interface": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -97,9 +100,13 @@ func resourceBmInstance() *schema.Resource {
 						},
 						"is_parent": {
 							Type:        schema.TypeBool,
-							Computed:    true,
 							Optional:    true,
 							Description: "If not set will be calculated after creation. Trunk interface always attached first. Can't detach interface if is_parent true. Fields affect only on creation",
+						},
+						"is_parent_readonly": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Will be calculated after creation. Can't detach interface if is_parent_readonly true.",
 						},
 						"order": {
 							Type:        schema.TypeInt,
@@ -107,36 +114,51 @@ func resourceBmInstance() *schema.Resource {
 							Description: "Order of attaching interface. Trunk interface always attached first, fields affect only on creation",
 						},
 						"network_id": {
+							Type:         schema.TypeString,
+							Description:  "required if type is 'subnet' or 'any_subnet'",
+							Optional:     true,
+							ValidateFunc: validation.IsUUID,
+						},
+						"network_name": {
 							Type:        schema.TypeString,
-							Description: "required if type is 'subnet' or 'any_subnet'",
-							Optional:    true,
+							Description: "Name of the network.",
 							Computed:    true,
 						},
 						"subnet_id": {
-							Type:        schema.TypeString,
-							Description: "required if type is 'subnet'",
-							Optional:    true,
-							Computed:    true,
+							Type:         schema.TypeString,
+							Description:  "required if type is 'subnet'",
+							Optional:     true,
+							ValidateFunc: validation.IsUUID,
 						},
 						"port_id": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "required if type is  'reserved_fixed_ip'",
-							Optional:    true,
+							Type:         schema.TypeString,
+							Description:  "required if type is  'reserved_fixed_ip'",
+							Optional:     true,
+							ValidateFunc: validation.IsUUID,
 						},
+						"port_id_readonly": {
+							Type:        schema.TypeString,
+							Description: "Will be calculated after creation",
+							Computed:    true,
+						},
+
 						// nested map is not supported, in this case, you do not need to use the list for the map
 						"fip_source": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:         schema.TypeString,
+							Optional:     true,
+							Description:  fmt.Sprintf("Indicates whether the floating IP for this subnet will be new or reused. Available value is '%s', '%s'", edgecloudV2.NewFloatingIP, edgecloudV2.ExistingFloatingIP),
+							ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.NewFloatingIP), string(edgecloudV2.ExistingFloatingIP)}, true),
 						},
 						"existing_fip_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:         schema.TypeString,
+							Optional:     true,
+							Description:  "If fip_source is \"existing\", the ID of the existing floating IP must be specified",
+							ValidateFunc: validation.IsUUID,
 						},
 						"ip_address": {
-							Type:     schema.TypeString,
-							Computed: true,
-							Optional: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Interface IP address",
 						},
 					},
 				},
@@ -162,6 +184,7 @@ func resourceBmInstance() *schema.Resource {
 			"image_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				ExactlyOneOf: []string{
 					"image_id",
 					"apptemplate_id",
@@ -222,7 +245,6 @@ func resourceBmInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-
 			// computed
 			"flavor": {
 				Type:     schema.TypeMap,
@@ -279,41 +301,6 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	ifs := d.Get("interface").([]interface{})
-	// sort interfaces by 'is_parent' at first and by 'order' key to attach it in right order
-	sort.Sort(instanceInterfaces(ifs))
-	interfaceOptsList := make([]edgecloudV2.BareMetalInterfaceOpts, len(ifs))
-	for i, iFace := range ifs {
-		raw := iFace.(map[string]interface{})
-		interfaceOpts := edgecloudV2.BareMetalInterfaceOpts{
-			Type:      edgecloudV2.InterfaceType(raw["type"].(string)),
-			NetworkID: raw["network_id"].(string),
-			SubnetID:  raw["subnet_id"].(string),
-			PortID:    raw["port_id"].(string),
-		}
-
-		if interfaceOpts.NetworkID != "" {
-			network, _, err := clientV2.Networks.Get(ctx, interfaceOpts.NetworkID)
-			if err != nil {
-				return diag.Errorf("Error getting network information: %s", err)
-			}
-			if network.Type == "vxlan" {
-				return diag.Errorf("VxLAN networks are not supported for baremetal instances")
-			}
-		}
-
-		fipSource := raw["fip_source"].(string)
-		fipID := raw["existing_fip_id"].(string)
-		if fipSource != "" {
-			interfaceOpts.FloatingIP = &edgecloudV2.InterfaceFloatingIP{
-				Source:             edgecloudV2.FloatingIPSource(fipSource),
-				ExistingFloatingID: fipID,
-			}
-		}
-		interfaceOptsList[i] = interfaceOpts
-	}
-
-	log.Printf("[DEBUG] Baremetal interfaces: %+v", interfaceOptsList)
 	createRequest := edgecloudV2.BareMetalServerCreateRequest{
 		Flavor:        d.Get("flavor_id").(string),
 		ImageID:       d.Get("image_id").(string),
@@ -323,7 +310,6 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 		Username:      d.Get("username").(string),
 		UserData:      d.Get("user_data").(string),
 		AppConfig:     d.Get("app_config").(map[string]interface{}),
-		Interfaces:    interfaceOptsList,
 	}
 
 	name := d.Get("name").(string)
@@ -343,6 +329,22 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 	} else if nameTemplate, ok := d.GetOk("name_template"); ok {
 		createRequest.NameTemplates = []string{nameTemplate.(string)}
 	}
+
+	ifsRaw := d.Get("interface")
+	ifsSet := ifsRaw.(*schema.Set)
+	ifs := ifsSet.List()
+	if len(ifs) > 0 {
+		// sort interfaces by 'is_parent' at first and by 'order' key to attach it in right order
+		sort.Sort(instanceInterfaces(ifs))
+		interfaceOptsList, err := prepareBaremetalInstanceInterfaceCreateOpts(ctx, clientV2, ifs)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		createRequest.Interfaces = interfaceOptsList
+	}
+
+	log.Printf("[DEBUG] Baremetal interfaces: %+v", createRequest.Interfaces)
 
 	if metadata, ok := d.GetOk("metadata"); ok {
 		if len(metadata.([]interface{})) > 0 {
@@ -371,9 +373,6 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 
 	instanceID := taskResult.Instances[0]
 	log.Printf("[DEBUG] Baremetal Instance id (%s)", instanceID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	d.SetId(instanceID)
 	resourceBmInstanceRead(ctx, d, m)
@@ -400,7 +399,7 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	instance, resp, err := clientV2.Instances.Get(ctx, instanceID)
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil
@@ -429,88 +428,29 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.Errorf("interface not found")
 	}
 
-	ifs := d.Get("interface").([]interface{})
-	orderedInterfacesMap := extractInstanceInterfaceToListRead(ifs)
+	interfaceAPI := interfacesListAPI[0]
+
+	sourceIfaceMap, err := convertSourceBaremetalInterfaceToMap(interfaceAPI)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var interfacesList []interface{}
-	for _, iFace := range interfacesListAPI {
-		if len(iFace.IPAssignments) == 0 {
-			continue
-		}
-		for _, assignment := range iFace.IPAssignments {
-			subnetID := assignment.SubnetID
+	ifsRaw := d.Get("interface")
+	ifsSet := ifsRaw.(*schema.Set)
+	ifs := ifsSet.List()
 
-			var interfaceOpts OrderedInterfaceOpts
-			var orderedInterfaceOpts OrderedInterfaceOpts
-			var ok bool
+	newIfs := make([]interface{}, 0, len(ifs))
 
-			// we need to match our interfaces with api's interfaces
-			// but with don't have any unique value, that's why we use exactly that list of keys
-			for _, k := range []string{subnetID, iFace.PortID, iFace.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
-				if orderedInterfaceOpts, ok = orderedInterfacesMap[k]; ok {
-					interfaceOpts = orderedInterfaceOpts
-					break
-				}
-			}
+	// sort interfaces by 'is_parent' at first and by 'order' key to attach it in right order
+	sort.Sort(instanceInterfaces(ifs))
 
-			if !ok {
-				continue
-			}
-
-			i := make(map[string]interface{})
-			i["type"] = interfaceOpts.InstanceInterface.Type
-			i["order"] = interfaceOpts.Order
-			i["network_id"] = iFace.NetworkID
-			i["subnet_id"] = subnetID
-			i["port_id"] = iFace.PortID
-			if iFace.SubPorts != nil {
-				i["is_parent"] = true
-			}
-			if interfaceOpts.InstanceInterface.FloatingIP != nil {
-				i["fip_source"] = interfaceOpts.InstanceInterface.FloatingIP.Source
-				i["existing_fip_id"] = interfaceOpts.InstanceInterface.FloatingIP.ExistingFloatingID
-			}
-			i["ip_address"] = assignment.IPAddress.String()
-
-			interfacesList = append(interfacesList, i)
-		}
-		for _, iFaceSubPort := range iFace.SubPorts {
-			for _, assignmentSubPort := range iFaceSubPort.IPAssignments {
-				assignmentSubnetID := assignmentSubPort.SubnetID
-
-				var interfaceOpts OrderedInterfaceOpts
-				var orderedInterfaceOpts OrderedInterfaceOpts
-				var ok bool
-
-				for _, k := range []string{assignmentSubnetID, iFaceSubPort.PortID, iFaceSubPort.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
-					if orderedInterfaceOpts, ok = orderedInterfacesMap[k]; ok {
-						interfaceOpts = orderedInterfaceOpts
-						break
-					}
-				}
-
-				i := make(map[string]interface{})
-
-				i["type"] = interfaceOpts.InstanceInterface.Type
-				i["order"] = interfaceOpts.Order
-				i["network_id"] = iFaceSubPort.NetworkID
-				i["subnet_id"] = assignmentSubnetID
-				i["port_id"] = iFaceSubPort.PortID
-				i["is_parent"] = false
-				if interfaceOpts.InstanceInterface.FloatingIP != nil {
-					i["fip_source"] = interfaceOpts.InstanceInterface.FloatingIP.Source
-					i["existing_fip_id"] = interfaceOpts.InstanceInterface.FloatingIP.ExistingFloatingID
-				}
-				i["ip_address"] = assignmentSubPort.IPAddress.String()
-
-				interfacesList = append(interfacesList, i)
-			}
-		}
+	for _, rawIf := range ifs {
+		newIface := maps.Clone(rawIf.(baremetalIfaceMap))
+		updateInterfaceState(newIface, sourceIfaceMap)
+		newIfs = append(newIfs, newIface)
 	}
-	if err := d.Set("interface", interfacesList); err != nil {
+
+	if err := d.Set("interface", schema.NewSet(ifsSet.F, newIfs)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -630,42 +570,72 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 	if d.HasChange("interface") {
 		ifsOldRaw, ifsNewRaw := d.GetChange("interface")
 
-		ifsOld := ifsOldRaw.([]interface{})
-		ifsNew := ifsNewRaw.([]interface{})
+		ifsOldScheme := ifsOldRaw.(*schema.Set)
+		ifsOld := ifsOldScheme.List()
+		ifsNew := ifsNewRaw.(*schema.Set).List()
+
+		for _, iFace := range ifsNew {
+			raw := iFace.(baremetalIfaceMap)
+
+			if err := validateBaremetalInterfaceConfig(ctx, raw, clientV2); err != nil {
+				if err := d.Set("interface", schema.NewSet(ifsOldScheme.F, ifsOld)); err != nil {
+					return diag.FromErr(err)
+				}
+
+				return diag.Errorf("validate baremetal interface configuration error: %s", err.Error())
+			}
+		}
 
 		for _, i := range ifsOld {
 			iface := i.(map[string]interface{})
 			if isInterfaceContains(iface, ifsNew) {
-				log.Println("[DEBUG] Skipped, dont need detach")
+				tflog.Debug(ctx, "Skipped, dont need detach")
 				continue
 			}
 
-			if iface["is_parent"].(bool) {
+			if iface["is_parent"].(bool) || iface["is_parent_readonly"].(bool) {
+				if err := d.Set("interface", schema.NewSet(ifsOldScheme.F, ifsOld)); err != nil {
+					return diag.FromErr(err)
+				}
+
 				return diag.Errorf("could not detach trunk interface")
 			}
+
+			tflog.Info(ctx, fmt.Sprintf("deattach interface: %+v", iface))
 			if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
+				if err := d.Set("interface", schema.NewSet(ifsOldScheme.F, ifsOld)); err != nil {
+					return diag.FromErr(err)
+				}
+
 				return diag.FromErr(err)
 			}
 		}
 
 		currentIfs, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
 		if err != nil {
+			if err := d.Set("interface", schema.NewSet(ifsOldScheme.F, ifsOld)); err != nil {
+				return diag.FromErr(err)
+			}
+
 			return diag.FromErr(err)
 		}
 
 		sort.Sort(instanceInterfaces(ifsNew))
 		for _, i := range ifsNew {
 			iface := i.(map[string]interface{})
+
 			if isInterfaceContains(iface, ifsOld) {
 				log.Println("[DEBUG] Skipped, dont need attach")
 				continue
 			}
+
 			if isInterfaceAttachedV2(currentIfs, iface) {
 				continue
 			}
 
 			iType := edgecloudV2.InterfaceType(iface["type"].(string))
 			opts := edgecloudV2.InstanceInterface{Type: iType}
+
 			switch iType {
 			case edgecloudV2.InterfaceTypeSubnet:
 				opts.SubnetID = iface["subnet_id"].(string)
@@ -676,11 +646,22 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 			case edgecloudV2.InterfaceTypeExternal:
 			}
 
-			log.Printf("[DEBUG] attach interface: %+v", opts)
+			tflog.Info(ctx, fmt.Sprintf("attach interface: %+v", opts))
 			if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
+				if err := d.Set("interface", schema.NewSet(ifsOldScheme.F, ifsOld)); err != nil {
+					return diag.FromErr(err)
+				}
+
 				return diag.FromErr(err)
 			}
 		}
+	}
+
+	if d.HasChange("keypair_name") {
+		oldKN, _ := d.GetChange("keypair_name")
+		d.Set("keypair_name", oldKN.(string))
+
+		return diag.Errorf("changing keypair name for bare-metal instance is prohibited")
 	}
 
 	d.Set("last_updated", time.Now().Format(time.RFC850))
