@@ -35,13 +35,11 @@ func resourceUserActionsSubscriptionAMQP() *schema.Resource {
 			RoutingKeyField: {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "Routing key.",
 			},
 			ExchangeAMQPField: {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "Exchange name.",
 			},
 		},
@@ -83,10 +81,20 @@ func resourceUserActionsAMQPRead(ctx context.Context, d *schema.ResourceData, m 
 		return diag.FromErr(err)
 	}
 
-	if subs.Count == 0 {
+	switch {
+	case subs.Count > 1:
+		return diag.Errorf("forbidden to use admin token. Please use user token")
+	case subs.Count == 0:
+		if d.Id() != "" {
+			return diag.Errorf(
+				"current tfstate already has information about subscription, but subscription does not exist. " +
+					"Please check the APIKey or clear the tfstate.")
+		}
+
 		return nil
 	}
 
+	// A client can only have one subscription, so take the first element.
 	sub := subs.Results[0]
 
 	d.SetId(strconv.Itoa(sub.ID))

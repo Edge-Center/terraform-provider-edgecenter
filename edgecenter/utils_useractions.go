@@ -16,11 +16,13 @@ func prepareAMQPSubscriptionCreateRequest(d *schema.ResourceData) edgecloudV2.AM
 	}
 
 	if val, ok := d.GetOk(RoutingKeyField); ok {
-		req.RoutingKey = val.(string)
+		rk := val.(string)
+		req.RoutingKey = &rk
 	}
 
 	if val, ok := d.GetOk(ExchangeAMQPField); ok {
-		req.Exchange = val.(string)
+		exchange := val.(string)
+		req.Exchange = &exchange
 	}
 
 	return req
