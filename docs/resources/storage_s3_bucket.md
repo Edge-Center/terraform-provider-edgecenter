@@ -34,3 +34,12 @@ resource "edgecenter_storage_s3_bucket" "example_s3_bucket" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# import using <storage_id>:<bucket_name> format
+terraform import edgecenter_storage_s3_bucket.example_s3_bucket 123:bucket_name
+```

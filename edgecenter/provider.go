@@ -78,6 +78,7 @@ const (
 	AuthHeaderNameField           = "auth_header_name"
 	ResellerIDField               = "reseller_id"
 	ImageIDsField                 = "image_ids"
+	ResellerImagesOptionsField    = "options"
 )
 
 type CloudClientConf struct {
@@ -211,6 +212,7 @@ func Provider() *schema.Provider {
 			"edgecenter_instance_port_security":        resourceInstancePortSecurity(),
 			"edgecenter_useractions_subscription_amqp": resourceUserActionsSubscriptionAMQP(),
 			"edgecenter_useractions_subscription_log":  resourceUserActionsSubscriptionLog(),
+			"edgecenter_reseller_images":               resourceResellerImages(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":                       dataSourceProject(),
@@ -241,8 +243,9 @@ func Provider() *schema.Provider {
 			"edgecenter_lb_l7rule":                     datasourceL7Rule(),
 			"edgecenter_instance_port_security":        dataSourceInstancePortSecurity(),
 			"edgecenter_cdn_shielding_location":        dataShieldingLocation(),
-			"edgecenter_useractions_subscription_amqp": dataUserActionsSubscriptionAMQP(),
-			"edgecenter_useractions_subscription_log":  dataUserActionsSubscriptionLog(),
+			"edgecenter_useractions_subscription_amqp": dataSourceUserActionsListAMQPSubscriptions(),
+			"edgecenter_useractions_subscription_log":  dataSourceUserActionsListLogSubscriptions(),
+			"edgecenter_reseller_images":               dataSourceResellerImages(),
 		},
 	}
 

@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccEdgecenterUserActionsLogDatasource(t *testing.T) {
+func TestAccEdgecenterUserActionsListLogSubscriptionsDatasource(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -19,6 +19,8 @@ func TestAccEdgecenterUserActionsLogDatasource(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	_, _ = client.UserActions.UnsubscribeLog(ctx)
 
 	checkURL := "https://your-url.com/receive-user-action-messages"
 	checkAuthHeaderValue := "Bearer eyJ0eXAiOawLr25Jh7Ix14"
