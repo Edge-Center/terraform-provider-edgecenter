@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -9,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataUserActionsSubscriptionLog() *schema.Resource {
+func dataSourceUserActionsListLogSubscriptions() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceUserActionsLogRead,
 		Description: `Data source provides access to user action logs and client subscription.`,
@@ -51,6 +52,10 @@ func dataSourceUserActionsLogRead(ctx context.Context, d *schema.ResourceData, m
 
 	if subs.Count == 0 {
 		return diag.Errorf("log subscription to the user actions list is empty")
+	}
+
+	if subs.Count > 1 {
+		return diag.FromErr(fmt.Errorf("forbidden to use admin token. Please use user token"))
 	}
 
 	sub := subs.Results[0]

@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -9,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataUserActionsSubscriptionAMQP() *schema.Resource {
+func dataSourceUserActionsListAMQPSubscriptions() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceUserActionsAMQPRead,
 		Description: `Data source provides access to user action logs and client subscription via AMQP.`,
@@ -19,25 +20,21 @@ func dataUserActionsSubscriptionAMQP() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			ConnectionStringField: {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "A connection string of the following structure \"scheme://username:password@host:port/virtual_host\".",
 			},
 			ReceiveChildClientEventsField: {
 				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
+				Computed:    true,
 				Description: "Set to true if you would like to receive user action logs of all clients with reseller_id matching the current client_id. Defaults to false.",
 			},
 			RoutingKeyField: {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "Routing key.",
 			},
 			ExchangeAMQPField: {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "Exchange name.",
 			},
@@ -60,6 +57,10 @@ func dataSourceUserActionsAMQPRead(ctx context.Context, d *schema.ResourceData, 
 
 	if subs.Count == 0 {
 		return diag.Errorf("AMQP subscription to the user actions list is empty")
+	}
+
+	if subs.Count > 1 {
+		return diag.FromErr(fmt.Errorf("forbidden to use admin token. Please use user token"))
 	}
 
 	sub := subs.Results[0]

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccEdgecenterUserActionsAMQPDatasource(t *testing.T) {
+func TestAccEdgecenterUserActionsListAMQPSubscriptionsDataSource(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -21,6 +21,8 @@ func TestAccEdgecenterUserActionsAMQPDatasource(t *testing.T) {
 		t.Error(err)
 	}
 
+	_, _ = client.UserActions.UnsubscribeAMQP(ctx)
+
 	checkConnectionCtring := "amqps://guest:guest@192.168.123.21:5671/user_action_events"
 	checkReceiveChildClientEvents := true
 	checkRoutingKey := "routing_key"
@@ -28,7 +30,7 @@ func TestAccEdgecenterUserActionsAMQPDatasource(t *testing.T) {
 	amqpCreatReq := edgecloudV2.AMQPSubscriptionCreateRequest{
 		ConnectionString:         checkConnectionCtring,
 		ReceiveChildClientEvents: checkReceiveChildClientEvents,
-		RoutingKey:               checkRoutingKey,
+		RoutingKey:               &checkRoutingKey,
 	}
 
 	_, err = client.UserActions.SubscribeAMQP(ctx, &amqpCreatReq)
