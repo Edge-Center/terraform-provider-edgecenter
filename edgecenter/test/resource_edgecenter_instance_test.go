@@ -19,9 +19,9 @@ import (
 )
 
 func TestAccInstance(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode")
-	}
+	//if testing.Short() {
+	//	t.Skip("skipping test in short mode")
+	//}
 
 	cfg, err := createTestConfig()
 	if err != nil {
@@ -292,6 +292,8 @@ func TestAccInstance(t *testing.T) {
 				existing_fip_id = ifaces.value.existing_fip_id
                 port_id = ifaces.value.port_id
                 ip_address = ifaces.value.ip_address
+				security_groups = ["594d2778-ac8d-4f1f-9ba7-4be760b48458"]
+				port_security_disabled = false
 				}
 			}
 
