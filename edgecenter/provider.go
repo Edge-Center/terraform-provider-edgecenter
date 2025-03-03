@@ -79,6 +79,30 @@ const (
 	ResellerIDField               = "reseller_id"
 	ImageIDsField                 = "image_ids"
 	ResellerImagesOptionsField    = "options"
+	NetworkTypeField              = "network_type"
+	OrderByField                  = "order_by"
+	SharedField                   = "shared"
+	MetadataKVField               = "metadata_kv"
+	MetadataKField                = "metadata_k"
+	NetworksField                 = "networks"
+	DefaultField                  = "default"
+	ExternalField                 = "external"
+	MTUField                      = "mtu"
+	CreatorTaskIDField            = "creator_task_id"
+	SubnetsField                  = "subnets"
+	TaskIDField                   = "task_id"
+	SegmentationIDField           = "segmentation_id"
+	ReadOnlyField                 = "read_only"
+	AvailableIPsField             = "available_ips"
+	TotalIPsField                 = "total_ips"
+	EnableDHCPField               = "enable_dhcp"
+	HasRouterField                = "has_router"
+	CIDRField                     = "cidr"
+	DNSNameserversField           = "dns_nameservers"
+	HostRoutesField               = "host_routes"
+	GatewayIPField                = "gateway_ip"
+	DestinationField              = "destination"
+	NexthopField                  = "nexthop"
 )
 
 type CloudClientConf struct {
@@ -246,6 +270,7 @@ func Provider() *schema.Provider {
 			"edgecenter_useractions_subscription_amqp": dataSourceUserActionsListAMQPSubscriptions(),
 			"edgecenter_useractions_subscription_log":  dataSourceUserActionsListLogSubscriptions(),
 			"edgecenter_reseller_images":               dataSourceResellerImages(),
+			"edgecenter_reseller_networks":             dataSourceResellerNetworksList(),
 		},
 	}
 
