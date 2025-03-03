@@ -86,3 +86,35 @@ func prepareSubnets(subs []edgecloudV2.Subnetwork) []map[string]interface{} {
 
 	return subnetList
 }
+
+func prepareResellerNetwork(rn edgecloudV2.ResellerNetwork) map[string]interface{} {
+	network := make(map[string]interface{})
+
+	network[CreatedAtField] = rn.CreatedAt
+	network[DefaultField] = rn.Default
+	network[ExternalField] = rn.External
+	network[SharedField] = rn.Shared
+	network[IDField] = rn.ID
+	network[MTUField] = rn.MTU
+	network[NameField] = rn.Name
+	network[RegionIDField] = rn.RegionID
+	network[RegionNameField] = rn.Region
+	network[TypeField] = rn.Type
+	network[SubnetsField] = prepareSubnets(rn.Subnets)
+	network[CreatorTaskIDField] = rn.CreatorTaskID
+	network[TaskIDField] = rn.TaskID
+	network[SegmentationIDField] = rn.SegmentationID
+	network[UpdatedAtField] = rn.UpdatedAt
+	network[ClientIDField] = rn.ClientID
+	network[ProjectIDField] = rn.RegionID
+	network[MetadataField] = PrepareMetadataReadonly(rn.Metadata)
+
+	return network
+}
+
+func resellerNetworksCloudClientConf() *CloudClientConf {
+	return &CloudClientConf{
+		DoNotUseRegionID:  true,
+		DoNotUseProjectID: true,
+	}
+}

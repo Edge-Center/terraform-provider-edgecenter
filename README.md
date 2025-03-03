@@ -24,7 +24,9 @@ Using the provider
 ```shell
 $ touch ~/.terraformrc
 ```
-For using terraform without VPN, you should configure mirror in `~/.terraformrc` file:
+For using terraform without VPN, you should configure mirror by
+[manual](https://edgecenter.ru/knowledge-base/storage/terraform) or
+configure mirror in `~/.terraformrc` file:
 
 ```terraform
 provider_installation {

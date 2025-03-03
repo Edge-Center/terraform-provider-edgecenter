@@ -16,9 +16,9 @@ import (
 )
 
 func TestAccInstanceDataSource(t *testing.T) {
-	//	if testing.Short() {
-	//		t.Skip("skipping test in short mode")
-	//	}
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 
 	t.Parallel()
 	ctx := context.Background()
