@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -114,11 +115,11 @@ func dataSourceSecurityGroup() *schema.Resource {
 							Description: fmt.Sprintf("Available value is %s", strings.Join(utilV2.SecurityGroupRuleProtocol("").StringList(), ",")),
 						},
 						"port_range_min": {
-							Type:     schema.TypeInt,
+							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"port_range_max": {
-							Type:     schema.TypeInt,
+							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"description": {
@@ -227,14 +228,13 @@ func dataSourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m 
 			r["protocol"] = string(*sgr.Protocol)
 		}
 
-		r["port_range_max"] = 65535
+		r["port_range_max"] = ""
 		if sgr.PortRangeMax != nil {
-			r["port_range_max"] = *sgr.PortRangeMax
+			r["port_range_max"] = strconv.Itoa(*sgr.PortRangeMax)
 		}
-
-		r["port_range_min"] = 1
+		r["port_range_min"] = ""
 		if sgr.PortRangeMin != nil {
-			r["port_range_min"] = *sgr.PortRangeMin
+			r["port_range_min"] = strconv.Itoa(*sgr.PortRangeMin)
 		}
 
 		r["description"] = ""
