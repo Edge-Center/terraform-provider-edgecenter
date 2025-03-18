@@ -6,15 +6,15 @@ require (
 	github.com/AlekSi/pointer v1.2.0
 	github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.3
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0
-	github.com/Edge-Center/edgecentercdn-go v0.1.12
+	github.com/Edge-Center/edgecentercdn-go v0.1.15
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
 	github.com/Edge-Center/edgecentercloud-go/v2 v2.1.11
 	github.com/connerdouglass/go-retry v1.0.1
 	github.com/hashicorp/go-cty v1.4.1-0.20200723130312-85980079f637
+	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.29.0
 	github.com/mitchellh/mapstructure v1.5.0
 	golang.org/x/sync v0.7.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -60,7 +60,6 @@ require (
 	github.com/hashicorp/terraform-exec v0.21.0 // indirect
 	github.com/hashicorp/terraform-json v0.22.1 // indirect
 	github.com/hashicorp/terraform-plugin-go v0.19.0 // indirect
-	github.com/hashicorp/terraform-plugin-log v0.9.0 // indirect
 	github.com/hashicorp/terraform-registry-address v0.2.2 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
@@ -97,4 +96,5 @@ require (
 	google.golang.org/grpc v1.57.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

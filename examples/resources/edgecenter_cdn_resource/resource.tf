@@ -39,6 +39,15 @@ resource "edgecenter_cdn_resource" "cdn_example_com" {
     redirect_http_to_https {
       value = true
     }
+    gzip_compression {
+      enabled = true
+      value = [
+        "application/x-font-ttf",
+        "text/javascript",
+        "image/svg+xml",
+        "image/x-icon",
+      ]
+    }
     cors {
       value = [
         "*"

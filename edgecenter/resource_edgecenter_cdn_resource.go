@@ -299,6 +299,28 @@ var resourceOptionsSchema = &schema.Schema{
 					},
 				},
 			},
+			"gzip_compression": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "Allow compressing content with gzip on CDN. CDN servers will request only uncompressed content from the source. The option is not supported when \"fetch_compressed\" or \"slice\" are enabled.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     true,
+							Description: "Enable or disable the option. Allowed values are \"true\" or \"false\". ",
+						},
+						"value": {
+							Type:        schema.TypeSet,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Required:    true,
+							Description: "Allowed values are \"application/javascript\", \"application/json\", \"application/vnd.ms-fontobject\", \"application/x-font-ttf\", \"application/x-javascript\", \"application/xml\", \"application/xml+rss\", \"image/svg+xml\", \"image/x-icon\", \"text/css\", \"text/html\", \"text/javascript\", \"text/plain\", \"text/xml\".",
+						},
+					},
+				},
+			},
 			"host_header": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -1253,6 +1275,14 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 			Value:   opt["value"].(bool),
 		}
 	}
+	if opt, ok := getOptByName(fields, "gzip_compression"); ok {
+		opts.GzipCompression = &cdn.GzipCompression{
+			Enabled: opt["enabled"].(bool),
+		}
+		for _, v := range opt["value"].(*schema.Set).List() {
+			opts.GzipCompression.Value = append(opts.GzipCompression.Value, v.(string))
+		}
+	}
 	if opt, ok := getOptByName(fields, "host_header"); ok {
 		opts.HostHeader = &cdn.HostHeader{
 			Enabled: opt["enabled"].(bool),
@@ -1527,6 +1557,10 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 	if options.ForwardHostHeader != nil {
 		m := structToMap(options.ForwardHostHeader)
 		result["forward_host_header"] = []interface{}{m}
+	}
+	if options.GzipCompression != nil {
+		m := structToMap(options.GzipCompression)
+		result["gzip_compression"] = []interface{}{m}
 	}
 	if options.HostHeader != nil {
 		m := structToMap(options.HostHeader)
