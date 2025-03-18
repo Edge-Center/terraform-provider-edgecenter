@@ -39,9 +39,6 @@ resource "edgecenter_cdn_resource" "cdn_example_com" {
     redirect_http_to_https {
       value = true
     }
-    gzip_on {
-      value = true
-    }
     cors {
       value = [
         "*"

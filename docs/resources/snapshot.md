@@ -50,8 +50,18 @@ resource "edgecenter_snapshot" "snapshot" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 - `size` (Number) The size of the snapshot in GB.
 - `status` (String) The current status of the snapshot.
+
+<a id="nestedatt--metadata_read_only"></a>
+### Nested Schema for `metadata_read_only`
+
+Read-Only:
+
+- `key` (String)
+- `read_only` (Boolean)
+- `value` (String)
 
 ## Import
 

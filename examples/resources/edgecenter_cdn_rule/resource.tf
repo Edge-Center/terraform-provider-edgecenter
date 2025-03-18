@@ -17,9 +17,6 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_1" {
     redirect_http_to_https {
       value = true
     }
-    gzip_on {
-      value = true
-    }
     cors {
       value = [
         "*"
@@ -48,10 +45,6 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_2" {
 
   options {
     redirect_http_to_https {
-      enabled = false
-      value   = true
-    }
-    gzip_on {
       enabled = false
       value   = true
     }

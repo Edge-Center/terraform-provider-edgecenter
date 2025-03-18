@@ -54,9 +54,6 @@ resource "edgecenter_cdn_resource" "cdn_example_com" {
     redirect_http_to_https {
       value = true
     }
-    gzip_on {
-      value = true
-    }
     cors {
       value = [
         "*"
@@ -117,7 +114,6 @@ Optional:
 - `allowed_http_methods` (Block List, Max: 1) Set a list of allowed HTTP methods for the CDN content. (see [below for nested schema](#nestedblock--options--allowed_http_methods))
 - `brotli_compression` (Block List, Max: 1) Allow compressing content with Brotli on CDN. CDN servers will request only uncompressed content from the source. It is not supported unless the Origin shielding is enabled. Brotli compression is not supported when "fetch_compressed" or "slice" are enabled. (see [below for nested schema](#nestedblock--options--brotli_compression))
 - `browser_cache_settings` (Block List, Max: 1) Set the cache lifetime for the end users’ browsers in seconds. (see [below for nested schema](#nestedblock--options--browser_cache_settings))
-- `cache_http_headers` (Block List, Max: 1) (see [below for nested schema](#nestedblock--options--cache_http_headers))
 - `cors` (Block List, Max: 1) Add the Access-Control-Allow-Origin header to responses from the CDN servers. (see [below for nested schema](#nestedblock--options--cors))
 - `country_acl` (Block List, Max: 1) Control access to content from the specified countries. (see [below for nested schema](#nestedblock--options--country_acl))
 - `disable_proxy_force_ranges` (Block List, Max: 1) Allow CDN to get the HTTP 206 status codes regardless of the settings on the source. (see [below for nested schema](#nestedblock--options--disable_proxy_force_ranges))
@@ -126,7 +122,6 @@ Optional:
 - `follow_origin_redirect` (Block List, Max: 1) If the source returns a redirect, let CDN pull the requested content from the source that was returned in the redirect. (see [below for nested schema](#nestedblock--options--follow_origin_redirect))
 - `force_return` (Block List, Max: 1) Apply custom HTTP status codes to CDN content. Some HTTP status codes are reserved by our system and cannot be used with this option: 408, 444, 477, 494, 495, 496, 497, 499. (see [below for nested schema](#nestedblock--options--force_return))
 - `forward_host_header` (Block List, Max: 1) Allow forwarding the Host header used in the request made to the CDN when the CDN requests content from the source. "host_header" and "forward_host_header" cannot be enabled simultaneously. (see [below for nested schema](#nestedblock--options--forward_host_header))
-- `gzip_on` (Block List, Max: 1) Allow compressing content with gzip on CDN. CDN servers will request only uncompressed content from the source. The option is not supported when "fetch_compressed" or "slice" are enabled. (see [below for nested schema](#nestedblock--options--gzip_on))
 - `host_header` (Block List, Max: 1) Manage the custom Host header in the Host header option. When the CDN requests content from the source, it will use the specified Host header. "host_header" and "forward_host_header" cannot be enabled simultaneously. (see [below for nested schema](#nestedblock--options--host_header))
 - `http3_enabled` (Block List, Max: 1) Enable the HTTP/3 protocol for content delivery when supported by the end user’s browser. (see [below for nested schema](#nestedblock--options--http3_enabled))
 - `ignore_cookie` (Block List, Max: 1) Specify how to cache files with different values of the Set-Cookie header: as one object (when the option is enabled) or as different objects (when the option is disabled). (see [below for nested schema](#nestedblock--options--ignore_cookie))
@@ -143,10 +138,9 @@ Optional:
 - `response_headers_hiding_policy` (Block List, Max: 1) Specify the HTTP headers set on the source that CDN servers should hide from the response. (see [below for nested schema](#nestedblock--options--response_headers_hiding_policy))
 - `rewrite` (Block List, Max: 1) Change and redirect the requests from the CDN to the source. (see [below for nested schema](#nestedblock--options--rewrite))
 - `secure_key` (Block List, Max: 1) Configure access to content with tokenized URLs, generated with the MD5 algorithm. (see [below for nested schema](#nestedblock--options--secure_key))
-- `slice` (Block List, Max: 1) Speed up the delivery of large files and their caching. When enabled, the files are requested and cached in 10 MB chunks. The option reduces the time to first byte. The source must support the HTTP Range requests. The option is not supported when "fetch_compressed", "brotli_compression", or "gzip_on" are enabled. (see [below for nested schema](#nestedblock--options--slice))
+- `slice` (Block List, Max: 1) Speed up the delivery of large files and their caching. When enabled, the files are requested and cached in 10 MB chunks. The option reduces the time to first byte. The source must support the HTTP Range requests. The option is not supported when "fetch_compressed", "brotli_compression", or "gzip_compression" are enabled. (see [below for nested schema](#nestedblock--options--slice))
 - `sni` (Block List, Max: 1) Help the resource understand which certificate to use for the connection, if the source server presents multiple certificates. The option works only if the "origin_protocol" field is set to "HTTPS" or "MATCH". (see [below for nested schema](#nestedblock--options--sni))
 - `stale` (Block List, Max: 1) Let CDN serve stale cached content in case of the source unavailability. (see [below for nested schema](#nestedblock--options--stale))
-- `static_headers` (Block List, Max: 1) Option has been deprecated. Use - static_response_headers. (see [below for nested schema](#nestedblock--options--static_headers))
 - `static_request_headers` (Block List, Max: 1) Let CDN add custom HTTP request headers when making requests to the source. You can specify up to 50 custom HTTP request headers. (see [below for nested schema](#nestedblock--options--static_request_headers))
 - `static_response_headers` (Block List, Max: 1) Let CDN add custom HTTP response headers to the responses for the end users. You can specify up to 50 custom HTTP response headers. (see [below for nested schema](#nestedblock--options--static_response_headers))
 - `tls_versions` (Block List, Max: 1) Specify a list of allowed SSL/TLS protocol versions. By default, all the protocol versions are allowed. (see [below for nested schema](#nestedblock--options--tls_versions))
@@ -185,18 +179,6 @@ Optional:
 
 - `enabled` (Boolean) Enable or disable the option. Allowed values are "true" or "false".
 - `value` (String) Set the cache lifetime if the CDN controlled option is chosen. If the value is empty, the Origin controlled option will be enabled and the cache lifetime will be inherited from the source. Set to "0s" to disable browser caching. The value only applies for the HTTP 200, 201, 204, 206, 301, 302, 303, 304, 307, 308 response status codes. Responses with other HTTP status codes will not be cached.
-
-
-<a id="nestedblock--options--cache_http_headers"></a>
-### Nested Schema for `options.cache_http_headers`
-
-Required:
-
-- `value` (Set of String)
-
-Optional:
-
-- `enabled` (Boolean)
 
 
 <a id="nestedblock--options--cors"></a>
@@ -288,18 +270,6 @@ Optional:
 
 <a id="nestedblock--options--forward_host_header"></a>
 ### Nested Schema for `options.forward_host_header`
-
-Required:
-
-- `value` (Boolean) Set the value of the option. Allowed values are "true" or "false".
-
-Optional:
-
-- `enabled` (Boolean) Enable or disable the option. Allowed values are "true" or "false".
-
-
-<a id="nestedblock--options--gzip_on"></a>
-### Nested Schema for `options.gzip_on`
 
 Required:
 
@@ -544,18 +514,6 @@ Required:
 Optional:
 
 - `enabled` (Boolean) Enable or disable the option. Allowed values are "true" or "false".
-
-
-<a id="nestedblock--options--static_headers"></a>
-### Nested Schema for `options.static_headers`
-
-Required:
-
-- `value` (Map of String)
-
-Optional:
-
-- `enabled` (Boolean)
 
 
 <a id="nestedblock--options--static_request_headers"></a>
