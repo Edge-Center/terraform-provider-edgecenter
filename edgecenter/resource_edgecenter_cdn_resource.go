@@ -89,28 +89,6 @@ var resourceOptionsSchema = &schema.Schema{
 					},
 				},
 			},
-			"cache_http_headers": { // Deprecated. Use - response_headers_hiding_policy.
-				Type:        schema.TypeList,
-				MaxItems:    1,
-				Optional:    true,
-				Computed:    true,
-				Description: "",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"enabled": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  true,
-						},
-						"value": {
-							Type:        schema.TypeSet,
-							Elem:        &schema.Schema{Type: schema.TypeString},
-							Required:    true,
-							Description: "",
-						},
-					},
-				},
-			},
 			"cors": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -305,27 +283,6 @@ var resourceOptionsSchema = &schema.Schema{
 				MaxItems:    1,
 				Optional:    true,
 				Description: "Allow forwarding the Host header used in the request made to the CDN when the CDN requests content from the source. \"host_header\" and \"forward_host_header\" cannot be enabled simultaneously.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"enabled": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Default:     true,
-							Description: "Enable or disable the option. Allowed values are \"true\" or \"false\".",
-						},
-						"value": {
-							Type:        schema.TypeBool,
-							Required:    true,
-							Description: "Set the value of the option. Allowed values are \"true\" or \"false\".",
-						},
-					},
-				},
-			},
-			"gzip_on": {
-				Type:        schema.TypeList,
-				MaxItems:    1,
-				Optional:    true,
-				Description: "Allow compressing content with gzip on CDN. CDN servers will request only uncompressed content from the source. The option is not supported when \"fetch_compressed\" or \"slice\" are enabled.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"enabled": {
@@ -743,7 +700,7 @@ var resourceOptionsSchema = &schema.Schema{
 				Type:        schema.TypeList,
 				MaxItems:    1,
 				Optional:    true,
-				Description: "Speed up the delivery of large files and their caching. When enabled, the files are requested and cached in 10 MB chunks. The option reduces the time to first byte. The source must support the HTTP Range requests. The option is not supported when \"fetch_compressed\", \"brotli_compression\", or \"gzip_on\" are enabled.",
+				Description: "Speed up the delivery of large files and their caching. When enabled, the files are requested and cached in 10 MB chunks. The option reduces the time to first byte. The source must support the HTTP Range requests. The option is not supported when \"fetch_compressed\", \"brotli_compression\", or \"gzip_compression\" are enabled.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"enabled": {
@@ -806,26 +763,6 @@ var resourceOptionsSchema = &schema.Schema{
 							Elem:        &schema.Schema{Type: schema.TypeString},
 							Required:    true,
 							Description: "Add a list of errors. Allowed values are \"error\", \"http_403\", \"http_404\", \"http_429\", \"http_500\", \"http_502\", \"http_503\", \"http_504\", \"invalid_header\", \"timeout\", \"updating\".",
-						},
-					},
-				},
-			},
-			"static_headers": { // Deprecated. Use - static_response_headers.
-				Type:        schema.TypeList,
-				MaxItems:    1,
-				Optional:    true,
-				Description: "Option has been deprecated. Use - static_response_headers.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"enabled": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  true,
-						},
-						"value": {
-							Type:     schema.TypeMap,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-							Required: true,
 						},
 					},
 				},
@@ -1248,14 +1185,6 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 			Value:   opt["value"].(string),
 		}
 	}
-	if opt, ok := getOptByName(fields, "cache_http_headers"); ok {
-		opts.CacheHttpHeaders = &cdn.CacheHttpHeaders{
-			Enabled: opt["enabled"].(bool),
-		}
-		for _, v := range opt["value"].(*schema.Set).List() {
-			opts.CacheHttpHeaders.Value = append(opts.CacheHttpHeaders.Value, v.(string))
-		}
-	}
 	if opt, ok := getOptByName(fields, "cors"); ok {
 		opts.Cors = &cdn.Cors{
 			Enabled: opt["enabled"].(bool),
@@ -1320,12 +1249,6 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 	}
 	if opt, ok := getOptByName(fields, "forward_host_header"); ok {
 		opts.ForwardHostHeader = &cdn.ForwardHostHeader{
-			Enabled: opt["enabled"].(bool),
-			Value:   opt["value"].(bool),
-		}
-	}
-	if opt, ok := getOptByName(fields, "gzip_on"); ok {
-		opts.GzipOn = &cdn.GzipOn{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
@@ -1477,15 +1400,6 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 			opts.Stale.Value = append(opts.Stale.Value, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "static_headers"); ok {
-		opts.StaticHeaders = &cdn.StaticHeaders{
-			Enabled: opt["enabled"].(bool),
-			Value:   map[string]string{},
-		}
-		for k, v := range opt["value"].(map[string]interface{}) {
-			opts.StaticHeaders.Value[k] = v.(string)
-		}
-	}
 	if opt, ok := getOptByName(fields, "static_request_headers"); ok {
 		opts.StaticRequestHeaders = &cdn.StaticRequestHeaders{
 			Enabled: opt["enabled"].(bool),
@@ -1582,10 +1496,6 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 		m := structToMap(options.BrowserCacheSettings)
 		result["browser_cache_settings"] = []interface{}{m}
 	}
-	if options.CacheHttpHeaders != nil {
-		m := structToMap(options.CacheHttpHeaders)
-		result["cache_http_headers"] = []interface{}{m}
-	}
 	if options.Cors != nil {
 		m := structToMap(options.Cors)
 		result["cors"] = []interface{}{m}
@@ -1617,10 +1527,6 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 	if options.ForwardHostHeader != nil {
 		m := structToMap(options.ForwardHostHeader)
 		result["forward_host_header"] = []interface{}{m}
-	}
-	if options.GzipOn != nil {
-		m := structToMap(options.GzipOn)
-		result["gzip_on"] = []interface{}{m}
 	}
 	if options.HostHeader != nil {
 		m := structToMap(options.HostHeader)
@@ -1697,10 +1603,6 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 	if options.Stale != nil {
 		m := structToMap(options.Stale)
 		result["stale"] = []interface{}{m}
-	}
-	if options.StaticHeaders != nil {
-		m := structToMap(options.StaticHeaders)
-		result["static_headers"] = []interface{}{m}
 	}
 	if options.StaticRequestHeaders != nil {
 		m := structToMap(options.StaticRequestHeaders)
