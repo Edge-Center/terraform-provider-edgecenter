@@ -20,17 +20,23 @@ provider "edgecenter" {
 resource "edgecenter_cdn_rule" "cdn_example_com_rule_1" {
   resource_id = edgecenter_cdn_resource.cdn_example_com.id
   name        = "All PNG images"
-  rule        = "/folder/images/*.png"
+  rule        = "/folder/images/*.svg"
 
   options {
     edge_cache_settings {
       default = "14d"
     }
-    browser_cache_settings {
+    browser_cache_setting {
       value = "14d"
     }
     redirect_http_to_https {
       value = true
+    }
+    gzip_compression {
+      enabled = true
+      value = [
+        "image/svg+xml",
+      ]
     }
     cors {
       value = [
@@ -125,6 +131,7 @@ Optional:
 - `follow_origin_redirect` (Block List, Max: 1) If the source returns a redirect, let CDN pull the requested content from the source that was returned in the redirect. (see [below for nested schema](#nestedblock--options--follow_origin_redirect))
 - `force_return` (Block List, Max: 1) Apply custom HTTP status codes to CDN content. Some HTTP status codes are reserved by our system and cannot be used with this option: 408, 444, 477, 494, 495, 496, 497, 499. (see [below for nested schema](#nestedblock--options--force_return))
 - `forward_host_header` (Block List, Max: 1) Allow forwarding the Host header used in the request made to the CDN when the CDN requests content from the source. "host_header" and "forward_host_header" cannot be enabled simultaneously. (see [below for nested schema](#nestedblock--options--forward_host_header))
+- `gzip_compression` (Block List, Max: 1) Allow compressing content with gzip on CDN. CDN servers will request only uncompressed content from the source. The option is not supported when "fetch_compressed" or "slice" are enabled. (see [below for nested schema](#nestedblock--options--gzip_compression))
 - `host_header` (Block List, Max: 1) Manage the custom Host header in the Host header option. When the CDN requests content from the source, it will use the specified Host header. "host_header" and "forward_host_header" cannot be enabled simultaneously. (see [below for nested schema](#nestedblock--options--host_header))
 - `ignore_cookie` (Block List, Max: 1) Specify how to cache files with different values of the Set-Cookie header: as one object (when the option is enabled) or as different objects (when the option is disabled). (see [below for nested schema](#nestedblock--options--ignore_cookie))
 - `ignore_query_string` (Block List, Max: 1) Specify how to cache files with different query strings: as one object (when the option is enabled) or as different objects (when the option is disabled). "ignore_query_string", "query_params_whitelist", and "query_params_blacklist" cannot be enabled simultaneously. (see [below for nested schema](#nestedblock--options--ignore_query_string))
@@ -274,6 +281,18 @@ Optional:
 Required:
 
 - `value` (Boolean) Set the value of the option. Allowed values are "true" or "false".
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Allowed values are "true" or "false".
+
+
+<a id="nestedblock--options--gzip_compression"></a>
+### Nested Schema for `options.gzip_compression`
+
+Required:
+
+- `value` (Set of String) Allowed values are "application/javascript", "application/json", "application/vnd.ms-fontobject", "application/x-font-ttf", "application/x-javascript", "application/xml", "application/xml+rss", "image/svg+xml", "image/x-icon", "text/css", "text/html", "text/javascript", "text/plain", "text/xml".
 
 Optional:
 

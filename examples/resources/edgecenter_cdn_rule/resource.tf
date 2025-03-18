@@ -5,17 +5,23 @@ provider "edgecenter" {
 resource "edgecenter_cdn_rule" "cdn_example_com_rule_1" {
   resource_id = edgecenter_cdn_resource.cdn_example_com.id
   name        = "All PNG images"
-  rule        = "/folder/images/*.png"
+  rule        = "/folder/images/*.svg"
 
   options {
     edge_cache_settings {
       default = "14d"
     }
-    browser_cache_settings {
+    browser_cache_setting {
       value = "14d"
     }
     redirect_http_to_https {
       value = true
+    }
+    gzip_compression {
+      enabled = true
+      value = [
+        "image/svg+xml",
+      ]
     }
     cors {
       value = [
