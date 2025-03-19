@@ -11,7 +11,7 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_1" {
     edge_cache_settings {
       default = "14d"
     }
-    browser_cache_setting {
+    browser_cache_settings {
       value = "14d"
     }
     redirect_http_to_https {
@@ -20,6 +20,7 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_1" {
     gzip_compression {
       enabled = true
       value = [
+        "text/html",
         "image/svg+xml",
       ]
     }

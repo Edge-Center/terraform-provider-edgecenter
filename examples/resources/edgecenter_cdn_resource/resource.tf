@@ -45,7 +45,7 @@ resource "edgecenter_cdn_resource" "cdn_example_com" {
         "application/x-font-ttf",
         "text/javascript",
         "image/svg+xml",
-        "image/x-icon",
+        "text/html",
       ]
     }
     cors {
