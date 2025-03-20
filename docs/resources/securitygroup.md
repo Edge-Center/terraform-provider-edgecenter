@@ -81,8 +81,8 @@ Required:
 Optional:
 
 - `description` (String)
-- `port_range_max` (Number)
-- `port_range_min` (Number)
+- `port_range_max` (Number) Must be set for network protocol: tcp, udp, udplite, sctp, dccp
+- `port_range_min` (Number) Must be set for network protocol: tcp, udp, udplite, sctp, dccp
 - `remote_ip_prefix` (String)
 
 Read-Only:
