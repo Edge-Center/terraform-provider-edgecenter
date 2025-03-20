@@ -157,13 +157,13 @@ func resourceSecurityGroup() *schema.Resource {
 						"port_range_min": {
 							Type:         schema.TypeInt,
 							Optional:     true,
-							Default:      1,
+							Description:  fmt.Sprintf("Must be set for network protocol: %s, %s, %s, %s, %s", edgecloudV2.SGRuleProtocolTCP, edgecloudV2.SGRuleProtocolUDP, edgecloudV2.SGRuleProtocolUDPLITE, edgecloudV2.SGRuleProtocolSCTP, edgecloudV2.SGRuleProtocolDCCP),
 							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 						"port_range_max": {
 							Type:         schema.TypeInt,
 							Optional:     true,
-							Default:      65535,
+							Description:  fmt.Sprintf("Must be set for network protocol: %s, %s, %s, %s, %s", edgecloudV2.SGRuleProtocolTCP, edgecloudV2.SGRuleProtocolUDP, edgecloudV2.SGRuleProtocolUDPLITE, edgecloudV2.SGRuleProtocolSCTP, edgecloudV2.SGRuleProtocolDCCP),
 							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 						"description": {
@@ -231,10 +231,12 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 		descr := rule["description"].(string)
 		remoteIPPrefix := rule["remote_ip_prefix"].(string)
 
+		protocol := edgecloudV2.SecurityGroupRuleProtocol(rule["protocol"].(string))
+
 		sgrOpts := edgecloudV2.RuleCreateRequest{
 			Direction:   edgecloudV2.SecurityGroupRuleDirection(rule["direction"].(string)),
 			EtherType:   edgecloudV2.EtherType(rule["ethertype"].(string)),
-			Protocol:    edgecloudV2.SecurityGroupRuleProtocol(rule["protocol"].(string)),
+			Protocol:    protocol,
 			Description: &descr,
 		}
 
@@ -242,15 +244,10 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 			sgrOpts.RemoteIPPrefix = &remoteIPPrefix
 		}
 
-		portRangeMin := rule["port_range_min"].(int)
-		portRangeMax := rule["port_range_max"].(int)
-
-		if portRangeMin > portRangeMax {
-			return diag.FromErr(fmt.Errorf("value of the port_range_min cannot be greater than port_range_max"))
+		sgrOpts.PortRangeMin, sgrOpts.PortRangeMax, err = validatePortRange(protocol, rule)
+		if err != nil {
+			return diag.FromErr(err)
 		}
-
-		sgrOpts.PortRangeMax = &portRangeMax
-		sgrOpts.PortRangeMin = &portRangeMin
 
 		rules[i] = sgrOpts
 	}
@@ -344,11 +341,11 @@ func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m in
 			r["protocol"] = sgr.Protocol.String()
 		}
 
-		r["port_range_max"] = 65535
+		r["port_range_max"] = 0
 		if sgr.PortRangeMax != nil {
 			r["port_range_max"] = *sgr.PortRangeMax
 		}
-		r["port_range_min"] = 1
+		r["port_range_min"] = 0
 		if sgr.PortRangeMin != nil {
 			r["port_range_min"] = *sgr.PortRangeMin
 		}
@@ -423,7 +420,11 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 			rule := r.(map[string]interface{})
 			rid := rule["id"].(string)
 			if !oldRules.Contains(r) && rid == "" {
-				opts := extractSecurityGroupRuleCreateRequestV2(r, gid)
+				opts, err := extractSecurityGroupRuleCreateRequestV2(r, gid)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+
 				_, _, err = clientV2.SecurityGroups.RuleCreate(ctx, gid, &opts)
 				if err != nil {
 					return diag.FromErr(err)
@@ -433,7 +434,12 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 			}
 			if rid != "" && !oldRules.Contains(r) {
 				changedRule[rid] = true
-				opts := extractSecurityGroupRuleUpdateRequestV2(r, gid)
+
+				opts, err := extractSecurityGroupRuleUpdateRequestV2(r, gid)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+
 				_, _, err = clientV2.SecurityGroups.RuleUpdate(ctx, gid, &opts)
 				if err != nil {
 					return diag.FromErr(err)
@@ -449,6 +455,7 @@ func resourceSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 				if err != nil {
 					return diag.FromErr(err)
 				}
+
 				if resp.StatusCode != http.StatusNoContent {
 					return diag.FromErr(fmt.Errorf("sgRuleId: %s, error: %w", rid, ErrCannotDeleteSGRule))
 				}
