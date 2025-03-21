@@ -11,6 +11,11 @@ import (
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
+type (
+	portRangeMax = int
+	portRangeMin = int
+)
+
 var networkProtocolWithPort = map[edgecloudV2.SecurityGroupRuleProtocol]struct{}{
 	edgecloudV2.SGRuleProtocolTCP:     {},
 	edgecloudV2.SGRuleProtocolUDP:     {},
@@ -104,9 +109,14 @@ func extractSecurityGroupRuleUpdateRequestV2(r interface{}, gid string) (edgeclo
 }
 
 // validatePortRange checks the validity of the port range specified in a security group rule for a given network protocol.
-func validatePortRange(protocol edgecloudV2.SecurityGroupRuleProtocol, rule map[string]interface{}) (*int, *int, error) {
-	portRangeMin := rule["port_range_min"].(int)
-	portRangeMax := rule["port_range_max"].(int)
+//
+// Returns:
+// - A pointer portRangeMin (which is an int alias) for the minimum port value, or nil if not applicable.
+// - A pointer portRangeMax (which is an int alias) for the maximum port value, or nil if not applicable.
+// - An error if any validation fails, or nil if all validations pass.
+func validatePortRange(protocol edgecloudV2.SecurityGroupRuleProtocol, rule map[string]interface{}) (*portRangeMin, *portRangeMax, error) {
+	portRangeMin := rule["port_range_min"].(portRangeMin)
+	portRangeMax := rule["port_range_max"].(portRangeMax)
 
 	if _, ok := networkProtocolWithPort[protocol]; ok {
 		if portRangeMin == 0 || portRangeMax == 0 {
