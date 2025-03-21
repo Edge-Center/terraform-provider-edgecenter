@@ -316,7 +316,7 @@ var resourceOptionsSchema = &schema.Schema{
 							Type:        schema.TypeSet,
 							Elem:        &schema.Schema{Type: schema.TypeString},
 							Required:    true,
-							Description: "Allowed values are \"application/javascript\", \"application/json\", \"application/vnd.ms-fontobject\", \"application/x-font-ttf\", \"application/x-javascript\", \"application/xml\", \"application/xml+rss\", \"image/svg+xml\", \"image/x-icon\", \"text/css\", \"text/html\", \"text/javascript\", \"text/plain\", \"text/xml\".",
+							Description: "Allowed values are \"application/dash+xml\", \"application/javascript\", \"application/javascript\", \"application/vnd.apple.mpegurl\", \"application/vnd.ms-fontobject\", \"application/wasm\", \"application/x-font-opentype\", \"application/x-font-ttf\", \"application/x-javascript\", \"application/x-mpegURL\", \"application/x-subrip\", \"application/xml\", \"application/xml+rss\", \"font/woff\", \"font/woff2\", \"image/svg+xml\", \"text/css\", \"text/html\", \"text/javascript\", \"text/plain\", \"text/vtt\", \"text/xml\".",
 						},
 					},
 				},
@@ -1071,8 +1071,13 @@ func resourceCDNResourceCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	req.Options = listToResourceOptions(d.Get("options").([]interface{}))
 
+	uniqHostnames := make(map[string]struct{})
 	for _, hostname := range d.Get("secondary_hostnames").(*schema.Set).List() {
-		req.SecondaryHostnames = append(req.SecondaryHostnames, hostname.(string))
+		hostStr := hostname.(string)
+		if _, ok := uniqHostnames[hostStr]; !ok {
+			uniqHostnames[hostStr] = struct{}{}
+			req.SecondaryHostnames = append(req.SecondaryHostnames, hostStr)
+		}
 	}
 
 	result, err := client.Resources().Create(ctx, &req)
@@ -1144,8 +1149,14 @@ func resourceCDNResourceUpdate(ctx context.Context, d *schema.ResourceData, m in
 	req.SSLAutomated = d.Get("ssl_automated").(bool)
 	req.OriginProtocol = resources.Protocol(d.Get("origin_protocol").(string))
 	req.Options = listToResourceOptions(d.Get("options").([]interface{}))
+
+	uniqHostnames := make(map[string]struct{})
 	for _, hostname := range d.Get("secondary_hostnames").(*schema.Set).List() {
-		req.SecondaryHostnames = append(req.SecondaryHostnames, hostname.(string))
+		hostStr := hostname.(string)
+		if _, ok := uniqHostnames[hostStr]; !ok {
+			uniqHostnames[hostStr] = struct{}{}
+			req.SecondaryHostnames = append(req.SecondaryHostnames, hostStr)
+		}
 	}
 
 	if _, err := client.Resources().Update(ctx, id, &req); err != nil {

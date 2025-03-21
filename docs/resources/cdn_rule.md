@@ -26,7 +26,7 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_1" {
     edge_cache_settings {
       default = "14d"
     }
-    browser_cache_setting {
+    browser_cache_settings {
       value = "14d"
     }
     redirect_http_to_https {
@@ -35,6 +35,7 @@ resource "edgecenter_cdn_rule" "cdn_example_com_rule_1" {
     gzip_compression {
       enabled = true
       value = [
+        "text/html",
         "image/svg+xml",
       ]
     }
@@ -292,7 +293,7 @@ Optional:
 
 Required:
 
-- `value` (Set of String) Allowed values are "application/javascript", "application/json", "application/vnd.ms-fontobject", "application/x-font-ttf", "application/x-javascript", "application/xml", "application/xml+rss", "image/svg+xml", "image/x-icon", "text/css", "text/html", "text/javascript", "text/plain", "text/xml".
+- `value` (Set of String) Allowed values are "application/dash+xml", "application/javascript", "application/javascript", "application/vnd.apple.mpegurl", "application/vnd.ms-fontobject", "application/wasm", "application/x-font-opentype", "application/x-font-ttf", "application/x-javascript", "application/x-mpegURL", "application/x-subrip", "application/xml", "application/xml+rss", "font/woff", "font/woff2", "image/svg+xml", "text/css", "text/html", "text/javascript", "text/plain", "text/vtt", "text/xml".
 
 Optional:
 
