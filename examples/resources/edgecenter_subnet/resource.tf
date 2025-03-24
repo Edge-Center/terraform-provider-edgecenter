@@ -13,18 +13,22 @@ resource "edgecenter_subnet" "subnet" {
   name            = "subnet_example"
   cidr            = "192.168.10.0/24"
   network_id      = edgecenter_network.network.id
-  dns_nameservers = var.dns_nameservers
+  dns_nameservers = ["8.8.4.4", "1.1.1.1"]
 
-  dynamic "host_routes" {
-    iterator = hr
-    for_each = var.host_routes
-    content {
-      destination = hr.value.destination
-      nexthop     = hr.value.nexthop
-    }
+  enable_dhcp = true
+
+  host_routes {
+    destination = "10.0.3.0/24"
+    nexthop     = "10.0.0.13"
+  }
+
+  host_routes {
+    destination = "10.0.4.0/24"
+    nexthop     = "10.0.0.14"
   }
 
   gateway_ip = "192.168.10.1"
+
   region_id  = 1
   project_id = 1
 }

@@ -81,7 +81,6 @@ func resourceSubnet() *schema.Resource {
 			"enable_dhcp": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Computed:    true,
 				Description: "Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.",
 			},
 			"cidr": {
@@ -103,7 +102,6 @@ func resourceSubnet() *schema.Resource {
 			"dns_nameservers": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				Description: "List of DNS name servers for the subnet.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -130,7 +128,6 @@ func resourceSubnet() *schema.Resource {
 			"gateway_ip": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The IP address of the gateway for this subnet.",
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
@@ -172,7 +169,6 @@ func resourceSubnet() *schema.Resource {
 			},
 			"last_updated": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "The timestamp of the last update (use with update context).",
 			},
@@ -362,7 +358,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	if d.HasChange("gateway_ip") {
 		_, newValue := d.GetChange("gateway_ip")
-		if newValue.(string) != disable {
+		if newValue.(string) != disable && newValue.(string) != "" {
 			gatewayIP := net.ParseIP(newValue.(string))
 			updateOpts.GatewayIP = &gatewayIP
 		}
