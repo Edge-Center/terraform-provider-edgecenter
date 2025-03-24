@@ -3,160 +3,160 @@
 package edgecenter_test
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
-	"net"
 	"strconv"
 	"testing"
 
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
+
+type testSubnetParams struct {
+	NetworkName            string
+	Name                   string
+	CIDR                   string
+	DNSNameservers         []string
+	HostRoutes             []map[string]string
+	GatewayIP              string
+	MetadataMap            map[string]string
+	EnableDHCP             bool
+	ConnectToNetworkRouter bool
+}
+
+func (t testSubnetParams) DNSNameserversString() string {
+	buf := new(bytes.Buffer)
+
+	json.NewEncoder(buf).Encode(t.DNSNameservers)
+
+	return buf.String()
+}
+
+func (t testSubnetParams) HostRoutesString() string {
+	result := ""
+
+	template := `host_routes {
+					destination = "%[1]s"
+					nexthop     = "%[2]s"
+				}`
+
+	for _, route := range t.HostRoutes {
+		result += fmt.Sprintf(template, route["destination"], route["nexthop"])
+		result += "\n"
+	}
+
+	return result
+}
+
+func (t testSubnetParams) MetadataString() string {
+	result := "metadata_map = {\n"
+
+	for k, v := range t.MetadataMap {
+		result += fmt.Sprintf("%s = \"%s\"\n", k, v)
+	}
+
+	result += "}\n"
+
+	return result
+}
 
 func TestAccSubnet(t *testing.T) {
 	t.Parallel()
-	var dst1, dst2, cidr edgecloud.CIDR
 
-	_, netIPNet, _ := net.ParseCIDR("10.0.3.0/24")
-	dst1.IP = netIPNet.IP
-	dst1.Mask = netIPNet.Mask
+	checkMetadataKey := "test_subnet"
 
-	_, netIPNet, _ = net.ParseCIDR("10.0.4.0/24")
-	dst2.IP = netIPNet.IP
-	dst2.Mask = netIPNet.Mask
-
-	_, netIPNet, _ = net.ParseCIDR("192.168.10.0/24")
-	cidr.IP = netIPNet.IP
-	cidr.Mask = netIPNet.Mask
-
-	createFixt := subnets.CreateOpts{
+	create := testSubnetParams{
+		NetworkName:    "network_for_test_subnetwork",
 		Name:           "create_subnet",
-		CIDR:           cidr,
-		DNSNameservers: []net.IP{net.ParseIP("8.8.4.4"), net.ParseIP("1.1.1.1")},
-		EnableDHCP:     true,
-		HostRoutes: []subnets.HostRoute{
-			{
-				Destination: dst1,
-				NextHop:     net.ParseIP("192.168.10.1"),
-			},
-			{
-				Destination: dst2,
-				NextHop:     net.ParseIP("192.168.10.1"),
-			},
-		},
-	}
-
-	gateway := net.ParseIP("192.168.100.1")
-
-	updateFixt := subnets.CreateOpts{
-		Name:           "update_subnet",
-		CIDR:           cidr,
-		DNSNameservers: make([]net.IP, 0),
-		EnableDHCP:     false,
-		HostRoutes:     make([]subnets.HostRoute, 0),
-		GatewayIP:      &gateway,
-	}
-
-	type Params struct {
-		Name        string
-		CIDR        string
-		DNS         []string
-		HRoutes     []map[string]string
-		DHCP        string
-		Gateway     string
-		MetadataMap string
-	}
-
-	create := Params{
-		Name: "create_subnet",
-		CIDR: "192.168.10.0/24",
-		DNS:  []string{"8.8.4.4", "1.1.1.1"},
-		HRoutes: []map[string]string{
+		CIDR:           "192.168.10.0/24",
+		DNSNameservers: []string{"8.8.4.4", "1.1.1.1"},
+		HostRoutes: []map[string]string{
 			{"destination": "10.0.3.0/24", "nexthop": "192.168.10.1"},
 			{"destination": "10.0.4.0/24", "nexthop": "192.168.10.1"},
 		},
-		MetadataMap: `{
-				key1 = "val1"
-				key2 = "val2"
-		}`,
+		GatewayIP:              "192.168.10.1",
+		ConnectToNetworkRouter: true,
+		EnableDHCP:             true,
+		MetadataMap: map[string]string{
+			checkMetadataKey: "val0",
+			"key1":           "val1",
+			"key2":           "val2",
+		},
 	}
 
-	update := Params{
-		Name:    "update_subnet",
-		CIDR:    "192.168.10.0/24",
-		DHCP:    "false",
-		DNS:     []string{},
-		HRoutes: []map[string]string{},
-		Gateway: "192.168.100.1",
-		MetadataMap: `{
-				key3 = "val3"
-	  	}`,
+	update := testSubnetParams{
+		NetworkName:            "network_for_test_subnetwork",
+		Name:                   "update_subnet",
+		CIDR:                   "192.168.10.0/24",
+		DNSNameservers:         []string{},
+		HostRoutes:             []map[string]string{},
+		GatewayIP:              "disable",
+		ConnectToNetworkRouter: false,
+		EnableDHCP:             false,
+		MetadataMap: map[string]string{
+			checkMetadataKey: "val0",
+			"key3":           "val3",
+		},
 	}
 
-	SubnetTemplate := func(params *Params) string {
-		template := `
-		locals {
-	    	dns_nameservers = [`
+	SubnetTemplate := func(params *testSubnetParams) string {
+		templateNetwork := fmt.Sprintf(`
+		resource "edgecenter_network" "network" {
+			name       = "%[1]s"
+			type       = "vxlan"
+			
+			// region
+            %[2]s
+			
+			// project
+			%[3]s
+		}`, params.NetworkName, regionInfo(), projectInfo())
 
-		for i := range params.DNS {
-			template += fmt.Sprintf(`"%s",`, params.DNS[i])
-		}
-
-		template += fmt.Sprint(`]
-			host_routes = [`)
-
-		for i := range params.HRoutes {
-			template += fmt.Sprintf(`
-			{
-              destination = "%s"
-              nexthop = "%s"
-			},`, params.HRoutes[i]["destination"], params.HRoutes[i]["nexthop"])
-		}
-
-		template += fmt.Sprintf(`]
-        	}
-
-		resource "edgecenter_network" "acctest" {
-			name = "create_network"
-  			type = "vxlan"
-			create_router = false
-			%[1]s
-			%[2]s
-		}
-
+		templateSubnet := fmt.Sprintf(`
 		resource "edgecenter_subnet" "acctest" {
-			name = "%s"
-  			cidr = "%s"
-  			network_id = edgecenter_network.acctest.id
-			dns_nameservers = local.dns_nameservers
-			connect_to_network_router = false
-            dynamic host_routes {
-				iterator = hr
-				for_each = local.host_routes
-				  content {
-					destination = hr.value.destination
-					nexthop = hr.value.nexthop
-				  }
-			  }	
-			metadata_map = %s
-            %[1]s
-			%[2]s
-	
+			name            = "%[1]s"
+			cidr            = "%[2]s"
+			network_id      = edgecenter_network.network.id
+			dns_nameservers = %[3]s
+		
+			enable_dhcp = %[4]t
+			connect_to_network_router = %[5]t
+		
+			// host_routes
+			%[6]s
+		
+			gateway_ip = "%[7]s"
+			
+			// metadata
+			%[8]s
 
-		`, regionInfo(), projectInfo(), params.Name, params.CIDR, params.MetadataMap)
-
-		if params.DHCP != "" {
-			template += fmt.Sprintf("enable_dhcp = %s\n", params.DHCP)
+			// region
+            %[9]s
+			
+			// project
+			%[10]s
 		}
+		`,
+			params.Name,
+			params.CIDR,
+			params.DNSNameserversString(),
+			params.EnableDHCP,
+			params.ConnectToNetworkRouter,
+			params.HostRoutesString(),
+			params.GatewayIP,
+			params.MetadataString(),
+			regionInfo(),
+			projectInfo(),
+		)
 
-		if params.Gateway != "" {
-			template += fmt.Sprintf(`gateway_ip = "%s"`, params.Gateway)
-		}
+		template := templateNetwork + templateSubnet + "\n"
 
-		return template + "\n}"
+		return template
 	}
 
 	resourceName := "edgecenter_subnet.acctest"
@@ -164,31 +164,29 @@ func TestAccSubnet(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviders,
-		CheckDestroy:      testAccSubnetDestroy,
+		CheckDestroy:      testAccSubnetDestroy(checkMetadataKey),
 		Steps: []resource.TestStep{
 			{
 				Config: SubnetTemplate(&create),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					checkSubnetAttrs(resourceName, &createFixt),
-					testAccCheckMetadata(t, resourceName, true, map[string]interface{}{
-						"key1": "val1",
-						"key2": "val2",
-					}),
+					checkSubnetAttrs(resourceName, create),
+					testAccCheckMetadata(t, resourceName, true, create.MetadataMap),
 				),
 			},
 			{
 				Config: SubnetTemplate(&update),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					checkSubnetAttrs(resourceName, &updateFixt),
+					checkSubnetAttrs(resourceName, update),
+					testAccCheckMetadata(t, resourceName, true, update.MetadataMap),
 				),
 			},
 		},
 	})
 }
 
-func checkSubnetAttrs(resourceName string, opts *subnets.CreateOpts) resource.TestCheckFunc {
+func checkSubnetAttrs(resourceName string, opts testSubnetParams) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if s.Empty() == true {
 			return fmt.Errorf("State not updated")
@@ -196,20 +194,17 @@ func checkSubnetAttrs(resourceName string, opts *subnets.CreateOpts) resource.Te
 
 		checksStore := []resource.TestCheckFunc{
 			resource.TestCheckResourceAttr(resourceName, "name", opts.Name),
-			resource.TestCheckResourceAttr(resourceName, "cidr", opts.CIDR.String()),
+			resource.TestCheckResourceAttr(resourceName, "cidr", opts.CIDR),
 			resource.TestCheckResourceAttr(resourceName, "enable_dhcp", strconv.FormatBool(opts.EnableDHCP)),
 			resource.TestCheckResourceAttr(resourceName, "dns_nameservers.#", strconv.Itoa(len(opts.DNSNameservers))),
 			resource.TestCheckResourceAttr(resourceName, "host_routes.#", strconv.Itoa(len(opts.HostRoutes))),
-		}
-
-		if opts.GatewayIP == nil && !opts.EnableDHCP {
-			checksStore = append(checksStore, resource.TestCheckResourceAttr(resourceName, "gateway_ip", "disable"))
+			resource.TestCheckResourceAttr(resourceName, "gateway_ip", opts.GatewayIP),
 		}
 
 		for i, hr := range opts.HostRoutes {
 			checksStore = append(checksStore,
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`host_routes.%d.destination`, i), hr.Destination.String()),
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`host_routes.%d.nexthop`, i), hr.NextHop.String()),
+				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`host_routes.%d.destination`, i), hr["destination"]),
+				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`host_routes.%d.nexthop`, i), hr["nexthop"]),
 			)
 		}
 
@@ -217,22 +212,28 @@ func checkSubnetAttrs(resourceName string, opts *subnets.CreateOpts) resource.Te
 	}
 }
 
-func testAccSubnetDestroy(s *terraform.State) error {
-	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
-	if err != nil {
-		return err
-	}
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "edgecenter_subnet" {
-			continue
+func testAccSubnetDestroy(metadataK string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		config := testAccProvider.Meta().(*edgecenter.Config)
+		clientV2, err := config.NewCloudClient()
+		if err != nil {
+			return err
 		}
 
-		_, err := subnets.Get(client, rs.Primary.ID).Extract()
-		if err == nil {
-			return fmt.Errorf("subnet still exists")
+		clientV2.Region, clientV2.Project, err = getRegionIDAndProjectID()
+		if err != nil {
+			return err
 		}
-	}
 
-	return nil
+		subs, _, err := clientV2.Subnetworks.List(context.Background(), &edgecloudV2.SubnetworkListOptions{MetadataK: metadataK})
+		if err != nil {
+			return fmt.Errorf("subnetworks.List error: %w", err)
+		}
+
+		if len(subs) != 0 {
+			return fmt.Errorf("subnetworks still exist")
+		}
+
+		return nil
+	}
 }
