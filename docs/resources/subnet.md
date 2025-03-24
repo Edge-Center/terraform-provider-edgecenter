@@ -28,18 +28,22 @@ resource "edgecenter_subnet" "subnet" {
   name            = "subnet_example"
   cidr            = "192.168.10.0/24"
   network_id      = edgecenter_network.network.id
-  dns_nameservers = var.dns_nameservers
+  dns_nameservers = ["8.8.4.4", "1.1.1.1"]
 
-  dynamic "host_routes" {
-    iterator = hr
-    for_each = var.host_routes
-    content {
-      destination = hr.value.destination
-      nexthop     = hr.value.nexthop
-    }
+  enable_dhcp = true
+
+  host_routes {
+    destination = "10.0.3.0/24"
+    nexthop     = "10.0.0.13"
+  }
+
+  host_routes {
+    destination = "10.0.4.0/24"
+    nexthop     = "10.0.0.14"
   }
 
   gateway_ip = "192.168.10.1"
+
   region_id  = 1
   project_id = 1
 }
@@ -61,7 +65,6 @@ resource "edgecenter_subnet" "subnet" {
 - `enable_dhcp` (Boolean) Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.
 - `gateway_ip` (String) The IP address of the gateway for this subnet.
 - `host_routes` (Block List) List of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedblock--host_routes))
-- `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata_map` (Map of String) A map containing metadata, for example tags.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
@@ -71,6 +74,7 @@ resource "edgecenter_subnet" "subnet" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 
 <a id="nestedblock--host_routes"></a>
