@@ -2,16 +2,14 @@ package edgecenter
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
-	"regexp"
 	"time"
 
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
@@ -29,15 +27,15 @@ func resourceSubnet() *schema.Resource {
 		ReadContext:   resourceSubnetRead,
 		UpdateContext: resourceSubnetUpdate,
 		DeleteContext: resourceSubnetDelete,
-		Description:   "Represent subnets. Subnetwork is a range of IP addresses in a cloud network. Addresses from this range will be assigned to machines in the cloud",
+		Description:   "Represent subnets. Subnetwork is a range of IP addresses in a cloud network. Addresses from this range will be assigned to machines in the cloud.",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, subnetID, err := ImportStringParser(d.Id())
 				if err != nil {
 					return nil, err
 				}
-				d.Set("project_id", projectID)
-				d.Set("region_id", regionID)
+				d.Set(ProjectIDField, projectID)
+				d.Set(RegionIDField, regionID)
 				d.SetId(subnetID)
 
 				return []*schema.ResourceData{d}, nil
@@ -45,61 +43,61 @@ func resourceSubnet() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": {
+			ProjectIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
-				ExactlyOneOf: []string{"project_id", "project_name"},
+				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
 			},
-			"project_name": {
+			ProjectNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
-				ExactlyOneOf: []string{"project_id", "project_name"},
+				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
 			},
-			"region_id": {
+			RegionIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
-				ExactlyOneOf: []string{"region_id", "region_name"},
+				ExactlyOneOf: []string{RegionIDField, RegionNameField},
 			},
-			"region_name": {
+			RegionNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
-				ExactlyOneOf: []string{"region_id", "region_name"},
+				ExactlyOneOf: []string{RegionIDField, RegionNameField},
 			},
-			"name": {
+			NameField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the subnet.",
 			},
-			"enable_dhcp": {
+			EnableDHCPField: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.",
 			},
-			"cidr": {
+			CIDRField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Represents the IP address range of the subnet.",
 			},
-			"network_id": {
+			NetworkIDField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The ID of the network to which this subnet belongs.",
 			},
-			"connect_to_network_router": {
+			ConnectToNetworkRouterField: {
 				Type:        schema.TypeBool,
 				Description: "True if the network's router should get a gateway in this subnet. Must be explicitly 'false' when gateway_ip is null. Default true.",
 				Optional:    true,
 				Default:     true,
 			},
-			"dns_nameservers": {
+			DNSNameserversField: {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "List of DNS name servers for the subnet.",
@@ -107,38 +105,55 @@ func resourceSubnet() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"host_routes": {
+			HostRoutesField: {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "List of additional routes to be added to instances that are part of this subnet.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"destination": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"nexthop": {
+						DestinationField: {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
+							Description: "The CIDR of the destination IPv4 subnet",
+						},
+						NexthopField: {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.IsIPAddress,
+							Description:  "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
 						},
 					},
 				},
 			},
-			"gateway_ip": {
-				Type:        schema.TypeString,
+			GatewayIPField: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Description:  "The IP address of the gateway for this subnet. The subnet will be recreated if the gateway IP is changed.",
+				ValidateFunc: validateSubnetGatewayIP,
+			},
+			AllocationPoolsField: {
+				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "The IP address of the gateway for this subnet.",
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					IP := regexp.MustCompile(`(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}`)
-					if v == disable || IP.MatchString(v) {
-						return nil
-					}
-					return diag.FromErr(fmt.Errorf("%q must be a valid ip, got: %s", key, v))
+				Description: "A list of allocation pools for DHCP. If omitted but DHCP or gateway settings are changed on update, pools are automatically reassigned.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						StartField: {
+							Type:         schema.TypeString,
+							Required:     true,
+							Description:  "Start IP address.",
+							ValidateFunc: validation.IsIPAddress,
+						},
+						EndField: {
+							Type:         schema.TypeString,
+							Required:     true,
+							Description:  "End IP address.",
+							ValidateFunc: validation.IsIPAddress,
+						},
+					},
 				},
 			},
-			"metadata_map": {
+			MetadataMapField: {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Description: "A map containing metadata, for example tags.",
@@ -146,28 +161,28 @@ func resourceSubnet() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"metadata_read_only": {
+			MetadataReadOnlyField: {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: `A list of read-only metadata items, e.g. tags.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"key": {
+						KeyField: {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"value": {
+						ValueField: {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"read_only": {
+						ReadOnlyField: {
 							Type:     schema.TypeBool,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"last_updated": {
+			LastUpdatedField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The timestamp of the last update (use with update context).",
@@ -186,13 +201,18 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	createOpts := &edgecloudV2.SubnetworkCreateRequest{
-		Name:                   d.Get("name").(string),
-		EnableDHCP:             d.Get("enable_dhcp").(bool),
-		NetworkID:              d.Get("network_id").(string),
-		ConnectToNetworkRouter: d.Get("connect_to_network_router").(bool),
+		Name:                   d.Get(NameField).(string),
+		EnableDHCP:             d.Get(EnableDHCPField).(bool),
+		NetworkID:              d.Get(NetworkIDField).(string),
+		ConnectToNetworkRouter: d.Get(ConnectToNetworkRouterField).(bool),
 	}
 
-	cidr := d.Get("cidr").(string)
+	rawAPs, ok := d.GetOk(AllocationPoolsField)
+	if ok {
+		createOpts.AllocationPools = prepareSubnetAllocationPools(rawAPs.([]interface{}))
+	}
+
+	cidr := d.Get(CIDRField).(string)
 	if cidr != "" {
 		_, _, err := net.ParseCIDR(cidr)
 		if err != nil {
@@ -201,7 +221,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		createOpts.CIDR = cidr
 	}
 
-	dnsNameservers := d.Get("dns_nameservers").([]interface{})
+	dnsNameservers := d.Get(DNSNameserversField).([]interface{})
 	createOpts.DNSNameservers = make([]net.IP, 0)
 	if len(dnsNameservers) > 0 {
 		ns := dnsNameservers
@@ -212,7 +232,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		createOpts.DNSNameservers = dns
 	}
 
-	hostRoutes := d.Get("host_routes").([]interface{})
+	hostRoutes := d.Get(HostRoutesField).([]interface{})
 	createOpts.HostRoutes = make([]edgecloudV2.HostRoute, 0)
 	if len(hostRoutes) > 0 {
 		createOpts.HostRoutes, err = extractHostRoutesMapV2(hostRoutes)
@@ -221,7 +241,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 
-	gatewayIP := d.Get("gateway_ip").(string)
+	gatewayIP := d.Get(GatewayIPField).(string)
 	gw := net.ParseIP(gatewayIP)
 	if gatewayIP == disable {
 		createOpts.ConnectToNetworkRouter = false
@@ -229,7 +249,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		createOpts.GatewayIP = &gw
 	}
 
-	if metadataRaw, ok := d.GetOk("metadata_map"); ok {
+	if metadataRaw, ok := d.GetOk(MetadataMapField); ok {
 		meta, err := MapInterfaceToMapString(metadataRaw)
 		if err != nil {
 			return diag.FromErr(err)
@@ -271,44 +291,50 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.Errorf("cannot get subnet with ID: %s. Error: %s", subnetID, err)
 	}
 
-	d.Set("name", subnet.Name)
-	d.Set("enable_dhcp", subnet.EnableDHCP)
-	d.Set("cidr", subnet.CIDR)
-	d.Set("network_id", subnet.NetworkID)
+	d.Set(NameField, subnet.Name)
+	d.Set(EnableDHCPField, subnet.EnableDHCP)
+	d.Set(CIDRField, subnet.CIDR)
+	d.Set(NetworkIDField, subnet.NetworkID)
 
 	dns := make([]string, len(subnet.DNSNameservers))
 	for i, ns := range subnet.DNSNameservers {
 		dns[i] = ns.String()
 	}
-	d.Set("dns_nameservers", dns)
+	d.Set(DNSNameserversField, dns)
 
 	hrs := make([]map[string]string, len(subnet.HostRoutes))
 	for i, hr := range subnet.HostRoutes {
-		hR := map[string]string{"destination": "", "nexthop": ""}
-		hR["destination"] = hr.Destination.String()
-		hR["nexthop"] = hr.NextHop.String()
+		hR := map[string]string{DestinationField: "", NexthopField: ""}
+		hR[DestinationField] = hr.Destination.String()
+		hR[NexthopField] = hr.NextHop.String()
 		hrs[i] = hR
 	}
-	d.Set("host_routes", hrs)
-	d.Set("region_id", subnet.RegionID)
-	d.Set("project_id", subnet.ProjectID)
-	d.Set("gateway_ip", subnet.GatewayIP.String())
 
-	fields := []string{"connect_to_network_router"}
+	d.Set(HostRoutesField, hrs)
+
+	if err := d.Set(AllocationPoolsField, allocationPoolsToListOfMaps(subnet.AllocationPools)); err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.Set(RegionIDField, subnet.RegionID)
+	d.Set(ProjectIDField, subnet.ProjectID)
+	d.Set(GatewayIPField, subnet.GatewayIP.String())
+
+	fields := []string{ConnectToNetworkRouterField}
 	revertState(d, &fields)
 
 	if subnet.GatewayIP == nil {
-		d.Set("connect_to_network_router", false)
-		d.Set("gateway_ip", disable)
+		d.Set(ConnectToNetworkRouterField, false)
+		d.Set(GatewayIPField, disable)
 	}
 
 	metadataMap, metadataReadOnly := PrepareMetadata(subnet.Metadata)
 
-	if err = d.Set("metadata_map", metadataMap); err != nil {
+	if err = d.Set(MetadataMapField, metadataMap); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("metadata_read_only", metadataReadOnly); err != nil {
+	if err = d.Set(MetadataReadOnlyField, metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -329,14 +355,14 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	updateOpts := &edgecloudV2.SubnetworkUpdateRequest{}
 
-	if d.HasChange("name") {
-		updateOpts.Name = d.Get("name").(string)
+	if d.HasChange(NameField) {
+		updateOpts.Name = d.Get(NameField).(string)
 	}
-	updateOpts.EnableDHCP = d.Get("enable_dhcp").(bool)
+	updateOpts.EnableDHCP = d.Get(EnableDHCPField).(bool)
 
 	// In the structure, the field is mandatory for the ability to transfer the absence of data,
 	// if you do not initialize it with a empty list, marshalling will send null and receive a validation error.
-	dnsNameservers := d.Get("dns_nameservers").([]interface{})
+	dnsNameservers := d.Get(DNSNameserversField).([]interface{})
 	updateOpts.DNSNameservers = make([]net.IP, 0)
 	if len(dnsNameservers) > 0 {
 		ns := dnsNameservers
@@ -347,7 +373,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		updateOpts.DNSNameservers = dns
 	}
 
-	hostRoutes := d.Get("host_routes").([]interface{})
+	hostRoutes := d.Get(HostRoutesField).([]interface{})
 	updateOpts.HostRoutes = make([]edgecloudV2.HostRoute, 0)
 	if len(hostRoutes) > 0 {
 		updateOpts.HostRoutes, err = extractHostRoutesMapV2(hostRoutes)
@@ -356,14 +382,19 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 
-	if d.HasChange("gateway_ip") {
-		_, newValue := d.GetChange("gateway_ip")
-		if newValue.(string) != disable && newValue.(string) != "" {
+	rawAPs, ok := d.GetOk(AllocationPoolsField)
+	if ok {
+		updateOpts.AllocationPools = prepareSubnetAllocationPools(rawAPs.([]interface{}))
+	}
+
+	if d.HasChange(GatewayIPField) {
+		_, newValue := d.GetChange(GatewayIPField)
+		if newValue.(string) != disable {
 			gatewayIP := net.ParseIP(newValue.(string))
 			updateOpts.GatewayIP = &gatewayIP
 		}
 	} else {
-		gatewayIP := net.ParseIP(d.Get("gateway_ip").(string))
+		gatewayIP := net.ParseIP(d.Get(GatewayIPField).(string))
 		updateOpts.GatewayIP = &gatewayIP
 	}
 
@@ -372,8 +403,8 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	if d.HasChange("metadata_map") {
-		_, nmd := d.GetChange("metadata_map")
+	if d.HasChange(MetadataMapField) {
+		_, nmd := d.GetChange(MetadataMapField)
 		meta, err := MapInterfaceToMapString(nmd)
 		if err != nil {
 			return diag.Errorf("metadata wrong fmt. Error: %s", err)
@@ -387,7 +418,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 
-	d.Set("last_updated", time.Now().Format(time.RFC850))
+	d.Set(LastUpdatedField, time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish subnet updating")
 
 	return resourceSubnetRead(ctx, d, m)

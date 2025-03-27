@@ -3,12 +3,12 @@
 page_title: "edgecenter_subnet Resource - edgecenter"
 subcategory: ""
 description: |-
-  Represent subnets. Subnetwork is a range of IP addresses in a cloud network. Addresses from this range will be assigned to machines in the cloud
+  Represent subnets. Subnetwork is a range of IP addresses in a cloud network. Addresses from this range will be assigned to machines in the cloud.
 ---
 
 # edgecenter_subnet (Resource)
 
-Represent subnets. Subnetwork is a range of IP addresses in a cloud network. Addresses from this range will be assigned to machines in the cloud
+Represent subnets. Subnetwork is a range of IP addresses in a cloud network. Addresses from this range will be assigned to machines in the cloud.
 
 ## Example Usage
 
@@ -42,6 +42,11 @@ resource "edgecenter_subnet" "subnet" {
     nexthop     = "10.0.0.14"
   }
 
+  allocation_pools {
+    start = "192.168.10.20"
+    end   = "192.168.10.50"
+  }
+
   gateway_ip = "192.168.10.1"
 
   region_id  = 1
@@ -60,10 +65,11 @@ resource "edgecenter_subnet" "subnet" {
 
 ### Optional
 
+- `allocation_pools` (Block List) A list of allocation pools for DHCP. If omitted but DHCP or gateway settings are changed on update, pools are automatically reassigned. (see [below for nested schema](#nestedblock--allocation_pools))
 - `connect_to_network_router` (Boolean) True if the network's router should get a gateway in this subnet. Must be explicitly 'false' when gateway_ip is null. Default true.
 - `dns_nameservers` (List of String) List of DNS name servers for the subnet.
 - `enable_dhcp` (Boolean) Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.
-- `gateway_ip` (String) The IP address of the gateway for this subnet.
+- `gateway_ip` (String) The IP address of the gateway for this subnet. The subnet will be recreated if the gateway IP is changed.
 - `host_routes` (Block List) List of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedblock--host_routes))
 - `metadata_map` (Map of String) A map containing metadata, for example tags.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
@@ -77,12 +83,21 @@ resource "edgecenter_subnet" "subnet" {
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 
+<a id="nestedblock--allocation_pools"></a>
+### Nested Schema for `allocation_pools`
+
+Required:
+
+- `end` (String) End IP address.
+- `start` (String) Start IP address.
+
+
 <a id="nestedblock--host_routes"></a>
 ### Nested Schema for `host_routes`
 
 Required:
 
-- `destination` (String)
+- `destination` (String) The CIDR of the destination IPv4 subnet
 - `nexthop` (String) IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR
 
 

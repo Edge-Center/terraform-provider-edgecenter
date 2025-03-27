@@ -55,6 +55,7 @@ output "view" {
 
 ### Read-Only
 
+- `allocation_pools` (List of Object) A list of allocation pools for DHCP. If omitted but DHCP or gateway settings are changed on update, pools are automatically reassigned. (see [below for nested schema](#nestedatt--allocation_pools))
 - `cidr` (String) Represents the IP address range of the subnet.
 - `connect_to_network_router` (Boolean) True if the network's router should get a gateway in this subnet. Must be explicitly 'false' when gateway_ip is null.
 - `dns_nameservers` (List of String) List of DNS name servers for the subnet.
@@ -63,6 +64,15 @@ output "view" {
 - `host_routes` (List of Object) List of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedatt--host_routes))
 - `id` (String) The ID of this resource.
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
+
+<a id="nestedatt--allocation_pools"></a>
+### Nested Schema for `allocation_pools`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
 
 <a id="nestedatt--host_routes"></a>
 ### Nested Schema for `host_routes`
