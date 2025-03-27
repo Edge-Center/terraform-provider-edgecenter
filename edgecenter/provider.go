@@ -103,6 +103,11 @@ const (
 	GatewayIPField                = "gateway_ip"
 	DestinationField              = "destination"
 	NexthopField                  = "nexthop"
+	AllocationPoolsField          = "allocation_pools"
+	StartField                    = "start"
+	EndField                      = "end"
+	ConnectToNetworkRouterField   = "connect_to_network_router"
+	MetadataReadOnlyField         = "metadata_read_only"
 )
 
 type CloudClientConf struct {

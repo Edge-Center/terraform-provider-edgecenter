@@ -27,6 +27,11 @@ resource "edgecenter_subnet" "subnet" {
     nexthop     = "10.0.0.14"
   }
 
+  allocation_pools {
+    start = "192.168.10.20"
+    end   = "192.168.10.50"
+  }
+
   gateway_ip = "192.168.10.1"
 
   region_id  = 1
