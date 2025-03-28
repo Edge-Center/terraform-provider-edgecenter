@@ -374,7 +374,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		updateOpts.DNSNameservers = dns
 	}
 
-	hostRoutes := d.Get(HostRoutesField).(*schema.Set).List()
+	hostRoutes := d.Get(HostRoutesField).([]interface{})
 	updateOpts.HostRoutes = make([]edgecloudV2.HostRoute, 0)
 	if len(hostRoutes) > 0 {
 		updateOpts.HostRoutes, err = extractHostRoutesMapV2(hostRoutes)
@@ -385,7 +385,8 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	rawAPs, ok := d.GetOk(AllocationPoolsField)
 	if ok {
-		updateOpts.AllocationPools = prepareSubnetAllocationPools(rawAPs.([]interface{}))
+		rawAPsList := rawAPs.(*schema.Set).List()
+		updateOpts.AllocationPools = prepareSubnetAllocationPools(rawAPsList)
 	}
 
 	switch {
