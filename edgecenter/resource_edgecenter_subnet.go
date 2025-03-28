@@ -128,7 +128,6 @@ func resourceSubnet() *schema.Resource {
 			GatewayIPField: {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ForceNew:     true,
 				Description:  "The IP address of the gateway for this subnet. The subnet will be recreated if the gateway IP is changed.",
 				ValidateFunc: validateSubnetGatewayIP,
 			},
