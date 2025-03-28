@@ -293,7 +293,7 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 		opts := &edgecloudV2.AssignFloatingIPRequest{}
 		if portID := newPortID.(string); portID != "" {
 			opts.PortID = portID
-			if fixedIP := newFixedIP.(string); fixedIP != "" {
+			if fixedIP := newFixedIP.(string); fixedIP != "" && newFixedIP.(string) != oldFixedIP.(string) {
 				opts.FixedIPAddress = net.ParseIP(fixedIP)
 			}
 			_, _, err = clientV2.Floatingips.Assign(ctx, d.Id(), opts)
