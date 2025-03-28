@@ -20,9 +20,9 @@ func PrepareMetadata(apiMetadataRaw interface{}) (map[string]string, []map[strin
 					metadataMap[metadataItem.Key] = metadataItem.Value
 				}
 				metadataReadOnly = append(metadataReadOnly, map[string]interface{}{
-					"key":       metadataItem.Key,
-					"value":     metadataItem.Value,
-					"read_only": metadataItem.ReadOnly,
+					KeyField:      metadataItem.Key,
+					ValueField:    metadataItem.Value,
+					ReadOnlyField: metadataItem.ReadOnly,
 				})
 			}
 		}
@@ -34,9 +34,9 @@ func PrepareMetadata(apiMetadataRaw interface{}) (map[string]string, []map[strin
 					metadataMap[metadataItem.Key] = metadataItem.Value
 				}
 				metadataReadOnly = append(metadataReadOnly, map[string]interface{}{
-					"key":       metadataItem.Key,
-					"value":     metadataItem.Value,
-					"read_only": metadataItem.ReadOnly,
+					KeyField:      metadataItem.Key,
+					ValueField:    metadataItem.Value,
+					ReadOnlyField: metadataItem.ReadOnly,
 				})
 			}
 		}
@@ -54,9 +54,9 @@ func PrepareMetadataReadonly(apiMetadataRaw interface{}) []map[string]interface{
 		if len(apiMetadata) > 0 {
 			for _, metadataItem := range apiMetadata {
 				metadataReadOnly = append(metadataReadOnly, map[string]interface{}{
-					"key":       metadataItem.Key,
-					"value":     metadataItem.Value,
-					"read_only": metadataItem.ReadOnly,
+					KeyField:      metadataItem.Key,
+					ValueField:    metadataItem.Value,
+					ReadOnlyField: metadataItem.ReadOnly,
 				})
 			}
 		}
@@ -65,9 +65,9 @@ func PrepareMetadataReadonly(apiMetadataRaw interface{}) []map[string]interface{
 		if len(apiMetadata) > 0 {
 			for _, metadataItem := range apiMetadata {
 				metadataReadOnly = append(metadataReadOnly, map[string]interface{}{
-					"key":       metadataItem.Key,
-					"value":     metadataItem.Value,
-					"read_only": metadataItem.ReadOnly,
+					KeyField:      metadataItem.Key,
+					ValueField:    metadataItem.Value,
+					ReadOnlyField: metadataItem.ReadOnly,
 				})
 			}
 		}
