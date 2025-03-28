@@ -65,7 +65,7 @@ resource "edgecenter_subnet" "subnet" {
 
 ### Optional
 
-- `allocation_pools` (Block List) A list of allocation pools for DHCP. If omitted but DHCP or gateway settings are changed on update, pools are automatically reassigned. (see [below for nested schema](#nestedblock--allocation_pools))
+- `allocation_pools` (Block Set) A list of allocation pools for DHCP. If omitted but DHCP or gateway settings are changed on update, pools are automatically reassigned. (see [below for nested schema](#nestedblock--allocation_pools))
 - `connect_to_network_router` (Boolean) True if the network's router should get a gateway in this subnet. Must be explicitly 'false' when gateway_ip is null. Default true.
 - `dns_nameservers` (List of String) List of DNS name servers for the subnet.
 - `enable_dhcp` (Boolean) Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.

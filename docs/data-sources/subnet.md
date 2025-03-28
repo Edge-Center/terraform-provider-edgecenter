@@ -55,7 +55,7 @@ output "view" {
 
 ### Read-Only
 
-- `allocation_pools` (List of Object) A list of allocation pools for DHCP. If omitted but DHCP or gateway settings are changed on update, pools are automatically reassigned. (see [below for nested schema](#nestedatt--allocation_pools))
+- `allocation_pools` (Set of Object) A list of allocation pools for DHCP. If omitted but DHCP or gateway settings are changed on update, pools are automatically reassigned. (see [below for nested schema](#nestedatt--allocation_pools))
 - `cidr` (String) Represents the IP address range of the subnet.
 - `connect_to_network_router` (Boolean) True if the network's router should get a gateway in this subnet. Must be explicitly 'false' when gateway_ip is null.
 - `dns_nameservers` (List of String) List of DNS name servers for the subnet.

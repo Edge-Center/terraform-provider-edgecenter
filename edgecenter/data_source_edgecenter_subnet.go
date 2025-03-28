@@ -104,7 +104,7 @@ func dataSourceSubnet() *schema.Resource {
 				},
 			},
 			AllocationPoolsField: {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Computed:    true,
 				Description: "A list of allocation pools for DHCP. If omitted but DHCP or gateway settings are changed on update, pools are automatically reassigned.",
 				Elem: &schema.Resource{
@@ -216,7 +216,10 @@ func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set(RegionIDField, subnet.RegionID)
 	d.Set(ProjectIDField, subnet.ProjectID)
 	d.Set(GatewayIPField, subnet.GatewayIP.String())
-	if err := d.Set(AllocationPoolsField, allocationPoolsToListOfMaps(subnet.AllocationPools)); err != nil {
+
+	allocationPoolsSet := d.Get(AllocationPoolsField).(*schema.Set)
+
+	if err := d.Set(AllocationPoolsField, schema.NewSet(allocationPoolsSet.F, allocationPoolsToListOfMaps(subnet.AllocationPools))); err != nil {
 		return diag.FromErr(err)
 	}
 

@@ -132,7 +132,7 @@ func resourceSubnet() *schema.Resource {
 				ValidateFunc: validateSubnetGatewayIP,
 			},
 			AllocationPoolsField: {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "A list of allocation pools for DHCP. If omitted but DHCP or gateway settings are changed on update, pools are automatically reassigned.",
 				Elem: &schema.Resource{
@@ -208,7 +208,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	rawAPs, ok := d.GetOk(AllocationPoolsField)
 	if ok {
-		createOpts.AllocationPools = prepareSubnetAllocationPools(rawAPs.([]interface{}))
+		createOpts.AllocationPools = prepareSubnetAllocationPools(rawAPs.(*schema.Set).List())
 	}
 
 	cidr := d.Get(CIDRField).(string)
@@ -311,7 +311,9 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	d.Set(HostRoutesField, hrs)
 
-	if err := d.Set(AllocationPoolsField, allocationPoolsToListOfMaps(subnet.AllocationPools)); err != nil {
+	allocationPoolsSet := d.Get(AllocationPoolsField).(*schema.Set)
+
+	if err := d.Set(AllocationPoolsField, schema.NewSet(allocationPoolsSet.F, allocationPoolsToListOfMaps(subnet.AllocationPools))); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -372,7 +374,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		updateOpts.DNSNameservers = dns
 	}
 
-	hostRoutes := d.Get(HostRoutesField).([]interface{})
+	hostRoutes := d.Get(HostRoutesField).(*schema.Set).List()
 	updateOpts.HostRoutes = make([]edgecloudV2.HostRoute, 0)
 	if len(hostRoutes) > 0 {
 		updateOpts.HostRoutes, err = extractHostRoutesMapV2(hostRoutes)

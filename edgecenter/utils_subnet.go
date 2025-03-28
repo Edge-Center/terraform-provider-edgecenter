@@ -28,11 +28,11 @@ func prepareSubnetAllocationPools(aps []interface{}) []edgecloudV2.AllocationPoo
 	return allocationPools
 }
 
-func allocationPoolsToListOfMaps(allocationPools []edgecloudV2.AllocationPool) []map[string]string {
-	aps := make([]map[string]string, 0, len(allocationPools))
+func allocationPoolsToListOfMaps(allocationPools []edgecloudV2.AllocationPool) []interface{} {
+	aps := make([]interface{}, 0, len(allocationPools))
 
 	for _, v := range allocationPools {
-		ap := map[string]string{StartField: "", EndField: ""}
+		ap := map[string]interface{}{StartField: "", EndField: ""}
 		ap[StartField], ap[EndField] = v.Start, v.End
 		aps = append(aps, ap)
 	}
