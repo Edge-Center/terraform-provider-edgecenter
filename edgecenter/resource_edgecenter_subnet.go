@@ -386,15 +386,18 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		updateOpts.AllocationPools = prepareSubnetAllocationPools(rawAPs.([]interface{}))
 	}
 
-	if d.HasChange(GatewayIPField) {
+	switch {
+	case d.HasChange(GatewayIPField):
 		_, newValue := d.GetChange(GatewayIPField)
-		if newValue.(string) != disable {
+		if nV := newValue.(string); nV != disable && nV != "" {
 			gatewayIP := net.ParseIP(newValue.(string))
 			updateOpts.GatewayIP = &gatewayIP
 		}
-	} else {
-		gatewayIP := net.ParseIP(d.Get(GatewayIPField).(string))
-		updateOpts.GatewayIP = &gatewayIP
+	default:
+		if gIP := d.Get(GatewayIPField).(string); gIP != disable {
+			gatewayIP := net.ParseIP(gIP)
+			updateOpts.GatewayIP = &gatewayIP
+		}
 	}
 
 	_, _, err = clientV2.Subnetworks.Update(ctx, subnetID, updateOpts)
