@@ -5,11 +5,9 @@ import (
 	"encoding/json"
 	"log"
 
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceSubnet() *schema.Resource {
@@ -112,16 +110,14 @@ func dataSourceSubnet() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						StartField: {
-							Type:         schema.TypeString,
-							Computed:     true,
-							Description:  "Start IP address.",
-							ValidateFunc: validation.IsIPAddress,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Start IP address.",
 						},
 						EndField: {
-							Type:         schema.TypeString,
-							Computed:     true,
-							Description:  "End IP address.",
-							ValidateFunc: validation.IsIPAddress,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "End IP address.",
 						},
 					},
 				},
