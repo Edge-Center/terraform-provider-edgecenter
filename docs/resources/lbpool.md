@@ -106,15 +106,12 @@ Optional:
 <a id="nestedblock--session_persistence"></a>
 ### Nested Schema for `session_persistence`
 
-Required:
-
-- `type` (String) The type of the session persistence. Available values are `APP_COOKIE`,`HTTP_COOKIE`,`SOURCE_IP`.
-
 Optional:
 
 - `cookie_name` (String) The name of the cookie. Should be set if app cookie or http cookie is used.
 - `persistence_granularity` (String) The subnet mask if source_ip is used. For UDP ports only.
 - `persistence_timeout` (Number) The timeout for the session persistence. For UDP ports only.
+- `type` (String) The type of the session persistence. Available values are `APP_COOKIE`
 
 
 <a id="nestedblock--timeouts"></a>
