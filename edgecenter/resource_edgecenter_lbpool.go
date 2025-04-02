@@ -190,7 +190,6 @@ func resourceLBPool() *schema.Resource {
 			"session_persistence": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				MaxItems:    1,
 				Description: `Configuration that enables the load balancer to bind a user's session to a specific backend member. This ensures that all requests from the user during the session are sent to the same member.`,
 				Elem: &schema.Resource{
@@ -313,6 +312,7 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 		}
 	}
 
+	var sessionPersistences []interface{}
 	if lb.SessionPersistence != nil {
 		sessionPersistence := map[string]interface{}{
 			"type":                    lb.SessionPersistence.Type,
@@ -320,10 +320,11 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 			"persistence_granularity": lb.SessionPersistence.PersistenceGranularity,
 			"persistence_timeout":     lb.SessionPersistence.PersistenceTimeout,
 		}
+		sessionPersistences = []interface{}{sessionPersistence}
+	}
 
-		if err := d.Set("session_persistence", []interface{}{sessionPersistence}); err != nil {
-			return diag.FromErr(err)
-		}
+	if err := d.Set("session_persistence", sessionPersistences); err != nil {
+		return diag.FromErr(err)
 	}
 
 	fields := []string{"project_id", "region_id"}
@@ -357,6 +358,11 @@ func resourceLBPoolUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	if d.HasChange("session_persistence") {
 		opts.SessionPersistence = extractSessionPersistenceMapV2(d)
+
+		if opts.SessionPersistence == nil {
+			opts.DisableSessionPersistence = true
+		}
+
 		change = true
 	}
 
