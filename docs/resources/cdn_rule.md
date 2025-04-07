@@ -132,6 +132,7 @@ Optional:
 - `follow_origin_redirect` (Block List, Max: 1) If the source returns a redirect, let CDN pull the requested content from the source that was returned in the redirect. (see [below for nested schema](#nestedblock--options--follow_origin_redirect))
 - `force_return` (Block List, Max: 1) Apply custom HTTP status codes to CDN content. Some HTTP status codes are reserved by our system and cannot be used with this option: 408, 444, 477, 494, 495, 496, 497, 499. (see [below for nested schema](#nestedblock--options--force_return))
 - `forward_host_header` (Block List, Max: 1) Allow forwarding the Host header used in the request made to the CDN when the CDN requests content from the source. "host_header" and "forward_host_header" cannot be enabled simultaneously. (see [below for nested schema](#nestedblock--options--forward_host_header))
+- `geo_acl` (Block List, Max: 1) Shows the state of the Geolocation access policy option. The option controls access to content from the specified countries and their regions. (see [below for nested schema](#nestedblock--options--geo_acl))
 - `gzip_compression` (Block List, Max: 1) Allow compressing content with gzip on CDN. CDN servers will request only uncompressed content from the source. The option is not supported when "fetch_compressed" or "slice" are enabled. (see [below for nested schema](#nestedblock--options--gzip_compression))
 - `host_header` (Block List, Max: 1) Manage the custom Host header in the Host header option. When the CDN requests content from the source, it will use the specified Host header. "host_header" and "forward_host_header" cannot be enabled simultaneously. (see [below for nested schema](#nestedblock--options--host_header))
 - `ignore_cookie` (Block List, Max: 1) Specify how to cache files with different values of the Set-Cookie header: as one object (when the option is enabled) or as different objects (when the option is disabled). (see [below for nested schema](#nestedblock--options--ignore_cookie))
@@ -286,6 +287,28 @@ Required:
 Optional:
 
 - `enabled` (Boolean) Enable or disable the option. Allowed values are "true" or "false".
+
+
+<a id="nestedblock--options--geo_acl"></a>
+### Nested Schema for `options.geo_acl`
+
+Required:
+
+- `excepted_values` (Block List, Min: 1) List of exceptions to the default policy. (see [below for nested schema](#nestedblock--options--geo_acl--excepted_values))
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Allowed values are "true" or "false".
+- `policy_type` (String) Shows the chosen policy type. Has either "allow" or "deny" value.
+
+<a id="nestedblock--options--geo_acl--excepted_values"></a>
+### Nested Schema for `options.geo_acl.excepted_values`
+
+Required:
+
+- `key` (String) Two-letter country code as defined by ISO 3166-1 alpha-2 (e.g., 'US' for United States, 'RU' for Russia).
+- `values` (List of String) List of region codes for the specified country, using short English names from ISO 3166-2 (e.g., 'CA' for California in 'US', 'MOW' for Moscow in 'RU').
+
 
 
 <a id="nestedblock--options--gzip_compression"></a>

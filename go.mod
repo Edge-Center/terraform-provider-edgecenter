@@ -6,7 +6,7 @@ require (
 	github.com/AlekSi/pointer v1.2.0
 	github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.3
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0
-	github.com/Edge-Center/edgecentercdn-go v0.1.15
+	github.com/Edge-Center/edgecentercdn-go v0.1.16
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
 	github.com/Edge-Center/edgecentercloud-go/v2 v2.1.13-0.20250327121239-7710c9468cdf
 	github.com/connerdouglass/go-retry v1.0.1
