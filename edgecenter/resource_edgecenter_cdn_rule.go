@@ -299,6 +299,47 @@ var locationOptionsSchema = &schema.Schema{
 					},
 				},
 			},
+			"geo_acl": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "Shows the state of the Geolocation access policy option. The option controls access to content from the specified countries and their regions.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     true,
+							Description: "Enable or disable the option. Allowed values are \"true\" or \"false\".",
+						},
+						"policy_type": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Shows the chosen policy type. Has either \"allow\" or \"deny\" value.",
+						},
+						"excepted_values": {
+							Type:        schema.TypeList,
+							Required:    true,
+							Description: "List of exceptions to the default policy.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"key": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "Two-letter country code as defined by ISO 3166-1 alpha-2 (e.g., 'US' for United States, 'RU' for Russia).",
+									},
+									"values": {
+										Type:        schema.TypeList,
+										Required:    true,
+										Elem:        &schema.Schema{Type: schema.TypeString},
+										Description: "List of region codes for the specified country, using short English names from ISO 3166-2 (e.g., 'CA' for California in 'US', 'MOW' for Moscow in 'RU').",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			"gzip_compression": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -1174,6 +1215,25 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			Value:   opt["value"].(bool),
 		}
 	}
+	if opt, ok := getOptByName(fields, "geo_acl"); ok {
+		opts.GeoAcl = &cdn.GeoAccessPolicy{
+			Enabled:  opt["enabled"].(bool),
+			Default:  opt["policy_type"].(string),
+			Excepted: map[string][]string{},
+		}
+		if exceptList, ok := opt["excepted_values"].([]interface{}); ok {
+			for _, item := range exceptList {
+				except := item.(map[string]interface{})
+				key := except["key"].(string)
+				values := except["values"].([]interface{})
+				strValues := make([]string, len(values))
+				for i, val := range values {
+					strValues[i] = val.(string)
+				}
+				opts.GeoAcl.Excepted[key] = strValues
+			}
+		}
+	}
 	if opt, ok := getOptByName(fields, "gzip_compression"); ok {
 		opts.GzipCompression = &cdn.GzipCompression{
 			Enabled: opt["enabled"].(bool),
@@ -1414,6 +1474,22 @@ func locationOptionsToList(options *cdn.LocationOptions) []interface{} {
 	if options.ForwardHostHeader != nil {
 		m := structToMap(options.ForwardHostHeader)
 		result["forward_host_header"] = []interface{}{m}
+	}
+	if options.GeoAcl != nil {
+		var exceptedValues []interface{}
+		for key, values := range options.GeoAcl.Excepted {
+			exceptedValues = append(exceptedValues, map[string]interface{}{
+				"key":    key,
+				"values": values,
+			})
+		}
+		result["geo_acl"] = []interface{}{
+			map[string]interface{}{
+				"enabled":         options.GeoAcl.Enabled,
+				"policy_type":     options.GeoAcl.Default,
+				"excepted_values": exceptedValues,
+			},
+		}
 	}
 	if options.GzipCompression != nil {
 		m := structToMap(options.GzipCompression)
