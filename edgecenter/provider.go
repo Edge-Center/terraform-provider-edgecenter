@@ -108,6 +108,8 @@ const (
 	EndField                      = "end"
 	ConnectToNetworkRouterField   = "connect_to_network_router"
 	MetadataReadOnlyField         = "metadata_read_only"
+	EntityIDField                 = "entity_id"
+	EntityTypeField               = "entity_type"
 )
 
 type CloudClientConf struct {
@@ -242,6 +244,7 @@ func Provider() *schema.Provider {
 			"edgecenter_useractions_subscription_amqp": resourceUserActionsSubscriptionAMQP(),
 			"edgecenter_useractions_subscription_log":  resourceUserActionsSubscriptionLog(),
 			"edgecenter_reseller_images":               resourceResellerImages(),
+			"edgecenter_reseller_imagesV2":             resourceResellerImagesV2(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":                       dataSourceProject(),
@@ -276,6 +279,7 @@ func Provider() *schema.Provider {
 			"edgecenter_useractions_subscription_log":  dataSourceUserActionsListLogSubscriptions(),
 			"edgecenter_reseller_images":               dataSourceResellerImages(),
 			"edgecenter_reseller_networks":             dataSourceResellerNetworksList(),
+			"edgecenter_reseller_imagesV2":             dataSourceResellerImagesV2(),
 		},
 	}
 

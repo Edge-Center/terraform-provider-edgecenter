@@ -3,28 +3,31 @@
 page_title: "edgecenter_reseller_images Data Source - edgecenter"
 subcategory: ""
 description: |-
-  !!! This resource has been created for resellers and only works with the reseller API key. !!!
-  
-  	Reseller and cloud admin can change the set of images, available to reseller clients.
-  
-  	Firstly, they may limit the number of public images available.
-  	Secondly, they can share the image of the reseller client to all clients of the reseller.
-  
-  	If the reseller has image_ids = [] or hasn't image_ids field in config, 
-  	all public images are unavailable to the client.
+  WARNING: Data source "edgecenter_reseller_images" is deprecated.
+  Use "edgecenter_reseller_imagesV2" data source instead.
+  This data source has been created for resellers and only works with the reseller API key.
+  Reseller and cloud admin can change the set of images, available to reseller clients.
+  Firstly, they may limit the number of public images available.
+  Secondly, they can share the image of the reseller client to all clients of the reseller.
+  If the reseller has image_ids = [] or hasn't image_ids field in config,
+  all public images are unavailable to the client.
 ---
 
 # edgecenter_reseller_images (Data Source)
 
-!!! This resource has been created for resellers and only works with the reseller API key. !!!
+**WARNING:** Data source "edgecenter_reseller_images" is deprecated.
 
-		Reseller and cloud admin can change the set of images, available to reseller clients.
+Use "edgecenter_reseller_imagesV2" data source instead.
+		
+**This data source has been created for resellers and only works with the reseller API key.**
 
-		Firstly, they may limit the number of public images available.
-		Secondly, they can share the image of the reseller client to all clients of the reseller.
+Reseller and cloud admin can change the set of images, available to reseller clients.
 
-		If the reseller has image_ids = [] or hasn't image_ids field in config, 
-		all public images are unavailable to the client.
+Firstly, they may limit the number of public images available.
+Secondly, they can share the image of the reseller client to all clients of the reseller.
+
+If the reseller has image_ids = [] or hasn't image_ids field in config, 
+all public images are unavailable to the client.
 
 ## Example Usage
 
