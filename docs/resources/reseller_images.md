@@ -3,28 +3,29 @@
 page_title: "edgecenter_reseller_images Resource - edgecenter"
 subcategory: ""
 description: |-
-  !!! This resource has been created for resellers and only works with the reseller API key. !!!
-  
+  WARNING: resource "edgecenter_reseller_images" is deprecated.
+  Use "edgecenter_reseller_imagesV2" resource instead.
+  This resource has been created for resellers and only works with the reseller API key.
   Reseller and cloud admin can change the set of images, available to reseller clients.
-  
   Firstly, they may limit the number of public images available.
   Secondly, they can share the image of the reseller client to all clients of the reseller.
-  
-  If the reseller has image_ids = [] or hasn't image_ids field in config, 
-  all public images are unavailable to the client.
+  If the reseller has image_ids = [] or hasn't image_ids field in config, all public images are unavailable to the client.
 ---
 
 # edgecenter_reseller_images (Resource)
 
-!!! This resource has been created for resellers and only works with the reseller API key. !!!
+**WARNING:** resource "edgecenter_reseller_images" is deprecated.
 
-	Reseller and cloud admin can change the set of images, available to reseller clients.
+Use "edgecenter_reseller_imagesV2" resource instead.
 
-	Firstly, they may limit the number of public images available.
-	Secondly, they can share the image of the reseller client to all clients of the reseller.
+**This resource has been created for resellers and only works with the reseller API key.**
 
-	If the reseller has image_ids = [] or hasn't image_ids field in config, 
-	all public images are unavailable to the client.
+Reseller and cloud admin can change the set of images, available to reseller clients.
+
+Firstly, they may limit the number of public images available.
+Secondly, they can share the image of the reseller client to all clients of the reseller.
+
+If the reseller has image_ids = [] or hasn't image_ids field in config, all public images are unavailable to the client.
 
 ## Example Usage
 

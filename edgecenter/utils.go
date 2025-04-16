@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 
@@ -268,4 +269,19 @@ func Reduce[T any, U any](arr []T, reduceFunc func(U, T) U, acc U) U {
 		acc = reduceFunc(acc, elem)
 	}
 	return acc
+}
+
+// DiagnosticsToString converts a diag.Diagnostics object into a formatted string representation.
+func DiagnosticsToString(diags diag.Diagnostics) string {
+	var diagStrings strings.Builder
+
+	if !diags.HasError() {
+		return diagStrings.String()
+	}
+
+	for _, diag := range diags {
+		_, _ = diagStrings.WriteString(fmt.Sprintf("Summary: %s | Detail: %s", diag.Summary, diag.Detail))
+	}
+
+	return diagStrings.String()
 }
