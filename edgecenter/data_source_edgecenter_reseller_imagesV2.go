@@ -2,38 +2,38 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
-func dataSourceResellerImages() *schema.Resource {
+func dataSourceResellerImagesV2() *schema.Resource {
 	return &schema.Resource{
-		ReadContext:        dataSourceResellerImagesRead,
-		DeprecationMessage: "!> **WARNING:** This data source is deprecated and will be removed in the next major version. Use `edgecenter_reseller_imagesV2` data source instead",
+		ReadContext: dataSourceResellerImagesV2Read,
 		Description: `
-**WARNING:** Data source "edgecenter_reseller_images" is deprecated.
+**This resource has been created for resellers and only works with the reseller API key.**
 
-Use "edgecenter_reseller_imagesV2" data source instead.
-		
-**This data source has been created for resellers and only works with the reseller API key.**
-
-Reseller and cloud admin can change the set of images, available to reseller clients.
-
-Firstly, they may limit the number of public images available.
-Secondly, they can share the image of the reseller client to all clients of the reseller.
-
-If the reseller has image_ids = [] or hasn't image_ids field in config, 
-all public images are unavailable to the client.`,
+Returns the list of public images currently available for the given project, client, or all clients of a reseller. 
+If image_ids = None, all public images are available. If image_ids = [], no public images are available`,
 
 		Schema: map[string]*schema.Schema{
-			ResellerIDField: {
+			EntityIDField: {
 				Type:        schema.TypeInt,
 				Required:    true,
-				Description: "The ID of the reseller.",
+				Description: "The ID of the entity.",
+			},
+			EntityTypeField: {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringInSlice([]string{edgecloudV2.ResellerType, edgecloudV2.ClientType, edgecloudV2.ProjectType}, false),
+				Description:  fmt.Sprintf("The entity type. Available values are '%s', '%s', '%s'.", edgecloudV2.ResellerType, edgecloudV2.ClientType, edgecloudV2.ProjectType),
 			},
 			ResellerImagesOptionsField: {
 				Type:        schema.TypeSet,
@@ -71,17 +71,18 @@ all public images are unavailable to the client.`,
 	}
 }
 
-func dataSourceResellerImagesRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	tflog.Debug(ctx, "Start reseller image reading")
+func dataSourceResellerImagesV2Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	tflog.Debug(ctx, "Start entity image reading")
 
 	clientV2, err := InitCloudClient(ctx, d, m, resellerImagesCloudClientConf())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	resellerID := d.Get(ResellerIDField).(int)
+	entityID := d.Get(EntityIDField).(int)
+	sntityType := d.Get(EntityTypeField).(string)
 
-	riList, resp, err := clientV2.ResellerImage.List(ctx, resellerID)
+	riList, resp, err := clientV2.ResellerImageV2.List(ctx, sntityType, entityID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil
@@ -89,16 +90,16 @@ func dataSourceResellerImagesRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.Itoa(resellerID))
+	d.SetId(strconv.Itoa(entityID))
 
-	riOptions := prepareResellerImagesOptions(d, riList.Results)
+	riOptions := prepareResellerImagesV2Options(d, riList.Results)
 
 	err = d.Set(ResellerImagesOptionsField, riOptions)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	tflog.Debug(ctx, "Finish reseller images reading")
+	tflog.Debug(ctx, "Finish entity images reading")
 
 	return nil
 }
