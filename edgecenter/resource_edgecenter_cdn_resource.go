@@ -117,33 +117,6 @@ var resourceOptionsSchema = &schema.Schema{
 					},
 				},
 			},
-			"country_acl": {
-				Type:        schema.TypeList,
-				MaxItems:    1,
-				Optional:    true,
-				Description: "Control access to content from the specified countries.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"enabled": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Default:     true,
-							Description: "Enable or disable the option. Allowed values are \"true\" or \"false\".",
-						},
-						"policy_type": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Set the policy type. Allowed values are \"allow\" or \"deny\". The policy allows or denies access to content from all countries except those specified in the \"excepted_values\" field.",
-						},
-						"excepted_values": {
-							Type:        schema.TypeSet,
-							Elem:        &schema.Schema{Type: schema.TypeString},
-							Required:    true,
-							Description: "Add the list of countries according to ISO-3166-1.",
-						},
-					},
-				},
-			},
 			"disable_proxy_force_ranges": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -1270,15 +1243,6 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 			opts.Cors.Always = opt["always"].(bool)
 		}
 	}
-	if opt, ok := getOptByName(fields, "country_acl"); ok {
-		opts.CountryACL = &cdn.CountryACL{
-			Enabled:    opt["enabled"].(bool),
-			PolicyType: opt["policy_type"].(string),
-		}
-		for _, v := range opt["excepted_values"].(*schema.Set).List() {
-			opts.CountryACL.ExceptedValues = append(opts.CountryACL.ExceptedValues, v.(string))
-		}
-	}
 	if opt, ok := getOptByName(fields, "disable_proxy_force_ranges"); ok {
 		opts.DisableProxyForceRanges = &cdn.DisableProxyForceRanges{
 			Enabled: opt["enabled"].(bool),
@@ -1600,10 +1564,6 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 	if options.Cors != nil {
 		m := structToMap(options.Cors)
 		result["cors"] = []interface{}{m}
-	}
-	if options.CountryACL != nil {
-		m := structToMap(options.CountryACL)
-		result["country_acl"] = []interface{}{m}
 	}
 	if options.DisableProxyForceRanges != nil {
 		m := structToMap(options.DisableProxyForceRanges)

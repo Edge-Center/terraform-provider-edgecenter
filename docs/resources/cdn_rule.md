@@ -125,7 +125,6 @@ Optional:
 - `brotli_compression` (Block List, Max: 1) Allow compressing content with Brotli on CDN. CDN servers will request only uncompressed content from the source. It is not supported unless the Origin shielding is enabled. Brotli compression is not supported when "fetch_compressed" or "slice" are enabled. (see [below for nested schema](#nestedblock--options--brotli_compression))
 - `browser_cache_settings` (Block List, Max: 1) Set the cache lifetime for the end users’ browsers in seconds. (see [below for nested schema](#nestedblock--options--browser_cache_settings))
 - `cors` (Block List, Max: 1) Add the Access-Control-Allow-Origin header to responses from the CDN servers. (see [below for nested schema](#nestedblock--options--cors))
-- `country_acl` (Block List, Max: 1) Control access to content from the specified countries. (see [below for nested schema](#nestedblock--options--country_acl))
 - `disable_proxy_force_ranges` (Block List, Max: 1) Allow CDN to get the HTTP 206 status codes regardless of the settings on the source. (see [below for nested schema](#nestedblock--options--disable_proxy_force_ranges))
 - `edge_cache_settings` (Block List, Max: 1) Set the cache expiration time for CDN servers. The "value" and "default" fields cannot be used simultaneously. (see [below for nested schema](#nestedblock--options--edge_cache_settings))
 - `fetch_compressed` (Block List, Max: 1) Let CDN pull pre-compressed content from the source and cache it. Your source should support compression. The CDN servers won't ungzip your content even if a user's browser doesn't accept compression. The option is not supported when "brotli_compression" or "slice" are enabled. (see [below for nested schema](#nestedblock--options--fetch_compressed))
@@ -200,19 +199,6 @@ Required:
 Optional:
 
 - `always` (Boolean) Add the Access-Control-Allow-Origin header to the response regardless of the HTTP response status code. Allowed values are "true" or "false". If set to "false", the header is only added to the responses with HTTP 200, 201, 204, 206, 301, 302, 303, 304, 307, or 308 response status codes.
-- `enabled` (Boolean) Enable or disable the option. Allowed values are "true" or "false".
-
-
-<a id="nestedblock--options--country_acl"></a>
-### Nested Schema for `options.country_acl`
-
-Required:
-
-- `excepted_values` (Set of String) Add the list of countries according to ISO-3166-1.
-- `policy_type` (String) Set the policy type. Allowed values are "allow" or "deny". The policy allows or denies access to content from all countries except those specified in the "excepted_values" field.
-
-Optional:
-
 - `enabled` (Boolean) Enable or disable the option. Allowed values are "true" or "false".
 
 
