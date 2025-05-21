@@ -86,14 +86,17 @@ Required:
 
 Optional:
 
-- `existing_fip_id` (String)
-- `fip_source` (String)
-- `ip_address` (String)
+- `existing_fip_id` (String) If source is existing, the ID of the existing floating IP must be specified
+- `fip_source` (String) Available value is: "new", "existing". Indicates whether the floating IP for this subnet will be new or reused
 - `is_parent` (Boolean) If not set will be calculated after creation. Trunk interface always attached first. Can't detach interface if is_parent true. Fields affect only on creation
 - `network_id` (String) required if type is 'subnet' or 'any_subnet'
 - `order` (Number) Order of attaching interface. Trunk interface always attached first, fields affect only on creation
 - `port_id` (String) required if type is  'reserved_fixed_ip'
 - `subnet_id` (String) required if type is 'subnet'
+
+Read-Only:
+
+- `ip_address` (String) The address of the network
 
 
 <a id="nestedblock--metadata"></a>
@@ -133,6 +136,7 @@ Read-Only:
 Import is supported using the following syntax:
 
 ```shell
+# Import does not support the "any_subnet" interface type, "image_id" attribute or "keypair_name" attribute.
 # import using <project_id>:<region_id>:<instance_id> format
 terraform import edgecenter_baremetal.instance1 1:6:447d2959-8ae0-4ca0-8d47-9f050a3637d7
 ```

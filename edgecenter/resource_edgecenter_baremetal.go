@@ -20,7 +20,6 @@ import (
 const (
 	BmInstanceDeletingTimeout int = 1200
 	BmInstanceCreatingTimeout int = 3600
-	BmInstancePoint               = "bminstances"
 )
 
 var (
@@ -44,8 +43,8 @@ func resourceBmInstance() *schema.Resource {
 				if err != nil {
 					return nil, err
 				}
-				d.Set("project_id", projectID)
-				d.Set("region_id", regionID)
+				d.Set(ProjectIDField, projectID)
+				d.Set(RegionIDField, regionID)
 				d.SetId(InstanceID)
 
 				return []*schema.ResourceData{d}, nil
@@ -53,190 +52,194 @@ func resourceBmInstance() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"project_id": {
+			ProjectIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
-				ExactlyOneOf: []string{"project_id", "project_name"},
+				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
 			},
-			"project_name": {
+			ProjectNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
-				ExactlyOneOf: []string{"project_id", "project_name"},
+				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
 			},
-			"region_id": {
+			RegionIDField: {
 				Type:         schema.TypeInt,
 				Computed:     true,
 				Optional:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
-				ExactlyOneOf: []string{"region_id", "region_name"},
+				ExactlyOneOf: []string{RegionIDField, RegionNameField},
 			},
-			"region_name": {
+			RegionNameField: {
 				Type:         schema.TypeString,
 				Computed:     true,
 				Optional:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
-				ExactlyOneOf: []string{"region_id", "region_name"},
+				ExactlyOneOf: []string{RegionIDField, RegionNameField},
 			},
-			"flavor_id": {
+			FlavorIDField: {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
-			"interface": {
+			InterfaceField: {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
+						TypeField: {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: fmt.Sprintf("Available value is '%s', '%s', '%s', '%s'", edgecloudV2.InterfaceTypeSubnet, edgecloudV2.InterfaceTypeAnySubnet, edgecloudV2.InterfaceTypeExternal, edgecloudV2.InterfaceTypeReservedFixedIP),
 						},
-						"is_parent": {
+						IsParentField: {
 							Type:        schema.TypeBool,
 							Computed:    true,
 							Optional:    true,
 							Description: "If not set will be calculated after creation. Trunk interface always attached first. Can't detach interface if is_parent true. Fields affect only on creation",
 						},
-						"order": {
+						OrderField: {
 							Type:        schema.TypeInt,
 							Optional:    true,
+							Computed:    true,
 							Description: "Order of attaching interface. Trunk interface always attached first, fields affect only on creation",
 						},
-						"network_id": {
+						NetworkIDField: {
 							Type:        schema.TypeString,
 							Description: "required if type is 'subnet' or 'any_subnet'",
 							Optional:    true,
 							Computed:    true,
 						},
-						"subnet_id": {
+						SubnetIDField: {
 							Type:        schema.TypeString,
 							Description: "required if type is 'subnet'",
 							Optional:    true,
 							Computed:    true,
 						},
-						"port_id": {
+						PortIDField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "required if type is  'reserved_fixed_ip'",
 							Optional:    true,
 						},
 						// nested map is not supported, in this case, you do not need to use the list for the map
-						"fip_source": {
-							Type:     schema.TypeString,
-							Optional: true,
+						FipSourceField: {
+							Type:        schema.TypeString,
+							Description: `Available value is: "new", "existing". Indicates whether the floating IP for this subnet will be new or reused`,
+							Optional:    true,
 						},
-						"existing_fip_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+						ExistingFipIDField: {
+							Type:        schema.TypeString,
+							Description: `If source is existing, the ID of the existing floating IP must be specified`,
+							Optional:    true,
+							Computed:    true,
 						},
-						"ip_address": {
-							Type:     schema.TypeString,
-							Computed: true,
-							Optional: true,
+						IPAddressField: {
+							Type:        schema.TypeString,
+							Description: "The address of the network",
+							Computed:    true,
 						},
 					},
 				},
 			},
-			"name": {
+			NameField: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 				Description: "The name of the baremetal instance.",
 			},
-			"name_templates": {
+			NameTemplatesField: {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Deprecated:    "Use name_template instead",
-				ConflictsWith: []string{"name_template"},
+				ConflictsWith: []string{NameTemplateField},
 				Elem:          &schema.Schema{Type: schema.TypeString},
 			},
-			"name_template": {
+			NameTemplateField: {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"name_templates"},
+				ConflictsWith: []string{NameTemplatesField},
 			},
-			"image_id": {
+			ImageIDField: {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
-					"image_id",
-					"apptemplate_id",
+					ImageIDField,
+					ApptemplateIDField,
 				},
 			},
-			"apptemplate_id": {
+			ApptemplateIDField: {
 				Type:     schema.TypeString,
 				Optional: true,
 				ExactlyOneOf: []string{
-					"image_id",
-					"apptemplate_id",
+					ImageIDField,
+					ApptemplateIDField,
 				},
 			},
-			"keypair_name": {
+			KeypairNameField: {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"password": {
+			PasswordField: {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"username": {
+			UsernameField: {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"metadata": {
+			MetadataField: {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Deprecated:    "Use metadata_map instead",
-				ConflictsWith: []string{"metadata_map"},
+				ConflictsWith: []string{MetadataMapField},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"key": {
+						KeyField: {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"value": {
+						ValueField: {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 					},
 				},
 			},
-			"metadata_map": {
+			MetadataMapField: {
 				Type:          schema.TypeMap,
 				Optional:      true,
-				ConflictsWith: []string{"metadata"},
+				ConflictsWith: []string{MetadataField},
 				Description:   "A map containing metadata, for example tags.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"app_config": {
+			AppConfigField: {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
-			"user_data": {
+			UserDataField: {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-
 			// computed
-			"flavor": {
+			FlavorField: {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"status": {
+			StatusField: {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"vm_state": {
+			VmStateField: {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"addresses": {
+			AddressesField: {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -250,7 +253,7 @@ func resourceBmInstance() *schema.Resource {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"type": {
+									TypeField: {
 										Type:     schema.TypeString,
 										Required: true,
 									},
@@ -260,7 +263,7 @@ func resourceBmInstance() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": {
+			LastUpdatedField: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
@@ -279,17 +282,22 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	ifs := d.Get("interface").([]interface{})
+	diags = validateInterfaceBaremetalOpts(ctx, clientV2, d)
+	if diags.HasError() {
+		return diags
+	}
+
+	ifs := d.Get(InterfaceField).([]interface{})
 	// sort interfaces by 'is_parent' at first and by 'order' key to attach it in right order
 	sort.Sort(instanceInterfaces(ifs))
 	interfaceOptsList := make([]edgecloudV2.BareMetalInterfaceOpts, len(ifs))
 	for i, iFace := range ifs {
 		raw := iFace.(map[string]interface{})
 		interfaceOpts := edgecloudV2.BareMetalInterfaceOpts{
-			Type:      edgecloudV2.InterfaceType(raw["type"].(string)),
-			NetworkID: raw["network_id"].(string),
-			SubnetID:  raw["subnet_id"].(string),
-			PortID:    raw["port_id"].(string),
+			Type:      edgecloudV2.InterfaceType(raw[TypeField].(string)),
+			NetworkID: raw[NetworkIDField].(string),
+			SubnetID:  raw[SubnetIDField].(string),
+			PortID:    raw[PortIDField].(string),
 		}
 
 		if interfaceOpts.NetworkID != "" {
@@ -302,8 +310,8 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 			}
 		}
 
-		fipSource := raw["fip_source"].(string)
-		fipID := raw["existing_fip_id"].(string)
+		fipSource := raw[FipSourceField].(string)
+		fipID := raw[ExistingFipIDField].(string)
 		if fipSource != "" {
 			interfaceOpts.FloatingIP = &edgecloudV2.InterfaceFloatingIP{
 				Source:             edgecloudV2.FloatingIPSource(fipSource),
@@ -315,23 +323,23 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 
 	log.Printf("[DEBUG] Baremetal interfaces: %+v", interfaceOptsList)
 	createRequest := edgecloudV2.BareMetalServerCreateRequest{
-		Flavor:        d.Get("flavor_id").(string),
-		ImageID:       d.Get("image_id").(string),
-		AppTemplateID: d.Get("apptemplate_id").(string),
-		KeypairName:   d.Get("keypair_name").(string),
-		Password:      d.Get("password").(string),
-		Username:      d.Get("username").(string),
-		UserData:      d.Get("user_data").(string),
-		AppConfig:     d.Get("app_config").(map[string]interface{}),
+		Flavor:        d.Get(FlavorIDField).(string),
+		ImageID:       d.Get(ImageIDField).(string),
+		AppTemplateID: d.Get(ApptemplateIDField).(string),
+		KeypairName:   d.Get(KeypairNameField).(string),
+		Password:      d.Get(PasswordField).(string),
+		Username:      d.Get(UsernameField).(string),
+		UserData:      d.Get(UserDataField).(string),
+		AppConfig:     d.Get(AppConfigField).(map[string]interface{}),
 		Interfaces:    interfaceOptsList,
 	}
 
-	name := d.Get("name").(string)
+	name := d.Get(NameField).(string)
 	if len(name) > 0 {
 		createRequest.Names = []string{name}
 	}
 
-	if nameTemplatesRaw, ok := d.GetOk("name_templates"); ok {
+	if nameTemplatesRaw, ok := d.GetOk(NameTemplatesField); ok {
 		nameTemplates := nameTemplatesRaw.([]interface{})
 		if len(nameTemplates) > 0 {
 			NameTemp := make([]string, len(nameTemplates))
@@ -340,11 +348,11 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 			}
 			createRequest.NameTemplates = NameTemp
 		}
-	} else if nameTemplate, ok := d.GetOk("name_template"); ok {
+	} else if nameTemplate, ok := d.GetOk(NameTemplateField); ok {
 		createRequest.NameTemplates = []string{nameTemplate.(string)}
 	}
 
-	if metadata, ok := d.GetOk("metadata"); ok {
+	if metadata, ok := d.GetOk(MetadataField); ok {
 		if len(metadata.([]interface{})) > 0 {
 			metadataKV, err := extractKeyValueV2(metadata.([]interface{}))
 			if err != nil {
@@ -356,7 +364,7 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 			}
 			createRequest.Metadata = *metadata
 		}
-	} else if metadataRaw, ok := d.GetOk("metadata_map"); ok {
+	} else if metadataRaw, ok := d.GetOk(MetadataMapField); ok {
 		metadata, err := MapInterfaceToMapString(metadataRaw)
 		if err != nil {
 			diag.FromErr(err)
@@ -395,8 +403,8 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	d.Set("region_id", clientV2.Region)
-	d.Set("project_id", clientV2.Project)
+	d.Set(RegionIDField, clientV2.Region)
+	d.Set(ProjectIDField, clientV2.Project)
 
 	instance, resp, err := clientV2.Instances.Get(ctx, instanceID)
 	if err != nil {
@@ -408,17 +416,17 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	d.Set("name", instance.Name)
-	d.Set("flavor_id", instance.Flavor.FlavorID)
-	d.Set("status", instance.Status)
-	d.Set("vm_state", instance.VMState)
+	d.Set(NameField, instance.Name)
+	d.Set(FlavorIDField, instance.Flavor.FlavorID)
+	d.Set(StatusField, instance.Status)
+	d.Set(VmStateField, instance.VMState)
 
 	flavor := make(map[string]interface{}, 4)
-	flavor["flavor_id"] = instance.Flavor.FlavorID
-	flavor["flavor_name"] = instance.Flavor.FlavorName
-	flavor["ram"] = strconv.Itoa(instance.Flavor.RAM)
-	flavor["vcpus"] = strconv.Itoa(instance.Flavor.VCPUS)
-	d.Set("flavor", flavor)
+	flavor[FlavorIDField] = instance.Flavor.FlavorID
+	flavor[FlavorNameField] = instance.Flavor.FlavorName
+	flavor[RAMField] = strconv.Itoa(instance.Flavor.RAM)
+	flavor[VCPUsField] = strconv.Itoa(instance.Flavor.VCPUS)
+	d.Set(FlavorField, flavor)
 
 	interfacesListAPI, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
 	if err != nil {
@@ -429,108 +437,49 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.Errorf("interface not found")
 	}
 
-	ifs := d.Get("interface").([]interface{})
-	orderedInterfacesMap := extractInstanceInterfaceToListRead(ifs)
+	interfacesList, err := convertApiIfaceToTfIface(interfacesListAPI)
 	if err != nil {
+		return diag.Errorf("convert interface to tf format: %s", err)
+	}
+
+	ifs := d.Get(InterfaceField).([]interface{})
+	sort.Sort(instanceInterfaces(ifs))
+
+	// Get some data from configuration file
+	for index, v := range ifs {
+		if apiIfaceRaw, ok := SafeGet(interfacesList, index); ok {
+			apiIface := apiIfaceRaw.(map[string]interface{})
+			tfIface := v.(map[string]interface{})
+
+			apiIface[TypeField] = tfIface[TypeField].(string)
+
+			if value := tfIface[FipSourceField].(string); value != "" {
+				apiIface[FipSourceField] = value
+			}
+		}
+	}
+
+	if err := d.Set(InterfaceField, interfacesList); err != nil {
 		return diag.FromErr(err)
 	}
 
-	var interfacesList []interface{}
-	for _, iFace := range interfacesListAPI {
-		if len(iFace.IPAssignments) == 0 {
-			continue
-		}
-		for _, assignment := range iFace.IPAssignments {
-			subnetID := assignment.SubnetID
-
-			var interfaceOpts OrderedInterfaceOpts
-			var orderedInterfaceOpts OrderedInterfaceOpts
-			var ok bool
-
-			// we need to match our interfaces with api's interfaces
-			// but with don't have any unique value, that's why we use exactly that list of keys
-			for _, k := range []string{subnetID, iFace.PortID, iFace.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
-				if orderedInterfaceOpts, ok = orderedInterfacesMap[k]; ok {
-					interfaceOpts = orderedInterfaceOpts
-					break
-				}
-			}
-
-			if !ok {
-				continue
-			}
-
-			i := make(map[string]interface{})
-			i["type"] = interfaceOpts.InstanceInterface.Type
-			i["order"] = interfaceOpts.Order
-			i["network_id"] = iFace.NetworkID
-			i["subnet_id"] = subnetID
-			i["port_id"] = iFace.PortID
-			if iFace.SubPorts != nil {
-				i["is_parent"] = true
-			}
-			if interfaceOpts.InstanceInterface.FloatingIP != nil {
-				i["fip_source"] = interfaceOpts.InstanceInterface.FloatingIP.Source
-				i["existing_fip_id"] = interfaceOpts.InstanceInterface.FloatingIP.ExistingFloatingID
-			}
-			i["ip_address"] = assignment.IPAddress.String()
-
-			interfacesList = append(interfacesList, i)
-		}
-		for _, iFaceSubPort := range iFace.SubPorts {
-			for _, assignmentSubPort := range iFaceSubPort.IPAssignments {
-				assignmentSubnetID := assignmentSubPort.SubnetID
-
-				var interfaceOpts OrderedInterfaceOpts
-				var orderedInterfaceOpts OrderedInterfaceOpts
-				var ok bool
-
-				for _, k := range []string{assignmentSubnetID, iFaceSubPort.PortID, iFaceSubPort.NetworkID, string(edgecloudV2.InterfaceTypeExternal)} {
-					if orderedInterfaceOpts, ok = orderedInterfacesMap[k]; ok {
-						interfaceOpts = orderedInterfaceOpts
-						break
-					}
-				}
-
-				i := make(map[string]interface{})
-
-				i["type"] = interfaceOpts.InstanceInterface.Type
-				i["order"] = interfaceOpts.Order
-				i["network_id"] = iFaceSubPort.NetworkID
-				i["subnet_id"] = assignmentSubnetID
-				i["port_id"] = iFaceSubPort.PortID
-				i["is_parent"] = false
-				if interfaceOpts.InstanceInterface.FloatingIP != nil {
-					i["fip_source"] = interfaceOpts.InstanceInterface.FloatingIP.Source
-					i["existing_fip_id"] = interfaceOpts.InstanceInterface.FloatingIP.ExistingFloatingID
-				}
-				i["ip_address"] = assignmentSubPort.IPAddress.String()
-
-				interfacesList = append(interfacesList, i)
-			}
-		}
-	}
-	if err := d.Set("interface", interfacesList); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if metadataRaw, ok := d.GetOk("metadata"); ok {
+	if metadataRaw, ok := d.GetOk(MetadataField); ok {
 		metadata := metadataRaw.([]interface{})
 		sliced := make([]map[string]string, len(metadata))
 		for i, data := range metadata {
 			d := data.(map[string]interface{})
 			mdata := make(map[string]string, 2)
-			md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: d["key"].(string)})
+			md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: d[KeyField].(string)})
 			if err != nil {
 				return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
 			}
-			mdata["key"] = md.Key
-			mdata["value"] = md.Value
+			mdata[KeyField] = md.Key
+			mdata[ValueField] = md.Value
 			sliced[i] = mdata
 		}
-		d.Set("metadata", sliced)
+		d.Set(MetadataField, sliced)
 	} else {
-		metadata := d.Get("metadata_map").(map[string]interface{})
+		metadata := d.Get(MetadataMapField).(map[string]interface{})
 		newMetadata := make(map[string]interface{}, len(metadata))
 		for k := range metadata {
 			md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
@@ -539,7 +488,7 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 			}
 			newMetadata[k] = md.Value
 		}
-		if err := d.Set("metadata_map", newMetadata); err != nil {
+		if err := d.Set(MetadataMapField, newMetadata); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -550,18 +499,18 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 		netd := make([]map[string]string, len(data))
 		for i, iaddr := range data {
 			ndata := make(map[string]string, 2)
-			ndata["type"] = iaddr.Type
+			ndata[TypeField] = iaddr.Type
 			ndata["addr"] = iaddr.Address.String()
 			netd[i] = ndata
 		}
 		d["net"] = netd
 		addresses = append(addresses, d)
 	}
-	if err := d.Set("addresses", addresses); err != nil {
+	if err := d.Set(AddressesField, addresses); err != nil {
 		return diag.FromErr(err)
 	}
 
-	fields := []string{"user_data", "app_config"}
+	fields := []string{UserDataField, AppConfigField}
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish Instance reading")
@@ -579,23 +528,28 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	if d.HasChange("name") {
-		nameTemplates := d.Get("name_templates").([]interface{})
-		nameTemplate := d.Get("name_template").(string)
+	diags := validateInterfaceBaremetalOpts(ctx, clientV2, d)
+	if diags.HasError() {
+		return diags
+	}
+
+	if d.HasChange(NameField) {
+		nameTemplates := d.Get(NameTemplatesField).([]interface{})
+		nameTemplate := d.Get(NameTemplateField).(string)
 		if len(nameTemplate) == 0 && len(nameTemplates) == 0 {
-			opts := edgecloudV2.Name{Name: d.Get("name").(string)}
+			opts := edgecloudV2.Name{Name: d.Get(NameField).(string)}
 			if _, _, err := clientV2.Instances.Rename(ctx, instanceID, &opts); err != nil {
 				return diag.FromErr(err)
 			}
 		}
 	}
 
-	if d.HasChange("metadata") {
-		omd, nmd := d.GetChange("metadata")
+	if d.HasChange(MetadataField) {
+		omd, nmd := d.GetChange(MetadataField)
 		if len(omd.([]interface{})) > 0 {
 			for _, data := range omd.([]interface{}) {
 				d := data.(map[string]interface{})
-				k := d["key"].(string)
+				k := d[KeyField].(string)
 				_, err = clientV2.Instances.MetadataDeleteItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
 				if err != nil {
 					return diag.Errorf("cannot delete metadata key: %s. Error: %s", k, err)
@@ -606,15 +560,15 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 			MetaData := make(edgecloudV2.Metadata)
 			for _, data := range nmd.([]interface{}) {
 				d := data.(map[string]interface{})
-				MetaData[d["key"].(string)] = d["value"].(string)
+				MetaData[d[KeyField].(string)] = d[ValueField].(string)
 			}
 			_, err = clientV2.Instances.MetadataCreate(ctx, instanceID, &MetaData)
 			if err != nil {
 				return diag.Errorf("cannot create metadata. Error: %s", err)
 			}
 		}
-	} else if d.HasChange("metadata_map") {
-		omd, nmd := d.GetChange("metadata_map")
+	} else if d.HasChange(MetadataMapField) {
+		omd, nmd := d.GetChange(MetadataMapField)
 		if !reflect.DeepEqual(omd, nmd) {
 			MetaData := make(edgecloudV2.Metadata)
 			for k, v := range nmd.(map[string]interface{}) {
@@ -627,8 +581,8 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 		}
 	}
 
-	if d.HasChange("interface") {
-		ifsOldRaw, ifsNewRaw := d.GetChange("interface")
+	if d.HasChange(InterfaceField) {
+		ifsOldRaw, ifsNewRaw := d.GetChange(InterfaceField)
 
 		ifsOld := ifsOldRaw.([]interface{})
 		ifsNew := ifsNewRaw.([]interface{})
@@ -640,10 +594,21 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 				continue
 			}
 
-			if iface["is_parent"].(bool) {
-				return diag.Errorf("could not detach trunk interface")
+			if iface[IsParentField].(bool) || iface[OrderField].(int) == 0 {
+				err = d.Set(InterfaceField, ifsOld)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+
+				return diag.Errorf("change first or parent interface is not allowed")
 			}
-			if err := detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
+
+			if err = detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
+				err = d.Set(InterfaceField, ifsOld)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+
 				return diag.FromErr(err)
 			}
 		}
@@ -664,15 +629,16 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 				continue
 			}
 
-			iType := edgecloudV2.InterfaceType(iface["type"].(string))
+			iType := edgecloudV2.InterfaceType(iface[TypeField].(string))
 			opts := edgecloudV2.InstanceInterface{Type: iType}
+
 			switch iType {
 			case edgecloudV2.InterfaceTypeSubnet:
-				opts.SubnetID = iface["subnet_id"].(string)
+				opts.SubnetID = iface[SubnetIDField].(string)
 			case edgecloudV2.InterfaceTypeAnySubnet:
-				opts.NetworkID = iface["network_id"].(string)
+				opts.NetworkID = iface[NetworkIDField].(string)
 			case edgecloudV2.InterfaceTypeReservedFixedIP:
-				opts.PortID = iface["port_id"].(string)
+				opts.PortID = iface[PortIDField].(string)
 			case edgecloudV2.InterfaceTypeExternal:
 			}
 
@@ -683,7 +649,7 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 		}
 	}
 
-	d.Set("last_updated", time.Now().Format(time.RFC850))
+	d.Set(LastUpdatedField, time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish Instance updating")
 
 	return resourceBmInstanceRead(ctx, d, m)
