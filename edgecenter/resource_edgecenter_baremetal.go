@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -111,17 +112,14 @@ func resourceBmInstance() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "required if type is 'subnet' or 'any_subnet'",
 							Optional:    true,
-							Computed:    true,
 						},
 						SubnetIDField: {
 							Type:        schema.TypeString,
 							Description: "required if type is 'subnet'",
 							Optional:    true,
-							Computed:    true,
 						},
 						PortIDField: {
 							Type:        schema.TypeString,
-							Computed:    true,
 							Description: "required if type is  'reserved_fixed_ip'",
 							Optional:    true,
 						},
@@ -135,7 +133,6 @@ func resourceBmInstance() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: `If source is existing, the ID of the existing floating IP must be specified`,
 							Optional:    true,
-							Computed:    true,
 						},
 						IPAddressField: {
 							Type:        schema.TypeString,
@@ -445,13 +442,18 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 	ifs := d.Get(InterfaceField).([]interface{})
 	sort.Sort(instanceInterfaces(ifs))
 
-	// Get some data from configuration file
+	// If possible, try to get some data from configuration file
 	for index, v := range ifs {
 		if apiIfaceRaw, ok := SafeGet(interfacesList, index); ok {
 			apiIface := apiIfaceRaw.(map[string]interface{})
 			tfIface := v.(map[string]interface{})
+			tfIfaceType := tfIface[TypeField].(string)
 
 			apiIface[TypeField] = tfIface[TypeField].(string)
+
+			if strings.EqualFold(tfIfaceType, string(edgecloudV2.InterfaceTypeAnySubnet)) {
+				apiIface[SubnetIDField] = ""
+			}
 
 			if value := tfIface[FipSourceField].(string); value != "" {
 				apiIface[FipSourceField] = value
@@ -528,11 +530,6 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	diags := validateInterfaceBaremetalOpts(ctx, clientV2, d)
-	if diags.HasError() {
-		return diags
-	}
-
 	if d.HasChange(NameField) {
 		nameTemplates := d.Get(NameTemplatesField).([]interface{})
 		nameTemplate := d.Get(NameTemplateField).(string)
@@ -587,6 +584,16 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 		ifsOld := ifsOldRaw.([]interface{})
 		ifsNew := ifsNewRaw.([]interface{})
 
+		diags := validateInterfaceBaremetalOpts(ctx, clientV2, d)
+		if diags.HasError() {
+			err = d.Set(InterfaceField, ifsOld)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			return diags
+		}
+
 		for _, i := range ifsOld {
 			iface := i.(map[string]interface{})
 			if isInterfaceContains(iface, ifsNew) {
@@ -615,6 +622,10 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 		currentIfs, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
 		if err != nil {
+			err = d.Set(InterfaceField, ifsOld)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 			return diag.FromErr(err)
 		}
 
@@ -644,6 +655,10 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 			log.Printf("[DEBUG] attach interface: %+v", opts)
 			if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
+				err = d.Set(InterfaceField, ifsOld)
+				if err != nil {
+					return diag.FromErr(err)
+				}
 				return diag.FromErr(err)
 			}
 		}

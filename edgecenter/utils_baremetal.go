@@ -13,7 +13,8 @@ import (
 )
 
 func validateInterfaceBaremetalOpts(ctx context.Context, client *edgecloudV2.Client, d *schema.ResourceData) diag.Diagnostics {
-	ifaceOptsList := d.Get(InterfaceField).([]interface{})
+	_, ifaceOptsRaw := d.GetChange(InterfaceField)
+	ifaceOptsList := ifaceOptsRaw.([]interface{})
 
 	err := checkIfaceBaremetalAttrCombinations(ifaceOptsList)
 	if err != nil {
@@ -68,8 +69,8 @@ func checkIfaceBaremetalAttrCombinations(ifaces []interface{}) error {
 			}
 
 		case string(edgecloudV2.InterfaceTypeAnySubnet):
-			if subnetID != "" {
-				return fmt.Errorf("you can't use \"%s\" attributes for \"%s\" interface type", SubnetIDField, ifsType)
+			if subnetID != "" || portID != "" {
+				return fmt.Errorf("you can't use \"%s\", \"%s\" attributes for \"%s\" interface type", SubnetIDField, PortIDField, ifsType)
 			}
 
 			err := checkFloatingIPBaremetalAttrCombinations(fipSourceField, existingFipIDField)
@@ -158,9 +159,6 @@ func convertApiIfaceToTfIface(apiIFaces []edgecloudV2.InstancePortInterface) ([]
 	parentIFace[IsParentField] = true
 	parentIFace[OrderField] = iFaceOrder
 	parentIFace[IPAddressField] = iFace.IPAssignments[0].IPAddress.String()
-	parentIFace[SubnetIDField] = iFace.IPAssignments[0].SubnetID
-	parentIFace[NetworkIDField] = iFace.NetworkID
-	parentIFace[PortIDField] = iFace.PortID
 
 	if len(iFace.FloatingIPDetails) != 0 {
 		// As we cannot retrieve the setting that we specified during creation from CloudAPI, we have set the default to 'existing'.
@@ -173,26 +171,28 @@ func convertApiIfaceToTfIface(apiIFaces []edgecloudV2.InstancePortInterface) ([]
 		parentIFace[TypeField] = string(edgecloudV2.InterfaceTypeExternal)
 	case strings.Contains(iFace.Name, "reserved_fixed_ip"):
 		parentIFace[TypeField] = string(edgecloudV2.InterfaceTypeReservedFixedIP)
+		parentIFace[PortIDField] = iFace.PortID
 	default:
-		parentIFace[TypeField] = string(edgecloudV2.InterfaceTypeAnySubnet)
+		parentIFace[TypeField] = string(edgecloudV2.InterfaceTypeSubnet)
+		parentIFace[SubnetIDField] = iFace.IPAssignments[0].SubnetID
+		parentIFace[NetworkIDField] = iFace.NetworkID
 	}
 
 	iFaces = append(iFaces, parentIFace)
 
 	for _, iSub := range iFace.SubPorts {
+		if len(iSub.IPAssignments) == 0 {
+			continue
+		}
+
 		iFaceOrder++
 
 		iSubFace := make(map[string]interface{})
-		if len(iSub.IPAssignments) == 0 {
-			return nil, fmt.Errorf("no IP assignments found in trunk interface")
-		}
 
 		iSubFace[IsParentField] = false
 		iSubFace[OrderField] = iFaceOrder
+
 		iSubFace[IPAddressField] = iSub.IPAssignments[0].IPAddress.String()
-		iSubFace[SubnetIDField] = iSub.IPAssignments[0].SubnetID
-		iSubFace[NetworkIDField] = iSub.NetworkID
-		iSubFace[PortIDField] = iSub.PortID
 
 		if len(iSub.FloatingIPDetails) != 0 {
 			// As we cannot retrieve the setting that we specified during creation from CloudAPI, we have set the default to 'existing'.
@@ -201,12 +201,15 @@ func convertApiIfaceToTfIface(apiIFaces []edgecloudV2.InstancePortInterface) ([]
 		}
 
 		switch {
-		case iFace.NetworkDetails.External:
+		case iSub.NetworkDetails.External:
 			iSubFace[TypeField] = string(edgecloudV2.InterfaceTypeExternal)
 		case strings.Contains(iFace.Name, "reserved_fixed_ip"):
 			iSubFace[TypeField] = string(edgecloudV2.InterfaceTypeReservedFixedIP)
+			iSubFace[PortIDField] = iSub.PortID
 		default:
-			iSubFace[TypeField] = string(edgecloudV2.InterfaceTypeAnySubnet)
+			iSubFace[TypeField] = string(edgecloudV2.InterfaceTypeSubnet)
+			iSubFace[SubnetIDField] = iSub.IPAssignments[0].SubnetID
+			iSubFace[NetworkIDField] = iSub.NetworkID
 		}
 
 		iFaces = append(iFaces, iSubFace)
