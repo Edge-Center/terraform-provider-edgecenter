@@ -1089,7 +1089,15 @@ func checkUniqueIfaceSubnets(ctx context.Context, client *edgecloudV2.Client, in
 			}
 			subnets[subnetID] = ifs
 		case string(edgecloudV2.InterfaceTypeReservedFixedIP):
-			portID := ifsMap[InstanceReservedFixedIPPortIDField].(string)
+			portIDRaw, ok := ifsMap[InstanceReservedFixedIPPortIDField]
+			if !ok {
+				portIDRaw, ok = ifsMap[PortIDField]
+				if !ok {
+					return errors.New("port id for reserved fixed ip not found")
+				}
+			}
+
+			portID := portIDRaw.(string)
 			reservedFixedIPIndex := slices.IndexFunc(reservedIPS, func(reservedFixedIP edgecloudV2.ReservedFixedIP) bool {
 				return reservedFixedIP.PortID == portID
 			})

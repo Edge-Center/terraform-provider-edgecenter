@@ -110,6 +110,18 @@ const (
 	MetadataReadOnlyField         = "metadata_read_only"
 	EntityIDField                 = "entity_id"
 	EntityTypeField               = "entity_type"
+	ExistingFipIDField            = "existing_fip_id"
+	FipSourceField                = "fip_source"
+	InterfaceField                = "interface"
+	NameTemplatesField            = "name_templates"
+	NameTemplateField             = "name_template"
+	ImageIDField                  = "image_id"
+	ApptemplateIDField            = "apptemplate_id"
+	KeypairNameField              = "keypair_name"
+	AppConfigField                = "app_config"
+	UserDataField                 = "user_data"
+	VmStateField                  = "vm_state"
+	AddressesField                = "addresses"
 )
 
 type CloudClientConf struct {
