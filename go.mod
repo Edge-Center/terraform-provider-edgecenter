@@ -8,7 +8,7 @@ require (
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0
 	github.com/Edge-Center/edgecentercdn-go v0.1.16
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
-	github.com/Edge-Center/edgecentercloud-go/v2 v2.2.0
+	github.com/Edge-Center/edgecentercloud-go/v2 v2.2.1-0.20250526095519-90f0e70dfacd
 	github.com/connerdouglass/go-retry v1.0.1
 	github.com/hashicorp/go-cty v1.4.1-0.20200723130312-85980079f637
 	github.com/hashicorp/terraform-plugin-log v0.9.0

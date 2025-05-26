@@ -209,7 +209,7 @@ func convertApiIfaceToTfIface(apiIFaces []edgecloudV2.InstancePortInterface) ([]
 		switch {
 		case iSub.NetworkDetails.External:
 			iSubFace[TypeField] = string(edgecloudV2.InterfaceTypeExternal)
-		case strings.Contains(iFace.Name, "reserved_fixed_ip"):
+		case strings.Contains(iSub.Name, "reserved_fixed_ip"):
 			iSubFace[TypeField] = string(edgecloudV2.InterfaceTypeReservedFixedIP)
 			iSubFace[PortIDField] = iSub.PortID
 		default:
