@@ -98,7 +98,6 @@ func resourceBmInstance() *schema.Resource {
 						},
 						IsParentField: {
 							Type:        schema.TypeBool,
-							Computed:    true,
 							Optional:    true,
 							Description: "If not set will be calculated after creation. Trunk interface always attached first. Can't detach interface if is_parent true. Fields affect only on creation",
 						},
@@ -598,8 +597,19 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 			return diags
 		}
 
+		for _, ifNew := range ifsNew {
+			if ifNew.(map[string]interface{})[IsParentField].(bool) {
+				if errSet := d.Set(InterfaceField, ifsOld); errSet != nil {
+					return diag.FromErr(errSet)
+				}
+
+				return diag.Errorf("change first or parent interface is not allowed")
+			}
+		}
+
 		for _, i := range ifsOld {
 			iface := i.(map[string]interface{})
+
 			if isInterfaceContains(iface, ifsNew) {
 				log.Println("[DEBUG] Skipped, dont need detach")
 
