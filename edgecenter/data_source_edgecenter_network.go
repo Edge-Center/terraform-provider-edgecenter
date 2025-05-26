@@ -41,9 +41,18 @@ func dataSourceNetwork() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the network.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The name of the network. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
+			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the network. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			"shared_with_subnets": {
 				Type:        schema.TypeBool,
@@ -184,91 +193,114 @@ func dataSourceNetwork() *schema.Resource {
 
 func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Network reading")
-	var diags diag.Diagnostics
+
+	var (
+		rawNetwork map[string]interface{}
+		subs       []edgecloudV2.Subnetwork
+		meta       []edgecloudV2.MetadataDetailed
+	)
+
+	name := d.Get("name").(string)
+	networkID := d.Get("id").(string)
+	withDetails := d.Get("shared_with_subnets").(bool)
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	name := d.Get("name").(string)
-	metaOpts := &edgecloudV2.NetworkListOptions{}
-
-	if metadataK, ok := d.GetOk("metadata_k"); ok {
-		metaOpts.MetadataK = metadataK.(string)
+	fetchNetOpts := fetchNetworksWithSubnetsOptions{
+		clientV2: clientV2,
 	}
 
-	if metadataRaw, ok := d.GetOk("metadata_kv"); ok {
-		meta, err := MapInterfaceToMapString(metadataRaw)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		typedMetadataKVJson, err := json.Marshal(meta)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		metaOpts.MetadataKV = string(typedMetadataKVJson)
-	}
+	switch {
+	case networkID != "":
+		if withDetails {
+			fetchNetOpts.fetchOpts = &edgecloudV2.NetworksWithSubnetsOptions{NetworkID: networkID}
+			rawNetwork, subs, meta, err = fetchNetworksWithSubnets(ctx, fetchNetOpts)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		} else {
+			net, _, err := clientV2.Networks.Get(ctx, networkID)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 
-	var (
-		withDetails = d.Get("shared_with_subnets").(bool)
-		rawNetwork  map[string]interface{}
-		subs        []edgecloudV2.Subnetwork
-		meta        []edgecloudV2.MetadataDetailed
-	)
+			meta = net.Metadata
 
-	if !withDetails {
-		nets, _, err := clientV2.Networks.List(ctx, metaOpts)
-		if err != nil {
-			return diag.FromErr(err)
+			rawNetwork, err = StructToMap(net)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 		}
-		network, found := findNetworkByName(name, nets)
-		if !found {
-			return diag.Errorf("network with name %s not found. you can try to set 'shared_with_subnets' parameter", name)
-		}
-		meta = network.Metadata
-		rawNetwork, err = StructToMap(network)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		nets, _, err := clientV2.Networks.ListNetworksWithSubnets(ctx, nil)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		sharedNetwork, found := findSharedNetworkByName(name, nets)
-		if !found {
-			return diag.Errorf("shared network with name %s not found", name)
-		}
-		subs = sharedNetwork.Subnets
-		rawNetwork, err = StructToMap(sharedNetwork)
-		if err != nil {
-			return diag.FromErr(err)
+	default:
+		if withDetails {
+			fetchNetOpts.networkName = name
+			rawNetwork, subs, meta, err = fetchNetworksWithSubnets(ctx, fetchNetOpts)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		} else {
+			metaOpts := &edgecloudV2.NetworkListOptions{}
+
+			if metadataK, ok := d.GetOk("metadata_k"); ok {
+				metaOpts.MetadataK = metadataK.(string)
+			}
+
+			if metadataRaw, ok := d.GetOk("metadata_kv"); ok {
+				meta, err := MapInterfaceToMapString(metadataRaw)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+				typedMetadataKVJson, err := json.Marshal(meta)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+				metaOpts.MetadataKV = string(typedMetadataKVJson)
+			}
+
+			nets, _, err := clientV2.Networks.List(ctx, metaOpts)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			network, err := findNetworkByName(name, nets)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			meta = network.Metadata
+
+			rawNetwork, err = StructToMap(network)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 		}
 	}
 
 	d.SetId(rawNetwork["id"].(string))
-	d.Set("name", rawNetwork["name"])
-	d.Set("mtu", rawNetwork["mtu"])
-	d.Set("type", rawNetwork["type"])
-	d.Set("region_id", rawNetwork["region_id"])
-	d.Set("project_id", rawNetwork["project_id"])
-	d.Set("external", rawNetwork["external"])
-	d.Set("shared", rawNetwork["shared"])
-	if withDetails {
-		if len(subs) > 0 {
-			if err := d.Set("subnets", prepareSubnets(subs)); err != nil {
-				return diag.FromErr(err)
-			}
-		}
-	} else {
-		metadataReadOnly := PrepareMetadataReadonly(meta)
-		if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
+	_ = d.Set("name", rawNetwork["name"])
+	_ = d.Set("id", rawNetwork["id"])
+	_ = d.Set("mtu", rawNetwork["mtu"])
+	_ = d.Set("type", rawNetwork["type"])
+	_ = d.Set("region_id", rawNetwork["region_id"])
+	_ = d.Set("project_id", rawNetwork["project_id"])
+	_ = d.Set("external", rawNetwork["external"])
+	_ = d.Set("shared", rawNetwork["shared"])
+
+	if withDetails && len(subs) > 0 {
+		if err := d.Set("subnets", prepareSubnets(subs)); err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
+	metadataReadOnly := PrepareMetadataReadonly(meta)
+	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
+		return diag.FromErr(err)
+	}
+
 	log.Println("[DEBUG] Finish Network reading")
 
-	return diags
+	return nil
 }

@@ -41,12 +41,12 @@ output "view" {
 
 ### Optional
 
-- `name` (String) The name of the snapshot. Use only with uniq name.
+- `name` (String) The name of the snapshot. Either 'name' or 'snapshot_id' must be specified.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
-- `snapshot_id` (String) The ID of the snapshot.
+- `snapshot_id` (String) The ID of the snapshot.Either 'name' or 'snapshot_id' must be specified.
 - `volume_id` (String) The ID of the volume this snapshot was made from.
 
 ### Read-Only

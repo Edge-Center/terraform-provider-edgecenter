@@ -1,6 +1,10 @@
 package edgecenter
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -117,4 +121,73 @@ func extractListenerIntoMapV2(listener *edgecloudV2.Listener) map[string]interfa
 	l["secret_id"] = listener.SecretID
 	l["sni_secret_id"] = listener.SNISecretID
 	return l
+}
+
+// getLoadbalancer retrieves a load balancer from the edge cloud service.
+// It attempts to find the load balancer either by its ID or by its name.
+func getLoadbalancer(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.ResourceData) (*edgecloudV2.Loadbalancer, error) {
+	var (
+		lb  *edgecloudV2.Loadbalancer
+		err error
+	)
+
+	name := d.Get(NameField).(string)
+	lbID := d.Get(IDField).(string)
+
+	switch {
+	case lbID != "":
+		lb, _, err = clientV2.Loadbalancers.Get(ctx, lbID)
+		if err != nil {
+			return nil, err
+		}
+
+	default:
+		metaOpts := &edgecloudV2.LoadbalancerListOptions{}
+
+		if metadataK, ok := d.GetOk(MetadataKField); ok {
+			metaOpts.MetadataK = metadataK.(string)
+		}
+
+		if metadataRaw, ok := d.GetOk(MetadataKVField); ok {
+			meta, err := MapInterfaceToMapString(metadataRaw)
+			if err != nil {
+				return nil, err
+			}
+			typedMetadataKVJson, err := json.Marshal(meta)
+			if err != nil {
+				return nil, err
+			}
+			metaOpts.MetadataKV = string(typedMetadataKVJson)
+		}
+
+		lbs, _, err := clientV2.Loadbalancers.List(ctx, metaOpts)
+		if err != nil {
+			return nil, err
+		}
+
+		foundLBs := make([]edgecloudV2.Loadbalancer, 0, len(lbs))
+		for _, l := range lbs {
+			if l.Name == name {
+				foundLBs = append(foundLBs, l)
+			}
+		}
+
+		switch {
+		case len(foundLBs) == 0:
+			return nil, errors.New("load balancer does not exist")
+		case len(foundLBs) > 1:
+			var message bytes.Buffer
+			message.WriteString("Found load balancers:\n")
+
+			for _, fLb := range foundLBs {
+				message.WriteString(fmt.Sprintf("  - ID: %s\n", fLb.ID))
+			}
+
+			return nil, fmt.Errorf("multiple load balancers found.\n %s.\n Use load balancer ID instead of name", message.String())
+		}
+
+		lb = &foundLBs[0]
+	}
+
+	return lb, nil
 }
