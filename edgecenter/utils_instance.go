@@ -426,6 +426,10 @@ func getMapDifference(iMapOld, iMapNew map[string]interface{}, uncheckedKeys []s
 func detachInterfaceFromInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID string, iface map[string]interface{}) error {
 	var opts edgecloudV2.InstanceDetachInterfaceRequest
 	opts.PortID = iface["port_id"].(string)
+	if opts.PortID == "" {
+		opts.PortID = iface[ComputedPortIDField].(string)
+	}
+
 	opts.IPAddress = iface["ip_address"].(string)
 
 	log.Printf("[DEBUG] detach interface: %+v", opts)

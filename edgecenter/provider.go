@@ -122,6 +122,7 @@ const (
 	UserDataField                 = "user_data"
 	VmStateField                  = "vm_state"
 	AddressesField                = "addresses"
+	ComputedPortIDField           = "computed_port_id"
 )
 
 type CloudClientConf struct {

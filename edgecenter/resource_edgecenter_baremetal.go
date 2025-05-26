@@ -123,6 +123,11 @@ func resourceBmInstance() *schema.Resource {
 							Description: "required if type is  'reserved_fixed_ip'",
 							Optional:    true,
 						},
+						ComputedPortIDField: {
+							Type:        schema.TypeString,
+							Description: "Port ID for all types of network connection",
+							Computed:    true,
+						},
 						// nested map is not supported, in this case, you do not need to use the list for the map
 						FipSourceField: {
 							Type:        schema.TypeString,
@@ -586,9 +591,8 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 		diags := validateInterfaceBaremetalOpts(ctx, clientV2, d)
 		if diags.HasError() {
-			err = d.Set(InterfaceField, ifsOld)
-			if err != nil {
-				return diag.FromErr(err)
+			if errSet := d.Set(InterfaceField, ifsOld); errSet != nil {
+				return diag.FromErr(errSet)
 			}
 
 			return diags
@@ -598,22 +602,21 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 			iface := i.(map[string]interface{})
 			if isInterfaceContains(iface, ifsNew) {
 				log.Println("[DEBUG] Skipped, dont need detach")
+
 				continue
 			}
 
 			if iface[IsParentField].(bool) || iface[OrderField].(int) == 0 {
-				err = d.Set(InterfaceField, ifsOld)
-				if err != nil {
-					return diag.FromErr(err)
+				if errSet := d.Set(InterfaceField, ifsOld); errSet != nil {
+					return diag.FromErr(errSet)
 				}
 
 				return diag.Errorf("change first or parent interface is not allowed")
 			}
 
 			if err = detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
-				err = d.Set(InterfaceField, ifsOld)
-				if err != nil {
-					return diag.FromErr(err)
+				if errSet := d.Set(InterfaceField, ifsOld); errSet != nil {
+					return diag.FromErr(errSet)
 				}
 
 				return diag.FromErr(err)
@@ -622,9 +625,8 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 		currentIfs, _, err := clientV2.Instances.InterfaceList(ctx, instanceID)
 		if err != nil {
-			err = d.Set(InterfaceField, ifsOld)
-			if err != nil {
-				return diag.FromErr(err)
+			if errSet := d.Set(InterfaceField, ifsOld); errSet != nil {
+				return diag.FromErr(errSet)
 			}
 			return diag.FromErr(err)
 		}
@@ -655,9 +657,8 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 			log.Printf("[DEBUG] attach interface: %+v", opts)
 			if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
-				err = d.Set(InterfaceField, ifsOld)
-				if err != nil {
-					return diag.FromErr(err)
+				if errSet := d.Set(InterfaceField, ifsOld); errSet != nil {
+					return diag.FromErr(errSet)
 				}
 				return diag.FromErr(err)
 			}

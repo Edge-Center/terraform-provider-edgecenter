@@ -122,7 +122,7 @@ func checkSingleIsParentIfaceBaremetal(interfaces []interface{}) error {
 	}
 
 	if len(interfaces) != 0 && isParentIfsCount != 1 {
-		return fmt.Errorf("you must always have exactly one interface with set attribute 'is_parent = true'")
+		return errors.New("you must always have exactly one interface with set attribute 'is_parent = true'")
 	}
 
 	return nil
@@ -146,19 +146,20 @@ func convertApiIfaceToTfIface(apiIFaces []edgecloudV2.InstancePortInterface) ([]
 	iFaceOrder := 0
 
 	if len(apiIFaces) != 1 {
-		return nil, fmt.Errorf("only one trunk interfces is allowed to baremetal instance")
+		return nil, errors.New("only one trunk interfces is allowed to baremetal instance")
 	}
 
 	iFace := apiIFaces[0]
 
 	parentIFace := make(map[string]interface{})
 	if len(iFace.IPAssignments) == 0 {
-		return nil, fmt.Errorf("no IP assignments found in trunk interface")
+		return nil, errors.New("no IP assignments found in trunk interface")
 	}
 
 	parentIFace[IsParentField] = true
 	parentIFace[OrderField] = iFaceOrder
 	parentIFace[IPAddressField] = iFace.IPAssignments[0].IPAddress.String()
+	parentIFace[ComputedPortIDField] = iFace.PortID
 
 	if len(iFace.FloatingIPDetails) != 0 {
 		// As we cannot retrieve the setting that we specified during creation from CloudAPI, we have set the default to 'existing'.
@@ -193,6 +194,7 @@ func convertApiIfaceToTfIface(apiIFaces []edgecloudV2.InstancePortInterface) ([]
 		iSubFace[OrderField] = iFaceOrder
 
 		iSubFace[IPAddressField] = iSub.IPAssignments[0].IPAddress.String()
+		iSubFace[ComputedPortIDField] = iSub.PortID
 
 		if len(iSub.FloatingIPDetails) != 0 {
 			// As we cannot retrieve the setting that we specified during creation from CloudAPI, we have set the default to 'existing'.
