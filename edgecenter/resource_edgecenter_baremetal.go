@@ -103,7 +103,6 @@ func resourceBmInstance() *schema.Resource {
 						},
 						OrderField: {
 							Type:        schema.TypeInt,
-							Optional:    true,
 							Computed:    true,
 							Description: "Order of attaching interface. Trunk interface always attached first, fields affect only on creation",
 						},
@@ -597,34 +596,40 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 			return diags
 		}
 
-		for _, ifNew := range ifsNew {
-			if ifNew.(map[string]interface{})[IsParentField].(bool) {
-				if errSet := d.Set(InterfaceField, ifsOld); errSet != nil {
-					return diag.FromErr(errSet)
+		sort.Sort(instanceInterfaces(ifsNew))
+
+		for index, i := range ifsOld {
+			oldIface := i.(map[string]interface{})
+
+			if newIfaceRaw, ok := SafeGet(ifsNew, index); ok {
+				newIface := newIfaceRaw.(map[string]interface{})
+
+				if oldIface[IsParentField].(bool) && newIface[IsParentField].(bool) {
+					var isTypeEQ = oldIface[IsParentField].(bool) == newIface[IsParentField].(bool)
+					var isNetworkIDEQ = oldIface[NetworkIDField].(string) == newIface[NetworkIDField].(string)
+					var isSubnetIDEQ = oldIface[SubnetIDField].(string) == newIface[SubnetIDField].(string)
+					var isPortIDEQ = oldIface[PortIDField].(string) == newIface[PortIDField].(string)
+
+					if isTypeEQ && isNetworkIDEQ && isSubnetIDEQ && isPortIDEQ {
+						continue
+
+					} else {
+						if errSet := d.Set(InterfaceField, ifsOld); errSet != nil {
+							return diag.FromErr(errSet)
+						}
+
+						return diag.Errorf("change first or parent interface is not allowed")
+					}
 				}
-
-				return diag.Errorf("change first or parent interface is not allowed")
 			}
-		}
 
-		for _, i := range ifsOld {
-			iface := i.(map[string]interface{})
-
-			if isInterfaceContains(iface, ifsNew) {
+			if isInterfaceContains(oldIface, ifsNew) {
 				log.Println("[DEBUG] Skipped, dont need detach")
 
 				continue
 			}
 
-			if iface[IsParentField].(bool) || iface[OrderField].(int) == 0 {
-				if errSet := d.Set(InterfaceField, ifsOld); errSet != nil {
-					return diag.FromErr(errSet)
-				}
-
-				return diag.Errorf("change first or parent interface is not allowed")
-			}
-
-			if err = detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
+			if err = detachInterfaceFromInstanceV2(ctx, clientV2, instanceID, oldIface); err != nil {
 				if errSet := d.Set(InterfaceField, ifsOld); errSet != nil {
 					return diag.FromErr(errSet)
 				}
@@ -641,7 +646,6 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 			return diag.FromErr(err)
 		}
 
-		sort.Sort(instanceInterfaces(ifsNew))
 		for _, i := range ifsNew {
 			iface := i.(map[string]interface{})
 			if isInterfaceContains(iface, ifsOld) {
