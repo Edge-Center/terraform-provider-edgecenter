@@ -1,6 +1,7 @@
 package edgecenter
 
 import (
+	"bytes"
 	"context"
 	"crypto/md5"
 	"encoding/binary"
@@ -1261,4 +1262,61 @@ func prepareMetadataFromAPI(ctx context.Context, clientV2 *edgecloudV2.Client, i
 	}
 
 	return newMetadata, nil
+}
+
+// getInstance retrieves a Instance from the edge cloud service.
+// It attempts to find the Instance either by its ID or by its name.
+func getInstance(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.ResourceData) (*edgecloudV2.Instance, error) {
+	var (
+		instance *edgecloudV2.Instance
+		err      error
+	)
+	name := d.Get(NameField).(string)
+	instanceID := d.Get(IDField).(string)
+
+	switch {
+	case instanceID != "":
+		instance, _, err = clientV2.Instances.Get(ctx, instanceID)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		options := &edgecloudV2.InstanceListOptions{
+			Name:             name,
+			IncludeBaremetal: true,
+		}
+
+		insts, _, err := clientV2.Instances.List(ctx, options)
+		if err != nil {
+			return nil, err
+		}
+
+		foundInstances := make([]edgecloudV2.Instance, 0, len(insts))
+
+		for _, i := range insts {
+			if i.Name == name {
+				foundInstances = append(foundInstances, i)
+			}
+		}
+
+		switch {
+		case len(foundInstances) == 0:
+			return nil, errors.New("instance does not exist")
+
+		case len(foundInstances) > 1:
+			var message bytes.Buffer
+
+			message.WriteString("Found instances:\n")
+
+			for _, fI := range foundInstances {
+				message.WriteString(fmt.Sprintf("  - ID: %s\n", fI.ID))
+			}
+
+			return nil, fmt.Errorf("multiple instances found.\n %s.\n Use instance ID instead of name", message.String())
+		}
+
+		instance = &foundInstances[0]
+	}
+
+	return instance, nil
 }

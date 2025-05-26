@@ -2,13 +2,10 @@ package edgecenter
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceSubnet() *schema.Resource {
@@ -39,10 +36,19 @@ func dataSourceSubnet() *schema.Resource {
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{RegionIDField, RegionNameField},
 			},
+			IDField: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the subnet. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{IDField, NameField},
+			},
 			NameField: {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the subnet.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The name of the subnet.",
+				ExactlyOneOf: []string{IDField, NameField},
 			},
 			MetadataKField: {
 				Type:        schema.TypeString,
@@ -155,68 +161,34 @@ func dataSourceSubnet() *schema.Resource {
 
 func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Subnet reading")
-	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	name := d.Get(NameField).(string)
-	networkID := d.Get(NetworkIDField).(string)
-
-	subnetsOpts := &edgecloudV2.SubnetworkListOptions{NetworkID: networkID}
-
-	if metadataK, ok := d.GetOk(MetadataKField); ok {
-		subnetsOpts.MetadataK = metadataK.(string)
-	}
-	if metadataRaw, ok := d.GetOk(MetadataKVField); ok {
-		typedMetadataKV := make(map[string]string, len(metadataRaw.(map[string]interface{})))
-		for k, v := range metadataRaw.(map[string]interface{}) {
-			typedMetadataKV[k] = v.(string)
-		}
-		typedMetadataKVJson, err := json.Marshal(typedMetadataKV)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		subnetsOpts.MetadataKV = string(typedMetadataKVJson)
-	}
-
-	snets, _, err := clientV2.Subnetworks.List(ctx, subnetsOpts)
+	subnet, err := getSubnet(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var found bool
-	var subnet edgecloudV2.Subnetwork
-	for _, sn := range snets {
-		if sn.Name == name {
-			subnet = sn
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return diag.Errorf("subnet with name %s not found", name)
-	}
-
 	d.SetId(subnet.ID)
-	d.Set(NameField, subnet.Name)
-	d.Set(EnableDHCPField, subnet.EnableDHCP)
-	d.Set(CIDRField, subnet.CIDR)
-	d.Set(NetworkIDField, subnet.NetworkID)
+	_ = d.Set(NameField, subnet.Name)
+	_ = d.Set(IDField, subnet.ID)
+	_ = d.Set(EnableDHCPField, subnet.EnableDHCP)
+	_ = d.Set(CIDRField, subnet.CIDR)
+	_ = d.Set(NetworkIDField, subnet.NetworkID)
 
 	metadataReadOnly := PrepareMetadataReadonly(subnet.Metadata)
 	if err := d.Set(MetadataReadOnlyField, metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.Set(DNSNameserversField, dnsNameserversToStringList(subnet.DNSNameservers))
-	d.Set(HostRoutesField, hostRoutesToListOfMapsV2(subnet.HostRoutes))
-	d.Set(RegionIDField, subnet.RegionID)
-	d.Set(ProjectIDField, subnet.ProjectID)
-	d.Set(GatewayIPField, subnet.GatewayIP.String())
+	_ = d.Set(DNSNameserversField, dnsNameserversToStringList(subnet.DNSNameservers))
+	_ = d.Set(HostRoutesField, hostRoutesToListOfMapsV2(subnet.HostRoutes))
+	_ = d.Set(RegionIDField, subnet.RegionID)
+	_ = d.Set(ProjectIDField, subnet.ProjectID)
+	_ = d.Set(GatewayIPField, subnet.GatewayIP.String())
 
 	allocationPoolsSet := d.Get(AllocationPoolsField).(*schema.Set)
 
@@ -224,13 +196,13 @@ func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	d.Set(ConnectToNetworkRouterField, true)
+	_ = d.Set(ConnectToNetworkRouterField, true)
 	if subnet.GatewayIP == nil {
-		d.Set(ConnectToNetworkRouterField, false)
-		d.Set(GatewayIPField, "disable")
+		_ = d.Set(ConnectToNetworkRouterField, false)
+		_ = d.Set(GatewayIPField, "disable")
 	}
 
 	log.Println("[DEBUG] Finish Subnet reading")
 
-	return diags
+	return nil
 }

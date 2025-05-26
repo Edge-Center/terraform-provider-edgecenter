@@ -110,6 +110,10 @@ const (
 	MetadataReadOnlyField         = "metadata_read_only"
 	EntityIDField                 = "entity_id"
 	EntityTypeField               = "entity_type"
+	LoadbalancerIDField           = "loadbalancer_id"
+	ListenerIDField               = "listener_id"
+	VolumeIDField                 = "volume_id"
+	SnapshotIDField               = "snapshot_id"
 )
 
 type CloudClientConf struct {

@@ -1,32 +1,50 @@
 package edgecenter
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
-// findNetworkByName searches for a network with the given name among the given networks.
-// Returns the found network and a flag indicating the success of the search.
-func findNetworkByName(name string, nets []edgecloudV2.Network) (edgecloudV2.Network, bool) {
-	for _, n := range nets {
-		if n.Name == name {
-			return n, true
-		}
-	}
-	return edgecloudV2.Network{}, false
+type rawNetworkType = map[string]interface{}
+
+type fetchNetworksWithSubnetsOptions struct {
+	clientV2    *edgecloudV2.Client
+	fetchOpts   *edgecloudV2.NetworksWithSubnetsOptions
+	networkName string
 }
 
-// findSharedNetworkByName searches for a shared network with the given name among the given networks.
+// findNetworkByName searches for a network with the given name among the given networks.
 // Returns the found network and a flag indicating the success of the search.
-func findSharedNetworkByName(name string, nets []edgecloudV2.NetworkSubnetwork) (edgecloudV2.NetworkSubnetwork, bool) {
+func findNetworkByName(name string, nets []edgecloudV2.Network) (edgecloudV2.Network, error) {
+	var foundNets []edgecloudV2.Network
 	for _, n := range nets {
 		if n.Name == name {
-			return n, true
+			foundNets = append(foundNets, n)
 		}
 	}
-	return edgecloudV2.NetworkSubnetwork{}, false
+
+	switch {
+	case len(foundNets) == 0:
+		return edgecloudV2.Network{}, fmt.Errorf("network with name: %s does not exist", name)
+
+	case len(foundNets) > 1:
+		var message bytes.Buffer
+		message.WriteString("Found networks:\n")
+
+		for _, ntw := range foundNets {
+			message.WriteString(fmt.Sprintf("  - ID: %s\n", ntw.ID))
+		}
+
+		return edgecloudV2.Network{}, fmt.Errorf("multiple networks exist. %s\nUse network ID instead of name", message.String())
+	}
+
+	return foundNets[0], nil
 }
 
 // StructToMap converts the struct to map[string]interface{}.
@@ -117,4 +135,45 @@ func resellerNetworksCloudClientConf() *CloudClientConf {
 		DoNotUseRegionID:  true,
 		DoNotUseProjectID: true,
 	}
+}
+
+func fetchNetworksWithSubnets(ctx context.Context, opts fetchNetworksWithSubnetsOptions) (rawNetworkType, []edgecloudV2.Subnetwork, []edgecloudV2.MetadataDetailed, error) {
+	nets, _, err := opts.clientV2.Networks.ListNetworksWithSubnets(ctx, opts.fetchOpts)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	foundNets := make([]edgecloudV2.NetworkSubnetwork, 0, len(nets))
+
+	if opts.fetchOpts == nil {
+		for _, ntw := range nets {
+			if ntw.Name == opts.networkName {
+				foundNets = append(foundNets, ntw)
+			}
+		}
+	}
+
+	switch {
+	case len(foundNets) == 0:
+		return nil, nil, nil, errors.New("network does not exist")
+
+	case len(foundNets) > 1:
+		var message bytes.Buffer
+		message.WriteString("Found networks:\n")
+
+		for _, fnet := range foundNets {
+			message.WriteString(fmt.Sprintf("  - ID: %s\n", fnet.ID))
+		}
+
+		return nil, nil, nil, fmt.Errorf("multiple networks found.\n %s\n Use network ID instead of name", message.String())
+	}
+
+	ntw := foundNets[0]
+
+	rawNetwork, err := StructToMap(ntw)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return rawNetwork, ntw.Subnets, ntw.Metadata, nil
 }

@@ -6,8 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceServerGroup() *schema.Resource {
@@ -40,9 +38,18 @@ func dataSourceServerGroup() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Description: "The name of the server group.",
-				Required:    true,
+				Type:         schema.TypeString,
+				Description:  "The name of the server group. Either 'id' or 'name' must be specified.",
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"id", "name"},
+			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the server group. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			"policy": {
 				Type:        schema.TypeString,
@@ -78,31 +85,17 @@ func dataSourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(err)
 	}
 
-	var serverGroup edgecloudV2.ServerGroup
-	serverGroups, _, err := clientV2.ServerGroups.List(ctx)
+	serverGroup, err := getServerGroup(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var found bool
-	name := d.Get("name").(string)
-	for _, sg := range serverGroups {
-		if sg.Name == name {
-			serverGroup = sg
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return diag.Errorf("server group with name %s not found", name)
-	}
-
 	d.SetId(serverGroup.ID)
-	d.Set("name", name)
-	d.Set("project_id", serverGroup.ProjectID)
-	d.Set("region_id", serverGroup.RegionID)
-	d.Set("policy", serverGroup.Policy)
+	_ = d.Set("name", serverGroup.Name)
+	_ = d.Set("id", serverGroup.ID)
+	_ = d.Set("project_id", serverGroup.ProjectID)
+	_ = d.Set("region_id", serverGroup.RegionID)
+	_ = d.Set("policy", serverGroup.Policy)
 
 	instances := make([]map[string]string, len(serverGroup.Instances))
 	for i, instance := range serverGroup.Instances {

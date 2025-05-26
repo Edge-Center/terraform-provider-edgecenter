@@ -2,13 +2,10 @@ package edgecenter
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceLoadBalancerV2() *schema.Resource {
@@ -40,9 +37,18 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the load balancer.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The name of the load balancer. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
+			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the load balancer. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			"metadata_k": {
 				Type:        schema.TypeString,
@@ -94,58 +100,24 @@ func dataSourceLoadBalancerV2() *schema.Resource {
 
 func dataSourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer reading")
-	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	name := d.Get("name").(string)
-
-	metaOpts := &edgecloudV2.LoadbalancerListOptions{}
-
-	if metadataK, ok := d.GetOk("metadata_k"); ok {
-		metaOpts.MetadataK = metadataK.(string)
-	}
-
-	if metadataRaw, ok := d.GetOk("metadata_kv"); ok {
-		meta, err := MapInterfaceToMapString(metadataRaw)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		typedMetadataKVJson, err := json.Marshal(meta)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		metaOpts.MetadataKV = string(typedMetadataKVJson)
-	}
-
-	lbs, _, err := clientV2.Loadbalancers.List(ctx, metaOpts)
+	lb, err := getLoadbalancer(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var found bool
-	var lb edgecloudV2.Loadbalancer
-	for _, l := range lbs {
-		if l.Name == name {
-			lb = l
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return diag.Errorf("load balancer with name %s not found", name)
-	}
-
 	d.SetId(lb.ID)
-	d.Set("project_id", lb.ProjectID)
-	d.Set("region_id", lb.RegionID)
-	d.Set("name", lb.Name)
-	d.Set("vip_address", lb.VipAddress.String())
-	d.Set("vip_port_id", lb.VipPortID)
+	_ = d.Set("project_id", lb.ProjectID)
+	_ = d.Set("region_id", lb.RegionID)
+	_ = d.Set("name", lb.Name)
+	_ = d.Set("id", lb.ID)
+	_ = d.Set("vip_address", lb.VipAddress.String())
+	_ = d.Set("vip_port_id", lb.VipPortID)
 
 	metadataList, _, err := clientV2.Loadbalancers.MetadataList(ctx, lb.ID)
 	if err != nil {
@@ -169,5 +141,5 @@ func dataSourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m
 
 	log.Println("[DEBUG] Finish LoadBalancer reading")
 
-	return diags
+	return nil
 }
