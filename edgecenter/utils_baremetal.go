@@ -63,6 +63,10 @@ func checkIfaceBaremetalAttrCombinations(ifaces []interface{}) error {
 				return fmt.Errorf("attributes \"%s\", \"%s\" must be set for \"%s\" interface type", NetworkIDField, SubnetIDField, ifsType)
 			}
 
+			if portID != "" {
+				return fmt.Errorf("you can't use \"%s\" attributes for \"%s\" interface type", PortIDField, ifsType)
+			}
+
 			err := checkFloatingIPBaremetalAttrCombinations(fipSourceField, existingFipIDField)
 			if err != nil {
 				return err
