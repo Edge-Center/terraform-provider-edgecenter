@@ -2,13 +2,10 @@ package edgecenter
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceVolume() *schema.Resource {
@@ -42,9 +39,18 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the volume.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The name of the volume. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
+			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the volume. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			"metadata_k": {
 				Type:        schema.TypeString,
@@ -59,7 +65,6 @@ Volumes can be attached to a virtual machine and manipulated like a physical har
 					Type: schema.TypeString,
 				},
 			},
-
 			"size": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -104,51 +109,20 @@ func dataSourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	name := d.Get("name").(string)
-	volumeOpts := &edgecloudV2.VolumeListOptions{}
-	if metadataK, ok := d.GetOk("metadata_k"); ok {
-		volumeOpts.MetadataK = metadataK.(string)
-	}
-
-	if metadataRaw, ok := d.GetOk("metadata_kv"); ok {
-		typedMetadataKV := make(map[string]string, len(metadataRaw.(map[string]interface{})))
-		for k, v := range metadataRaw.(map[string]interface{}) {
-			typedMetadataKV[k] = v.(string)
-		}
-		typedMetadataKVJson, err := json.Marshal(typedMetadataKV)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		volumeOpts.MetadataKV = string(typedMetadataKVJson)
-	}
-
-	vols, _, err := clientV2.Volumes.List(ctx, volumeOpts)
+	volume, err := getVolume(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var found bool
-	var volume edgecloudV2.Volume
-	for _, v := range vols {
-		if v.Name == name {
-			volume = v
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return diag.Errorf("volume with name %s not found", name)
-	}
-
 	d.SetId(volume.ID)
-	d.Set("name", volume.Name)
-	d.Set("size", volume.Size)
-	d.Set("type_name", volume.VolumeType)
-	d.Set("region_id", volume.RegionID)
-	d.Set("project_id", volume.ProjectID)
+	_ = d.Set("name", volume.Name)
+	_ = d.Set("id", volume.ID)
+	_ = d.Set("size", volume.Size)
+	_ = d.Set("type_name", volume.VolumeType)
+	_ = d.Set("region_id", volume.RegionID)
+	_ = d.Set("project_id", volume.ProjectID)
 
-	metadataReadOnly := PrepareMetadataReadonly(volume.Metadata)
+	metadataReadOnly := PrepareMetadataReadonly(volume.MetadataDetailed)
 	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}

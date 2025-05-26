@@ -1,6 +1,7 @@
 package edgecenter
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -189,6 +190,22 @@ func resourceStorageS3Read(ctx context.Context, d *schema.ResourceData, m interf
 	if (len(result) == 0) || (name == "" && len(result) != 1) {
 		return diag.Errorf("get storage: wrong length of search result (%d), want 1", len(result))
 	}
+
+	switch {
+	case len(result) == 0:
+		return diag.Errorf("storage does not exist.")
+
+	case len(result) > 1:
+		var message bytes.Buffer
+		message.WriteString("Found storages:\n")
+
+		for _, st := range result {
+			message.WriteString(fmt.Sprintf("  - ID: %d\n", st.ID))
+		}
+
+		return diag.Errorf("multiple storages found.\n %s.\n Use storage ID instead of name.", message.String())
+	}
+
 	st := result[0]
 
 	d.SetId(fmt.Sprint(st.ID))

@@ -44,16 +44,18 @@ func dataSourceSnapshot() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Optional:    true,
-				Description: "The name of the snapshot. Use only with uniq name.",
+				Type:         schema.TypeString,
+				Computed:     true,
+				Optional:     true,
+				Description:  "The name of the snapshot. Either 'name' or 'snapshot_id' must be specified.",
+				ExactlyOneOf: []string{"name", "snapshot_id"},
 			},
 			"snapshot_id": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Optional:    true,
-				Description: "The ID of the snapshot.",
+				Type:         schema.TypeString,
+				Computed:     true,
+				Optional:     true,
+				Description:  "The ID of the snapshot.Either 'name' or 'snapshot_id' must be specified.",
+				ExactlyOneOf: []string{"name", "snapshot_id"},
 			},
 			"description": {
 				Type:        schema.TypeString,
@@ -106,69 +108,34 @@ func dataSourceSnapshot() *schema.Resource {
 
 func dataSourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start snapshot reading")
-	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	snapshotID := d.Get("snapshot_id").(string)
-	volumeID := d.Get("volume_id").(string)
-
-	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
-
-	var snapshot *edgecloudV2.Snapshot
-	switch {
-	case snapshotID != "":
-		snapshot, _, err = clientV2.Snapshots.Get(ctx, snapshotID)
-		if err != nil {
-			return diag.Errorf("cannot get snapshot with ID %s. Error: %s", snapshotID, err.Error())
-		}
-
-	default:
-		name := d.Get("name").(string)
-		snapshotsOpts := &edgecloudV2.SnapshotListOptions{VolumeID: volumeID}
-
-		allSnapshots, _, err := clientV2.Snapshots.List(ctx, snapshotsOpts)
-		if err != nil {
-			return diag.Errorf("cannot get snapshots. Error: %s", err.Error())
-		}
-
-		var foundSnapshots []*edgecloudV2.Snapshot
-		for _, s := range allSnapshots {
-			snapshot := s
-			if name == snapshot.Name {
-				foundSnapshots = append(foundSnapshots, &snapshot)
-			}
-		}
-
-		if len(foundSnapshots) == 0 {
-			return diag.Errorf("snapshot with name %s does not exist", name)
-		} else if len(foundSnapshots) > 1 {
-			return diag.Errorf("multiple snapshots found with name %s. Use snapshot_id instead of name.", name)
-		}
-
-		snapshot = foundSnapshots[0]
+	snapshot, err := getSnapshot(ctx, clientV2, d)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	setSnapshotData(d, snapshot)
 
 	log.Println("[DEBUG] Finish snapshot reading")
 
-	return diags
+	return nil
 }
 
 func setSnapshotData(d *schema.ResourceData, snapshot *edgecloudV2.Snapshot) {
 	d.SetId(snapshot.ID)
-	d.Set("name", snapshot.Name)
-	d.Set("updated_at", snapshot.UpdatedAt)
-	d.Set("created_at", snapshot.CreatedAt)
-	d.Set("status", snapshot.Status)
-	d.Set("creator_task_id", snapshot.CreatorTaskID)
-	d.Set("size", snapshot.Size)
-	d.Set("volume_id", snapshot.VolumeID)
-	d.Set("description", snapshot.Description)
-	d.Set("snapshot_id", snapshot.ID)
-	d.Set("metadata", snapshot.Metadata)
+	_ = d.Set("name", snapshot.Name)
+	_ = d.Set("updated_at", snapshot.UpdatedAt)
+	_ = d.Set("created_at", snapshot.CreatedAt)
+	_ = d.Set("status", snapshot.Status)
+	_ = d.Set("creator_task_id", snapshot.CreatorTaskID)
+	_ = d.Set("size", snapshot.Size)
+	_ = d.Set("volume_id", snapshot.VolumeID)
+	_ = d.Set("description", snapshot.Description)
+	_ = d.Set("snapshot_id", snapshot.ID)
+	_ = d.Set("metadata", snapshot.Metadata)
 }

@@ -67,9 +67,18 @@ func dataSourceInstanceV2() *schema.Resource {
 				ExactlyOneOf: []string{RegionIDField, RegionNameField},
 			},
 			NameField: {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the instance.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The name of the instance. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
+			},
+			IDField: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the instance. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			FlavorIDField: {
 				Type:        schema.TypeString,
@@ -157,51 +166,30 @@ allowing you to start or stop the VM. Possible values are %s and %s.`, InstanceV
 
 func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Instance reading")
-	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	name := d.Get(NameField).(string)
-
-	options := &edgecloudV2.InstanceListOptions{
-		Name:             name,
-		IncludeBaremetal: true,
-	}
-
-	insts, _, err := clientV2.Instances.List(ctx, options)
+	instance, err := getInstance(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var found bool
-	var instance edgecloudV2.Instance
-	for _, l := range insts {
-		if l.Name == name {
-			instance = l
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return diag.Errorf("instance with name %s not found", name)
-	}
-
 	d.SetId(instance.ID)
-	d.Set(NameField, instance.Name)
-	d.Set(FlavorIDField, instance.Flavor.FlavorID)
-	d.Set(StatusField, instance.Status)
-	d.Set(InstanceVMStateField, instance.VMState)
+	_ = d.Set(NameField, instance.Name)
+	_ = d.Set(IDField, instance.ID)
+	_ = d.Set(FlavorIDField, instance.Flavor.FlavorID)
+	_ = d.Set(StatusField, instance.Status)
+	_ = d.Set(InstanceVMStateField, instance.VMState)
 
 	flavor := make(map[string]interface{}, 4)
 	flavor[FlavorIDField] = instance.Flavor.FlavorID
 	flavor[FlavorNameField] = instance.Flavor.FlavorName
 	flavor[RAMField] = strconv.Itoa(instance.Flavor.RAM)
 	flavor[VCPUsField] = strconv.Itoa(instance.Flavor.VCPUS)
-	d.Set(FlavorField, flavor)
+	_ = d.Set(FlavorField, flavor)
 
 	volumesReq := edgecloudV2.VolumeListOptions{
 		InstanceID: instance.ID,
@@ -222,10 +210,12 @@ func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	ifs, _, err := clientV2.Instances.InterfaceList(ctx, instance.ID)
-	log.Printf("instance data source interfaces: %+v", ifs)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	log.Printf("instance data source interfaces: %+v", ifs)
+
 	var cleanInterfaces []interface{}
 	for index, iface := range ifs {
 		if len(iface.IPAssignments) == 0 {
@@ -262,5 +252,5 @@ func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m int
 
 	log.Println("[DEBUG] Finish Instance reading")
 
-	return diags
+	return nil
 }

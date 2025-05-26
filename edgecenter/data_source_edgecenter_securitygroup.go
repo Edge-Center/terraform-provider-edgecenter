@@ -2,7 +2,6 @@ package edgecenter
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -44,9 +43,18 @@ func dataSourceSecurityGroup() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the security group.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The name of the security group. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
+			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the security group. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			"metadata_k": {
 				Type:        schema.TypeString,
@@ -153,64 +161,23 @@ func dataSourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m 
 		return diag.FromErr(err)
 	}
 
-	name := d.Get("name").(string)
-	metaOpts := &edgecloudV2.SecurityGroupListOptions{}
-
-	if metadataK, ok := d.GetOk("metadata_k"); ok {
-		metaOpts.MetadataK = metadataK.(string)
-	}
-
-	if metadataRaw, ok := d.GetOk("metadata_kv"); ok {
-		typedMetadataKV := make(map[string]string, len(metadataRaw.(map[string]interface{})))
-		for k, v := range metadataRaw.(map[string]interface{}) {
-			typedMetadataKV[k] = v.(string)
-		}
-		typedMetadataKVJson, err := json.Marshal(typedMetadataKV)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		metaOpts.MetadataKV = string(typedMetadataKVJson)
-	}
-
-	sgs, _, err := clientV2.SecurityGroups.List(ctx, metaOpts)
+	sg, err := getSecurityGroup(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var found bool
-	var sg edgecloudV2.SecurityGroup
-	for _, s := range sgs {
-		if s.Name == name {
-			sg = s
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return diag.Errorf("security group with name %s not found", name)
-	}
-
 	d.SetId(sg.ID)
-	d.Set("project_id", sg.ProjectID)
-	d.Set("region_id", sg.RegionID)
-	d.Set("name", sg.Name)
-	d.Set("description", sg.Description)
+	_ = d.Set("project_id", sg.ProjectID)
+	_ = d.Set("region_id", sg.RegionID)
+	_ = d.Set("name", sg.Name)
+	_ = d.Set("id", sg.ID)
+	_ = d.Set("description", sg.Description)
 
-	metadataReadOnly := make([]map[string]interface{}, 0, len(sg.Metadata))
-	if len(sg.Metadata) > 0 {
-		for _, metadataItem := range sg.Metadata {
-			metadataReadOnly = append(metadataReadOnly, map[string]interface{}{
-				"key":       metadataItem.Key,
-				"value":     metadataItem.Value,
-				"read_only": metadataItem.ReadOnly,
-			})
-		}
-	}
-
+	metadataReadOnly := PrepareMetadataReadonly(sg.Metadata)
 	if err := d.Set("metadata_read_only", metadataReadOnly); err != nil {
 		return diag.FromErr(err)
 	}
+
 	newSgRules := make([]interface{}, len(sg.SecurityGroupRules))
 	for i, sgr := range sg.SecurityGroupRules {
 		r := make(map[string]interface{})
