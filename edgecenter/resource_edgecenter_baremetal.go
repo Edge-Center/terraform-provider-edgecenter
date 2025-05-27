@@ -84,6 +84,7 @@ func resourceBmInstance() *schema.Resource {
 			"flavor_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"interface": {
 				Type:     schema.TypeList,
