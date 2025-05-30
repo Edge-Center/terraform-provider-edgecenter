@@ -6,8 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceLBListener() *schema.Resource {
@@ -39,9 +37,18 @@ func dataSourceLBListener() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the load balancer listener.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The name of the load balancer listener. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
+			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the load balancer listener. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			"loadbalancer_id": {
 				Type:        schema.TypeString,
@@ -107,47 +114,26 @@ func dataSourceLBListener() *schema.Resource {
 
 func dataSourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBListener reading")
-	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var opts edgecloudV2.ListenerListOptions
-	name := d.Get("name").(string)
-	lbID := d.Get("loadbalancer_id").(string)
-	if lbID != "" {
-		opts.LoadbalancerID = lbID
-	}
-
-	ls, _, err := clientV2.Loadbalancers.ListenerList(ctx, &opts)
+	listener, err := getLbListener(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var found bool
-	var listener edgecloudV2.Listener
-	for _, l := range ls {
-		if l.Name == name {
-			listener = l
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return diag.Errorf("lb listener with name %s not found", name)
-	}
-
 	d.SetId(listener.ID)
 	d.Set("name", listener.Name)
+	d.Set("name", listener.ID)
 	d.Set("protocol", listener.Protocol)
 	d.Set("protocol_port", listener.ProtocolPort)
 	d.Set("pool_count", listener.PoolCount)
 	d.Set("operating_status", listener.OperatingStatus)
 	d.Set("provisioning_status", listener.ProvisioningStatus)
-	d.Set("loadbalancer_id", lbID)
+	d.Set("loadbalancer_id", listener.LoadbalancerID)
 	d.Set("project_id", d.Get("project_id").(int))
 	d.Set("region_id", d.Get("region_id").(int))
 	d.Set("allowed_cidrs", listener.AllowedCIDRs)
@@ -160,9 +146,9 @@ func dataSourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	d.Set("l7policies", l7Policies)
+	_ = d.Set("l7policies", l7Policies)
 
 	log.Println("[DEBUG] Finish LBListener reading")
 
-	return diags
+	return nil
 }

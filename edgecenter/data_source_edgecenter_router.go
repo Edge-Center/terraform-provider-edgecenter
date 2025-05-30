@@ -6,8 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceRouter() *schema.Resource {
@@ -39,9 +37,18 @@ func dataSourceRouter() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the load router.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The name of the router. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
+			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the router. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			"status": {
 				Type:        schema.TypeString,
@@ -134,39 +141,23 @@ func dataSourceRouter() *schema.Resource {
 
 func dataSourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Router reading")
-	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	name := d.Get("name").(string)
-
-	rs, _, err := clientV2.Routers.List(ctx)
+	router, err := getRouter(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var found bool
-	var router edgecloudV2.Router
-	for _, r := range rs {
-		if r.Name == name {
-			router = r
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return diag.Errorf("router with name %s not found", name)
-	}
-
 	d.SetId(router.ID)
-	d.Set("name", router.Name)
-	d.Set("status", router.Status)
-	d.Set("region_id", router.RegionID)
-	d.Set("project_id", router.ProjectID)
+	_ = d.Set("name", router.Name)
+	_ = d.Set("id", router.ID)
+	_ = d.Set("status", router.Status)
+	_ = d.Set("region_id", router.RegionID)
+	_ = d.Set("project_id", router.ProjectID)
 
 	if len(router.ExternalGatewayInfo.ExternalFixedIPs) > 0 {
 		egi := make(map[string]interface{}, 4)
@@ -183,7 +174,8 @@ func dataSourceRouterRead(ctx context.Context, d *schema.ResourceData, m interfa
 		egi["external_fixed_ips"] = efip
 
 		egilst[0] = egi
-		d.Set("external_gateway_info", egilst)
+
+		_ = d.Set("external_gateway_info", egilst)
 	}
 
 	ifs := make([]map[string]interface{}, 0, len(router.Interfaces))
@@ -199,7 +191,7 @@ func dataSourceRouterRead(ctx context.Context, d *schema.ResourceData, m interfa
 			ifs = append(ifs, smap)
 		}
 	}
-	d.Set("interfaces", ifs)
+	_ = d.Set("interfaces", ifs)
 
 	rss := make([]map[string]string, len(router.Routes))
 	for i, r := range router.Routes {
@@ -208,9 +200,9 @@ func dataSourceRouterRead(ctx context.Context, d *schema.ResourceData, m interfa
 		rmap["nexthop"] = r.NextHop.String()
 		rss[i] = rmap
 	}
-	d.Set("routes", rss)
+	_ = d.Set("routes", rss)
 
 	log.Println("[DEBUG] Finish router reading")
 
-	return diags
+	return nil
 }

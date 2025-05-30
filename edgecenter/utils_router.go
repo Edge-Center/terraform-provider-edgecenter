@@ -1,55 +1,25 @@
 package edgecenter
 
 import (
+	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"reflect"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 var routerDecoderConfig = &mapstructure.DecoderConfig{
 	TagName: "json",
-}
-
-// StringToNetHookFunc returns a DecodeHookFunc for the mapstructure package to handle the custom
-// conversion of string values to net.IP and edgecloud.CIDR types.
-func StringToNetHookFunc() mapstructure.DecodeHookFuncType {
-	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-		// Only process strings as source type.
-		if f.Kind() != reflect.String {
-			return data, nil
-		}
-
-		// Process the target types.
-		switch t {
-		case reflect.TypeOf(edgecloud.CIDR{}):
-			var ecCIDR edgecloud.CIDR
-			_, ipNet, err := net.ParseCIDR(data.(string))
-			if err != nil {
-				return nil, err
-			}
-			ecCIDR.IP = ipNet.IP
-			ecCIDR.Mask = ipNet.Mask
-			return ecCIDR, nil
-		case reflect.TypeOf(net.IP{}):
-			ip := net.ParseIP(data.(string))
-			if ip == nil {
-				return nil, fmt.Errorf("failed parsing ip %v", data)
-			}
-			return ip, nil
-		default:
-			// If the target type is not supported, return the data as is.
-			return data, nil
-		}
-	}
 }
 
 // StringToNetHookFuncV2 returns a DecodeHookFunc for the mapstructure package to handle the custom
@@ -174,4 +144,55 @@ func extractInterfacesMapV2(interfaces []interface{}) ([]edgecloudV2.RouterInter
 	}
 
 	return ifaceList, nil
+}
+
+// getRouter retrieves a router from the edge cloud service.
+// It attempts to find the router either by its ID or by its name.
+func getRouter(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.ResourceData) (*edgecloudV2.Router, error) {
+	var (
+		router *edgecloudV2.Router
+		err    error
+	)
+
+	name := d.Get(NameField).(string)
+	routerID := d.Get(IDField).(string)
+
+	switch {
+	case routerID != "":
+		router, _, err = clientV2.Routers.Get(ctx, routerID)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		rs, _, err := clientV2.Routers.List(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		foundRouters := make([]edgecloudV2.Router, 0, len(rs))
+		for _, r := range rs {
+			if r.Name == name {
+				foundRouters = append(foundRouters, r)
+			}
+		}
+
+		switch {
+		case len(foundRouters) == 0:
+			return nil, errors.New("router does not exist")
+
+		case len(foundRouters) > 1:
+			var message bytes.Buffer
+			message.WriteString("Found routers:\n")
+
+			for _, rr := range foundRouters {
+				message.WriteString(fmt.Sprintf("  - ID: %s\n", rr.ID))
+			}
+
+			return nil, fmt.Errorf("multiple routers found.\n %s.\n Use router ID instead of name", message.String())
+		}
+
+		router = &foundRouters[0]
+	}
+
+	return router, nil
 }

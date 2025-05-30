@@ -41,9 +41,18 @@ func dataSourceLBPool() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the load balancer pool.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The name of the load balancer pool. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
+			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the load balancer pool. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			"lb_algorithm": {
 				Type:        schema.TypeString,
@@ -156,69 +165,44 @@ func dataSourceLBPool() *schema.Resource {
 
 func dataSourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LBPool reading")
-	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var opts edgecloudV2.PoolListOptions
-	name := d.Get("name").(string)
-	lbID := d.Get("loadbalancer_id").(string)
-	if lbID != "" {
-		opts.LoadbalancerID = lbID
-	}
-	lID := d.Get("listener_id").(string)
-	if lbID != "" {
-		opts.ListenerID = lID
-	}
-
-	pools, _, err := clientV2.Loadbalancers.PoolList(ctx, &opts)
+	pool, err := getLBPool(ctx, clientV2, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	var found bool
-	var lb edgecloudV2.Pool
-	for _, p := range pools {
-		if p.Name == name {
-			lb = p
-			found = true
-			break
-		}
+	d.SetId(pool.ID)
+	_ = d.Set("name", pool.Name)
+	_ = d.Set("id", pool.ID)
+	_ = d.Set("lb_algorithm", pool.LoadbalancerAlgorithm)
+	_ = d.Set("protocol", pool.Protocol)
+
+	if len(pool.Loadbalancers) > 0 {
+		_ = d.Set("loadbalancer_id", pool.Loadbalancers[0].ID)
 	}
 
-	if !found {
-		return diag.Errorf("lb listener with name %s not found", name)
+	if len(pool.Listeners) > 0 {
+		_ = d.Set("listener_id", pool.Listeners[0].ID)
 	}
 
-	d.SetId(lb.ID)
-	d.Set("name", lb.Name)
-	d.Set("lb_algorithm", lb.LoadbalancerAlgorithm)
-	d.Set("protocol", lb.Protocol)
-
-	if len(lb.Loadbalancers) > 0 {
-		d.Set("loadbalancer_id", lb.Loadbalancers[0].ID)
-	}
-
-	if len(lb.Listeners) > 0 {
-		d.Set("listener_id", lb.Listeners[0].ID)
-	}
-
-	if lb.HealthMonitor != nil {
+	if pool.HealthMonitor != nil {
 		healthMonitor := map[string]interface{}{
-			"id":               lb.HealthMonitor.ID,
-			"type":             lb.HealthMonitor.Type,
-			"delay":            lb.HealthMonitor.Delay,
-			"timeout":          lb.HealthMonitor.Timeout,
-			"max_retries":      lb.HealthMonitor.MaxRetries,
-			"max_retries_down": lb.HealthMonitor.MaxRetriesDown,
-			"url_path":         lb.HealthMonitor.URLPath,
-			"expected_codes":   lb.HealthMonitor.ExpectedCodes,
+			"id":               pool.HealthMonitor.ID,
+			"type":             pool.HealthMonitor.Type,
+			"delay":            pool.HealthMonitor.Delay,
+			"timeout":          pool.HealthMonitor.Timeout,
+			"max_retries":      pool.HealthMonitor.MaxRetries,
+			"max_retries_down": pool.HealthMonitor.MaxRetriesDown,
+			"url_path":         pool.HealthMonitor.URLPath,
+			"expected_codes":   pool.HealthMonitor.ExpectedCodes,
 		}
-		if lb.HealthMonitor.HTTPMethod != nil {
-			healthMonitor["http_method"] = lb.HealthMonitor.HTTPMethod
+		if pool.HealthMonitor.HTTPMethod != nil {
+			healthMonitor["http_method"] = pool.HealthMonitor.HTTPMethod
 		}
 
 		if err := d.Set("health_monitor", []interface{}{healthMonitor}); err != nil {
@@ -226,12 +210,12 @@ func dataSourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 
-	if lb.SessionPersistence != nil {
+	if pool.SessionPersistence != nil {
 		sessionPersistence := map[string]interface{}{
-			"type":                    lb.SessionPersistence.Type,
-			"cookie_name":             lb.SessionPersistence.CookieName,
-			"persistence_granularity": lb.SessionPersistence.PersistenceGranularity,
-			"persistence_timeout":     lb.SessionPersistence.PersistenceTimeout,
+			"type":                    pool.SessionPersistence.Type,
+			"cookie_name":             pool.SessionPersistence.CookieName,
+			"persistence_granularity": pool.SessionPersistence.PersistenceGranularity,
+			"persistence_timeout":     pool.SessionPersistence.PersistenceTimeout,
 		}
 
 		if err := d.Set("session_persistence", []interface{}{sessionPersistence}); err != nil {
@@ -239,10 +223,10 @@ func dataSourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 
-	d.Set("project_id", d.Get("project_id").(int))
-	d.Set("region_id", d.Get("region_id").(int))
+	_ = d.Set("project_id", d.Get("project_id").(int))
+	_ = d.Set("region_id", d.Get("region_id").(int))
 
 	log.Println("[DEBUG] Finish LBPool reading")
 
-	return diags
+	return nil
 }

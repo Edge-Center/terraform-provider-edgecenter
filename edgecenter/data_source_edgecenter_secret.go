@@ -38,9 +38,18 @@ func dataSourceSecret() *schema.Resource {
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the secret.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The name of the secret. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
+			},
+			"id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  "The ID of the secret. Either 'id' or 'name' must be specified.",
+				ExactlyOneOf: []string{"id", "name"},
 			},
 			"algorithm": {
 				Type:        schema.TypeString,
@@ -86,48 +95,32 @@ func dataSourceSecret() *schema.Resource {
 
 func dataSourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start secret reading")
-	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	secretID := d.Id()
-	log.Printf("[DEBUG] Secret id = %s", secretID)
-
-	allSecrets, _, err := clientV2.Secrets.List(ctx)
+	secret, err := getSecret(ctx, clientV2, d)
 	if err != nil {
-		return diag.Errorf("cannot get secrets. Error: %s", err.Error())
+		return diag.FromErr(err)
 	}
 
-	var found bool
-	name := d.Get("name").(string)
-	for _, secret := range allSecrets {
-		if name == secret.Name {
-			d.SetId(secret.ID)
-			d.Set("name", name)
-			d.Set("algorithm", secret.Algorithm)
-			d.Set("bit_length", secret.BitLength)
-			d.Set("mode", secret.Mode)
-			d.Set("status", secret.Status)
-			d.Set("expiration", secret.Expiration)
-			d.Set("created", secret.Created)
+	d.SetId(secret.ID)
+	_ = d.Set("name", secret.Name)
+	_ = d.Set("id", secret.ID)
+	_ = d.Set("algorithm", secret.Algorithm)
+	_ = d.Set("bit_length", secret.BitLength)
+	_ = d.Set("mode", secret.Mode)
+	_ = d.Set("status", secret.Status)
+	_ = d.Set("expiration", secret.Expiration)
+	_ = d.Set("created", secret.Created)
 
-			if err := d.Set("content_types", secret.ContentTypes); err != nil {
-				return diag.FromErr(err)
-			}
-			found = true
-
-			break
-		}
-	}
-
-	if !found {
-		return diag.Errorf("secret with name %s does not exit", name)
+	if err := d.Set("content_types", secret.ContentTypes); err != nil {
+		return diag.FromErr(err)
 	}
 
 	log.Println("[DEBUG] Finish secret reading")
 
-	return diags
+	return nil
 }

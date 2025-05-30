@@ -1,12 +1,17 @@
 package edgecenter
 
 import (
+	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"strconv"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
@@ -135,4 +140,74 @@ func validatePortRange(protocol edgecloudV2.SecurityGroupRuleProtocol, rule map[
 	}
 
 	return nil, nil, nil
+}
+
+// getSecurityGroup retrieves a security group from the edge cloud service.
+// It attempts to find the security group either by its ID or by its name.
+func getSecurityGroup(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.ResourceData) (*edgecloudV2.SecurityGroup, error) {
+	var (
+		sg  *edgecloudV2.SecurityGroup
+		err error
+	)
+
+	name := d.Get(NameField).(string)
+	sgID := d.Get(IDField).(string)
+
+	switch {
+	case sgID != "":
+		sg, _, err = clientV2.SecurityGroups.Get(ctx, sgID)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		metaOpts := &edgecloudV2.SecurityGroupListOptions{}
+
+		if metadataK, ok := d.GetOk(MetadataKField); ok {
+			metaOpts.MetadataK = metadataK.(string)
+		}
+
+		if metadataRaw, ok := d.GetOk(MetadataKVField); ok {
+			typedMetadataKV := make(map[string]string, len(metadataRaw.(map[string]interface{})))
+			for k, v := range metadataRaw.(map[string]interface{}) {
+				typedMetadataKV[k] = v.(string)
+			}
+			typedMetadataKVJson, err := json.Marshal(typedMetadataKV)
+			if err != nil {
+				return nil, err
+			}
+			metaOpts.MetadataKV = string(typedMetadataKVJson)
+		}
+
+		sgs, _, err := clientV2.SecurityGroups.List(ctx, metaOpts)
+		if err != nil {
+			return nil, err
+		}
+
+		foundSgs := make([]edgecloudV2.SecurityGroup, 0, len(sgs))
+
+		for _, s := range sgs {
+			if s.Name == name {
+				foundSgs = append(foundSgs, s)
+			}
+		}
+
+		switch {
+		case len(foundSgs) == 0:
+			return nil, errors.New("security group does not exist")
+
+		case len(foundSgs) > 1:
+			var message bytes.Buffer
+			message.WriteString("Found security groups:\n")
+
+			for _, net := range foundSgs {
+				message.WriteString(fmt.Sprintf("  - ID: %s\n", net.ID))
+			}
+
+			return nil, fmt.Errorf("multiple security groups found.\n %s.\n Use security group ID instead of name", message.String())
+		}
+
+		sg = &foundSgs[0]
+	}
+
+	return sg, nil
 }
