@@ -3,29 +3,14 @@
 page_title: "edgecenter_reseller_images Resource - edgecenter"
 subcategory: ""
 description: |-
-  WARNING: resource "edgecenter_reseller_images" is deprecated.
-  Use "edgecenter_reseller_imagesV2" resource instead.
-  This resource has been created for resellers and only works with the reseller API key.
-  Reseller and cloud admin can change the set of images, available to reseller clients.
-  Firstly, they may limit the number of public images available.
-  Secondly, they can share the image of the reseller client to all clients of the reseller.
-  If the reseller has image_ids = [] or hasn't image_ids field in config, all public images are unavailable to the client.
+  **WARNING:** resource "edgecenter_reseller_images" is deprecated.
+  					Use "edgecenter_reseller_imagesV2" resource instead.
 ---
 
 # edgecenter_reseller_images (Resource)
 
 **WARNING:** resource "edgecenter_reseller_images" is deprecated.
-
-Use "edgecenter_reseller_imagesV2" resource instead.
-
-**This resource has been created for resellers and only works with the reseller API key.**
-
-Reseller and cloud admin can change the set of images, available to reseller clients.
-
-Firstly, they may limit the number of public images available.
-Secondly, they can share the image of the reseller client to all clients of the reseller.
-
-If the reseller has image_ids = [] or hasn't image_ids field in config, all public images are unavailable to the client.
+						Use "edgecenter_reseller_imagesV2" resource instead.
 
 ## Example Usage
 

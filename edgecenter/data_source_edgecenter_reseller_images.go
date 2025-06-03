@@ -2,10 +2,7 @@ package edgecenter
 
 import (
 	"context"
-	"net/http"
-	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -17,17 +14,7 @@ func dataSourceResellerImages() *schema.Resource {
 		Description: `
 **WARNING:** Data source "edgecenter_reseller_images" is deprecated.
 
-Use "edgecenter_reseller_imagesV2" data source instead.
-		
-**This data source has been created for resellers and only works with the reseller API key.**
-
-Reseller and cloud admin can change the set of images, available to reseller clients.
-
-Firstly, they may limit the number of public images available.
-Secondly, they can share the image of the reseller client to all clients of the reseller.
-
-If the reseller has image_ids = [] or hasn't image_ids field in config, 
-all public images are unavailable to the client.`,
+Use "edgecenter_reseller_imagesV2" data source instead.`,
 
 		Schema: map[string]*schema.Schema{
 			ResellerIDField: {
@@ -71,34 +58,6 @@ all public images are unavailable to the client.`,
 	}
 }
 
-func dataSourceResellerImagesRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	tflog.Debug(ctx, "Start reseller image reading")
-
-	clientV2, err := InitCloudClient(ctx, d, m, resellerImagesCloudClientConf())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	resellerID := d.Get(ResellerIDField).(int)
-
-	riList, resp, err := clientV2.ResellerImage.List(ctx, resellerID)
-	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil
-		}
-		return diag.FromErr(err)
-	}
-
-	d.SetId(strconv.Itoa(resellerID))
-
-	riOptions := prepareResellerImagesOptions(d, riList.Results)
-
-	err = d.Set(ResellerImagesOptionsField, riOptions)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	tflog.Debug(ctx, "Finish reseller images reading")
-
-	return nil
+func dataSourceResellerImagesRead(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
+	return diag.FromErr(errResourceResellerImages)
 }
