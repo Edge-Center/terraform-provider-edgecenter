@@ -5,12 +5,6 @@ subcategory: ""
 description: |-
   WARNING: Data source "edgecenter_reseller_images" is deprecated.
   Use "edgecenter_reseller_imagesV2" data source instead.
-  This data source has been created for resellers and only works with the reseller API key.
-  Reseller and cloud admin can change the set of images, available to reseller clients.
-  Firstly, they may limit the number of public images available.
-  Secondly, they can share the image of the reseller client to all clients of the reseller.
-  If the reseller has image_ids = [] or hasn't image_ids field in config,
-  all public images are unavailable to the client.
 ---
 
 # edgecenter_reseller_images (Data Source)
@@ -18,16 +12,6 @@ description: |-
 **WARNING:** Data source "edgecenter_reseller_images" is deprecated.
 
 Use "edgecenter_reseller_imagesV2" data source instead.
-		
-**This data source has been created for resellers and only works with the reseller API key.**
-
-Reseller and cloud admin can change the set of images, available to reseller clients.
-
-Firstly, they may limit the number of public images available.
-Secondly, they can share the image of the reseller client to all clients of the reseller.
-
-If the reseller has image_ids = [] or hasn't image_ids field in config, 
-all public images are unavailable to the client.
 
 ## Example Usage
 
