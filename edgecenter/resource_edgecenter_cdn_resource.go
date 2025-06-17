@@ -990,8 +990,6 @@ var resourceOptionsSchema = &schema.Schema{
 }
 
 func resourceCDNResource() *schema.Resource {
-	resourceOptionsSchema.Elem.(*schema.Resource).Schema["referrer_acl"].ConflictsWith = []string{"referer_acl"}
-	resourceOptionsSchema.Elem.(*schema.Resource).Schema["referer_acl"].ConflictsWith = []string{"referrer_acl"}
 	return &schema.Resource{
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -1441,15 +1439,6 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "referrer_acl"); ok {
-		opts.ReferrerACL = &cdn.ReferrerACL{
-			Enabled:    opt["enabled"].(bool),
-			PolicyType: opt["policy_type"].(string),
-		}
-		for _, v := range opt["excepted_values"].(*schema.Set).List() {
-			opts.ReferrerACL.ExceptedValues = append(opts.ReferrerACL.ExceptedValues, v.(string))
-		}
-	}
 	if opt, ok := getOptByName(fields, "referer_acl"); ok {
 		opts.RefererACL = &cdn.RefererACL{
 			Enabled:    opt["enabled"].(bool),
@@ -1457,6 +1446,14 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 		}
 		for _, v := range opt["excepted_values"].(*schema.Set).List() {
 			opts.RefererACL.ExceptedValues = append(opts.RefererACL.ExceptedValues, v.(string))
+		}
+	} else if opt, ok = getOptByName(fields, "referrer_acl"); ok {
+		opts.ReferrerACL = &cdn.ReferrerACL{
+			Enabled:    opt["enabled"].(bool),
+			PolicyType: opt["policy_type"].(string),
+		}
+		for _, v := range opt["excepted_values"].(*schema.Set).List() {
+			opts.ReferrerACL.ExceptedValues = append(opts.ReferrerACL.ExceptedValues, v.(string))
 		}
 	}
 	if opt, ok := getOptByName(fields, "response_headers_hiding_policy"); ok {
@@ -1701,13 +1698,12 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 		m := structToMap(options.RedirectHttpToHttps)
 		result["redirect_http_to_https"] = []interface{}{m}
 	}
-	if options.ReferrerACL != nil {
-		m := structToMap(options.ReferrerACL)
-		result["referrer_acl"] = []interface{}{m}
-	}
 	if options.RefererACL != nil {
 		m := structToMap(options.RefererACL)
 		result["referer_acl"] = []interface{}{m}
+	} else if options.ReferrerACL != nil {
+		m := structToMap(options.ReferrerACL)
+		result["referrer_acl"] = []interface{}{m}
 	}
 	if options.ResponseHeadersHidingPolicy != nil {
 		m := structToMap(options.ResponseHeadersHidingPolicy)
