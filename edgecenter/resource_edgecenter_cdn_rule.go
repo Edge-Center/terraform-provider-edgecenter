@@ -605,11 +605,10 @@ var locationOptionsSchema = &schema.Schema{
 				},
 			},
 			"referrer_acl": {
-				Type:          schema.TypeList,
-				MaxItems:      1,
-				Optional:      true,
-				Description:   "Сontrol access to content from the specified domain names.",
-				ConflictsWith: []string{"referer_acl"},
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "Сontrol access to content from the specified domain names.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"enabled": {
@@ -633,11 +632,10 @@ var locationOptionsSchema = &schema.Schema{
 				},
 			},
 			"referer_acl": {
-				Type:          schema.TypeList,
-				MaxItems:      1,
-				Optional:      true,
-				Description:   "Сontrol access to content from the specified domain names.",
-				ConflictsWith: []string{"referrer_acl"},
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "Сontrol access to content from the specified domain names.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"enabled": {
@@ -928,6 +926,8 @@ var locationOptionsSchema = &schema.Schema{
 }
 
 func resourceCDNRule() *schema.Resource {
+	resourceOptionsSchema.Elem.(*schema.Resource).Schema["referrer_acl"].ConflictsWith = []string{"referer_acl"}
+	resourceOptionsSchema.Elem.(*schema.Resource).Schema["referer_acl"].ConflictsWith = []string{"referrer_acl"}
 	return &schema.Resource{
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
