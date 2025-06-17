@@ -652,6 +652,33 @@ var resourceOptionsSchema = &schema.Schema{
 					},
 				},
 			},
+			"referer_acl": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "Сontrol access to content from the specified domain names.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     true,
+							Description: "Enable or disable the option. Allowed values are \"true\" or \"false\".",
+						},
+						"policy_type": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Set the policy type. Allowed values are \"allow\" or \"deny\". The policy allows or denies access to content from all domain names except those specified in the \"excepted_values\" field.",
+						},
+						"excepted_values": {
+							Type:        schema.TypeSet,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Required:    true,
+							Description: "Add a list of domain names. To allow a direct link access, add an empty value \"\". You cannot enter just the empty value because at least one valid referer is required.",
+						},
+					},
+				},
+			},
 			"response_headers_hiding_policy": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -1211,11 +1238,11 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 	var opts cdn.ResourceOptions
 	fields := l[0].(map[string]interface{})
 	if opt, ok := getOptByName(fields, "allowed_http_methods"); ok {
-		opts.AllowedHTTPMethods = &cdn.AllowedHTTPMethods{
+		opts.AllowedHTTPMethodsNew = &cdn.AllowedHTTPMethods{
 			Enabled: opt["enabled"].(bool),
 		}
 		for _, v := range opt["value"].(*schema.Set).List() {
-			opts.AllowedHTTPMethods.Value = append(opts.AllowedHTTPMethods.Value, v.(string))
+			opts.AllowedHTTPMethodsNew.Value = append(opts.AllowedHTTPMethodsNew.Value, v.(string))
 		}
 	}
 	if opt, ok := getOptByName(fields, "brotli_compression"); ok {
@@ -1337,7 +1364,7 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 		}
 	}
 	if opt, ok := getOptByName(fields, "ignore_query_string"); ok {
-		opts.IgnoreQueryString = &cdn.IgnoreQueryString{
+		opts.IgnoreQueryStringNew = &cdn.IgnoreQueryString{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
@@ -1412,7 +1439,15 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "referrer_acl"); ok {
+	if opt, ok := getOptByName(fields, "referer_acl"); ok {
+		opts.RefererACL = &cdn.RefererACL{
+			Enabled:    opt["enabled"].(bool),
+			PolicyType: opt["policy_type"].(string),
+		}
+		for _, v := range opt["excepted_values"].(*schema.Set).List() {
+			opts.RefererACL.ExceptedValues = append(opts.RefererACL.ExceptedValues, v.(string))
+		}
+	} else if opt, ok = getOptByName(fields, "referrer_acl"); ok {
 		opts.ReferrerACL = &cdn.ReferrerACL{
 			Enabled:    opt["enabled"].(bool),
 			PolicyType: opt["policy_type"].(string),
@@ -1466,12 +1501,12 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 		}
 	}
 	if opt, ok := getOptByName(fields, "static_request_headers"); ok {
-		opts.StaticRequestHeaders = &cdn.StaticRequestHeaders{
+		opts.StaticRequestHeadersNew = &cdn.StaticRequestHeaders{
 			Enabled: opt["enabled"].(bool),
 			Value:   map[string]string{},
 		}
 		for k, v := range opt["value"].(map[string]interface{}) {
-			opts.StaticRequestHeaders.Value[k] = v.(string)
+			opts.StaticRequestHeadersNew.Value[k] = v.(string)
 		}
 	}
 	if opt, ok := getOptByName(fields, "static_response_headers"); ok {
@@ -1549,7 +1584,10 @@ func getOptByName(fields map[string]interface{}, name string) (map[string]interf
 
 func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 	result := make(map[string][]interface{})
-	if options.AllowedHTTPMethods != nil {
+	if options.AllowedHTTPMethodsNew != nil {
+		m := structToMap(options.AllowedHTTPMethodsNew)
+		result["allowed_http_methods"] = []interface{}{m}
+	} else if options.AllowedHTTPMethods != nil {
 		m := structToMap(options.AllowedHTTPMethods)
 		result["allowed_http_methods"] = []interface{}{m}
 	}
@@ -1621,7 +1659,10 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 		m := structToMap(options.IgnoreCookie)
 		result["ignore_cookie"] = []interface{}{m}
 	}
-	if options.IgnoreQueryString != nil {
+	if options.IgnoreQueryStringNew != nil {
+		m := structToMap(options.IgnoreQueryStringNew)
+		result["ignore_query_string"] = []interface{}{m}
+	} else if options.IgnoreQueryString != nil {
 		m := structToMap(options.IgnoreQueryString)
 		result["ignore_query_string"] = []interface{}{m}
 	}
@@ -1657,7 +1698,10 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 		m := structToMap(options.RedirectHttpToHttps)
 		result["redirect_http_to_https"] = []interface{}{m}
 	}
-	if options.ReferrerACL != nil {
+	if options.RefererACL != nil {
+		m := structToMap(options.RefererACL)
+		result["referer_acl"] = []interface{}{m}
+	} else if options.ReferrerACL != nil {
 		m := structToMap(options.ReferrerACL)
 		result["referrer_acl"] = []interface{}{m}
 	}
@@ -1685,7 +1729,10 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 		m := structToMap(options.Stale)
 		result["stale"] = []interface{}{m}
 	}
-	if options.StaticRequestHeaders != nil {
+	if options.StaticRequestHeadersNew != nil {
+		m := structToMap(options.StaticRequestHeadersNew)
+		result["static_request_headers"] = []interface{}{m}
+	} else if options.StaticRequestHeaders != nil {
 		m := structToMap(options.StaticRequestHeaders)
 		result["static_request_headers"] = []interface{}{m}
 	}

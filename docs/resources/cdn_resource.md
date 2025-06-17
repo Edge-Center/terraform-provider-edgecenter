@@ -144,6 +144,7 @@ Optional:
 - `query_params_whitelist` (Block List, Max: 1) Manage the Ignore all except setting of the Query string option. The setting allows CDN to ignore all but specified params and cache them as separate objects. "ignore_query_string", "query_params_whitelist", and "query_params_blacklist" cannot be enabled simultaneously. (see [below for nested schema](#nestedblock--options--query_params_whitelist))
 - `redirect_http_to_https` (Block List, Max: 1) Let CDN redirect HTTPS requests to HTTP. "redirect_http_to_https" and "redirect_https_to_http" cannot be enabled simultaneously. (see [below for nested schema](#nestedblock--options--redirect_http_to_https))
 - `redirect_https_to_http` (Block List, Max: 1) Let CDN redirect HTTP requests to HTTPS. "redirect_http_to_https" and "redirect_https_to_http" cannot be enabled simultaneously. (see [below for nested schema](#nestedblock--options--redirect_https_to_http))
+- `referer_acl` (Block List, Max: 1) Сontrol access to content from the specified domain names. (see [below for nested schema](#nestedblock--options--referer_acl))
 - `referrer_acl` (Block List, Max: 1) Сontrol access to content from the specified domain names. (see [below for nested schema](#nestedblock--options--referrer_acl))
 - `response_headers_hiding_policy` (Block List, Max: 1) Specify the HTTP headers set on the source that CDN servers should hide from the response. (see [below for nested schema](#nestedblock--options--response_headers_hiding_policy))
 - `rewrite` (Block List, Max: 1) Change and redirect the requests from the CDN to the source. (see [below for nested schema](#nestedblock--options--rewrite))
@@ -455,6 +456,19 @@ Optional:
 Required:
 
 - `value` (Boolean) Set the value of the option. Allowed values are "true" or "false".
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Allowed values are "true" or "false".
+
+
+<a id="nestedblock--options--referer_acl"></a>
+### Nested Schema for `options.referer_acl`
+
+Required:
+
+- `excepted_values` (Set of String) Add a list of domain names. To allow a direct link access, add an empty value "". You cannot enter just the empty value because at least one valid referer is required.
+- `policy_type` (String) Set the policy type. Allowed values are "allow" or "deny". The policy allows or denies access to content from all domain names except those specified in the "excepted_values" field.
 
 Optional:
 
