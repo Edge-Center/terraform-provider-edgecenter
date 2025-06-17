@@ -1,20 +1,22 @@
 module github.com/Edge-Center/terraform-provider-edgecenter
 
-go 1.22.0
+go 1.23.0
+
+toolchain go1.24.2
 
 require (
 	github.com/AlekSi/pointer v1.2.0
 	github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.3
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0
-	github.com/Edge-Center/edgecentercdn-go v0.1.16
+	github.com/Edge-Center/edgecentercdn-go v0.1.18
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
 	github.com/Edge-Center/edgecentercloud-go/v2 v2.3.0
 	github.com/connerdouglass/go-retry v1.0.1
-	github.com/hashicorp/go-cty v1.4.1-0.20200723130312-85980079f637
+	github.com/hashicorp/go-cty v1.5.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.29.0
 	github.com/mitchellh/mapstructure v1.5.0
-	golang.org/x/sync v0.7.0
+	golang.org/x/sync v0.11.0
 )
 
 require (
@@ -86,11 +88,11 @@ require (
 	go.mongodb.org/mongo-driver v1.11.3 // indirect
 	go.opentelemetry.io/otel v1.14.0 // indirect
 	go.opentelemetry.io/otel/trace v1.14.0 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect
 	google.golang.org/grpc v1.57.0 // indirect
