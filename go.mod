@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.29.0
 	github.com/mitchellh/mapstructure v1.5.0
-	golang.org/x/sync v0.11.0
+	golang.org/x/sync v0.15.0
 )
 
 require (
