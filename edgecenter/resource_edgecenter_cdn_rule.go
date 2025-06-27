@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -928,7 +929,23 @@ var locationOptionsSchema = &schema.Schema{
 func resourceCDNRule() *schema.Resource {
 	return &schema.Resource{
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				parts := strings.Split(d.Id(), ":")
+				if len(parts) != 2 {
+					return nil, fmt.Errorf("unexpected format of ID (%q), expected resource_id:rule_id", d.Id())
+				}
+
+				resourceID, err := strconv.ParseInt(parts[0], 10, 64)
+				if err != nil {
+					return nil, fmt.Errorf("invalid resource_id %q: %w", parts[0], err)
+				}
+
+				ruleID := parts[1]
+				d.Set("resource_id", resourceID)
+				d.SetId(ruleID)
+
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 		Schema: map[string]*schema.Schema{
 			"resource_id": {
