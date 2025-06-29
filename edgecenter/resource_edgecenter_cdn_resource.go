@@ -625,33 +625,6 @@ var resourceOptionsSchema = &schema.Schema{
 					},
 				},
 			},
-			"referrer_acl": {
-				Type:        schema.TypeList,
-				MaxItems:    1,
-				Optional:    true,
-				Description: "Сontrol access to content from the specified domain names.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"enabled": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Default:     true,
-							Description: "Enable or disable the option. Allowed values are \"true\" or \"false\".",
-						},
-						"policy_type": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Set the policy type. Allowed values are \"allow\" or \"deny\". The policy allows or denies access to content from all domain names except those specified in the \"excepted_values\" field.",
-						},
-						"excepted_values": {
-							Type:        schema.TypeSet,
-							Elem:        &schema.Schema{Type: schema.TypeString},
-							Required:    true,
-							Description: "Add a list of domain names. To allow a direct link access, add an empty value \"\". You cannot enter just the empty value because at least one valid referer is required.",
-						},
-					},
-				},
-			},
 			"referer_acl": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -1447,14 +1420,6 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 		for _, v := range opt["excepted_values"].(*schema.Set).List() {
 			opts.RefererACL.ExceptedValues = append(opts.RefererACL.ExceptedValues, v.(string))
 		}
-	} else if opt, ok = getOptByName(fields, "referrer_acl"); ok {
-		opts.ReferrerACL = &cdn.ReferrerACL{
-			Enabled:    opt["enabled"].(bool),
-			PolicyType: opt["policy_type"].(string),
-		}
-		for _, v := range opt["excepted_values"].(*schema.Set).List() {
-			opts.ReferrerACL.ExceptedValues = append(opts.ReferrerACL.ExceptedValues, v.(string))
-		}
 	}
 	if opt, ok := getOptByName(fields, "response_headers_hiding_policy"); ok {
 		opts.ResponseHeadersHidingPolicy = &cdn.ResponseHeadersHidingPolicy{
@@ -1587,9 +1552,6 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 	if options.AllowedHTTPMethodsNew != nil {
 		m := structToMap(options.AllowedHTTPMethodsNew)
 		result["allowed_http_methods"] = []interface{}{m}
-	} else if options.AllowedHTTPMethods != nil {
-		m := structToMap(options.AllowedHTTPMethods)
-		result["allowed_http_methods"] = []interface{}{m}
 	}
 	if options.BrotliCompression != nil {
 		m := structToMap(options.BrotliCompression)
@@ -1662,9 +1624,6 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 	if options.IgnoreQueryStringNew != nil {
 		m := structToMap(options.IgnoreQueryStringNew)
 		result["ignore_query_string"] = []interface{}{m}
-	} else if options.IgnoreQueryString != nil {
-		m := structToMap(options.IgnoreQueryString)
-		result["ignore_query_string"] = []interface{}{m}
 	}
 	if options.ImageStack != nil {
 		m := structToMap(options.ImageStack)
@@ -1701,9 +1660,6 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 	if options.RefererACL != nil {
 		m := structToMap(options.RefererACL)
 		result["referer_acl"] = []interface{}{m}
-	} else if options.ReferrerACL != nil {
-		m := structToMap(options.ReferrerACL)
-		result["referrer_acl"] = []interface{}{m}
 	}
 	if options.ResponseHeadersHidingPolicy != nil {
 		m := structToMap(options.ResponseHeadersHidingPolicy)
@@ -1731,9 +1687,6 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 	}
 	if options.StaticRequestHeadersNew != nil {
 		m := structToMap(options.StaticRequestHeadersNew)
-		result["static_request_headers"] = []interface{}{m}
-	} else if options.StaticRequestHeaders != nil {
-		m := structToMap(options.StaticRequestHeaders)
 		result["static_request_headers"] = []interface{}{m}
 	}
 	if options.StaticResponseHeaders != nil {
