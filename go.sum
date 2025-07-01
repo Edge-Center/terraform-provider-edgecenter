@@ -9,6 +9,8 @@ github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0 h1:1aPDpywWbaF7VEjP/GjVo
 github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.0/go.mod h1:TcWO0BPvDsE6AGlPBqpKCZhoQ70rRlqmm85J32qcL8I=
 github.com/Edge-Center/edgecentercdn-go v0.1.18 h1:IKnGX/OazPp0msseJ430nadVDUJxXEO9SqNDdFwoKU4=
 github.com/Edge-Center/edgecentercdn-go v0.1.18/go.mod h1:iyw3qjTIuob3UUIop30gLvo9vvGjOPJW4YH6Q7J2Nrw=
+github.com/Edge-Center/edgecentercdn-go v0.1.19 h1:PtJF34tEoXlnnZooo9CdhYc5B4ATCPe4yCafTa52bl4=
+github.com/Edge-Center/edgecentercdn-go v0.1.19/go.mod h1:iyw3qjTIuob3UUIop30gLvo9vvGjOPJW4YH6Q7J2Nrw=
 github.com/Edge-Center/edgecentercloud-go v0.1.11 h1:00h5o/71lEoSdU1B4AWmviuOfO28P6nsRP+afjIsW80=
 github.com/Edge-Center/edgecentercloud-go v0.1.11/go.mod h1:kmXGtx0lL1ib+SPfJe/uIAyDHamquAvqiftoLSyhxF8=
 github.com/Edge-Center/edgecentercloud-go/v2 v2.3.0 h1:Kvc9Jv8qAeVHefTCZo97LhCAC3spIDrjbmvpS/mx5b8=
