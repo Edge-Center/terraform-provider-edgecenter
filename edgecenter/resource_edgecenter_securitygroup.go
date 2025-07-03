@@ -336,16 +336,30 @@ func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m in
 			r["ethertype"] = sgr.EtherType.String()
 		}
 
-		r["protocol"] = edgecloudV2.SGRuleProtocolANY
+		r["protocol"] = edgecloudV2.SGRuleProtocolANY.String()
 		if sgr.Protocol != nil {
 			r["protocol"] = sgr.Protocol.String()
 		}
 
+		// Some client can create rules with protocol TCP and UDP in all ports range(1-65535)
+		// In this case API return nil for PortRangeMax and PortRangeMin,
+		// and we need to set it manually.
+		sgProtocol := edgecloudV2.SecurityGroupRuleProtocol(r["protocol"].(string))
+
 		r["port_range_max"] = 0
+		if _, ok := networkProtocolWithPort[sgProtocol]; ok {
+			r["port_range_max"] = 65535
+		}
+
 		if sgr.PortRangeMax != nil {
 			r["port_range_max"] = *sgr.PortRangeMax
 		}
+
 		r["port_range_min"] = 0
+		if _, ok := networkProtocolWithPort[sgProtocol]; ok {
+			r["port_range_min"] = 1
+		}
+
 		if sgr.PortRangeMin != nil {
 			r["port_range_min"] = *sgr.PortRangeMin
 		}
