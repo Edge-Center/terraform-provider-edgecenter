@@ -12,13 +12,13 @@ import (
 )
 
 type Config struct {
-	PermanentToken string
-	CloudBaseURL   string
-	UserAgent      string
-	Provider       *edgecloud.ProviderClient
-	CDNClient      cdn.ClientService
-	StorageClient  *storageSDK.SDK
-	DNSClient      *dnsSDK.Client
+	PermanentToken   string
+	CloudBaseURL     string
+	UserAgent        string
+	Provider         *edgecloud.ProviderClient
+	CDNClient        cdn.ClientService
+	StorageClient    *storageSDK.SDK
+	DNSClient        *dnsSDK.Client
 	ProtectionClient *protection.Client
 }
 
@@ -33,13 +33,13 @@ func NewConfig(
 	userAgent string,
 ) Config {
 	return Config{
-		PermanentToken: permanentToken,
-		CloudBaseURL:   cloudBaseURL,
-		UserAgent:      userAgent,
-		Provider:       provider,
-		CDNClient:      cdnClient,
-		StorageClient:  storageClient,
-		DNSClient:      dnsClient,
+		PermanentToken:   permanentToken,
+		CloudBaseURL:     cloudBaseURL,
+		UserAgent:        userAgent,
+		Provider:         provider,
+		CDNClient:        cdnClient,
+		StorageClient:    storageClient,
+		DNSClient:        dnsClient,
 		ProtectionClient: protectionClient,
 	}
 }
