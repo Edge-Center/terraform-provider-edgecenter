@@ -18,6 +18,7 @@ import (
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	protectionSDK "github.com/phkrl/edgecenterprotection-go"
 )
 
 const (
@@ -208,6 +209,12 @@ func Provider() *schema.Provider {
 				Description: "DNS API (define only if you want to override DNS API endpoint)",
 				DefaultFunc: schema.EnvDefaultFunc("EC_DNS_API", ""),
 			},
+			"edgecenter_protection_api": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Protection API (define only if you want to override Protection API endpoint)",
+				DefaultFunc: schema.EnvDefaultFunc("EC_PROTECTION_API", ""),
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":                       resourceProject(),
@@ -331,6 +338,11 @@ func providerConfigure(
 		dnsAPI = apiEndpoint + "/dns"
 	}
 
+	protectionAPI := d.Get("edgecenter_protection_api").(string)
+	if protectionAPI == "" {
+		protectionAPI = apiEndpoint + "/protection"
+	}
+
 	platform := d.Get("edgecenter_platform_api").(string)
 	if platform == "" {
 		platform = d.Get("edgecenter_platform").(string)
@@ -416,6 +428,17 @@ func providerConfigure(
 			func(client *dnssdk.Client) {
 				client.UserAgent = userAgent
 			})
+	}
+	if protectionAPI != "" {
+		config.ProtectionClient, err = protectionSDK.New(
+			nil,
+			protectionSDK.SetAPIKey(permanentToken),
+			protectionSDK.SetBaseURL(protectionAPI),
+			protectionSDK.SetUserAgent(userAgent),
+		)
+		if err != nil {
+			return nil, diag.FromErr(fmt.Errorf("protection api client: %w", err))
+		}
 	}
 
 	return &config, diags
