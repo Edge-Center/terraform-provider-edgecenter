@@ -139,14 +139,6 @@ func resourceProtectionResource() *schema.Resource {
 				MinItems:    1,
 				Required:    true,
 				Description: fmt.Sprintf("The list of supported TLS versions. Available value: `%s`, `%s`, `%s`, `%s`.", tlsv1, tlsv1_1, tlsv1_2, tlsv1_3),
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					switch v {
-					case tlsv1, tlsv1_1, tlsv1_2, tlsv1_3:
-						return diag.Diagnostics{}
-					}
-					return diag.Errorf("wrong type %s, available values is `%s`, `%s`.", v, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3)
-				},
 			},
 			"wildcard_aliases": {
 				Type:        schema.TypeBool,
