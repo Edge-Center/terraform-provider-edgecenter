@@ -238,10 +238,10 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 
 	if lbType, ok := d.GetOk("load_balancing_type"); ok {
 		switch lbType.(string) {
-			case lbRoundRobin:
-				req.IPHash = 0
-			case lbIPHash:
-				req.IPHash = 1
+		case lbRoundRobin:
+			req.IPHash = 0
+		case lbIPHash:
+			req.IPHash = 1
 		}
 	}
 
@@ -407,10 +407,10 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 
 	if lbType, ok := d.GetOk("load_balancing_type"); ok {
 		switch lbType.(string) {
-			case lbRoundRobin:
-				req.IPHash = 0
-			case lbIPHash:
-				req.IPHash = 1
+		case lbRoundRobin:
+			req.IPHash = 0
+		case lbIPHash:
+			req.IPHash = 1
 		}
 	}
 
