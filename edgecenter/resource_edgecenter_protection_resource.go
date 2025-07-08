@@ -198,7 +198,7 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 
 	req.Name = d.Get("name").(string)
 
-	tlsEnabled := d.Get("tls").([]interface{})
+	tlsEnabled := d.Get("tls").(*schema.Set).List()
 	req.TLSEnabled = make([]string, len(tlsEnabled))
 	for i, s := range tlsEnabled {
 		req.TLSEnabled[i] = s.(string)
