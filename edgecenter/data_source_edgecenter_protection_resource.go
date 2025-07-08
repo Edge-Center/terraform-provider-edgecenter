@@ -131,6 +131,7 @@ func dataSourceProtectionResource() *schema.Resource {
 			},
 			"waf": {
 				Type:        schema.TypeBool,
+				Computed:    true,
 				Description: "Enable or disable WAF.",
 			},
 			"www_redirect": {
