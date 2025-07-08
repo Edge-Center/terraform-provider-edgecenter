@@ -39,15 +39,7 @@ func dataSourceProtectionResource() *schema.Resource {
 			"geoip_mode": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: fmt.Sprintf("Manage country access policy to control access to DDoS resource from the specified countries. Available values are `%s`, `%s`, `%s`.", geoIPNo, geoIPAllowList, geoIPBlockList),
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					switch v {
-					case geoIPNo, geoIPAllowList, geoIPBlockList:
-						return diag.Diagnostics{}
-					}
-					return diag.Errorf("wrong type %s, available values is `%s`, `%s`, `%s`.", v, geoIPNo, geoIPAllowList, geoIPBlockList)
-				},
+				Description: "Country access policy to control access to DDoS resource from the specified countries.",
 			},
 			"http_to_origin": {
 				Type:        schema.TypeBool,
@@ -57,7 +49,7 @@ func dataSourceProtectionResource() *schema.Resource {
 			"id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: ".",
+				Description: "ID of DDoS protection resource.",
 			},
 			"ip": {
 				Type:        schema.TypeString,
@@ -68,14 +60,6 @@ func dataSourceProtectionResource() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: fmt.Sprintf("Sets load balancing type. Available values are `%s`, `%s`.", lbRoundRobin, lbIPHash),
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					switch v {
-					case lbRoundRobin, lbIPHash:
-						return diag.Diagnostics{}
-					}
-					return diag.Errorf("wrong type %s, available values is `%s`, `%s`.", v, lbRoundRobin, lbIPHash)
-				},
 			},
 			"multiple_origins": {
 				Type:        schema.TypeBool,
@@ -96,14 +80,6 @@ func dataSourceProtectionResource() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: fmt.Sprintf("Select the SSL certificate type. Available values are `%s`, `%s`.", sslCustom, sslLE),
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					switch v {
-					case sslCustom, sslLE:
-						return diag.Diagnostics{}
-					}
-					return diag.Errorf("wrong type %s, available values is `%s`, `%s`.", v, sslCustom, sslLE)
-				},
 			},
 			"status": {
 				Type:        schema.TypeString,
@@ -115,14 +91,6 @@ func dataSourceProtectionResource() *schema.Resource {
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Computed:    true,
 				Description: fmt.Sprintf("The list of supported TLS versions. Available value: `%s`, `%s`, `%s`, `%s`.", tlsv1, tlsv1_1, tlsv1_2, tlsv1_3),
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					switch v {
-					case tlsv1, tlsv1_1, tlsv1_2, tlsv1_3:
-						return diag.Diagnostics{}
-					}
-					return diag.Errorf("wrong type %s, available values is `%s`, `%s`.", v, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3)
-				},
 			},
 			"wildcard_aliases": {
 				Type:        schema.TypeBool,
