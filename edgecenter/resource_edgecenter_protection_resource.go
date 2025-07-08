@@ -68,6 +68,12 @@ func resourceProtectionResource() *schema.Resource {
 					return diag.Errorf("wrong type %s, available values is `%s`, `%s`, `%s`.", v, geoIPNo, geoIPAllowList, geoIPBlockList)
 				},
 			},
+			"http_to_origin": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether to use HTTP to make requests to the origin. If set to false (default), HTTPS is used.",
+			},
 			"load_balancing_type": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -81,12 +87,6 @@ func resourceProtectionResource() *schema.Resource {
 					}
 					return diag.Errorf("wrong type %s, available values is `%s`, `%s`.", v, lbRoundRobin, lbIPHash)
 				},
-			},
-			"http_to_origin": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Computed:    true,
-				Description: "Whether to use HTTP to make requests to the origin. If set to false (default), HTTPS is used.",
 			},
 			"multiple_origins": {
 				Type:        schema.TypeBool,
