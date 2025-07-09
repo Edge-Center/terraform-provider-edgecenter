@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.29.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/phkrl/edgecenterprotection-go v0.1.0
+	github.com/phkrl/edgecenterprotection-go v0.1.2
 	golang.org/x/sync v0.15.0
 )
 
@@ -100,4 +100,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/phkrl/edgecenterprotection-go => git.local.org/go/edgecenterprotection-go v0.1.0
+replace github.com/phkrl/edgecenterprotection-go => git.local.org/go/edgecenterprotection-go v0.1.2

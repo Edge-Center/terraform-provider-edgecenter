@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -81,9 +82,14 @@ func resourceProtectionResourceCertificateCreateOrUpdate(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
+	jreq, _ := json.Marshal(result)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	var req protectionSDK.ResourceUpdateRequest
 
-	req.TLSEnabled = result.TLSEnabled
+	json.Unmarshal(jreq, &req)
 
 	sslType := d.Get("ssl_type").(string)
 	req.SSLType = sslType
@@ -155,9 +161,14 @@ func resourceProtectionResourceCertificateDelete(ctx context.Context, d *schema.
 		return diag.FromErr(err)
 	}
 
+	jreq, _ := json.Marshal(result)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	var req protectionSDK.ResourceUpdateRequest
 
-	req.TLSEnabled = result.TLSEnabled
+	json.Unmarshal(jreq, &req)
 
 	req.SSLType = ""
 	req.SSLCert = ""
