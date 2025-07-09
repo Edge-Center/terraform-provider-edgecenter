@@ -21,9 +21,6 @@ const (
 	lbRoundRobin = "Round Robin"
 	lbIPHash     = "Round Robin with session persistence"
 
-	sslCustom = "custom"
-	sslLE     = "le"
-
 	tlsv1   = "1"
 	tlsv1_1 = "1.1"
 	tlsv1_2 = "1.2"
@@ -105,33 +102,6 @@ func resourceProtectionResource() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "Enable or disable from HTTP to HTTPS",
-			},
-			"ssl_crt": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "Public part of the SSL certificate. It is required add all chains.",
-			},
-			"ssl_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "Private key of the SSL certificate.",
-				Sensitive:   true,
-			},
-			"ssl_type": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: fmt.Sprintf("Select the SSL certificate type. Available values are `%s`, `%s`.", sslCustom, sslLE),
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					switch v {
-					case sslCustom, sslLE:
-						return diag.Diagnostics{}
-					}
-					return diag.Errorf("wrong type %s, available values is `%s`, `%s`.", v, sslCustom, sslLE)
-				},
 			},
 			"tls": {
 				Type:        schema.TypeSet,
@@ -260,18 +230,6 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	if ssltype, ok := d.GetOk("ssl_type"); ok {
-		req.SSLType = ssltype.(string)
-	}
-
-	if sslcrt, ok := d.GetOk("ssl_crt"); ok {
-		req.SSLCert = sslcrt.(string)
-	}
-
-	if sslkey, ok := d.GetOk("ssl_key"); ok {
-		req.SSLKey = sslkey.(string)
-	}
-
 	if waf, ok := d.GetOk("waf"); ok {
 		req.WAF = waf.(bool)
 	}
@@ -312,7 +270,6 @@ func resourceProtectionResourceRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("wildcard_aliases", result.WidlcardAliases)
 	d.Set("redirect_to_https", result.RedirectToHTTPS)
 	d.Set("geoip_list", result.GeoIPList)
-	d.Set("ssl_type", result.SSLType)
 	d.Set("waf", result.WAF)
 
 	if result.HTTPS2HTTP == 1 {
@@ -427,18 +384,6 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 		} else {
 			req.WWWRedir = 0
 		}
-	}
-
-	if ssltype, ok := d.GetOk("ssl_type"); ok {
-		req.SSLType = ssltype.(string)
-	}
-
-	if sslcrt, ok := d.GetOk("ssl_crt"); ok {
-		req.SSLCert = sslcrt.(string)
-	}
-
-	if sslkey, ok := d.GetOk("ssl_key"); ok {
-		req.SSLKey = sslkey.(string)
 	}
 
 	if waf, ok := d.GetOk("waf"); ok {
