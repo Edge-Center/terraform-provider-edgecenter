@@ -150,7 +150,14 @@ func resourceProtectionResourceCertificateDelete(ctx context.Context, d *schema.
 		return diag.FromErr(err)
 	}
 
+	result, _, err := client.Resources.Get(ctx, id)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	var req protectionSDK.ResourceUpdateRequest
+
+	req.TLSEnabled = result.TLSEnabled
 
 	req.SSLType = ""
 	req.SSLCert = ""
