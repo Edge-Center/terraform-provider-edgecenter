@@ -76,7 +76,14 @@ func resourceProtectionResourceCertificateCreateOrUpdate(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
+	result, _, err := client.Resources.Get(ctx, id)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	var req protectionSDK.ResourceUpdateRequest
+
+	req.TLSEnabled = result.TLSEnabled
 
 	sslType := d.Get("ssl_type").(string)
 	req.SSLType = sslType
@@ -95,7 +102,7 @@ func resourceProtectionResourceCertificateCreateOrUpdate(ctx context.Context, d 
 		}
 	}
 
-	result, _, err := client.Resources.Update(ctx, id, &req)
+	_, _, err = client.Resources.Update(ctx, id, &req)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -103,7 +110,7 @@ func resourceProtectionResourceCertificateCreateOrUpdate(ctx context.Context, d 
 	d.SetId(resourceID)
 	resourceProtectionResourceCertificateRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish setting certificate for DDoS protection resource (id=%d)\n", resourceID, result.ID)
+	log.Printf("[DEBUG] Finish setting certificate for DDoS protection resource (id=%d)\n", resourceID)
 
 	return nil
 }
