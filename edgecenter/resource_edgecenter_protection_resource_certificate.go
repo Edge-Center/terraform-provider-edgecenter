@@ -51,7 +51,6 @@ func resourceProtectionResourceCertificate() *schema.Resource {
 			"ssl_type": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Computed:    true,
 				Description: fmt.Sprintf("Select the SSL certificate type. Available values are `%s`, `%s`, `%s`.", sslEmpty, sslCustom, sslLE),
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
