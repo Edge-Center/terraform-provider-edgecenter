@@ -220,7 +220,7 @@ func resourceProtectionResourceOriginUpdate(ctx context.Context, d *schema.Resou
 
 	log.Println("[DEBUG] Finish Protection Resource Origin updating")
 
-	return resourceProtectionResourceRead(ctx, d, m)
+	return resourceProtectionResourceOriginRead(ctx, d, m)
 }
 
 func resourceProtectionResourceOriginDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
