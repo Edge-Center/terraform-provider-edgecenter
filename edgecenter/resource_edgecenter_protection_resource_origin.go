@@ -104,15 +104,15 @@ func resourceProtectionResourceOriginCreate(ctx context.Context, d *schema.Resou
 	}
 
 	if weight, ok := d.GetOk("weight"); ok {
-		req.Weight = weight.(uint32)
+		req.Weight = weight.(int)
 	}
 
 	if max_fails, ok := d.GetOk("max_fails"); ok {
-		req.MaxFails = max_fails.(uint32)
+		req.MaxFails = max_fails.(int)
 	}
 
 	if fail_timeout, ok := d.GetOk("fail_timeout"); ok {
-		req.FailTimeout = fail_timeout.(uint32)
+		req.FailTimeout = fail_timeout.(int)
 	}
 
 	if comment, ok := d.GetOk("comment"); ok {
@@ -199,15 +199,15 @@ func resourceProtectionResourceOriginUpdate(ctx context.Context, d *schema.Resou
 	}
 
 	if weight, ok := d.GetOk("weight"); ok {
-		req.Weight = weight.(uint32)
+		req.Weight = weight.(int)
 	}
 
 	if max_fails, ok := d.GetOk("max_fails"); ok {
-		req.MaxFails = max_fails.(uint32)
+		req.MaxFails = max_fails.(int)
 	}
 
 	if fail_timeout, ok := d.GetOk("fail_timeout"); ok {
-		req.FailTimeout = fail_timeout.(uint32)
+		req.FailTimeout = fail_timeout.(int)
 	}
 
 	if comment, ok := d.GetOk("comment"); ok {
