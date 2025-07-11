@@ -27,6 +27,12 @@ const (
 	tlsv1_3 = "1.3"
 )
 
+const (
+	// these constants are used in certificate and alias resource
+	sslCustom = "custom"
+	sslLE     = "le"
+)
+
 func resourceProtectionResource() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceProtectionResourceCreate,
