@@ -2,7 +2,6 @@ package edgecenter
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -328,14 +327,9 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	jreq, _ := json.Marshal(result)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	var req protectionSDK.ResourceUpdateRequest
 
-	json.Unmarshal(jreq, &req)
+	req.SSLType = result.SSLType
 
 	tlsEnabled := d.Get("tls").(*schema.Set).List()
 	req.TLSEnabled = make([]string, len(tlsEnabled))

@@ -92,17 +92,19 @@ func resourceProtectionResourceCertificateCreateOrUpdate(ctx context.Context, d 
 	json.Unmarshal(jreq, &req)
 
 	sslType := d.Get("ssl_type").(string)
-	req.SSLType = sslType
+	req.SSLType = &sslType
 
 	if sslType == sslCustom {
 		if sslcrt, ok := d.GetOk("ssl_crt"); ok {
-			req.SSLCert = sslcrt.(string)
+			sslcrtVal := sslcrt.(string)
+			req.SSLCert = &sslcrtVal
 		} else {
 			return diag.Errorf("No certificate set for %s", resourceID)
 		}
 
 		if sslkey, ok := d.GetOk("ssl_key"); ok {
-			req.SSLKey = sslkey.(string)
+			sslkeyVal := sslkey.(string)
+			req.SSLKey = &sslkeyVal
 		} else {
 			return diag.Errorf("No certificate key set for %s", resourceID)
 		}
@@ -170,9 +172,9 @@ func resourceProtectionResourceCertificateDelete(ctx context.Context, d *schema.
 
 	json.Unmarshal(jreq, &req)
 
-	req.SSLType = ""
-	req.SSLCert = ""
-	req.SSLKey = ""
+	req.SSLType = nil
+	req.SSLCert = nil
+	req.SSLKey = nil
 
 	_, _, err = client.Resources.Update(ctx, id, &req)
 	if err != nil {
