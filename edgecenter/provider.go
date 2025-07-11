@@ -262,6 +262,7 @@ func Provider() *schema.Provider {
 			"edgecenter_protection_resource_header":          resourceProtectionResourceHeader(),
 			"edgecenter_protection_resource_blacklist_entry": resourceProtectionResourceBlacklistEntry(),
 			"edgecenter_protection_resource_whitelist_entry": resourceProtectionResourceWhitelistEntry(),
+			"edgecenter_protection_resource_alias":           resourceProtectionResourceAlias(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":                       dataSourceProject(),
