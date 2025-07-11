@@ -1,7 +1,7 @@
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
 dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
-git.local.org/go/edgecenterprotection-go v0.1.2 h1:NKeOk/NmFEX02Qc3zdpSFHUw1Ci9RK8PIonfxYOtYJ4=
-git.local.org/go/edgecenterprotection-go v0.1.2/go.mod h1:6P+uel0l7vLbPdYkNkYVqqGt+I0Y0Q0S9ERFzFrvKzs=
+git.local.org/go/edgecenterprotection-go v0.1.5 h1:5mNYm1wxZcH+XdvF8vSmEgu13dsAjeH4lbRVhwKSt1s=
+git.local.org/go/edgecenterprotection-go v0.1.5/go.mod h1:6P+uel0l7vLbPdYkNkYVqqGt+I0Y0Q0S9ERFzFrvKzs=
 github.com/AlekSi/pointer v1.2.0 h1:glcy/gc4h8HnG2Z3ZECSzZ1IX1x2JxRVuDzaJwQE0+w=
 github.com/AlekSi/pointer v1.2.0/go.mod h1:gZGfd3dpW4vEc/UlyfKKi1roIqcCgwOIvb0tSNSBle0=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
