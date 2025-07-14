@@ -217,12 +217,12 @@ func resourceProtectionResourceAliasDelete(ctx context.Context, d *schema.Resour
 	config := m.(*Config)
 	client := config.ProtectionClient
 
-	if _, err := client.Blacklists.Delete(ctx, resourceID, aliasID); err != nil {
+	if _, err := client.Aliases.Delete(ctx, resourceID, aliasID); err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId("")
-	log.Println("[DEBUG] Finish Protection Resource Blacklist entry deleting")
+	log.Println("[DEBUG] Finish Protection Resource Alias entry deleting")
 
 	return nil
 }
