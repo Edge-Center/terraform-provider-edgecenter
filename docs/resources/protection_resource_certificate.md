@@ -22,8 +22,7 @@ Allows to manage SSL certificate for DDoS protection resource.
 
 ### Optional
 
-- `ssl_crt` (String) Public part of the SSL certificate. It is required add all chains. Each certificate chain should be separated by `
-`.
+- `ssl_crt` (String) Public part of the SSL certificate. It is required add all chains. Each certificate chain should be separated by `\n`.
 - `ssl_key` (String, Sensitive) Private key of the SSL certificate.
 
 ### Read-Only

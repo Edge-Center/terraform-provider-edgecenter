@@ -22,8 +22,7 @@ Allows to manage certificates for aliases for DDoS protection resource.
 
 ### Optional
 
-- `ssl_crt` (String) Public part of the SSL certificate. Add all the certificate chains. Each certificate chain should be separated by `
-`
+- `ssl_crt` (String) Public part of the SSL certificate. Add all the certificate chains. Each certificate chain should be separated by `\n`
 - `ssl_key` (String, Sensitive) Private key of the SSL certificate.
 
 ### Read-Only
