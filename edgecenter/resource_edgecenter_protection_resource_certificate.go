@@ -143,7 +143,6 @@ func resourceProtectionResourceCertificateRead(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
-	d.Set("resource", result.ID)
 	d.Set("ssl_expire", result.SSLExpire)
 	d.Set("ssl_status", result.SSLStatus)
 	d.Set("ssl_type", result.SSLType)
