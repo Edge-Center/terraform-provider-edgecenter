@@ -34,7 +34,7 @@ func resourceProtectionResourceAliasCertificate() *schema.Resource {
 			"ssl_crt": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Public part of the SSL certificate. It is required add all chains.",
+				Description: "Public part of the SSL certificate. Add all the certificate chains. Each certificate chain should be separated by `\n`",
 			},
 			"ssl_expire": {
 				Type:        schema.TypeInt,
@@ -152,7 +152,7 @@ func resourceProtectionResourceAliasCertificateRead(ctx context.Context, d *sche
 	d.Set("ssl_status", result.SSLStatus)
 	d.Set("ssl_type", result.SSLType)
 
-	log.Println("[DEBUG] Finish reading alias for DDoS")
+	log.Println("[DEBUG] Finish reading certificate for alias for DDoS")
 
 	return nil
 }

@@ -40,7 +40,7 @@ func resourceProtectionResourceWhitelistEntry() *schema.Resource {
 }
 
 func resourceProtectionResourceWhitelistEntryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start Protection Resource Whitelist entry creating")
+	log.Println("[DEBUG] Start DDoS Protection Resource Whitelist entry creating")
 	config := m.(*Config)
 	client := config.ProtectionClient
 
@@ -61,14 +61,14 @@ func resourceProtectionResourceWhitelistEntryCreate(ctx context.Context, d *sche
 	d.SetId(fmt.Sprintf("%d:%d", resourceID, result.ID))
 	resourceProtectionResourceWhitelistEntryRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish Protection Resource Whitelist entry creating (id=%d:%d)\n", resourceID, result.ID)
+	log.Printf("[DEBUG] Finish DDoS Protection Resource Whitelist entry creating (id=%d:%d)\n", resourceID, result.ID)
 
 	return nil
 }
 
 func resourceProtectionResourceWhitelistEntryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	rID, eID, err := ImportStringParserSimple(d.Id())
-	log.Printf("[DEBUG] Start Protection Resource Whitelist entry reading (id=%s)\n", d.Id())
+	log.Printf("[DEBUG] Start DDoS Protection Resource Whitelist entry reading (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -94,14 +94,14 @@ func resourceProtectionResourceWhitelistEntryRead(ctx context.Context, d *schema
 	d.Set("resource", fmt.Sprintf("%d", resourceID))
 	d.Set("ip", result.IP)
 
-	log.Println("[DEBUG] Finish Protection Resource Whitelist entry reading")
+	log.Println("[DEBUG] Finish DDoS Protection Resource Whitelist entry reading")
 
 	return nil
 }
 
 func resourceProtectionResourceWhitelistEntryUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	rID, eID, err := ImportStringParserSimple(d.Id())
-	log.Printf("[DEBUG] Start Protection Resource Whitelist entry updating (id=%s)\n", d.Id())
+	log.Printf("[DEBUG] Start DDoS Protection Resource Whitelist entry updating (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -127,14 +127,14 @@ func resourceProtectionResourceWhitelistEntryUpdate(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
-	log.Println("[DEBUG] Finish Protection Resource Whitelist entry updating")
+	log.Println("[DEBUG] Finish DDoS Protection Resource Whitelist entry updating")
 
 	return resourceProtectionResourceWhitelistEntryRead(ctx, d, m)
 }
 
 func resourceProtectionResourceWhitelistEntryDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	rID, eID, err := ImportStringParserSimple(d.Id())
-	log.Printf("[DEBUG] Start Protection Resource Whitelist entry deleting (id=%s)\n", d.Id())
+	log.Printf("[DEBUG] Start DDoS Protection Resource Whitelist entry deleting (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -157,7 +157,7 @@ func resourceProtectionResourceWhitelistEntryDelete(ctx context.Context, d *sche
 	}
 
 	d.SetId("")
-	log.Println("[DEBUG] Finish Protection Resource Whitelist entry deleting")
+	log.Println("[DEBUG] Finish DDoS Protection Resource Whitelist entry deleting")
 
 	return nil
 }

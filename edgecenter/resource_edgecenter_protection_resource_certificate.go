@@ -20,7 +20,7 @@ func resourceProtectionResourceCertificate() *schema.Resource {
 		ReadContext:   resourceProtectionResourceCertificateRead,
 		UpdateContext: resourceProtectionResourceCertificateCreateOrUpdate,
 		DeleteContext: resourceProtectionResourceCertificateDelete,
-		Description:   "Allows to control SSL certificate for DDoS protection resource.",
+		Description:   "Allows to manage SSL certificate for DDoS protection resource.",
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -35,7 +35,7 @@ func resourceProtectionResourceCertificate() *schema.Resource {
 			"ssl_crt": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Public part of the SSL certificate. It is required add all chains.",
+				Description: "Public part of the SSL certificate. It is required add all chains. Each certificate chain should be separated by `\n`.",
 			},
 			"ssl_expire": {
 				Type:        schema.TypeInt,

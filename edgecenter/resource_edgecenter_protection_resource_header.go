@@ -45,7 +45,7 @@ func resourceProtectionResourceHeader() *schema.Resource {
 }
 
 func resourceProtectionResourceHeaderCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start Protection Resource Header creating")
+	log.Println("[DEBUG] Start DDoS Protection Resource Header creating")
 	config := m.(*Config)
 	client := config.ProtectionClient
 
@@ -67,14 +67,14 @@ func resourceProtectionResourceHeaderCreate(ctx context.Context, d *schema.Resou
 	d.SetId(fmt.Sprintf("%d:%d", resourceID, result.ID))
 	resourceProtectionResourceHeaderRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish Protection Resource Header creating (id=%d:%d)\n", resourceID, result.ID)
+	log.Printf("[DEBUG] Finish DDoS Protection Resource Header creating (id=%d:%d)\n", resourceID, result.ID)
 
 	return nil
 }
 
 func resourceProtectionResourceHeaderRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	rID, hID, err := ImportStringParserSimple(d.Id())
-	log.Printf("[DEBUG] Start Protection Resource Header reading (id=%s)\n", d.Id())
+	log.Printf("[DEBUG] Start DDoS Protection Resource Header reading (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -101,14 +101,14 @@ func resourceProtectionResourceHeaderRead(ctx context.Context, d *schema.Resourc
 	d.Set("key", result.Key)
 	d.Set("value", result.Value)
 
-	log.Println("[DEBUG] Finish Protection Resource Header reading")
+	log.Println("[DEBUG] Finish DDoS Protection Resource Header reading")
 
 	return nil
 }
 
 func resourceProtectionResourceHeaderUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	rID, hID, err := ImportStringParserSimple(d.Id())
-	log.Printf("[DEBUG] Start Protection Resource Header updating (id=%s)\n", d.Id())
+	log.Printf("[DEBUG] Start DDoS Protection Resource Header updating (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -135,14 +135,14 @@ func resourceProtectionResourceHeaderUpdate(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 
-	log.Println("[DEBUG] Finish Protection Resource Header updating")
+	log.Println("[DEBUG] Finish DDoS Protection Resource Header updating")
 
 	return resourceProtectionResourceHeaderRead(ctx, d, m)
 }
 
 func resourceProtectionResourceHeaderDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	rID, hID, err := ImportStringParserSimple(d.Id())
-	log.Printf("[DEBUG] Start Protection Resource Header deleting (id=%s)\n", d.Id())
+	log.Printf("[DEBUG] Start DDoS Protection Resource Header deleting (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -165,7 +165,7 @@ func resourceProtectionResourceHeaderDelete(ctx context.Context, d *schema.Resou
 	}
 
 	d.SetId("")
-	log.Println("[DEBUG] Finish Protection Resource Header deleting")
+	log.Println("[DEBUG] Finish DDoS Protection Resource Header deleting")
 
 	return nil
 }

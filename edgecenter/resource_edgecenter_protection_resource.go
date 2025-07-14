@@ -166,7 +166,7 @@ func resourceProtectionResource() *schema.Resource {
 }
 
 func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start Protection Resource creating")
+	log.Println("[DEBUG] Start DDoS Protection Resource creating")
 	config := m.(*Config)
 	client := config.ProtectionClient
 
@@ -248,14 +248,14 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 	d.SetId(fmt.Sprintf("%d", result.ID))
 	resourceProtectionResourceRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish Protection Resource creating (id=%d)\n", result.ID)
+	log.Printf("[DEBUG] Finish DDoS Protection Resource creating (id=%d)\n", result.ID)
 
 	return nil
 }
 
 func resourceProtectionResourceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start Protection Resource reading (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start DDoS Protection Resource reading (id=%s)\n", resourceID)
 	config := m.(*Config)
 	client := config.ProtectionClient
 
@@ -312,14 +312,14 @@ func resourceProtectionResourceRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("status", result.Status)
 	d.Set("wait_for_le", result.WaitForLE)
 
-	log.Println("[DEBUG] Finish Protection Resource reading")
+	log.Println("[DEBUG] Finish DDoS Protection Resource reading")
 
 	return nil
 }
 
 func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start Protection Resource updating (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start DDoS Protection Resource updating (id=%s)\n", resourceID)
 	config := m.(*Config)
 	client := config.ProtectionClient
 
@@ -407,14 +407,14 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	log.Println("[DEBUG] Finish Protection Resource updating")
+	log.Println("[DEBUG] Finish DDoS Protection Resource updating")
 
 	return resourceProtectionResourceRead(ctx, d, m)
 }
 
 func resourceProtectionResourceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start Protection Resource deleting (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start DDoS Protection Resource deleting (id=%s)\n", resourceID)
 	config := m.(*Config)
 	client := config.ProtectionClient
 
@@ -428,7 +428,7 @@ func resourceProtectionResourceDelete(ctx context.Context, d *schema.ResourceDat
 	}
 
 	d.SetId("")
-	log.Println("[DEBUG] Finish Protection Resource deleting")
+	log.Println("[DEBUG] Finish DDoS Protection Resource deleting")
 
 	return nil
 }

@@ -33,7 +33,7 @@ func resourceProtectionResourceBlacklistEntry() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "ID of the DDoS protection resource to add header to.",
+				Description: "ID of the DDoS protection resource to add blacklist to.",
 			},
 		},
 	}

@@ -86,7 +86,7 @@ func resourceProtectionResourceOrigin() *schema.Resource {
 }
 
 func resourceProtectionResourceOriginCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start Protection Resource Origin creating")
+	log.Println("[DEBUG] Start DDoS Protection Resource Origin creating")
 	config := m.(*Config)
 	client := config.ProtectionClient
 
@@ -127,14 +127,14 @@ func resourceProtectionResourceOriginCreate(ctx context.Context, d *schema.Resou
 	d.SetId(fmt.Sprintf("%d:%d", resourceID, result.ID))
 	resourceProtectionResourceOriginRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish Protection Resource Origin creating (id=%d:%d)\n", resourceID, result.ID)
+	log.Printf("[DEBUG] Finish DDoS Protection Resource Origin creating (id=%d:%d)\n", resourceID, result.ID)
 
 	return nil
 }
 
 func resourceProtectionResourceOriginRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	rID, oID, err := ImportStringParserSimple(d.Id())
-	log.Printf("[DEBUG] Start Protection Resource Origin reading (id=%s)\n", d.Id())
+	log.Printf("[DEBUG] Start DDoS Protection Resource Origin reading (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -165,14 +165,14 @@ func resourceProtectionResourceOriginRead(ctx context.Context, d *schema.Resourc
 	d.Set("fail_timeout", result.FailTimeout)
 	d.Set("comment", result.Comment)
 
-	log.Println("[DEBUG] Finish Protection Resource Origin reading")
+	log.Println("[DEBUG] Finish DDoS Protection Resource Origin reading")
 
 	return nil
 }
 
 func resourceProtectionResourceOriginUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	rID, oID, err := ImportStringParserSimple(d.Id())
-	log.Printf("[DEBUG] Start Protection Resource Origin updating (id=%s)\n", d.Id())
+	log.Printf("[DEBUG] Start DDoS Protection Resource Origin updating (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -218,14 +218,14 @@ func resourceProtectionResourceOriginUpdate(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 
-	log.Println("[DEBUG] Finish Protection Resource Origin updating")
+	log.Println("[DEBUG] Finish DDoS Protection Resource Origin updating")
 
 	return resourceProtectionResourceOriginRead(ctx, d, m)
 }
 
 func resourceProtectionResourceOriginDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	rID, oID, err := ImportStringParserSimple(d.Id())
-	log.Printf("[DEBUG] Start Protection Resource Origin deleting (id=%s)\n", d.Id())
+	log.Printf("[DEBUG] Start DDoS Protection Resource Origin deleting (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -248,7 +248,7 @@ func resourceProtectionResourceOriginDelete(ctx context.Context, d *schema.Resou
 	}
 
 	d.SetId("")
-	log.Println("[DEBUG] Finish Protection Resource Origin deleting")
+	log.Println("[DEBUG] Finish DDoS Protection Resource Origin deleting")
 
 	return nil
 }
