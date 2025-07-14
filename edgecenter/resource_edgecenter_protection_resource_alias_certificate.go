@@ -148,6 +148,7 @@ func resourceProtectionResourceAliasCertificateRead(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
+	d.Set("alias", fmt.Sprintf("%d:%d", resourceID, aliasID))
 	d.Set("ssl_expire", result.SSLExpire)
 	d.Set("ssl_status", result.SSLStatus)
 	d.Set("ssl_type", result.SSLType)
