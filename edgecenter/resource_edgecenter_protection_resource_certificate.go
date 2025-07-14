@@ -37,11 +37,21 @@ func resourceProtectionResourceCertificate() *schema.Resource {
 				Optional:    true,
 				Description: "Public part of the SSL certificate. It is required add all chains.",
 			},
+			"ssl_expire": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "UNIX timestamp of the SSL certificate expiration date.",
+			},
 			"ssl_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Private key of the SSL certificate.",
 				Sensitive:   true,
+			},
+			"ssl_status": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Let's Encrypt SSL certificate issuance status.",
 			},
 			"ssl_type": {
 				Type:        schema.TypeString,
@@ -134,6 +144,8 @@ func resourceProtectionResourceCertificateRead(ctx context.Context, d *schema.Re
 	}
 
 	d.Set("resource", result.ID)
+	d.Set("ssl_expire", result.SSLExpire)
+	d.Set("ssl_status", result.SSLStatus)
 	d.Set("ssl_type", result.SSLType)
 
 	log.Println("[DEBUG] Finish reading DDoS protection resource certificate type")
