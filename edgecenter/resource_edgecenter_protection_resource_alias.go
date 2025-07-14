@@ -27,7 +27,7 @@ func resourceProtectionResourceAlias() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The name of alias of DDoS protection resource. Must be a sub-domain of resource..",
+				Description: "The name of alias of DDoS protection resource. Must be a sub-domain of resource.",
 			},
 			"resource": {
 				Type:        schema.TypeString,
@@ -87,11 +87,12 @@ func resourceProtectionResourceAliasRead(ctx context.Context, d *schema.Resource
 	config := m.(*Config)
 	client := config.ProtectionClient
 
-	_, _, err = client.Aliases.Get(ctx, resourceID, aliasID)
+	result, _, err := client.Aliases.Get(ctx, resourceID, aliasID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	d.Set("name", result.Name)
 	d.Set("resource", fmt.Sprintf("%d", resourceID))
 
 	log.Println("[DEBUG] Finish reading alias for DDoS")
