@@ -35,7 +35,7 @@ func resourceProtectionResourceCertificate() *schema.Resource {
 			"ssl_crt": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Public part of the SSL certificate. It is required add all chains. Each certificate chain should be separated by `\n`.",
+				Description: "Public part of the SSL certificate. It is required add all chains. Each certificate chain should be separated by `\\n`.",
 			},
 			"ssl_expire": {
 				Type:        schema.TypeInt,
