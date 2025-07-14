@@ -31,7 +31,6 @@ const (
 	// these constants are used in certificate and alias resource
 	sslCustom = "custom"
 	sslLE     = "le"
-	sslEmpty  = ""
 )
 
 func resourceProtectionResource() *schema.Resource {
