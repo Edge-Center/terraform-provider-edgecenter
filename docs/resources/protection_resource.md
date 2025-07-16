@@ -23,7 +23,7 @@ Represent DDoS protection resource.
 ### Optional
 
 - `active` (Boolean) Enable or disable DDoS protection resource.
-- `geoip_list` (String) List of countries to apply geoip_mode policy to.
+- `geoip_list` (Set of String) List of countries to apply geoip_mode policy to.
 - `geoip_mode` (String) Manage country access policy to control access to DDoS resource from the specified countries. Available values are `no`, `allow`, `block`.
 - `http_to_origin` (Boolean) Whether to use HTTP to make requests to the origin. If set to false (default), HTTPS is used.
 - `load_balancing_type` (String) Sets load balancing type. Available values are `Round Robin`, `Round Robin with session persistence`.

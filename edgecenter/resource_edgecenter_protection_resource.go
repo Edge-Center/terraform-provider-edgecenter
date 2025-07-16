@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -52,7 +53,8 @@ func resourceProtectionResource() *schema.Resource {
 				Description: "Enable or disable DDoS protection resource.",
 			},
 			"geoip_list": {
-				Type:        schema.TypeString,
+				Type:        schema.TypeSet,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 				Optional:    true,
 				Computed:    true,
 				Description: "List of countries to apply geoip_mode policy to.",
@@ -211,7 +213,12 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 	}
 
 	if geoIPList, ok := d.GetOk("geoip_list"); ok {
-		req.GeoIPList = geoIPList.(string)
+		iplist := geoIPList.(*schema.Set).List()
+		geoIPListSet := make([]string, len(iplist))
+		for i, s := range iplist {
+			geoIPListSet[i] = s.(string)
+		}
+		req.GeoIPList = strings.Join(geoIPListSet, ",")
 	}
 
 	if redirectValue, ok := d.GetOk("www_redirect"); ok {
@@ -261,7 +268,7 @@ func resourceProtectionResourceRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("multiple_origins", result.MultipleOrigins)
 	d.Set("wildcard_aliases", result.WidlcardAliases)
 	d.Set("redirect_to_https", result.RedirectToHTTPS)
-	d.Set("geoip_list", result.GeoIPList)
+	d.Set("geoip_list", strings.Split(result.GeoIPList, ","))
 	d.Set("waf", result.WAF)
 
 	if result.HTTPS2HTTP == 1 {
@@ -374,7 +381,12 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 	}
 
 	if geoIPList, ok := d.GetOk("geoip_list"); ok {
-		req.GeoIPList = geoIPList.(string)
+		iplist := geoIPList.(*schema.Set).List()
+		geoIPListSet := make([]string, len(iplist))
+		for i, s := range iplist {
+			geoIPListSet[i] = s.(string)
+		}
+		req.GeoIPList = strings.Join(geoIPListSet, ",")
 	}
 
 	if redirectValue, ok := d.GetOk("www_redirect"); ok {
