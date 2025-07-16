@@ -6,9 +6,9 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	protectionSDK "github.com/phkrl/edgecenterprotection-go"
 )
@@ -58,18 +58,11 @@ func resourceProtectionResource() *schema.Resource {
 				Description: "List of countries to apply geoip_mode policy to.",
 			},
 			"geoip_mode": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: fmt.Sprintf("Manage country access policy to control access to DDoS resource from the specified countries. Available values are `%s`, `%s`, `%s`.", geoIPNo, geoIPAllowList, geoIPBlockList),
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					switch v {
-					case geoIPNo, geoIPAllowList, geoIPBlockList:
-						return diag.Diagnostics{}
-					}
-					return diag.Errorf("wrong type %s, available values is `%s`, `%s`, `%s`.", v, geoIPNo, geoIPAllowList, geoIPBlockList)
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  fmt.Sprintf("Manage country access policy to control access to DDoS resource from the specified countries. Available values are `%s`, `%s`, `%s`.", geoIPNo, geoIPAllowList, geoIPBlockList),
+				ValidateFunc: validation.StringInSlice([]string{geoIPNo, geoIPAllowList, geoIPBlockList}, false),
 			},
 			"http_to_origin": {
 				Type:        schema.TypeBool,
@@ -78,18 +71,11 @@ func resourceProtectionResource() *schema.Resource {
 				Description: "Whether to use HTTP to make requests to the origin. If set to false (default), HTTPS is used.",
 			},
 			"load_balancing_type": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: fmt.Sprintf("Sets load balancing type. Available values are `%s`, `%s`.", lbRoundRobin, lbIPHash),
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					switch v {
-					case lbRoundRobin, lbIPHash:
-						return diag.Diagnostics{}
-					}
-					return diag.Errorf("wrong type %s, available values is `%s`, `%s`.", v, lbRoundRobin, lbIPHash)
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  fmt.Sprintf("Sets load balancing type. Available values are `%s`, `%s`.", lbRoundRobin, lbIPHash),
+				ValidateFunc: validation.StringInSlice([]string{lbRoundRobin, lbIPHash}, false),
 			},
 			"multiple_origins": {
 				Type:        schema.TypeBool,

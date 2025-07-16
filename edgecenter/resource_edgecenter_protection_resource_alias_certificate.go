@@ -6,9 +6,9 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	protectionSDK "github.com/phkrl/edgecenterprotection-go"
 )
@@ -53,17 +53,10 @@ func resourceProtectionResourceAliasCertificate() *schema.Resource {
 				Description: "Let's Encrypt SSL certificate issuance status.",
 			},
 			"ssl_type": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: fmt.Sprintf("Select the SSL certificate type. Available values are `%s`, `%s`.", sslCustom, sslLE),
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					switch v {
-					case sslCustom, sslLE:
-						return diag.Diagnostics{}
-					}
-					return diag.Errorf("wrong type %s, available values is `%s`, `%s`.", v, sslCustom, sslLE)
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  fmt.Sprintf("Select the SSL certificate type. Available values are `%s`, `%s`.", sslCustom, sslLE),
+				ValidateFunc: validation.StringInSlice([]string{sslCustom, sslLE}, false),
 			},
 		},
 	}

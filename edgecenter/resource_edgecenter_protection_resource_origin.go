@@ -6,9 +6,9 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	protectionSDK "github.com/phkrl/edgecenterprotection-go"
 )
@@ -56,18 +56,11 @@ func resourceProtectionResourceOrigin() *schema.Resource {
 				Description: "Max number of failed connection attempts.",
 			},
 			"mode": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: fmt.Sprintf("Operation mode for this origin. Available values are `%s`, `%s`, `%s`.", modePrimary, modeBackup, modeDown),
-				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
-					v := val.(string)
-					switch v {
-					case modePrimary, modeBackup, modeDown:
-						return diag.Diagnostics{}
-					}
-					return diag.Errorf("wrong type %s, available values is `%s`, `%s`, `%s`.", v, modePrimary, modeBackup, modeDown)
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Description:  fmt.Sprintf("Operation mode for this origin. Available values are `%s`, `%s`, `%s`.", modePrimary, modeBackup, modeDown),
+				ValidateFunc: validation.StringInSlice([]string{modePrimary, modeBackup, modeDown}, false),
 			},
 			"resource": {
 				Type:        schema.TypeString,
