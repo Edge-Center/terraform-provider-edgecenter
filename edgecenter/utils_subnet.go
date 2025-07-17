@@ -111,7 +111,7 @@ func getSubnet(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.Reso
 			return nil, fmt.Errorf("multiple subnets found.\n %s.\n Use subnet ID instead of name", message.String())
 		}
 
-		subnet = &snets[0]
+		subnet = &foundSubnets[0]
 	}
 
 	return subnet, nil
