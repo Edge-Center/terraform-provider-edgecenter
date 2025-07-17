@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	protectionSDK "github.com/phkrl/edgecenterprotection-go"
+	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
 )
 
 func resourceProtectionResourceWhitelistEntry() *schema.Resource {

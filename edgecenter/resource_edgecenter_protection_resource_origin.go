@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	protectionSDK "github.com/phkrl/edgecenterprotection-go"
+	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
 )
 
 const (

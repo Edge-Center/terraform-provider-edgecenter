@@ -18,7 +18,7 @@ import (
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
-	protectionSDK "github.com/phkrl/edgecenterprotection-go"
+	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
 )
 
 const (
