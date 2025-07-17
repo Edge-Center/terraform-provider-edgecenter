@@ -246,6 +246,7 @@ resource "edgecenter_lbmember" "lbm2" {
 - `edgecenter_dns_api` (String) DNS API (define only if you want to override DNS API endpoint)
 - `edgecenter_platform` (String, Deprecated) Platform URL is used for generate JWT
 - `edgecenter_platform_api` (String) Platform URL is used for generate JWT (define only if you want to override Platform API endpoint)
+- `edgecenter_protection_api` (String) Protection API (define only if you want to override Protection API endpoint)
 - `edgecenter_storage_api` (String) Storage API (define only if you want to override Storage API endpoint)
 - `ignore_creds_auth_error` (Boolean, Deprecated) Should be set to true when you are gonna to use storage resource with permanent API-token only.
 - `password` (String, Deprecated)
