@@ -21,6 +21,7 @@ import (
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
@@ -69,6 +70,7 @@ const (
 	EC_CDN_URL_VAR            VarName = "EC_CDN_URL"
 	EC_STORAGE_URL_VAR        VarName = "EC_STORAGE_API"
 	EC_DNS_URL_VAR            VarName = "EC_DNS_API"
+	EC_PROTECTION_URL_VAR     VarName = "EC_PROTECTION_API"
 	EC_IMAGE_VAR              VarName = "EC_IMAGE"
 	EC_SECGROUP_VAR           VarName = "EC_SECGROUP"
 	EC_EXT_NET_VAR            VarName = "EC_EXT_NET"
@@ -110,6 +112,7 @@ var (
 	EC_CDN_RESOURCE_ID    = getEnv(EC_CDN_RESOURCE_ID_VAR)
 	EC_STORAGE_API        = getEnv(EC_STORAGE_URL_VAR)
 	EC_DNS_API            = getEnv(EC_DNS_URL_VAR)
+	EC_PROTECTION_API     = getEnv(EC_PROTECTION_URL_VAR)
 	EC_NETWORK_ID         = getEnv(EC_NETWORK_ID_VAR)
 	EC_SUBNET_ID          = getEnv(EC_SUBNET_ID_VAR)
 	EC_CLUSTER_ID         = getEnv(EC_CLUSTER_ID_VAR)
@@ -135,6 +138,7 @@ var varsMap = map[VarName]string{
 	EC_CDN_RESOURCE_ID_VAR:    EC_CDN_RESOURCE_ID,
 	EC_STORAGE_URL_VAR:        EC_STORAGE_API,
 	EC_DNS_URL_VAR:            EC_DNS_API,
+	EC_PROTECTION_URL_VAR:     EC_PROTECTION_API,
 	EC_NETWORK_ID_VAR:         EC_NETWORK_ID,
 	EC_SUBNET_ID_VAR:          EC_SUBNET_ID,
 	EC_CLUSTER_ID_VAR:         EC_CLUSTER_ID,
@@ -312,7 +316,20 @@ func createTestConfig() (*edgecenter.Config, error) {
 		}
 	}
 
-	config := edgecenter.NewConfig(provider, cdnService, storageClient, dnsClient, permanentToken, ecAPI, userAgent)
+	var protectionClient *protectionSDK.Client
+	if EC_PROTECTION_API != "" {
+		protectionClient, err = protectionSDK.New(
+			nil,
+			protectionSDK.SetAPIKey(permanentToken),
+			protectionSDK.SetBaseURL(EC_PROTECTION_API),
+			protectionSDK.SetUserAgent(userAgent),
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	config := edgecenter.NewConfig(provider, cdnService, storageClient, dnsClient, protectionClient, permanentToken, ecAPI, userAgent)
 
 	return &config, nil
 }

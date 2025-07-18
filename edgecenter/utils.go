@@ -61,6 +61,21 @@ func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string
 	return
 }
 
+// ImportStringParserSimple parses a string containing two ID fields,
+// and returns them as separate values along with any error encountered.
+func ImportStringParserSimple(infoStr string) (id1 string, id2 string, err error) { //nolint:nonamedreturns
+	log.Printf("[DEBUG] Input id string: %s", infoStr)
+	infoStrings := strings.Split(infoStr, ":")
+	if len(infoStrings) != 2 {
+		err = fmt.Errorf("failed import: wrong input id: %s", infoStr)
+		return
+	}
+
+	id1, id2 = infoStrings[0], infoStrings[1]
+
+	return
+}
+
 // findRegionByNameLegacy to support backwards compatibility.
 func findRegionByNameLegacy(arr []regions.Region, name string) (int, error) {
 	for _, el := range arr {
