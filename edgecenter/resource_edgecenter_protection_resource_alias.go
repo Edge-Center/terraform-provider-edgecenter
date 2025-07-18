@@ -62,7 +62,7 @@ func resourceProtectionResourceAliasCreate(ctx context.Context, d *schema.Resour
 	d.SetId(fmt.Sprintf("%s:%d", resourceID, result.ID))
 	resourceProtectionResourceAliasRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish creating alias for DDoS protection resource (id=%d:%d)\n", resourceID, result.ID)
+	log.Printf("[DEBUG] Finish creating alias for DDoS protection resource (id=%s:%d)\n", resourceID, result.ID)
 
 	return nil
 }

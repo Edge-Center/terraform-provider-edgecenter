@@ -92,14 +92,14 @@ func resourceProtectionResourceAliasCertificateCreateOrUpdate(ctx context.Contex
 			sslcrtVal := sslcrt.(string)
 			req.SSLCrt = &sslcrtVal
 		} else {
-			return diag.Errorf("No certificate set for %s", resourceID)
+			return diag.Errorf("No certificate set for %d", resourceID)
 		}
 
 		if sslkey, ok := d.GetOk("ssl_key"); ok {
 			sslkeyVal := sslkey.(string)
 			req.SSLKey = &sslkeyVal
 		} else {
-			return diag.Errorf("No certificate key set for %s", resourceID)
+			return diag.Errorf("No certificate key set for %d", resourceID)
 		}
 	}
 

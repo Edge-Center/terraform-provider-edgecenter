@@ -115,7 +115,7 @@ func resourceProtectionResourceCertificateCreateOrUpdate(ctx context.Context, d 
 	d.SetId(resourceID)
 	resourceProtectionResourceCertificateRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish setting certificate for DDoS protection resource (id=%d)\n", resourceID)
+	log.Printf("[DEBUG] Finish setting certificate for DDoS protection resource (id=%s)\n", resourceID)
 
 	return nil
 }
