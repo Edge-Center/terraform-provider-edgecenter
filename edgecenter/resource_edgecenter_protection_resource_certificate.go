@@ -79,7 +79,7 @@ func resourceProtectionResourceCertificateCreateOrUpdate(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
-	jreq, _ := json.Marshal(result)
+	jreq, err := json.Marshal(result)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -162,7 +162,7 @@ func resourceProtectionResourceCertificateDelete(ctx context.Context, d *schema.
 		return diag.FromErr(err)
 	}
 
-	jreq, _ := json.Marshal(result)
+	jreq, err := json.Marshal(result)
 	if err != nil {
 		return diag.FromErr(err)
 	}
