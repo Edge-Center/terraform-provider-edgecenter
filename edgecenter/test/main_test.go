@@ -21,8 +21,8 @@ import (
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 //nolint:unused
