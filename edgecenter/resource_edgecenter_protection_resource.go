@@ -29,7 +29,7 @@ const (
 )
 
 const (
-	// these constants are used in certificate and alias resource
+	// These constants are used in certificate and alias resource.
 	sslCustom = "custom"
 	sslLE     = "le"
 )
