@@ -321,7 +321,7 @@ func createTestConfig() (*edgecenter.Config, error) {
 		protectionClient, err = protectionSDK.New(
 			nil,
 			protectionSDK.SetAPIKey(permanentToken),
-			protectionSDK.SetBaseURL(protectionAPI),
+			protectionSDK.SetBaseURL(EC_PROTECTION_API),
 			protectionSDK.SetUserAgent(userAgent),
 		)
 		if err != nil {
