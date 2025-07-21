@@ -18,6 +18,7 @@ import (
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
 )
 
 const (
@@ -208,47 +209,61 @@ func Provider() *schema.Provider {
 				Description: "DNS API (define only if you want to override DNS API endpoint)",
 				DefaultFunc: schema.EnvDefaultFunc("EC_DNS_API", ""),
 			},
+			"edgecenter_protection_api": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Protection API (define only if you want to override Protection API endpoint)",
+				DefaultFunc: schema.EnvDefaultFunc("EC_PROTECTION_API", ""),
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"edgecenter_project":                       resourceProject(),
-			"edgecenter_volume":                        resourceVolume(),
-			"edgecenter_network":                       resourceNetwork(),
-			"edgecenter_subnet":                        resourceSubnet(),
-			"edgecenter_router":                        resourceRouter(),
-			"edgecenter_instance":                      resourceInstance(),
-			"edgecenter_instanceV2":                    resourceInstanceV2(),
-			"edgecenter_keypair":                       resourceKeypair(),
-			"edgecenter_reservedfixedip":               resourceReservedFixedIP(),
-			"edgecenter_floatingip":                    resourceFloatingIP(),
-			"edgecenter_loadbalancer":                  resourceLoadBalancer(),
-			"edgecenter_loadbalancerv2":                resourceLoadBalancerV2(),
-			"edgecenter_lblistener":                    resourceLbListener(),
-			"edgecenter_lbpool":                        resourceLBPool(),
-			"edgecenter_lbmember":                      resourceLBMember(),
-			"edgecenter_securitygroup":                 resourceSecurityGroup(),
-			"edgecenter_baremetal":                     resourceBmInstance(),
-			"edgecenter_snapshot":                      resourceSnapshot(),
-			"edgecenter_servergroup":                   resourceServerGroup(),
-			"edgecenter_k8s":                           resourceK8s(),
-			"edgecenter_k8s_pool":                      resourceK8sPool(),
-			"edgecenter_secret":                        resourceSecret(),
-			"edgecenter_storage_s3":                    resourceStorageS3(),
-			"edgecenter_storage_s3_bucket":             resourceStorageS3Bucket(),
-			DNSZoneResource:                            resourceDNSZone(),
-			DNSZoneRecordResource:                      resourceDNSZoneRecord(),
-			"edgecenter_cdn_resource":                  resourceCDNResource(),
-			"edgecenter_cdn_origingroup":               resourceCDNOriginGroup(),
-			"edgecenter_cdn_rule":                      resourceCDNRule(),
-			"edgecenter_cdn_shielding":                 resourceCDNShielding(),
-			"edgecenter_cdn_sslcert":                   resourceCDNCert(),
-			LifecyclePolicyResourceField:               resourceLifecyclePolicy(),
-			"edgecenter_lb_l7policy":                   resourceL7Policy(),
-			"edgecenter_lb_l7rule":                     resourceL7Rule(),
-			"edgecenter_instance_port_security":        resourceInstancePortSecurity(),
-			"edgecenter_useractions_subscription_amqp": resourceUserActionsSubscriptionAMQP(),
-			"edgecenter_useractions_subscription_log":  resourceUserActionsSubscriptionLog(),
-			"edgecenter_reseller_images":               resourceResellerImages(),
-			"edgecenter_reseller_imagesV2":             resourceResellerImagesV2(),
+			"edgecenter_project":                               resourceProject(),
+			"edgecenter_volume":                                resourceVolume(),
+			"edgecenter_network":                               resourceNetwork(),
+			"edgecenter_subnet":                                resourceSubnet(),
+			"edgecenter_router":                                resourceRouter(),
+			"edgecenter_instance":                              resourceInstance(),
+			"edgecenter_instanceV2":                            resourceInstanceV2(),
+			"edgecenter_keypair":                               resourceKeypair(),
+			"edgecenter_reservedfixedip":                       resourceReservedFixedIP(),
+			"edgecenter_floatingip":                            resourceFloatingIP(),
+			"edgecenter_loadbalancer":                          resourceLoadBalancer(),
+			"edgecenter_loadbalancerv2":                        resourceLoadBalancerV2(),
+			"edgecenter_lblistener":                            resourceLbListener(),
+			"edgecenter_lbpool":                                resourceLBPool(),
+			"edgecenter_lbmember":                              resourceLBMember(),
+			"edgecenter_securitygroup":                         resourceSecurityGroup(),
+			"edgecenter_baremetal":                             resourceBmInstance(),
+			"edgecenter_snapshot":                              resourceSnapshot(),
+			"edgecenter_servergroup":                           resourceServerGroup(),
+			"edgecenter_k8s":                                   resourceK8s(),
+			"edgecenter_k8s_pool":                              resourceK8sPool(),
+			"edgecenter_secret":                                resourceSecret(),
+			"edgecenter_storage_s3":                            resourceStorageS3(),
+			"edgecenter_storage_s3_bucket":                     resourceStorageS3Bucket(),
+			DNSZoneResource:                                    resourceDNSZone(),
+			DNSZoneRecordResource:                              resourceDNSZoneRecord(),
+			"edgecenter_cdn_resource":                          resourceCDNResource(),
+			"edgecenter_cdn_origingroup":                       resourceCDNOriginGroup(),
+			"edgecenter_cdn_rule":                              resourceCDNRule(),
+			"edgecenter_cdn_shielding":                         resourceCDNShielding(),
+			"edgecenter_cdn_sslcert":                           resourceCDNCert(),
+			LifecyclePolicyResourceField:                       resourceLifecyclePolicy(),
+			"edgecenter_lb_l7policy":                           resourceL7Policy(),
+			"edgecenter_lb_l7rule":                             resourceL7Rule(),
+			"edgecenter_instance_port_security":                resourceInstancePortSecurity(),
+			"edgecenter_useractions_subscription_amqp":         resourceUserActionsSubscriptionAMQP(),
+			"edgecenter_useractions_subscription_log":          resourceUserActionsSubscriptionLog(),
+			"edgecenter_reseller_images":                       resourceResellerImages(),
+			"edgecenter_reseller_imagesV2":                     resourceResellerImagesV2(),
+			"edgecenter_protection_resource":                   resourceProtectionResource(),
+			"edgecenter_protection_resource_certificate":       resourceProtectionResourceCertificate(),
+			"edgecenter_protection_resource_origin":            resourceProtectionResourceOrigin(),
+			"edgecenter_protection_resource_header":            resourceProtectionResourceHeader(),
+			"edgecenter_protection_resource_blacklist_entry":   resourceProtectionResourceBlacklistEntry(),
+			"edgecenter_protection_resource_whitelist_entry":   resourceProtectionResourceWhitelistEntry(),
+			"edgecenter_protection_resource_alias":             resourceProtectionResourceAlias(),
+			"edgecenter_protection_resource_alias_certificate": resourceProtectionResourceAliasCertificate(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":                       dataSourceProject(),
@@ -329,6 +344,11 @@ func providerConfigure(
 	dnsAPI := d.Get("edgecenter_dns_api").(string)
 	if dnsAPI == "" {
 		dnsAPI = apiEndpoint + "/dns"
+	}
+
+	protectionAPI := d.Get("edgecenter_protection_api").(string)
+	if protectionAPI == "" {
+		protectionAPI = apiEndpoint + "/protection"
 	}
 
 	platform := d.Get("edgecenter_platform_api").(string)
@@ -416,6 +436,17 @@ func providerConfigure(
 			func(client *dnssdk.Client) {
 				client.UserAgent = userAgent
 			})
+	}
+	if protectionAPI != "" {
+		config.ProtectionClient, err = protectionSDK.New(
+			nil,
+			protectionSDK.SetAPIKey(permanentToken),
+			protectionSDK.SetBaseURL(protectionAPI),
+			protectionSDK.SetUserAgent(userAgent),
+		)
+		if err != nil {
+			return nil, diag.FromErr(fmt.Errorf("protection api client: %w", err))
+		}
 	}
 
 	return &config, diags
