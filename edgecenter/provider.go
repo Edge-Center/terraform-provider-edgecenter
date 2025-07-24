@@ -245,6 +245,7 @@ func Provider() *schema.Provider {
 			DNSZoneRecordResource:                              resourceDNSZoneRecord(),
 			"edgecenter_cdn_resource":                          resourceCDNResource(),
 			"edgecenter_cdn_origingroup":                       resourceCDNOriginGroup(),
+			"edgecenter_cdn_lecert":                            resourceCDNLECert(),
 			"edgecenter_cdn_rule":                              resourceCDNRule(),
 			"edgecenter_cdn_shielding":                         resourceCDNShielding(),
 			"edgecenter_cdn_sslcert":                           resourceCDNCert(),
