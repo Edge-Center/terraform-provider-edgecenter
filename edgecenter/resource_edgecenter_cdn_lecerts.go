@@ -26,6 +26,12 @@ func resourceCDNLECert() *schema.Resource {
 				Default:     false,
 				Description: "Флаг обновления Let's Encrypt сертификата",
 			},
+			"active": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Флаг отмены активного процесса выдачи SSL-сертификата Let's Encrypt.",
+			},
 		},
 		ReadContext:   resourceCDNLECertRead,
 		CreateContext: resourceCDNLECertCreate,
@@ -78,6 +84,7 @@ func resourceCDNLECertUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	client := config.CDNClient
 
 	flagUpdate := d.Get("update").(bool)
+	active := d.Get("active").(bool)
 
 	if flagUpdate {
 		log.Println("[DEBUG] Start update LE cert")
@@ -91,6 +98,17 @@ func resourceCDNLECertUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	resourceCDNLECertRead(ctx, d, m)
+
+	if !active {
+		log.Println("[DEBUG] Start cancel LE cert")
+
+		resourceID := int64(d.Get("resource_id").(int))
+
+		if err := client.LECerts().CancelLECert(ctx, resourceID, active); err != nil {
+			log.Printf("[ERROR] Failed to cancel LE cert for resource ID %d: %v", resourceID, err)
+		}
+		log.Println("[DEBUG] Finished cancel LE cert")
+	}
 
 	return nil
 }
