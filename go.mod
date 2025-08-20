@@ -6,7 +6,7 @@ require (
 	github.com/AlekSi/pointer v1.2.0
 	github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.3
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.1
-	github.com/Edge-Center/edgecentercdn-go v0.1.21
+	github.com/Edge-Center/edgecentercdn-go v0.1.23
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
 	github.com/Edge-Center/edgecentercloud-go/v2 v2.3.0
 	github.com/Edge-Center/edgecenterprotection-go v0.1.6

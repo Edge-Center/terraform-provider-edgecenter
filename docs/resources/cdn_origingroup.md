@@ -83,3 +83,8 @@ Required:
 - `auth_type` (String) The type of authorization on the source. It can take two values - aws_signature_v2 or aws_signature_v4.
 - `bucket_name` (String) Specify the bucket name. The name is restricted to 255 symbols and may include alphanumeric characters, slashes, pluses, hyphens, and underscores.
 - `secret_key` (String) Specify the secret access key. The value must be between 32 and 40 characters and may include alphanumeric characters, slashes, pluses, hyphens, and underscores.
+
+Optional:
+
+- `addressing_style` (String) The addressing style for S3 requests. Supported values: path, virtual.
+- `aws_region` (String) The AWS region name.The name is restricted to 255 symbols and can contain lowercase latin letters (a-z), digits (0-9), and hyphens. Region name cannot start or end with a hyphen and cannot contain double hyphens.

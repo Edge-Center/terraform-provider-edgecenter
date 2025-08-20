@@ -78,6 +78,16 @@ func resourceCDNOriginGroup() *schema.Resource {
 							Required:    true,
 							Description: "Specify the access key ID in 20 alphanumeric characters.",
 						},
+						"addressing_style": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The addressing style for S3 requests. Supported values: path, virtual.",
+						},
+						"aws_region": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The AWS region name.The name is restricted to 255 symbols and can contain lowercase latin letters (a-z), digits (0-9), and hyphens. Region name cannot start or end with a hyphen and cannot contain double hyphens.",
+						},
 						"secret_key": {
 							Type:        schema.TypeString,
 							Required:    true,
@@ -267,10 +277,12 @@ func setToAuthRequest(set *schema.Set) *origingroups.Authorization {
 
 	fields := set.List()[0].(map[string]interface{})
 	return &origingroups.Authorization{
-		AuthType:    fields["auth_type"].(string),
-		AccessKeyID: fields["access_key_id"].(string),
-		SecretKey:   fields["secret_key"].(string),
-		BucketName:  fields["bucket_name"].(string),
+		AuthType:        fields["auth_type"].(string),
+		AccessKeyID:     fields["access_key_id"].(string),
+		AddressingStyle: fields["addressing_style"].(string),
+		AwsRegion:       fields["aws_region"].(string),
+		SecretKey:       fields["secret_key"].(string),
+		BucketName:      fields["bucket_name"].(string),
 	}
 }
 
@@ -287,6 +299,12 @@ func authToSet(auth *origingroups.Authorization) *schema.Set {
 			"access_key_id": {
 				Type: schema.TypeString,
 			},
+			"addressing_style": {
+				Type: schema.TypeString,
+			},
+			"aws_region": {
+				Type: schema.TypeString,
+			},
 			"secret_key": {
 				Type: schema.TypeString,
 			},
@@ -296,10 +314,12 @@ func authToSet(auth *origingroups.Authorization) *schema.Set {
 		},
 	}), []interface{}{
 		map[string]interface{}{
-			"auth_type":     auth.AuthType,
-			"access_key_id": auth.AccessKeyID,
-			"secret_key":    auth.SecretKey,
-			"bucket_name":   auth.BucketName,
+			"auth_type":        auth.AuthType,
+			"access_key_id":    auth.AccessKeyID,
+			"addressing_style": auth.AddressingStyle,
+			"aws_region":       auth.AwsRegion,
+			"secret_key":       auth.SecretKey,
+			"bucket_name":      auth.BucketName,
 		},
 	})
 }
