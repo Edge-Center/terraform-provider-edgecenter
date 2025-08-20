@@ -32,6 +32,7 @@ resource "edgecenter_cdn_lecert" "lecert" {
 
 ### Optional
 
+- `active` (Boolean) Флаг отмены активного процесса выдачи SSL-сертификата Let's Encrypt.
 - `update` (Boolean) Флаг обновления Let's Encrypt сертификата
 
 ### Read-Only
