@@ -1,6 +1,7 @@
 ### IDEs
 .vscode
 .idea
+.fleet
 .DS_Store
 
 ### terraform
