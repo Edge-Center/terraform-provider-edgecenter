@@ -8,7 +8,7 @@ require (
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.1
 	github.com/Edge-Center/edgecentercdn-go v0.1.23
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
-	github.com/Edge-Center/edgecentercloud-go/v2 v2.3.0
+	github.com/Edge-Center/edgecentercloud-go/v2 v2.4.1
 	github.com/Edge-Center/edgecenterprotection-go v0.1.6
 	github.com/connerdouglass/go-retry v1.0.1
 	github.com/hashicorp/go-cty v1.5.0
