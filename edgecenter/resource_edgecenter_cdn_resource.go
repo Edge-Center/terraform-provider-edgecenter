@@ -1159,7 +1159,12 @@ func resourceCDNResourceUpdate(ctx context.Context, d *schema.ResourceData, m in
 	req.Description = d.Get("description").(string)
 	req.OriginGroup = d.Get("origin_group").(int)
 	req.SSlEnabled = d.Get("ssl_enabled").(bool)
-	req.SSLData = d.Get("ssl_data").(int)
+	if v, ok := d.GetOk("ssl_data"); ok {
+		val := v.(int)
+		req.SSLData = &val
+	} else if d.HasChange("ssl_data") {
+		req.SSLData = nil
+	}
 	req.SSLAutomated = d.Get("ssl_automated").(bool)
 	req.OriginProtocol = resources.Protocol(d.Get("origin_protocol").(string))
 	req.Options = listToResourceOptions(d.Get("options").([]interface{}))
