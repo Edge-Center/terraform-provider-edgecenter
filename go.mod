@@ -9,7 +9,7 @@ require (
 	github.com/Edge-Center/edgecentercdn-go v0.1.24
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
 	github.com/Edge-Center/edgecentercloud-go/v2 v2.4.1
-	github.com/Edge-Center/edgecenterprotection-go v0.1.6
+	github.com/Edge-Center/edgecenterprotection-go v0.1.7
 	github.com/connerdouglass/go-retry v1.0.1
 	github.com/hashicorp/go-cty v1.5.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
