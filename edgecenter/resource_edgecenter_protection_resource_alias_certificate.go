@@ -48,7 +48,7 @@ func resourceProtectionResourceAliasCertificate() *schema.Resource {
 				Sensitive:   true,
 			},
 			"ssl_status": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Let's Encrypt SSL certificate issuance status.",
 			},
