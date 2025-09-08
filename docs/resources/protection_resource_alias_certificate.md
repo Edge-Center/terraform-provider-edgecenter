@@ -104,7 +104,7 @@ resource "edgecenter_dns_zone_record" "protected_resource_record" {
 
 - `id` (String) The ID of this resource.
 - `ssl_expire` (Number) UNIX timestamp of the SSL certificate expiration date.
-- `ssl_status` (Number) Let's Encrypt SSL certificate issuance status.
+- `ssl_status` (String) Let's Encrypt SSL certificate issuance status.
 
 ## Import
 
