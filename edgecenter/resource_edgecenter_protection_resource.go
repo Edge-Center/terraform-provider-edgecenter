@@ -205,9 +205,9 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 		switch geoIPMode.(string) {
 		case geoIPNo:
 			req.GeoIPMode = 0
-		case geoIPBlockList:
-			req.GeoIPMode = 1
 		case geoIPAllowList:
+			req.GeoIPMode = 1
+		case geoIPBlockList:
 			req.GeoIPMode = 2
 		}
 	}
@@ -288,9 +288,9 @@ func resourceProtectionResourceRead(ctx context.Context, d *schema.ResourceData,
 	case 0:
 		d.Set("geoip_mode", geoIPNo)
 	case 1:
-		d.Set("geoip_mode", geoIPBlockList)
-	case 2:
 		d.Set("geoip_mode", geoIPAllowList)
+	case 2:
+		d.Set("geoip_mode", geoIPBlockList)
 	}
 
 	if result.WWWRedir == 1 {
@@ -373,9 +373,9 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 		switch geoIPMode.(string) {
 		case geoIPNo:
 			req.GeoIPMode = 0
-		case geoIPBlockList:
-			req.GeoIPMode = 1
 		case geoIPAllowList:
+			req.GeoIPMode = 1
+		case geoIPBlockList:
 			req.GeoIPMode = 2
 		}
 	}
