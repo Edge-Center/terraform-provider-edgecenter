@@ -73,7 +73,7 @@ linters:
 	@$(BIN_DIR)/golangci-lint run
 
 linters_docker: # for windows
-	docker run --rm -v $(PROJECT_DIR):/app -w /app golangci/golangci-lint:v1.54.2 golangci-lint run -v
+	docker run --rm -v $(PROJECT_DIR):/app -w /app golangci/golangci-lint:v1.64.8 golangci-lint run -v
 
 # TESTS
 test_cloud_data_source: install_godotenv
