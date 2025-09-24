@@ -1224,7 +1224,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 		}
 	}
 	if opt, ok := getOptByName(fields, "host_header"); ok {
-		opts.HostHeader = &cdn.HostHeader{
+		opts.HostHeaderNew = &cdn.HostHeader{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(string),
 		}
@@ -1473,7 +1473,10 @@ func locationOptionsToList(options *cdn.LocationOptions) []interface{} {
 		m := structToMap(options.GzipCompression)
 		result["gzip_compression"] = []interface{}{m}
 	}
-	if options.HostHeader != nil {
+	if options.HostHeaderNew != nil {
+		m := structToMap(options.HostHeaderNew)
+		result["host_header"] = []interface{}{m}
+	} else if options.HostHeader != nil {
 		m := structToMap(options.HostHeader)
 		result["host_header"] = []interface{}{m}
 	}
