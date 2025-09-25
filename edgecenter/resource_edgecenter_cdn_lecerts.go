@@ -39,7 +39,7 @@ func resourceCDNLECert() *schema.Resource {
 		DeleteContext: resourceCDNLECertDelete,
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, m interface{}) error {
 			if d.HasChange("update") && d.HasChange("active") {
-				return fmt.Errorf("нельзя изменять 'update' и 'active' одновременно")
+				return fmt.Errorf("you cannot change 'update' and 'active' at the same time")
 			}
 			return nil
 		},
@@ -47,21 +47,22 @@ func resourceCDNLECert() *schema.Resource {
 }
 
 func resourceCDNLECertCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Creating LE cert...")
-	client := m.(*Config).CDNClient
+	config := m.(*Config)
+	client := config.CDNClient
 	resourceID := int64(d.Get("resource_id").(int))
 
+	log.Println("[DEBUG] Creating LE cert...")
 	if err := client.LECerts().CreateLECert(ctx, resourceID); err != nil {
 		return diag.FromErr(fmt.Errorf("failed to create LE cert for resource %d: %w", resourceID, err))
 	}
-
 	log.Println("[DEBUG] LE cert creation finished.")
 
 	return resourceCDNLECertRead(ctx, d, m)
 }
 
 func resourceCDNLECertRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).CDNClient
+	config := m.(*Config)
+	client := config.CDNClient
 	resourceID := int64(d.Get("resource_id").(int))
 
 	log.Printf("[DEBUG] Reading LE cert for resource %d", resourceID)
@@ -77,18 +78,17 @@ func resourceCDNLECertRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	d.SetId(fmt.Sprintf("%d", cert.ID))
-	d.Set("active", true)
-	d.Set("update", false)
-
+	_ = d.Set("active", true)
+	_ = d.Set("update", false)
 	log.Printf("[DEBUG] Finished reading LE cert: ID=%d", cert.ID)
 
 	return nil
 }
 
 func resourceCDNLECertUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).CDNClient
+	config := m.(*Config)
+	client := config.CDNClient
 	resourceID := int64(d.Get("resource_id").(int))
-
 	flagUpdate := d.Get("update").(bool)
 	active := d.Get("active").(bool)
 
@@ -97,31 +97,30 @@ func resourceCDNLECertUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(fmt.Errorf("failed to read LE cert for resource %d: %w", resourceID, err))
 	}
 
-	if cert.ID != 0 && !cert.Active {
-		if flagUpdate {
-			log.Printf("[DEBUG] Updating LE cert for resource %d", resourceID)
-			if err = client.LECerts().UpdateLECert(ctx, resourceID); err != nil {
-				return diag.FromErr(fmt.Errorf("failed to update LE cert for resource %d: %w", resourceID, err))
-			}
-		}
-		if !active {
-			log.Printf("[DEBUG] Cancelling LE cert for resource %d", resourceID)
-			if err = client.LECerts().CancelLECert(ctx, resourceID, active); err != nil {
-				return diag.FromErr(fmt.Errorf("failed to cancel LE cert for resource %d: %w", resourceID, err))
-			}
+	if flagUpdate && (cert.ID != 0 && !cert.Active) {
+		log.Printf("[DEBUG] Updating LE cert for resource %d", resourceID)
+		if err = client.LECerts().UpdateLECert(ctx, resourceID); err != nil {
+			return diag.FromErr(fmt.Errorf("failed to update LE cert for resource %d: %w", resourceID, err))
 		}
 	}
 
-	d.Set("update", false)
-	d.Set("active", true)
+	if !active {
+		log.Printf("[DEBUG] Cancelling LE cert for resource %d", resourceID)
+		if err = client.LECerts().CancelLECert(ctx, resourceID, active); err != nil {
+			return diag.FromErr(fmt.Errorf("failed to cancel LE cert for resource %d: %w", resourceID, err))
+		}
+	}
 
+	_ = d.Set("update", false)
+	_ = d.Set("active", true)
 	log.Printf("[DEBUG] Finished updating LE cert for resource %d", resourceID)
 
-	return resourceCDNLECertRead(ctx, d, m)
+	return nil
 }
 
 func resourceCDNLECertDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).CDNClient
+	config := m.(*Config)
+	client := config.CDNClient
 	resourceID := int64(d.Get("resource_id").(int))
 
 	log.Printf("[DEBUG] Deleting LE cert for resource %d", resourceID)
