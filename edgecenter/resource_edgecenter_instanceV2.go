@@ -256,16 +256,18 @@ interfaces. You must always have exactly one interface with set attribute 'is_de
 				Description: "The ID (uuid) of the server group to which the instance should belong.",
 			},
 			PasswordField: {
-				Type:         schema.TypeString,
-				Optional:     true,
-				RequiredWith: []string{UsernameField},
-				Description:  "The password to be used for accessing the instance. Required with username.",
+				Type:     schema.TypeString,
+				Optional: true,
+				Description: `The password to be used for accessing the instance. 
+								This parameter is used to set the password either for the "Admin" user on 
+								a Windows VM orthe default user or a new user on a Linux VM`,
 			},
 			UsernameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				RequiredWith: []string{PasswordField},
-				Description:  "The username to be used for accessing the instance. Required with password.",
+				Description: `The username to be used for accessing the instance. Required with password.
+								This parameter is used to set the user on a Linux VM`,
 			},
 			MetadataField: {
 				Type:        schema.TypeMap,
