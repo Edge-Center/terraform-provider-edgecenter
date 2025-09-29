@@ -154,7 +154,9 @@ from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."
 - `metadata` (Map of String) A map containing metadata, for example tags.
 - `name` (String) The name of the instance.
 - `name_template` (String) A template used to generate the instance name. This field cannot be used with 'name_templates'.
-- `password` (String) The password to be used for accessing the instance. Required with username.
+- `password` (String) The password to be used for accessing the instance. 
+								This parameter is used to set the password either for the "Admin" user on 
+								a Windows VM orthe default user or a new user on a Linux VM
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
@@ -163,6 +165,7 @@ from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."
 - `status` (String) The current status of the instance. This is computed automatically and can be used to track the instance's state.
 - `user_data` (String) A field for specifying user data to be used for configuring the instance at launch time.
 - `username` (String) The username to be used for accessing the instance. Required with password.
+								This parameter is used to set the user on a Linux VM
 - `vm_state` (String) The current virtual machine state of the instance, 
 allowing you to start or stop the VM. Possible values are stopped and active.
 
