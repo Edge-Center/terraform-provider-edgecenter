@@ -5,11 +5,13 @@ package edgecenter_test
 import (
 	"context"
 	"fmt"
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
-	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
@@ -147,7 +149,25 @@ func TestAccInstancePortSecurity(t *testing.T) {
 		t.Fatal(err)
 	}
 	instanceID := taskInstanceResult.Instances[0]
-	defer client.Instances.Delete(ctx, instanceID, nil)
+	defer func() {
+		t.Logf("client.Instances.Delete: %s", instanceID)
+
+		var delOpts edgecloudV2.InstanceDeleteOptions
+		results, _, err := client.Instances.Delete(ctx, instanceID, &delOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		taskID := results.Tasks[0]
+		task, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, 10*time.Minute)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if task.State == edgecloudV2.TaskStateError {
+			t.Fatal(fmt.Sprintf("cannot delete instance with ID: %s", instanceID))
+		}
+	}()
 
 	instancePortInterfaces, _, err := client.Instances.InterfaceList(ctx, instanceID)
 	if err != nil {
