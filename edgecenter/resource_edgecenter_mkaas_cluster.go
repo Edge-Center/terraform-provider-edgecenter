@@ -3,10 +3,6 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
-	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
 	"net/http"
 	"regexp"
@@ -15,6 +11,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
 const (
@@ -138,8 +138,8 @@ func resourceMkaasCluster() *schema.Resource {
 						MkaasVolumeTypeField: {
 							Type:         schema.TypeString,
 							Required:     true,
-							Description:  fmt.Sprintf("The type of volumes in the cluster (allowed values: `%s`).", volumes.SsdHiIops),
-							ValidateFunc: validation.StringInSlice([]string{string(volumes.SsdHiIops)}, false),
+							Description:  fmt.Sprintf("The type of volumes in the cluster (allowed values: `%s`).", edgecloudV2.VolumeTypeSsdHiIops),
+							ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.VolumeTypeSsdHiIops)}, false),
 						},
 						MkaasVersionField: {
 							Type:         schema.TypeString,
@@ -232,9 +232,9 @@ func resourceMkaasRead(ctx context.Context, d *schema.ResourceData, m interface{
 	clusterID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		d.SetId("")
-		return diag.FromErr(fmt.Errorf("invalid cluster id: %w", err))
+		return diag.Errorf("invalid cluster id: %s", err)
 	}
-	log.Printf("[DEBUG] MKaaS id = %s", clusterID)
+	log.Printf("[DEBUG] MKaaS id = %d", clusterID)
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
@@ -277,7 +277,6 @@ func resourceMkaasRead(ctx context.Context, d *schema.ResourceData, m interface{
 
 func resourceMkaasUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start MKaaS update")
-	var diags diag.Diagnostics
 
 	clusterID, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -307,12 +306,9 @@ func resourceMkaasUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 		}
 	}
 
-	if err := resourceMkaasRead(ctx, d, m); err != nil {
-		return diag.FromErr(fmt.Errorf("error reading resource after update: %w", err))
-	}
-
 	log.Println("[DEBUG] Finish MKaaS update")
-	return diags
+
+	return resourceMkaasRead(ctx, d, m)
 }
 
 func resourceMkaasDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
