@@ -236,7 +236,7 @@ func Provider() *schema.Provider {
 			"edgecenter_baremetal":                             resourceBmInstance(),
 			"edgecenter_snapshot":                              resourceSnapshot(),
 			"edgecenter_servergroup":                           resourceServerGroup(),
-			"edgecenter_k8s":                                   resourceK8s(),
+			"edgecenter_mkaas_cluster":                         resourceMkaasCluster(),
 			"edgecenter_k8s_pool":                              resourceK8sPool(),
 			"edgecenter_secret":                                resourceSecret(),
 			"edgecenter_storage_s3":                            resourceStorageS3(),
