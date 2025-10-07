@@ -21,6 +21,8 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
+var K8sPoint = "MKaaS/clusters"
+
 func TestAccK8sPool(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
