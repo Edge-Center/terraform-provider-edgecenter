@@ -69,7 +69,7 @@ resource "edgecenter_mkaas_cluster" "example" {
 Required:
 
 - `flavor` (String) The flavor type of the flavor.
-- `node_count` (Number) The number of control nodes in the cluster (allowed values: `1`, `3`, `5`).
+- `node_count` (Number) The number of control nodes in the cluster (allowed values: `1`, `3`).
 - `version` (String) The version of the Kubernetes cluster (format `vx.xx.x`).
 - `volume_size` (Number) The size of the control volumes in the cluster, specified in gigabytes (GB). Allowed range: `20–1024` GiB.
 - `volume_type` (String) The type of volumes in the cluster (allowed values: `ssd_hiiops`).
@@ -81,6 +81,8 @@ Required:
 Optional:
 
 - `create` (String)
+- `delete` (String)
+- `read` (String)
 - `update` (String)
 
 ## Import
