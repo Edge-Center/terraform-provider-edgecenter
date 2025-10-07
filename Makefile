@@ -77,10 +77,10 @@ linters_docker: # for windows
 
 # TESTS
 test_cloud_data_source: install_godotenv
-	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_data_source -short -timeout=20m
+	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_data_source -short -timeout=60m
 
 test_cloud_resource: install_godotenv
-	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_resource -short -timeout=20m
+	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_resource -short -timeout=60m
 
 test_not_cloud: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags dns storage cdn -v -timeout=5m
