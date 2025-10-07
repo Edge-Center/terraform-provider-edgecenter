@@ -18,36 +18,39 @@ import (
 )
 
 const (
-	K8sPoint              = "k8s/clusters"
-	K8sCreateTimeout      = 3600
-	MkaasKeypairNameField = "ssh_keypair_name"
+	K8sPoint                     = "k8s/clusters"
+	MkaasClusterReadTimeout      = 10 * time.Minute
+	MkaasClusterCreateTimeout    = 60 * time.Minute
+	MkaasClusterUpdateTimeout    = 60 * time.Minute
+	MkaasClusterDeleteTimeout    = 20 * time.Minute
+	MkaasClusterKeypairNameField = "ssh_keypair_name"
 
-	MkaasControlPlaneField = "control_plane"
-	MkaasFlavorField       = "flavor"
-	MkaasNodeCountField    = "node_count"
-	MkaasVolumeSizeField   = "volume_size"
-	MkaasVolumeTypeField   = "volume_type"
-	MkaasVersionField      = "version"
+	MkaasClusterControlPlaneField = "control_plane"
+	MkaasClusterFlavorField       = "flavor"
+	MkaasClusterNodeCountField    = "node_count"
+	MkaasClusterVolumeSizeField   = "volume_size"
+	MkaasClusterVolumeTypeField   = "volume_type"
+	MkaasClusterVersionField      = "version"
 
-	MkaasInternalIPField = "internal_ip"
-	MkaasExternalIPField = "external_ip"
-	MkaasCreatedField    = "created"
-	MkaasProcessingField = "processing"
-	MkaasStatusField     = "status"
+	MkaasClusterInternalIPField = "internal_ip"
+	MkaasClusterExternalIPField = "external_ip"
+	MkaasClusterCreatedField    = "created"
+	MkaasClusterProcessingField = "processing"
+	MkaasClusterStatusField     = "status"
 )
-
-var k8sCreateTimeout = time.Second * time.Duration(K8sCreateTimeout)
 
 func resourceMkaasCluster() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceMkaasCreate,
-		ReadContext:   resourceMkaasRead,
-		UpdateContext: resourceMkaasUpdate,
-		DeleteContext: resourceMkaasDelete,
+		CreateContext: resourceMkaasClusterCreate,
+		ReadContext:   resourceMkaasClusterRead,
+		UpdateContext: resourceMkaasClusterUpdate,
+		DeleteContext: resourceMkaasClusterDelete,
 		Description:   "Represent k8s cluster.",
 		Timeouts: &schema.ResourceTimeout{
-			Create: &k8sCreateTimeout,
-			Update: &k8sCreateTimeout,
+			Create: schema.DefaultTimeout(MkaasClusterCreateTimeout),
+			Read:   schema.DefaultTimeout(MkaasClusterReadTimeout),
+			Update: schema.DefaultTimeout(MkaasClusterUpdateTimeout),
+			Delete: schema.DefaultTimeout(MkaasClusterDeleteTimeout),
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
@@ -97,7 +100,7 @@ func resourceMkaasCluster() *schema.Resource {
 					"must consist of lower case alphanumeric characters or '-', up to 63 characters, and start and end with an alphanumeric character",
 				),
 			},
-			MkaasKeypairNameField: {
+			MkaasClusterKeypairNameField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the SSH keypair.",
@@ -112,36 +115,36 @@ func resourceMkaasCluster() *schema.Resource {
 				Required:    true,
 				Description: "The id of the subnet that created the cluster.",
 			},
-			MkaasControlPlaneField: {
+			MkaasClusterControlPlaneField: {
 				Type:     schema.TypeList,
 				MaxItems: 1,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						MkaasFlavorField: {
+						MkaasClusterFlavorField: {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The flavor type of the flavor.",
 						},
-						MkaasNodeCountField: {
+						MkaasClusterNodeCountField: {
 							Type:         schema.TypeInt,
 							Required:     true,
-							Description:  "The number of control nodes in the cluster (allowed values: `1`, `3`, `5`).",
-							ValidateFunc: validation.IntInSlice([]int{1, 3, 5}),
+							Description:  "The number of control nodes in the cluster (allowed values: `1`, `3`).",
+							ValidateFunc: validation.IntInSlice([]int{1, 3}),
 						},
-						MkaasVolumeSizeField: {
+						MkaasClusterVolumeSizeField: {
 							Type:         schema.TypeInt,
 							Required:     true,
 							Description:  "The size of the control volumes in the cluster, specified in gigabytes (GB). Allowed range: `20–1024` GiB.",
 							ValidateFunc: validation.IntBetween(20, 1024),
 						},
-						MkaasVolumeTypeField: {
+						MkaasClusterVolumeTypeField: {
 							Type:         schema.TypeString,
 							Required:     true,
 							Description:  fmt.Sprintf("The type of volumes in the cluster (allowed values: `%s`).", edgecloudV2.VolumeTypeSsdHiIops),
 							ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.VolumeTypeSsdHiIops)}, false),
 						},
-						MkaasVersionField: {
+						MkaasClusterVersionField: {
 							Type:         schema.TypeString,
 							Required:     true,
 							Description:  "The version of the Kubernetes cluster (format `vx.xx.x`).",
@@ -150,26 +153,26 @@ func resourceMkaasCluster() *schema.Resource {
 					},
 				},
 			},
-			MkaasInternalIPField: {
+			MkaasClusterInternalIPField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Internal IP address for the Kubernetes cluster.",
 			},
-			MkaasExternalIPField: {
+			MkaasClusterExternalIPField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "External IP address for the Kubernetes cluster.",
 			},
-			MkaasCreatedField: {
+			MkaasClusterCreatedField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The timestamp when the Kubernetes cluster was created.",
 			},
-			MkaasProcessingField: {
+			MkaasClusterProcessingField: {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			MkaasStatusField: {
+			MkaasClusterStatusField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Status of the Kubernetes cluster.",
@@ -178,7 +181,7 @@ func resourceMkaasCluster() *schema.Resource {
 	}
 }
 
-func resourceMkaasCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceMkaasClusterCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start K8S creating")
 	var diags diag.Diagnostics
 
@@ -189,7 +192,7 @@ func resourceMkaasCreate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	createOpts := edgecloudV2.MkaaSClusterCreateRequest{
 		Name:           d.Get(NameField).(string),
-		SSHKeyPairName: d.Get(MkaasKeypairNameField).(string),
+		SSHKeyPairName: d.Get(MkaasClusterKeypairNameField).(string),
 		NetworkID:      d.Get(NetworkIDField).(string),
 		SubnetID:       d.Get(SubnetIDField).(string),
 	}
@@ -199,33 +202,33 @@ func resourceMkaasCreate(ctx context.Context, d *schema.ResourceData, m interfac
 		if len(cpList) > 0 {
 			cp := cpList[0].(map[string]interface{})
 			createOpts.ControlPlane = edgecloudV2.ControlPlaneCreateRequest{
-				Flavor:     cp[MkaasFlavorField].(string),
-				NodeCount:  cp[MkaasNodeCountField].(int),
-				VolumeSize: cp[MkaasVolumeSizeField].(int),
-				Version:    cp[MkaasVersionField].(string),
-				VolumeType: edgecloudV2.VolumeType(cp[MkaasVolumeTypeField].(string)),
+				Flavor:     cp[MkaasClusterFlavorField].(string),
+				NodeCount:  cp[MkaasClusterNodeCountField].(int),
+				VolumeSize: cp[MkaasClusterVolumeSizeField].(int),
+				Version:    cp[MkaasClusterVersionField].(string),
+				VolumeType: edgecloudV2.VolumeType(cp[MkaasClusterVolumeTypeField].(string)),
 			}
 		}
 	}
 
 	log.Printf("[DEBUG] MKaaS create options: %+v", createOpts)
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.MkaaS.ClusterCreate, createOpts, clientV2, k8sCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.MkaaS.ClusterCreate, createOpts, clientV2, MkaasClusterCreateTimeout)
 	if err != nil {
 		return diag.Errorf("error from creating mkaas: %s", err)
 	}
 
 	clusterID := taskResult.MkaasClusters[0]
-	log.Printf("[DEBUG] MKaaS id (from taskResult): %s", clusterID)
-	d.SetId(clusterID)
-	resourceMkaasRead(ctx, d, m)
+	log.Printf("[DEBUG] MKaaS id (from taskResult): %.0f", clusterID)
+	d.SetId(strconv.FormatFloat(clusterID, 'f', -1, 64))
+	resourceMkaasClusterRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish MKaaS creating (%s)", clusterID)
+	log.Printf("[DEBUG] Finish MKaaS creating (%.0f)", clusterID)
 
 	return diags
 }
 
-func resourceMkaasRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceMkaasClusterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start MKaaS reading")
 	var diags diag.Diagnostics
 
@@ -254,28 +257,28 @@ func resourceMkaasRead(ctx context.Context, d *schema.ResourceData, m interface{
 	_ = d.Set(RegionIDField, clientV2.Region)
 	_ = d.Set(ProjectIDField, clientV2.Project)
 	_ = d.Set(NameField, cluster.Name)
-	_ = d.Set(MkaasKeypairNameField, cluster.SSHKeypairName)
+	_ = d.Set(MkaasClusterKeypairNameField, cluster.SSHKeypairName)
 	_ = d.Set(NetworkIDField, cluster.NetworkID)
 	_ = d.Set(SubnetIDField, cluster.SubnetID)
 
 	cp := map[string]interface{}{
-		MkaasFlavorField:     cluster.ControlPlane.Flavor,
-		MkaasNodeCountField:  cluster.ControlPlane.NodeCount,
-		MkaasVolumeSizeField: cluster.ControlPlane.VolumeSize,
-		MkaasVolumeTypeField: string(cluster.ControlPlane.VolumeType),
-		MkaasVersionField:    cluster.ControlPlane.Version,
+		MkaasClusterFlavorField:     cluster.ControlPlane.Flavor,
+		MkaasClusterNodeCountField:  cluster.ControlPlane.NodeCount,
+		MkaasClusterVolumeSizeField: cluster.ControlPlane.VolumeSize,
+		MkaasClusterVolumeTypeField: string(cluster.ControlPlane.VolumeType),
+		MkaasClusterVersionField:    cluster.ControlPlane.Version,
 	}
-	_ = d.Set(MkaasControlPlaneField, []interface{}{cp})
-	_ = d.Set(MkaasInternalIPField, cluster.InternalIP)
-	_ = d.Set(MkaasExternalIPField, cluster.ExternalIP)
-	_ = d.Set(MkaasCreatedField, cluster.Created)
-	_ = d.Set(MkaasProcessingField, cluster.Processing)
+	_ = d.Set(MkaasClusterControlPlaneField, []interface{}{cp})
+	_ = d.Set(MkaasClusterInternalIPField, cluster.InternalIP)
+	_ = d.Set(MkaasClusterExternalIPField, cluster.ExternalIP)
+	_ = d.Set(MkaasClusterCreatedField, cluster.Created)
+	_ = d.Set(MkaasClusterProcessingField, cluster.Processing)
 	_ = d.Set(StatusField, cluster.Status)
 
 	return diags
 }
 
-func resourceMkaasUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceMkaasClusterUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start MKaaS update")
 
 	clusterID, err := strconv.Atoi(d.Id())
@@ -288,30 +291,38 @@ func resourceMkaasUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
-	if d.HasChange(MkaasControlPlaneField) || d.HasChange(NameField) {
-		if v, ok := d.GetOk(MkaasControlPlaneField); ok {
+	if d.HasChange(MkaasClusterControlPlaneField) || d.HasChange(NameField) {
+		if v, ok := d.GetOk(MkaasClusterControlPlaneField); ok {
 			cpList := v.([]interface{})
 			if len(cpList) > 0 {
 				cp := cpList[0].(map[string]interface{})
-				nodeCount := cp[MkaasNodeCountField].(int)
+				nodeCount := cp[MkaasClusterNodeCountField].(int)
 
 				opts := edgecloudV2.MkaaSClusterUpdateRequest{
 					Name:            d.Get(NameField).(string),
 					MasterNodeCount: nodeCount,
 				}
-				if _, _, err := clientV2.MkaaS.ClusterUpdate(ctx, clusterID, opts); err != nil {
+				task, _, err := clientV2.MkaaS.ClusterUpdate(ctx, clusterID, opts)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+
+				taskID := task.Tasks[0]
+
+				err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MkaasClusterUpdateTimeout)
+				if err != nil {
 					return diag.FromErr(err)
 				}
 			}
 		}
 	}
 
-	log.Println("[DEBUG] Finish MKaaS update")
+	log.Println("[DEBUG] Finish MKaaS Cluster update")
 
-	return resourceMkaasRead(ctx, d, m)
+	return resourceMkaasClusterRead(ctx, d, m)
 }
 
-func resourceMkaasDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceMkaasClusterDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start MKaaS delete")
 	var diags diag.Diagnostics
 
@@ -333,7 +344,7 @@ func resourceMkaasDelete(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 	taskID := results.Tasks[0]
 	log.Printf("[DEBUG] Task id (%s)", taskID)
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, k8sCreateTimeout)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, MkaasClusterDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
