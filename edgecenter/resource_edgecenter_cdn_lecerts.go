@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -92,12 +93,17 @@ func resourceCDNLECertUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	flagUpdate := d.Get("update").(bool)
 	active := d.Get("active").(bool)
 
+	time.Sleep(1 * time.Second)
 	cert, err := client.LECerts().GetLECert(ctx, resourceID)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to read LE cert for resource %d: %w", resourceID, err))
 	}
+	r, err := client.Resources().Get(ctx, resourceID)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to read resource %d: %w", resourceID, err))
+	}
 
-	if flagUpdate && (cert.ID != 0 && !cert.Active) {
+	if flagUpdate && (cert.ID == r.SSLData) {
 		log.Printf("[DEBUG] Updating LE cert for resource %d", resourceID)
 		if err = client.LECerts().UpdateLECert(ctx, resourceID); err != nil {
 			return diag.FromErr(fmt.Errorf("failed to update LE cert for resource %d: %w", resourceID, err))
