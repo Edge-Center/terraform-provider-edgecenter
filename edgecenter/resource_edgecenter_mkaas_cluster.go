@@ -37,6 +37,8 @@ const (
 	MKaaSClusterCreatedField    = "created"
 	MKaaSClusterProcessingField = "processing"
 	MKaaSClusterStatusField     = "status"
+	MkaasClusterStateField      = "state"
+
 )
 
 func resourceMKaaSCluster() *schema.Resource {
@@ -177,6 +179,11 @@ func resourceMKaaSCluster() *schema.Resource {
 				Computed:    true,
 				Description: "Status of the Kubernetes cluster.",
 			},
+			MkaasClusterStateField: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "State of the Kubernetes cluster.",
+			},
 		},
 	}
 }
@@ -273,6 +280,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(MKaaSClusterCreatedField, cluster.Created)
 	_ = d.Set(MKaaSClusterProcessingField, cluster.Processing)
 	_ = d.Set(StatusField, cluster.Status)
+	_ = d.Set(MkaasClusterStateField, cluster.State)
 
 	return diag.Diagnostics{}
 }
