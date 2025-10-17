@@ -5,31 +5,29 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"text/template"
 
 	"github.com/gruntwork-io/terratest/modules/random"
 	tt "github.com/gruntwork-io/terratest/modules/terraform"
 )
 
-func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
-	token := requireEnv(t, "EC_TOKEN")
-	endpoint := os.Getenv("EC_API_ENDPOINT")
-	projectID := requireEnv(t, "EC_PROJECT_ID")
-	regionID := requireEnv(t, "EC_REGION_ID")
-	networkID := requireEnv(t, "EC_NETWORK_ID")
-	subnetID := requireEnv(t, "EC_SUBNET_ID")
-	sshKeypair := requireEnv(t, "EC_SSH_KEYPAIR_NAME")
-	flavor := requireEnv(t, "EC_CP_FLAVOR")
-	volumeType := os.Getenv("EC_VOLUME_TYPE")
-	if volumeType == "" {
-		volumeType = "ssd_hiiops"
-	}
-	version := os.Getenv("EC_K8S_VERSION")
-	if version == "" {
-		version = "v1.31.0"
-	}
+type tfData struct {
+	Token        string
+	Endpoint     string
+	ProjectID    string
+	RegionID     string
+	NetworkID    string
+	SubnetID     string
+	SSHKeypair   string
+	Name         string
+	CPFlavor     string
+	CPNodeCount  int
+	CPVolumeSize int
+	CPVolumeType string
+	CPVersion    string
+}
 
-	tmp := t.TempDir()
-	mainTf := `
+const mainTmpl = `
 terraform {
   required_providers {
     edgecenter = {
@@ -39,43 +37,29 @@ terraform {
 }
 
 provider "edgecenter" {
-  permanent_api_token  = var.token
-  edgecenter_cloud_api = var.endpoint
+  permanent_api_token  = "{{ .Token }}"
+  edgecenter_cloud_api = "{{ .Endpoint }}"
 }
 
-variable "token"     { type = string }
-variable "endpoint"  { type = string }
-variable "project_id" { type = number }
-variable "region_id"  { type = number }
-variable "network_id" { type = string }
-variable "subnet_id"  { type = string }
-variable "ssh_keypair_name" { type = string }
-variable "cp_flavor" { type = string }
-variable "cp_node_count" { type = number }
-variable "cp_volume_size" { type = number }
-variable "cp_volume_type" { type = string }
-variable "k8s_version" { type = string }
-variable "name" { type = string }
-
 resource "edgecenter_mkaas_cluster" "test" {
-  project_id = var.project_id
-  region_id  = var.region_id
+  project_id = {{ .ProjectID }}
+  region_id  = {{ .RegionID }}
 
-  name               = var.name
-  ssh_keypair_name   = var.ssh_keypair_name
-  network_id         = var.network_id
-  subnet_id          = var.subnet_id
+  name               = "{{ .Name }}"
+  ssh_keypair_name   = "{{ .SSHKeypair }}"
+  network_id         = "{{ .NetworkID }}"
+  subnet_id          = "{{ .SubnetID }}"
 
   control_plane {
-    flavor      = var.cp_flavor
-    node_count  = var.cp_node_count
-    volume_size = var.cp_volume_size
-    volume_type = var.cp_volume_type
-    version     = var.k8s_version
+    flavor      = "{{ .CPFlavor }}"
+    node_count  = {{ .CPNodeCount }}
+    volume_size = {{ .CPVolumeSize }}
+    volume_type = "{{ .CPVolumeType }}"
+    version     = "{{ .CPVersion }}"
   }
 }
 
-# --- outputs для проверки совпадений ---
+# --- outputs для проверок ---
 output "cluster_id"            { value = edgecenter_mkaas_cluster.test.id }
 output "cluster_name"          { value = edgecenter_mkaas_cluster.test.name }
 output "out_project_id"        { value = tostring(edgecenter_mkaas_cluster.test.project_id) }
@@ -84,45 +68,68 @@ output "out_network_id"        { value = edgecenter_mkaas_cluster.test.network_i
 output "out_subnet_id"         { value = edgecenter_mkaas_cluster.test.subnet_id }
 output "out_ssh_keypair_name"  { value = edgecenter_mkaas_cluster.test.ssh_keypair_name }
 output "out_cp_flavor"         { value = edgecenter_mkaas_cluster.test.control_plane[0].flavor }
-output "out_cp_node_count"     { value = edgecenter_mkaas_cluster.test.control_plane[0].node_count }
-output "out_cp_volume_size"    { value = edgecenter_mkaas_cluster.test.control_plane[0].volume_size }
+output "out_cp_node_count"     { value = tostring(edgecenter_mkaas_cluster.test.control_plane[0].node_count) }
+output "out_cp_volume_size"    { value = tostring(edgecenter_mkaas_cluster.test.control_plane[0].volume_size) }
 output "out_cp_volume_type"    { value = edgecenter_mkaas_cluster.test.control_plane[0].volume_type }
 output "out_k8s_version"       { value = edgecenter_mkaas_cluster.test.control_plane[0].version }
 
-# полезные вычисляемые
+# вычисляемые
 output "internal_ip"           { value = edgecenter_mkaas_cluster.test.internal_ip }
 output "external_ip"           { value = edgecenter_mkaas_cluster.test.external_ip }
 output "state"                 { value = edgecenter_mkaas_cluster.test.state }
 output "created"               { value = edgecenter_mkaas_cluster.test.created }
 `
-	if err := os.WriteFile(filepath.Join(tmp, "main.tf"), []byte(mainTf), 0644); err != nil {
-		t.Fatalf("write main.tf: %v", err)
-	}
 
+func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
+	if os.Getenv("RUN_MKAAS_IT") != "1" {
+		t.Skip("This test requires MKAAS_IT=1")
+	}
+	token := requireEnv(t, "EC_TOKEN")
+	endpoint := os.Getenv("EC_API_ENDPOINT")
+	projectID := requireEnv(t, "EC_PROJECT_ID")
+	regionID := requireEnv(t, "EC_REGION_ID")
+	networkID := requireEnv(t, "EC_NETWORK_ID")
+	subnetID := requireEnv(t, "EC_SUBNET_ID")
+	sshKeypair := requireEnv(t, "EC_SSH_KEYPAIR_NAME")
+	cpFlavor := requireEnv(t, "EC_CP_FLAVOR")
+	cpNodeCount := "1"
+	cpVolumeSize := "30"
+	cpVolumeType := os.Getenv("EC_VOLUME_TYPE")
+	if cpVolumeType == "" {
+		cpVolumeType = "ssd_hiiops"
+	}
+	cpVersion := os.Getenv("EC_K8S_VERSION")
+	if cpVersion == "" {
+		cpVersion = "v1.31.0"
+	}
 	baseName := "tf-mkaas-" + strings.ToLower(random.UniqueId())
-	nameV1 := baseName
+	nameV1 := baseName + "-v1"
+	nameV2 := baseName + "-v2"
+
+	tmp := t.TempDir()
+	mainPath := filepath.Join(tmp, "main.tf")
+	data := tfData{
+		Token:        token,
+		Endpoint:     endpoint,
+		ProjectID:    projectID,
+		RegionID:     regionID,
+		NetworkID:    networkID,
+		SubnetID:     subnetID,
+		SSHKeypair:   sshKeypair,
+		Name:         nameV1,
+		CPFlavor:     cpFlavor,
+		CPNodeCount:  1,
+		CPVolumeSize: 30,
+		CPVolumeType: cpVolumeType,
+		CPVersion:    cpVersion,
+	}
+	if err := renderTemplateTo(mainPath, data); err != nil {
+		t.Fatalf("write main.tf (create): %v", err)
+	}
 
 	tfOpts := &tt.Options{
 		TerraformDir: tmp,
 		NoColor:      true,
-		EnvVars: map[string]string{
-			"EDGECENTER_TOKEN": token,
-		},
-		Vars: map[string]interface{}{
-			"token":            token,
-			"endpoint":         endpoint,
-			"project_id":       mustAtoi(projectID),
-			"region_id":        mustAtoi(regionID),
-			"network_id":       networkID,
-			"subnet_id":        subnetID,
-			"ssh_keypair_name": sshKeypair,
-			"cp_flavor":        flavor,
-			"cp_node_count":    1,
-			"cp_volume_size":   40,
-			"cp_volume_type":   volumeType,
-			"k8s_version":      version,
-			"name":             nameV1,
-		},
 		RetryableTerraformErrors: map[string]string{
 			".*429.*":              "rate-limit",
 			".*timeout.*":          "transient network",
@@ -133,22 +140,21 @@ output "created"               { value = edgecenter_mkaas_cluster.test.created }
 	defer func() { tt.Destroy(t, tfOpts) }()
 
 	// create
-	tt.Apply(t, tfOpts)
+	tt.ApplyAndIdempotent(t, tfOpts)
 
 	// --- проверки "что записали — то и прочитали" после создания ---
 	assertEq(t, tt.Output(t, tfOpts, "cluster_name"), nameV1, "cluster_name")
 	assertEq(t, tt.Output(t, tfOpts, "out_project_id"), projectID, "project_id")
 	assertEq(t, tt.Output(t, tfOpts, "out_region_id"), regionID, "region_id")
+	assertEq(t, tt.Output(t, tfOpts, "out_ssh_keypair_name"), sshKeypair, "ssh_keypair_name")
 	assertEq(t, tt.Output(t, tfOpts, "out_network_id"), networkID, "network_id")
 	assertEq(t, tt.Output(t, tfOpts, "out_subnet_id"), subnetID, "subnet_id")
-	assertEq(t, tt.Output(t, tfOpts, "out_ssh_keypair_name"), sshKeypair, "ssh_keypair_name")
-	assertEq(t, tt.Output(t, tfOpts, "out_cp_flavor"), flavor, "control_plane.flavor")
-	assertEq(t, tt.Output(t, tfOpts, "out_cp_volume_type"), volumeType, "control_plane.volume_type")
-	assertEq(t, tt.Output(t, tfOpts, "out_k8s_version"), version, "control_plane.version")
-
-	assertEq(t, tt.Output(t, tfOpts, "out_cp_node_count"), "1", "control_plane.node_count")
-	assertEq(t, tt.Output(t, tfOpts, "out_cp_volume_size"), "40", "control_plane.volume_size")
-
+	assertEq(t, tt.Output(t, tfOpts, "out_cp_flavor"), cpFlavor, "control_plane.flavor")
+	assertEq(t, tt.Output(t, tfOpts, "out_cp_node_count"), cpNodeCount, "control_plane.node_count")
+	assertEq(t, tt.Output(t, tfOpts, "out_cp_volume_size"), cpVolumeSize, "control_plane.volume_size")
+	assertEq(t, tt.Output(t, tfOpts, "out_cp_volume_type"), cpVolumeType, "control_plane.volume_type")
+	assertEq(t, tt.Output(t, tfOpts, "out_k8s_version"), cpVersion, "control_plane.version")
+	// проверки на computed поля
 	id := tt.Output(t, tfOpts, "cluster_id")
 	if id == "" {
 		t.Fatalf("cluster_id is empty after create")
@@ -166,10 +172,15 @@ output "created"               { value = edgecenter_mkaas_cluster.test.created }
 	}
 
 	// update node_count
-	tfOpts.Vars["cp_node_count"] = 3
-	tt.Apply(t, tfOpts)
+	data.Name = nameV2
+	data.CPNodeCount = 3
+	if err := renderTemplateTo(mainPath, data); err != nil {
+		t.Fatalf("write main.tf (update): %v", err)
+	}
+	tt.ApplyAndIdempotent(t, tfOpts)
 
 	assertEq(t, tt.Output(t, tfOpts, "out_cp_node_count"), "3", "control_plane.node_count (after update)")
+	assertEq(t, tt.Output(t, tfOpts, "cluster_name"), nameV2, "cluster_name (after update)")
 
 	// import check
 	importDir := filepath.Join(tmp, "import")
@@ -177,13 +188,7 @@ output "created"               { value = edgecenter_mkaas_cluster.test.created }
 		t.Fatalf("mkdir import: %v", err)
 	}
 
-	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(mainTf), 0644); err != nil {
-		t.Fatalf("write import/main.tf: %v", err)
-	}
-
-	importID := strings.Join([]string{projectID, regionID, id}, ":")
-
-	baseTf := `
+	importMain := `
 terraform {
   required_providers {
     edgecenter = {
@@ -193,40 +198,30 @@ terraform {
 }
 
 provider "edgecenter" {
-  permanent_api_token  = var.token
-  edgecenter_cloud_api = var.endpoint
+  permanent_api_token  = "` + token + `"
+  edgecenter_cloud_api = "` + endpoint + `"
 }
 
 import {
   to = edgecenter_mkaas_cluster.test
-  id = "` + importID + `"
+  id = "` + strings.Join([]string{projectID, regionID, id}, ":") + `"
 }
 
-variable "token"            { type = string }
-variable "endpoint"         { type = string }
 `
-	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(baseTf), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0o644); err != nil {
 		t.Fatalf("write import/main.tf: %v", err)
 	}
 
 	importOpts := &tt.Options{
-		TerraformDir: importDir,
-		NoColor:      true,
-		EnvVars: map[string]string{
-			"EDGECENTER_TOKEN": token,
-		},
-		Vars: map[string]interface{}{
-			"token":    token,
-			"endpoint": endpoint,
-		},
+		TerraformDir:             importDir,
+		NoColor:                  true,
 		RetryableTerraformErrors: tfOpts.RetryableTerraformErrors,
 	}
+
 	tt.RunTerraformCommand(
 		t, importOpts,
 		"plan",
 		"-generate-config-out=generated.tf",
-		"-var", "token="+token,
-		"-var", "endpoint="+endpoint,
 		"-input=false",
 		"-lock-timeout=5m",
 	)
@@ -237,8 +232,6 @@ variable "endpoint"         { type = string }
 		t, importOpts,
 		"apply",
 		"-auto-approve",
-		"-var", "token="+token,
-		"-var", "endpoint="+endpoint,
 		"-input=false",
 		"-lock-timeout=5m",
 	)
@@ -247,8 +240,6 @@ variable "endpoint"         { type = string }
 		t, importOpts,
 		"plan",
 		"-detailed-exitcode",
-		"-var", "token="+token,
-		"-var", "endpoint="+endpoint,
 		"-input=false",
 		"-lock-timeout=5m",
 	); err != nil {
@@ -263,17 +254,6 @@ func assertEq(t *testing.T, got, want, field string) {
 	}
 }
 
-func mustAtoi(s string) int {
-	n := 0
-	for _, r := range s {
-		if r < '0' || r > '9' {
-			return 0
-		}
-		n = n*10 + int(r-'0')
-	}
-	return n
-}
-
 func requireEnv(t *testing.T, key string) string {
 	t.Helper()
 	val := strings.TrimSpace(os.Getenv(key))
@@ -281,4 +261,14 @@ func requireEnv(t *testing.T, key string) string {
 		t.Skipf("missing %s; skipping integration test", key)
 	}
 	return val
+}
+
+func renderTemplateTo(path string, data tfData) error {
+	tpl := template.Must(template.New("main").Parse(mainTmpl))
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return tpl.Execute(f, data)
 }
