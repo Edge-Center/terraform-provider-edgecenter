@@ -37,6 +37,7 @@ const (
 	MkaasClusterCreatedField    = "created"
 	MkaasClusterProcessingField = "processing"
 	MkaasClusterStatusField     = "status"
+	MkaasClusterStateField      = "state"
 )
 
 func resourceMkaasCluster() *schema.Resource {
@@ -177,6 +178,11 @@ func resourceMkaasCluster() *schema.Resource {
 				Computed:    true,
 				Description: "Status of the Kubernetes cluster.",
 			},
+			MkaasClusterStateField: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "State of the Kubernetes cluster.",
+			},
 		},
 	}
 }
@@ -273,7 +279,8 @@ func resourceMkaasClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(MkaasClusterExternalIPField, cluster.ExternalIP)
 	_ = d.Set(MkaasClusterCreatedField, cluster.Created)
 	_ = d.Set(MkaasClusterProcessingField, cluster.Processing)
-	_ = d.Set(StatusField, cluster.Status)
+	_ = d.Set(MkaasClusterStatusField, cluster.Status)
+	_ = d.Set(MkaasClusterStateField, cluster.State)
 
 	return diags
 }
