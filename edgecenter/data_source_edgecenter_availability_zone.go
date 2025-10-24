@@ -3,6 +3,7 @@ package edgecenter
 import (
 	"context"
 	"log"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -55,7 +56,7 @@ func dataSourceAvailabilityZonesRead(ctx context.Context, d *schema.ResourceData
 
 	log.Printf("[DEBUG] Availability Zones: %v", az)
 
-	d.SetId("availability_zones")
+	d.SetId(strconv.Itoa(az.RegionID))
 	if err := d.Set("availability_zones", az.AvailabilityZones); err != nil {
 		return diag.FromErr(err)
 	}
