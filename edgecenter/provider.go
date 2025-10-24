@@ -269,6 +269,7 @@ func Provider() *schema.Provider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":                       dataSourceProject(),
 			"edgecenter_region":                        dataSourceRegion(),
+			"edgecenter_availability_zone":             dataSourceAvailabilityZone(),
 			"edgecenter_securitygroup":                 dataSourceSecurityGroup(),
 			"edgecenter_image":                         dataSourceImage(),
 			"edgecenter_volume":                        dataSourceVolume(),
