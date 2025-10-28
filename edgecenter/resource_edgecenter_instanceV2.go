@@ -41,6 +41,7 @@ const (
 	InstanceUserDataField              = "user_data"
 	InstanceAllowAppPortsField         = "allow_app_ports"
 	InstanceReservedFixedIPPortIDField = "reserved_fixed_ip_port_id"
+	AvailabilityZoneField              = "availability_zone"
 )
 
 func resourceInstanceV2() *schema.Resource {
@@ -108,6 +109,12 @@ func resourceInstanceV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A template used to generate the instance name. This field cannot be used with 'name_templates'.",
+			},
+			AvailabilityZoneField: {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The availability zone in which to create the instance.",
 			},
 			InstanceBootVolumesField: {
 				Type:        schema.TypeSet,
@@ -364,6 +371,10 @@ func resourceInstanceCreateV2(ctx context.Context, d *schema.ResourceData, m int
 		createOpts.NameTemplates = []string{nameTemplate.(string)}
 	}
 
+	if availabilityZone, ok := d.GetOk(AvailabilityZoneField); ok {
+		createOpts.AvailabilityZone = availabilityZone.(string)
+	}
+
 	bootVolumes := d.Get("boot_volumes").(*schema.Set).List()
 
 	vs, err := extractVolumesMapV2(bootVolumes)
@@ -456,6 +467,7 @@ func resourceInstanceReadV2(ctx context.Context, d *schema.ResourceData, m inter
 	d.Set(FlavorIDField, instance.Flavor.FlavorID)
 	d.Set(StatusField, instance.Status)
 	d.Set(InstanceVMStateField, instance.VMState)
+	d.Set(AvailabilityZoneField, instance.AvailabilityZone)
 
 	flavor := make(map[string]interface{}, 4)
 	flavor[FlavorIDField] = instance.Flavor.FlavorID
@@ -829,6 +841,11 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 			}
 		}
 	}
+
+	if d.HasChange(AvailabilityZoneField) {
+		return diag.Errorf("cannot update availability zone in instance with ID: %s", instanceID)
+	}
+
 	log.Println("[DEBUG] Finish Instance updating")
 
 	return resourceInstanceReadV2(ctx, d, m)
