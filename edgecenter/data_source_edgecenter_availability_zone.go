@@ -2,9 +2,9 @@ package edgecenter
 
 import (
 	"context"
-	"log"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -39,7 +39,7 @@ func dataSourceAvailabilityZone() *schema.Resource {
 }
 
 func dataSourceAvailabilityZonesRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start Availability Zones reading")
+	tflog.Debug(ctx, "Start Availability Zones reading")
 
 	clientConf := CloudClientConf{
 		DoNotUseProjectID: true,
@@ -54,14 +54,12 @@ func dataSourceAvailabilityZonesRead(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(err)
 	}
 
-	log.Printf("[DEBUG] Availability Zones: %v", az)
-
 	d.SetId(strconv.Itoa(az.RegionID))
 	if err := d.Set("availability_zones", az.AvailabilityZones); err != nil {
 		return diag.FromErr(err)
 	}
 
-	log.Println("[DEBUG] Finish Availability Zones reading")
+	tflog.Debug(ctx, "Finish Availability Zones reading")
 
 	return nil
 }

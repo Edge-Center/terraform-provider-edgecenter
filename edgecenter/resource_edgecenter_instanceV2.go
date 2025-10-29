@@ -620,6 +620,10 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 		return diags
 	}
 
+	if d.HasChange(AvailabilityZoneField) {
+		return diag.Errorf("cannot update availability zone in instance with ID: %s", instanceID)
+	}
+
 	if d.HasChange(NameField) {
 		nameTemplate := d.Get(InstanceNameTemplateField).(string)
 		if len(nameTemplate) == 0 {
@@ -840,10 +844,6 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 				return diag.Errorf("Error waiting for instance (%s) to become inactive(stopped): %s", d.Id(), err)
 			}
 		}
-	}
-
-	if d.HasChange(AvailabilityZoneField) {
-		return diag.Errorf("cannot update availability zone in instance with ID: %s", instanceID)
 	}
 
 	log.Println("[DEBUG] Finish Instance updating")
