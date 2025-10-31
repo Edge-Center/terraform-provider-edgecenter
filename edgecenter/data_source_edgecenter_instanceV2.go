@@ -97,6 +97,11 @@ func dataSourceInstanceV2() *schema.Resource {
 				Description: "A set defining the volumes to be attached to the instance.",
 				Elem:        &volumeElemResource,
 			},
+			AvailabilityZoneField: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The availability zone where the instance is located.",
+			},
 			InstanceInterfacesField: {
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -183,6 +188,7 @@ func dataSourceInstanceV2Read(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(FlavorIDField, instance.Flavor.FlavorID)
 	_ = d.Set(StatusField, instance.Status)
 	_ = d.Set(InstanceVMStateField, instance.VMState)
+	_ = d.Set(AvailabilityZoneField, instance.AvailabilityZone)
 
 	flavor := make(map[string]interface{}, 4)
 	flavor[FlavorIDField] = instance.Flavor.FlavorID

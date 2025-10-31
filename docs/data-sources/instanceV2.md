@@ -50,6 +50,7 @@ output "view" {
 
 ### Read-Only
 
+- `availability_zone` (String) The availability zone where the instance is located.
 - `boot_volumes` (List of Object) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedatt--boot_volumes))
 - `data_volumes` (List of Object) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedatt--data_volumes))
 - `flavor` (Map of String) A map defining the flavor of the instance, for example, {"flavor_name": "g1-standard-2-4", "ram": 4096, ...}.

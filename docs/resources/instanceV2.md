@@ -147,6 +147,7 @@ resource "edgecenter_instance_port_security" "port_security" {
 ### Optional
 
 - `allow_app_ports` (Boolean) A boolean indicating whether to allow application ports on the instance.
+- `availability_zone` (String) The availability zone in which to create the instance.
 - `configuration` (Block List) A list of key-value pairs specifying configuration settings for the instance when created 
 from a template (marketplace), e.g. {"gitlab_external_url": "https://gitlab/..."} (see [below for nested schema](#nestedblock--configuration))
 - `data_volumes` (Block Set) A set defining the volumes to be attached to the instance. (see [below for nested schema](#nestedblock--data_volumes))
