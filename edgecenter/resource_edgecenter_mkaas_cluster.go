@@ -3,7 +3,6 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"log"
 	"net/http"
 	"regexp"
@@ -40,12 +39,12 @@ const (
 	MKaaSClusterStatusField     = "status"
 )
 
-func resourceMkaasCluster() *schema.Resource {
+func resourceMKaaSCluster() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceMkaasClusterCreate,
-		ReadContext:   resourceMkaasClusterRead,
-		UpdateContext: resourceMkaasClusterUpdate,
-		DeleteContext: resourceMkaasClusterDelete,
+		CreateContext: resourceMKaaSClusterCreate,
+		ReadContext:   resourceMKaaSClusterRead,
+		UpdateContext: resourceMKaaSClusterUpdate,
+		DeleteContext: resourceMKaaSClusterDelete,
 		Description:   "Represent k8s cluster.",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(MKaaSClusterCreateTimeout),
@@ -182,8 +181,8 @@ func resourceMkaasCluster() *schema.Resource {
 	}
 }
 
-func resourceMkaasClusterCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start K8S creating")
+func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Println("Start K8S creating")
 	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
@@ -212,7 +211,7 @@ func resourceMkaasClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 		}
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] MKaaS create options: %+v", createOpts))
+	log.Println(fmt.Sprintf("MKaaS create options: %+v", createOpts))
 
 	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, clientV2.MkaaS.ClusterCreate, createOpts, clientV2, MKaaSClusterCreateTimeout)
 	if err != nil {
@@ -220,18 +219,18 @@ func resourceMkaasClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	clusterID := taskResult.MkaasClusters[0]
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] MKaaS id (from taskResult): %.0f", clusterID))
+	log.Println(fmt.Sprintf("MKaaS id (from taskResult): %.0f", clusterID))
 	d.SetId(strconv.FormatFloat(clusterID, 'f', -1, 64))
 
-	diags = resourceMkaasClusterRead(ctx, d, m)
+	diags = resourceMKaaSClusterRead(ctx, d, m)
 
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Finish MKaaS creating (%.0f)", clusterID))
+	log.Println(fmt.Sprintf("Finish MKaaS creating (%.0f)", clusterID))
 
 	return diags
 }
 
-func resourceMkaasClusterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start MKaaS reading")
+func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Println("Start MKaaS reading")
 	var diags diag.Diagnostics
 
 	clusterID, err := strconv.Atoi(d.Id())
@@ -239,7 +238,7 @@ func resourceMkaasClusterRead(ctx context.Context, d *schema.ResourceData, m int
 		d.SetId("")
 		return diag.Errorf("invalid cluster id: %s", err)
 	}
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] MKaaS id = %d", clusterID))
+	log.Println(fmt.Sprintf("MKaaS id = %d", clusterID))
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
@@ -280,8 +279,8 @@ func resourceMkaasClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	return diags
 }
 
-func resourceMkaasClusterUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start MKaaS update")
+func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Println("Start MKaaS update")
 
 	clusterID, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -319,13 +318,13 @@ func resourceMkaasClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		}
 	}
 
-	log.Println("[DEBUG] Finish MKaaS Cluster update")
+	log.Println("Finish MKaaS Cluster update")
 
-	return resourceMkaasClusterRead(ctx, d, m)
+	return resourceMKaaSClusterRead(ctx, d, m)
 }
 
-func resourceMkaasClusterDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start MKaaS delete")
+func resourceMKaaSClusterDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Println("Start MKaaS delete")
 	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
@@ -334,7 +333,7 @@ func resourceMkaasClusterDelete(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	clusterID, err := strconv.Atoi(d.Id())
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] MKaaS cluster id = %d", clusterID))
+	log.Println(fmt.Sprintf("MKaaS cluster id = %d", clusterID))
 	if err != nil {
 		d.SetId("")
 		return nil
@@ -345,7 +344,7 @@ func resourceMkaasClusterDelete(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
+	log.Printf("Task id (%s)", taskID)
 	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, MKaaSClusterDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
@@ -355,7 +354,7 @@ func resourceMkaasClusterDelete(ctx context.Context, d *schema.ResourceData, m i
 		return diag.Errorf("cannot delete MKaaS cluster with ID: %d", clusterID)
 	}
 	d.SetId("")
-	log.Printf("[DEBUG] Finish of MKaaS cluster deleting")
+	log.Printf("Finish of MKaaS cluster deleting")
 
 	return diags
 }

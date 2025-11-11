@@ -3,7 +3,6 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"log"
 	"strconv"
 	"time"
@@ -38,11 +37,11 @@ const (
 	MKaaSPoolStatusField          = "status"
 )
 
-func resourceMkaasPool() *schema.Resource {
+func resourceMKaaSPool() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceMKaaSPoolCreate,
-		ReadContext:   resourceMkaasPoolRead,
-		UpdateContext: resourceMkaasPoolUpdate,
+		ReadContext:   resourceMKaaSPoolRead,
+		UpdateContext: resourceMKaaSPoolUpdate,
 		DeleteContext: resourceMkaasPoolDelete,
 		Description:   "Represent MKaaS cluster's pool.",
 		Timeouts: &schema.ResourceTimeout{
@@ -148,7 +147,7 @@ func resourceMkaasPool() *schema.Resource {
 }
 
 func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	tflog.Debug(ctx, "[DEBUG] Start MKaaS Cluster creating")
+	log.Println("Start MKaaS Cluster creating")
 	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
@@ -197,7 +196,7 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] MKaaS Pool create request: %+v", createOpts))
+	log.Println(fmt.Sprintf("MKaaS Pool create request: %+v", createOpts))
 
 	results, _, err := clientV2.MkaaS.PoolCreate(ctx, clusterID, createOpts)
 	if err != nil {
@@ -216,18 +215,18 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	poolID := taskResult.MkaasPools[0]
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] MKaaS Pool id (from taskResult): %.0f", poolID))
+	log.Println(fmt.Sprintf("MKaaS Pool id (from taskResult): %.0f", poolID))
 	d.SetId(strconv.FormatFloat(poolID, 'f', -1, 64))
-	resourceMkaasPoolRead(ctx, d, m)
+	resourceMKaaSPoolRead(ctx, d, m)
 
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Finish MKaaS creating (%s)",
+	log.Println(fmt.Sprintf("Finish MKaaS creating (%s)",
 		strconv.FormatFloat(poolID, 'f', -1, 64)))
 
 	return diags
 }
 
-func resourceMkaasPoolRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	tflog.Debug(ctx, "[DEBUG] Read MKaaS pool")
+func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Println("Read MKaaS pool")
 	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
@@ -270,8 +269,8 @@ func resourceMkaasPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	return diags
 }
 
-func resourceMkaasPoolUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	tflog.Debug(ctx, "[DEBUG] Start MKaaS Pool update")
+func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Println("Start MKaaS Pool update")
 
 	clusterID := d.Get(MKaaSClusterIDField).(int)
 	poolID, err := strconv.Atoi(d.Id())
@@ -304,13 +303,13 @@ func resourceMkaasPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	tflog.Debug(ctx, "[DEBUG] Finish MKaaS Pool update")
+	log.Println("Finish MKaaS Pool update")
 
-	return resourceMkaasPoolRead(ctx, d, m)
+	return resourceMKaaSPoolRead(ctx, d, m)
 }
 
 func resourceMkaasPoolDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start MKaaS delete")
+	log.Println("Start MKaaS delete")
 	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
@@ -329,7 +328,7 @@ func resourceMkaasPoolDelete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 	taskID := results.Tasks[0]
-	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Task id (%s)", taskID))
+	log.Println(fmt.Sprintf("Task id (%s)", taskID))
 	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, MKaaSPoolDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
@@ -339,7 +338,7 @@ func resourceMkaasPoolDelete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.Errorf("cannot delete MKaaS Pool with ID: %d", poolID)
 	}
 	d.SetId("")
-	tflog.Debug(ctx, "[DEBUG] Finish of MKaaS Pool deleting")
+	log.Println("Finish of MKaaS Pool deleting")
 
 	return diags
 }
