@@ -31,8 +31,8 @@ resource "edgecenter_mkaas_pool" "apps" {
   #   security_group_id = "b4a1b1d3-xxxx-xxxx-xxxx-1b2c3d4e5f6a"
 
 
-  project_id = 1399838
-  region_id  = "2403"
+  project_id = 123456
+  region_id  = "1234"
 }
 ```
 
