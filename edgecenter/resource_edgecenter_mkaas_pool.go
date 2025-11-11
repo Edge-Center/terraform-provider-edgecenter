@@ -3,6 +3,7 @@ package edgecenter
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"log"
 	"strconv"
 	"time"
@@ -16,42 +17,43 @@ import (
 )
 
 const (
-	MkaasPoolReadTimeout   = 10 * time.Minute
-	MkaasPoolCreateTimeout = 60 * time.Minute
-	MkaasPoolUpdateTimeout = 60 * time.Minute
-	MkaasPoolDeleteTimeout = 20 * time.Minute
-	MkaasClusterIDField    = "cluster_id"
+	MKaaSPoolReadTimeout   = 10 * time.Minute
+	MKaaSPoolCreateTimeout = 60 * time.Minute
+	MKaaSPoolUpdateTimeout = 60 * time.Minute
+	MKaaSPoolDeleteTimeout = 20 * time.Minute
+	MKaaSClusterIDField    = "cluster_id"
 
-	MkaasPoolFlavorField       = "flavor"
-	MkaasPoolNodeCountField    = "node_count"
-	MkaasPoolVolumeSizeField   = "volume_size"
-	MkaasPoolVolumeTypeField   = "volume_type"
-	MkaasPoolMaxNodeCountField = "max_node_count"
-	MkaasPoolMinNodeCountField = "min_node_count"
+	MKaaSPoolFlavorField       = "flavor"
+	MKaaSPoolNodeCountField    = "node_count"
+	MKaaSPoolVolumeSizeField   = "volume_size"
+	MKaaSPoolVolumeTypeField   = "volume_type"
+	MKaaSPoolMaxNodeCountField = "max_node_count"
+	MKaaSPoolMinNodeCountField = "min_node_count"
 
-	MkaasPoolLabelsField = "labels"
-	MkaasPoolTaintsField = "taints"
+	MKaaSPoolLabelsField = "labels"
+	MKaaSPoolTaintsField = "taints"
 
-	MkaasPoolSecurityGroupIDField = "security_group_id"
-	MkaasPoolStateField           = "state"
-	MkaasPoolStatusField          = "status"
+	MKaaSPoolSecurityGroupIDField = "security_group_id"
+	MKaaSPoolStateField           = "state"
+	MKaaSPoolStatusField          = "status"
 )
 
 func resourceMkaasPool() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceMkaasPoolCreate,
+		CreateContext: resourceMKaaSPoolCreate,
 		ReadContext:   resourceMkaasPoolRead,
 		UpdateContext: resourceMkaasPoolUpdate,
 		DeleteContext: resourceMkaasPoolDelete,
 		Description:   "Represent MKaaS cluster's pool.",
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(MkaasPoolCreateTimeout),
-			Read:   schema.DefaultTimeout(MkaasPoolReadTimeout),
-			Update: schema.DefaultTimeout(MkaasPoolUpdateTimeout),
-			Delete: schema.DefaultTimeout(MkaasPoolDeleteTimeout),
+			Create: schema.DefaultTimeout(MKaaSPoolCreateTimeout),
+			Read:   schema.DefaultTimeout(MKaaSPoolReadTimeout),
+			Update: schema.DefaultTimeout(MKaaSPoolUpdateTimeout),
+			Delete: schema.DefaultTimeout(MKaaSPoolDeleteTimeout),
 		},
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData,
+				meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, poolID, clusterID, err := ImportStringParserExtended(d.Id())
 				if err != nil {
 					return nil, err
@@ -90,7 +92,7 @@ func resourceMkaasPool() *schema.Resource {
 				Description:  "The name of the region. Either `region_id` or `region_name` must be specified.",
 				ExactlyOneOf: []string{RegionIDField, RegionNameField},
 			},
-			MkaasClusterIDField: {
+			MKaaSClusterIDField: {
 				Type:        schema.TypeInt,
 				Required:    true,
 				ForceNew:    true,
@@ -101,39 +103,42 @@ func resourceMkaasPool() *schema.Resource {
 				Required:    true,
 				Description: "The name of the Kubernetes pool.",
 			},
-			MkaasPoolFlavorField: {
+			MKaaSPoolFlavorField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The identifier of the flavor used for nodes in this pool, e.g. g1-standard-2-4.",
 			},
-			MkaasPoolNodeCountField: {
+			MKaaSPoolNodeCountField: {
 				Type:        schema.TypeInt,
 				Required:    true,
 				Description: "The current number of nodes in the pool.",
 			},
-			MkaasPoolVolumeSizeField: {
-				Type:         schema.TypeInt,
-				Required:     true,
-				Description:  "The size of the control volumes in the cluster, specified in gigabytes (GB). Allowed range: `20–1024` GiB.",
+			MKaaSPoolVolumeSizeField: {
+				Type:     schema.TypeInt,
+				Required: true,
+				Description: "The size of the control volumes in the cluster, specified in gigabytes (GB)." +
+					" Allowed range: `20–1024` GiB.",
 				ValidateFunc: validation.IntBetween(20, 1024),
 			},
-			MkaasPoolVolumeTypeField: {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  fmt.Sprintf("The type of volume. Available values are `%s`, `%s`.", edgecloudV2.VolumeTypeStandard, edgecloudV2.VolumeTypeSsdHiIops),
-				ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.VolumeTypeStandard), string(edgecloudV2.VolumeTypeSsdHiIops)}, false),
+			MKaaSPoolVolumeTypeField: {
+				Type:     schema.TypeString,
+				Required: true,
+				Description: fmt.Sprintf("The type of volume. Available values are `%s`,"+
+					" `%s`.", edgecloudV2.VolumeTypeStandard, edgecloudV2.VolumeTypeSsdHiIops),
+				ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.VolumeTypeStandard),
+					string(edgecloudV2.VolumeTypeSsdHiIops)}, false),
 			},
-			MkaasPoolSecurityGroupIDField: {
+			MKaaSPoolSecurityGroupIDField: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The ID of the security group associated with the pool.",
 			},
-			MkaasPoolStateField: {
+			MKaaSPoolStateField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The state of the pool.",
 			},
-			MkaasPoolStatusField: {
+			MKaaSPoolStatusField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The status of the pool.",
@@ -142,45 +147,45 @@ func resourceMkaasPool() *schema.Resource {
 	}
 }
 
-func resourceMkaasPoolCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start MKaaS Cluster creating")
+func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	tflog.Debug(ctx, "[DEBUG] Start MKaaS Cluster creating")
 	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	clusterID := d.Get(MkaasClusterIDField).(int)
+	clusterID := d.Get(MKaaSClusterIDField).(int)
 
 	createOpts := edgecloudV2.MkaaSPoolCreateRequest{
 		Name:       d.Get(NameField).(string),
-		Flavor:     d.Get(MkaasPoolFlavorField).(string),
-		NodeCount:  d.Get(MkaasPoolNodeCountField).(int),
-		VolumeSize: d.Get(MkaasPoolVolumeSizeField).(int),
-		VolumeType: edgecloudV2.VolumeType(d.Get(MkaasPoolVolumeTypeField).(string)),
+		Flavor:     d.Get(MKaaSPoolFlavorField).(string),
+		NodeCount:  d.Get(MKaaSPoolNodeCountField).(int),
+		VolumeSize: d.Get(MKaaSPoolVolumeSizeField).(int),
+		VolumeType: edgecloudV2.VolumeType(d.Get(MKaaSPoolVolumeTypeField).(string)),
 		Labels:     map[string]string{},
 		Taints:     []edgecloudV2.MkaaSTaint{},
 	}
 
-	if v, ok := d.GetOk(MkaasPoolMinNodeCountField); ok {
+	if v, ok := d.GetOk(MKaaSPoolMinNodeCountField); ok {
 		val := v.(int)
 		createOpts.MinNodeCount = &val
 	}
-	if v, ok := d.GetOk(MkaasPoolMaxNodeCountField); ok {
+	if v, ok := d.GetOk(MKaaSPoolMaxNodeCountField); ok {
 		val := v.(int)
 		createOpts.MaxNodeCount = &val
 	}
-	if v, ok := d.GetOk(MkaasPoolSecurityGroupIDField); ok {
+	if v, ok := d.GetOk(MKaaSPoolSecurityGroupIDField); ok {
 		sg := v.(string)
 		createOpts.SecurityGroupID = &sg
 	}
-	if v, ok := d.GetOk(MkaasPoolLabelsField); ok {
+	if v, ok := d.GetOk(MKaaSPoolLabelsField); ok {
 		for k, iv := range v.(map[string]interface{}) {
 			createOpts.Labels[k] = iv.(string)
 		}
 	}
 	// expand taints from TypeSet
-	if raw, ok := d.GetOk(MkaasPoolTaintsField); ok {
+	if raw, ok := d.GetOk(MKaaSPoolTaintsField); ok {
 		set := raw.(*schema.Set)
 		for _, item := range set.List() {
 			m := item.(map[string]interface{})
@@ -192,7 +197,7 @@ func resourceMkaasPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	log.Printf("[DEBUG] MKaaS Pool create request: %+v", createOpts)
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] MKaaS Pool create request: %+v", createOpts))
 
 	results, _, err := clientV2.MkaaS.PoolCreate(ctx, clusterID, createOpts)
 	if err != nil {
@@ -200,7 +205,7 @@ func resourceMkaasPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 	taskID := results.Tasks[0]
 
-	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, MkaasPoolCreateTimeout)
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, MKaaSPoolCreateTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -211,17 +216,18 @@ func resourceMkaasPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	poolID := taskResult.MkaasPools[0]
-	log.Printf("[DEBUG] MKaaS Pool id (from taskResult): %.0f", poolID)
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] MKaaS Pool id (from taskResult): %.0f", poolID))
 	d.SetId(strconv.FormatFloat(poolID, 'f', -1, 64))
 	resourceMkaasPoolRead(ctx, d, m)
 
-	log.Printf("[DEBUG] Finish MKaaS creating (%s)", strconv.FormatFloat(poolID, 'f', -1, 64))
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Finish MKaaS creating (%s)",
+		strconv.FormatFloat(poolID, 'f', -1, 64)))
 
 	return diags
 }
 
 func resourceMkaasPoolRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Read MKaaS pool")
+	tflog.Debug(ctx, "[DEBUG] Read MKaaS pool")
 	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
@@ -229,7 +235,7 @@ func resourceMkaasPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(MkaasClusterIDField).(int)
+	clusterID := d.Get(MKaaSClusterIDField).(int)
 	poolIDStr := d.Id()
 	poolID, err := strconv.Atoi(poolIDStr)
 	if err != nil {
@@ -237,37 +243,37 @@ func resourceMkaasPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	pool, _, err := clientV2.MkaaS.PoolGet(ctx, clusterID, poolID)
 	_ = d.Set(NameField, pool.Name)
-	_ = d.Set(MkaasClusterIDField, clusterID)
-	_ = d.Set(MkaasPoolFlavorField, pool.Flavor)
-	_ = d.Set(MkaasPoolNodeCountField, pool.NodeCount)
-	_ = d.Set(MkaasPoolMinNodeCountField, pool.MinNodeCount)
-	_ = d.Set(MkaasPoolMaxNodeCountField, pool.MaxNodeCount)
-	_ = d.Set(MkaasPoolVolumeSizeField, pool.VolumeSize)
-	_ = d.Set(MkaasPoolVolumeTypeField, string(pool.VolumeType))
-	_ = d.Set(MkaasPoolStateField, pool.State)
-	_ = d.Set(MkaasPoolStatusField, pool.Status)
+	_ = d.Set(MKaaSClusterIDField, clusterID)
+	_ = d.Set(MKaaSPoolFlavorField, pool.Flavor)
+	_ = d.Set(MKaaSPoolNodeCountField, pool.NodeCount)
+	_ = d.Set(MKaaSPoolMinNodeCountField, pool.MinNodeCount)
+	_ = d.Set(MKaaSPoolMaxNodeCountField, pool.MaxNodeCount)
+	_ = d.Set(MKaaSPoolVolumeSizeField, pool.VolumeSize)
+	_ = d.Set(MKaaSPoolVolumeTypeField, string(pool.VolumeType))
+	_ = d.Set(MKaaSPoolStateField, pool.State)
+	_ = d.Set(MKaaSPoolStatusField, pool.Status)
 
 	if pool.Labels != nil {
 		labels := map[string]string{}
 		for k, v := range pool.Labels {
 			labels[k] = v
 		}
-		_ = d.Set(MkaasPoolLabelsField, labels)
+		_ = d.Set(MKaaSPoolLabelsField, labels)
 	}
 
 	if pool.Taints != nil {
-		_ = d.Set(MkaasPoolTaintsField, flattenTaints(pool.Taints))
+		_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
 	} else {
-		_ = d.Set(MkaasPoolTaintsField, nil)
+		_ = d.Set(MKaaSPoolTaintsField, nil)
 	}
 
 	return diags
 }
 
 func resourceMkaasPoolUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start MKaaS Pool update")
+	tflog.Debug(ctx, "[DEBUG] Start MKaaS Pool update")
 
-	clusterID := d.Get(MkaasClusterIDField).(int)
+	clusterID := d.Get(MKaaSClusterIDField).(int)
 	poolID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("invalid pool id %q: %w", d.Id(), err))
@@ -278,9 +284,9 @@ func resourceMkaasPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	if d.HasChange(NameField) || d.HasChange(MkaasPoolNodeCountField) {
+	if d.HasChange(NameField) || d.HasChange(MKaaSPoolNodeCountField) {
 		name := d.Get(NameField).(string)
-		nodeCount := d.Get(MkaasPoolNodeCountField).(int)
+		nodeCount := d.Get(MKaaSPoolNodeCountField).(int)
 		opts := edgecloudV2.MkaaSPoolUpdateRequest{
 			Name:      &name,
 			NodeCount: &nodeCount,
@@ -292,13 +298,13 @@ func resourceMkaasPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 
 		taskID := task.Tasks[0]
 
-		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MkaasPoolUpdateTimeout)
+		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
-	log.Println("[DEBUG] Finish MKaaS Pool update")
+	tflog.Debug(ctx, "[DEBUG] Finish MKaaS Pool update")
 
 	return resourceMkaasPoolRead(ctx, d, m)
 }
@@ -312,7 +318,7 @@ func resourceMkaasPoolDelete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(MkaasClusterIDField).(int)
+	clusterID := d.Get(MKaaSClusterIDField).(int)
 	poolID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("invalid pool id %q: %w", d.Id(), err))
@@ -323,17 +329,17 @@ func resourceMkaasPoolDelete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 	taskID := results.Tasks[0]
-	log.Printf("[DEBUG] Task id (%s)", taskID)
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, MkaasPoolDeleteTimeout)
+	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Task id (%s)", taskID))
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, MKaaSPoolDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	if task.State == edgecloudV2.TaskStateError {
-		return diag.Errorf("cannot delete MKaaS Pool with ID: %d", clusterID)
+		return diag.Errorf("cannot delete MKaaS Pool with ID: %d", poolID)
 	}
 	d.SetId("")
-	log.Printf("[DEBUG] Finish of MKaaS Pool deleting")
+	tflog.Debug(ctx, "[DEBUG] Finish of MKaaS Pool deleting")
 
 	return diags
 }
