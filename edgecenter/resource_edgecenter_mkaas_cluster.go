@@ -303,7 +303,7 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 					opts.Name = NameField
 				}
 
-				if d.HasChange(MKaaSClusterControlPlaneField) {
+				if d.HasChange(MKaaSClusterNodeCountField) {
 					opts.MasterNodeCount = nodeCount
 				}
 

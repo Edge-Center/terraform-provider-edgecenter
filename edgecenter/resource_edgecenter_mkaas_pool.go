@@ -3,6 +3,7 @@ package edgecenter
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"log"
 	"strconv"
 	"time"
@@ -147,7 +148,7 @@ func resourceMKaaSPool() *schema.Resource {
 }
 
 func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("Start MKaaS Cluster creating")
+	tflog.Info(ctx, "Start MKaaS Cluster creating")
 	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
