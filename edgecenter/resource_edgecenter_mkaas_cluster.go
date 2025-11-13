@@ -329,7 +329,6 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 func resourceMKaaSClusterDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start MKaaS delete")
-	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
