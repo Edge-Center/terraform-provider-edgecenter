@@ -45,7 +45,7 @@ func resourceMKaaSCluster() *schema.Resource {
 		ReadContext:   resourceMKaaSClusterRead,
 		UpdateContext: resourceMKaaSClusterUpdate,
 		DeleteContext: resourceMKaaSClusterDelete,
-		Description:   "Represent k8s cluster.",
+		Description:   "Represent resourceMKaaSCluster cluster.",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(MKaaSClusterCreateTimeout),
 			Read:   schema.DefaultTimeout(MKaaSClusterReadTimeout),
