@@ -300,11 +300,13 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 				cp := cpList[0].(map[string]interface{})
 				nodeCount := cp[MKaaSClusterNodeCountField].(int)
 
-				opts := edgecloudV2.MkaaSClusterUpdateRequest{
-					Name: d.Get(NameField).(string),
-				}
+				opts := edgecloudV2.MkaaSClusterUpdateRequest{}
 
 				if d.HasChange(NameField) {
+					opts.Name = NameField
+				}
+
+				if d.HasChange(MKaaSClusterControlPlaneField) {
 					opts.MasterNodeCount = nodeCount
 				}
 
