@@ -42,7 +42,7 @@ func resourceMKaaSPool() *schema.Resource {
 		CreateContext: resourceMKaaSPoolCreate,
 		ReadContext:   resourceMKaaSPoolRead,
 		UpdateContext: resourceMKaaSPoolUpdate,
-		DeleteContext: resourceMkaasPoolDelete,
+		DeleteContext: resourceMKaaSPoolDelete,
 		Description:   "Represent MKaaS cluster's pool.",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(MKaaSPoolCreateTimeout),
@@ -308,7 +308,7 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	return resourceMKaaSPoolRead(ctx, d, m)
 }
 
-func resourceMkaasPoolDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceMKaaSPoolDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("Start MKaaS delete")
 	var diags diag.Diagnostics
 
@@ -341,16 +341,4 @@ func resourceMkaasPoolDelete(ctx context.Context, d *schema.ResourceData, m inte
 	log.Println("Finish of MKaaS Pool deleting")
 
 	return diags
-}
-
-func flattenTaints(taints []edgecloudV2.MkaaSTaint) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(taints))
-	for _, t := range taints {
-		result = append(result, map[string]interface{}{
-			"key":    t.Key,
-			"value":  t.Value,
-			"effect": t.Effect,
-		})
-	}
-	return result
 }
