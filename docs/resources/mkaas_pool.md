@@ -31,7 +31,7 @@ resource "edgecenter_mkaas_pool" "apps" {
   #   security_group_id = "b4a1b1d3-xxxx-xxxx-xxxx-1b2c3d4e5f6a"
 
 
-  project_id = 123456
+  project_id = 1234
   region_id  = "1234"
 }
 ```
@@ -72,12 +72,3 @@ Optional:
 - `delete` (String)
 - `read` (String)
 - `update` (String)
-
-## Import
-
-Import is supported using the following syntax:
-
-```shell
-# import using <project_id>:<region_id>:<pool_id>:<cluster_id> format
-terraform import edgecenter_mkaas_pool.pool 1:6:a775dd94-4e9c-4da7-9f0e-ffc9ae34446b:447d2959-8ae0-4ca0-8d47-9f050a3637d7
-```
