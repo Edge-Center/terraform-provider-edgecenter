@@ -54,12 +54,12 @@ func resourceMKaaSCluster() *schema.Resource {
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				projectID, MKaaSClusterID, k8sID, err := ImportStringParser(d.Id())
+				projectID, regionID, k8sID, err := ImportStringParser(d.Id())
 				if err != nil {
 					return nil, err
 				}
 				d.Set("project_id", projectID)
-				d.Set("region_id", MKaaSClusterID)
+				d.Set("region_id", regionID)
 				d.SetId(k8sID)
 
 				return []*schema.ResourceData{d}, nil
@@ -232,8 +232,6 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start MKaaS reading")
 
-	var diags diag.Diagnostics
-
 	clusterID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.Errorf("invalid cluster id: %s", err)
@@ -276,7 +274,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(MKaaSClusterProcessingField, cluster.Processing)
 	_ = d.Set(StatusField, cluster.Status)
 
-	return diags
+	return diag.Diagnostics{}
 }
 
 func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -362,5 +360,5 @@ func resourceMKaaSClusterDelete(ctx context.Context, d *schema.ResourceData, m i
 	d.SetId("")
 	tflog.Info(ctx, "Finish of MKaaS cluster deleting")
 
-	return diags
+	return diag.Diagnostics{}
 }
