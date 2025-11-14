@@ -29,6 +29,11 @@ var ResellerImageV2 = map[string]*schema.Schema{
 			Type: schema.TypeString,
 		},
 	},
+	ImageIDsIsNullField: {
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "Set True if image_ids = None",
+	},
 	CreatedAtField: {
 		Type:        schema.TypeString,
 		Computed:    true,
@@ -98,22 +103,37 @@ func resourceResellerImagesV2Create(ctx context.Context, d *schema.ResourceData,
 	})
 
 	for _, optRaw := range riOptions {
-		imageIDs := edgecloudV2.ImageIDs{}
-
 		opt := optRaw.(map[string]interface{})
 
-		if v, ok := opt[ImageIDsField]; ok {
-			imageIDsList := v.(*schema.Set).List()
+		isImageIDsNull := false
+		if v, ok := opt[ImageIDsIsNullField]; ok {
+			isImageIDsNull = v.(bool)
+		}
 
-			imageIDs = make(edgecloudV2.ImageIDs, 0, len(imageIDsList))
+		var imageIDsPtr *edgecloudV2.ImageIDs = nil
 
-			for _, imageID := range imageIDsList {
-				imageIDs = append(imageIDs, imageID.(string))
+		if isImageIDsNull {
+			if v, has := opt[ImageIDsField]; has {
+				return diag.Errorf("%s must not be set when %s is true", ImageIDsField, ImageIDsIsNullField)
+			} else {
+				fmt.Printf("imageIDs not present: %+v\n", v)
+
 			}
+		} else {
+			imageIDs := edgecloudV2.ImageIDs{}
+			if v, ok := opt[ImageIDsField]; ok {
+				imageIDsList := v.(*schema.Set).List()
+				imageIDs = make(edgecloudV2.ImageIDs, 0, len(imageIDsList))
+				for _, imageID := range imageIDsList {
+					imageIDs = append(imageIDs, imageID.(string))
+				}
+			}
+			fmt.Printf("imageIDs: %+v\n", imageIDs)
+			imageIDsPtr = &imageIDs
 		}
 
 		opts := &edgecloudV2.ResellerImageV2UpdateRequest{
-			ImageIDs:   &imageIDs,
+			ImageIDs:   imageIDsPtr,
 			RegionID:   opt[RegionIDField].(int),
 			EntityID:   d.Get(EntityIDField).(int),
 			EntityType: d.Get(EntityTypeField).(string),
