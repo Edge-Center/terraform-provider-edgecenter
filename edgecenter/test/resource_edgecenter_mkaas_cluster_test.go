@@ -65,11 +65,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.NoError(t, err, "failed to create network and subnet clients")
 	t.Log("Network and subnet clients created successfully")
 
-	// Create MKaaS client for cluster deletion
-	mkaasClient, err := CreateMKaaSClient(t, token, endpoint, projectID, regionID)
-	require.NoError(t, err, "failed to create MKaaS client")
-	t.Log("MKaaS client created successfully")
-
 	// Create SSH keypair dynamically
 	baseName := "tf-mkaas-" + strings.ToLower(random.UniqueId())
 	keypairName := baseName + "-key"
@@ -158,6 +153,10 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	)
 
 	// --- DELETE cluster via API (before cleanup of network/subnet/keypair)
+	// Create MKaaS client for cluster deletion
+	mkaasClient, err := CreateMKaaSClient(t, token, endpoint, projectID, regionID)
+	require.NoError(t, err, "failed to create MKaaS client")
+	t.Log("MKaaS client created successfully")
 	t.Log("Deleting cluster via API...")
 	err = DeleteTestMKaaSCluster(t, mkaasClient, cl.ID)
 	require.NoError(t, err, "failed to delete cluster")
