@@ -79,6 +79,7 @@ const (
 	AuthHeaderNameField           = "auth_header_name"
 	ResellerIDField               = "reseller_id"
 	ImageIDsField                 = "image_ids"
+	ImageIDsIsNullField           = "image_ids_is_null"
 	ResellerImagesOptionsField    = "options"
 	NetworkTypeField              = "network_type"
 	OrderByField                  = "order_by"
