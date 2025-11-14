@@ -9,6 +9,10 @@ import (
 
 	"github.com/gruntwork-io/terratest/modules/random"
 	tt "github.com/gruntwork-io/terratest/modules/terraform"
+	"github.com/stretchr/testify/require"
+
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
+	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 )
 
 // HCL для пула + полезные outputs
@@ -64,34 +68,93 @@ type poolTfData struct {
 	VolumeType string
 }
 
-func TestMkaasPool_ApplyUpdateImportDestroy(t *testing.T) {
+func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	if os.Getenv("RUN_MKAAS_IT") != "1" {
 		t.Skip("This test requires RUN_MKAAS_IT=1")
 	}
 
+	t.Log("Starting TestMKaaSPool_ApplyUpdateImportDestroy")
+
 	// --- env
-	token := requireEnv(t, "EC_TOKEN")
-	endpoint := os.Getenv("EC_API_ENDPOINT")
-	projectID := requireEnv(t, "EC_PROJECT_ID")
-	regionID := requireEnv(t, "EC_REGION_ID")
-	networkID := requireEnv(t, "EC_NETWORK_ID")
-	subnetID := requireEnv(t, "EC_SUBNET_ID")
-	sshKeypair := requireEnv(t, "EC_SSH_KEYPAIR_NAME")
-	cpFlavor := os.Getenv("EC_POOL_FLAVOR")
-	if strings.TrimSpace(cpFlavor) == "" {
-		cpFlavor = requireEnv(t, "EC_CP_FLAVOR")
+	t.Log("Reading environment variables...")
+	token := requireEnv(t, "EC_PERMANENT_TOKEN")
+	endpoint := os.Getenv("EC_API")
+	if endpoint == "" {
+		endpoint = "https://api.edgecenter.ru"
 	}
-	volType := os.Getenv("EC_VOLUME_TYPE")
-	if strings.TrimSpace(volType) == "" {
-		volType = "ssd_hiiops"
-	}
-	k8sVersion := os.Getenv("EC_K8S_VERSION")
-	if strings.TrimSpace(k8sVersion) == "" {
-		k8sVersion = "v1.31.0"
+	t.Logf("Using endpoint: %s", endpoint)
+	projectID := requireEnv(t, "TEST_PROJECT_ID")
+	regionID := MKaaSRegionId //TODO: when 8 region will be strong - requireEnv(t, "TEST_REGION_ID")
+
+	cpFlavor := os.Getenv("EC_MKAAS_CP_FLAVOR")
+	if cpFlavor == "" {
+		cpFlavor = MKaaSCpFlavor
 	}
 
-	// Create cluster
+	volType := os.Getenv("EC_MKAAS_VOLUME_TYPE")
+	if volType == "" {
+		volType = MKaaSVolumeType
+	}
+
+	k8sVersion := os.Getenv("EC_MKAAS_K8S_VERSION")
+	if k8sVersion == "" {
+		k8sVersion = MKaaSK8sVersion
+	}
+
+	// Create keypair client
+	t.Log("Creating keypair client...")
+	keypairClient, err := CreateKeypairClient(t, token, endpoint, projectID)
+	require.NoError(t, err, "failed to create keypair client")
+	t.Log("Keypair client created successfully")
+
+	// Create network and subnet clients
+	t.Log("Creating network and subnet clients...")
+	networkClient, subnetClient, err := CreateNetworkAndSubnetClients(t, token, endpoint, projectID, regionID)
+	require.NoError(t, err, "failed to create network and subnet clients")
+	t.Log("Network and subnet clients created successfully")
+
+	// Create MKaaS client for cluster deletion
+	mkaasClient, err := CreateMKaaSClient(t, token, endpoint, projectID, regionID)
+	require.NoError(t, err, "failed to create MKaaS client")
+	t.Log("MKaaS client created successfully")
+
+	// Create SSH keypair dynamically
 	base := "tf-mkaas-" + strings.ToLower(random.UniqueId())
+	keypairName := base + "-key"
+	t.Logf("Creating SSH keypair with name: %s", keypairName)
+	keypairID, err := CreateTestKeypair(t, keypairClient, keypairName)
+	require.NoError(t, err, "failed to create SSH keypair")
+	t.Logf("SSH keypair created successfully with ID: %s, name: %s", keypairID, keypairName)
+	sshKeypair := keypairName
+
+	// Create network and subnet dynamically
+	t.Log("Creating network...")
+	networkName := base + "-net"
+	t.Logf("Creating network with name: %s", networkName)
+	networkID, err := CreateTestNetwork(networkClient, networks.CreateOpts{
+		Name: networkName,
+		Type: "vxlan",
+	})
+	require.NoError(t, err, "failed to create network")
+	t.Logf("Network created successfully with ID: %s", networkID)
+
+	t.Log("Creating subnet...")
+	subnetName := base + "-subnet"
+	t.Logf("Creating subnet with name: %s in network: %s", subnetName, networkID)
+	subnetID, err := CreateTestSubnet(subnetClient, subnets.CreateOpts{
+		Name:      subnetName,
+		NetworkID: networkID,
+	}, "192.168.42.0/24")
+	require.NoError(t, err, "failed to create subnet")
+	t.Logf("Subnet created successfully with ID: %s", subnetID)
+
+	// Store resources for cleanup (will be deleted after cluster)
+	var cleanupNetworkID = networkID
+	var cleanupSubnetID = subnetID
+	var cleanupKeypairID = keypairID
+
+	// Create cluster
+	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
 	cl := CreateCluster(t, tfData{
 		Token:        token,
@@ -108,6 +171,7 @@ func TestMkaasPool_ApplyUpdateImportDestroy(t *testing.T) {
 		CPVolumeType: volType,
 		CPVersion:    k8sVersion,
 	})
+	t.Logf("Cluster created successfully with ID: %s", cl.ID)
 
 	// Create pool
 	poolDir := filepath.Join(cl.Dir, "pool")
@@ -142,7 +206,7 @@ func TestMkaasPool_ApplyUpdateImportDestroy(t *testing.T) {
 			".*connection reset.*": "transient network",
 		},
 	}
-	t.Cleanup(func() { tt.Destroy(t, poolOpts) })
+	// Note: pool will be destroyed when cluster is deleted, so no cleanup needed here
 
 	tt.ApplyAndIdempotent(t, poolOpts)
 
@@ -151,14 +215,14 @@ func TestMkaasPool_ApplyUpdateImportDestroy(t *testing.T) {
 	if strings.TrimSpace(poolID) == "" {
 		t.Fatalf("pool_id is empty after create")
 	}
-	assertEq(t, tt.Output(t, poolOpts, "pool_name"), poolNameV1, "pool_name")
-	assertEq(t, tt.Output(t, poolOpts, "out_project_id"), projectID, "project_id")
-	assertEq(t, tt.Output(t, poolOpts, "out_region_id"), regionID, "region_id")
-	assertEq(t, tt.Output(t, poolOpts, "out_cluster_id"), cl.ID, "cluster_id")
-	assertEq(t, tt.Output(t, poolOpts, "out_flavor"), cpFlavor, "flavor")
-	assertEq(t, tt.Output(t, poolOpts, "out_node_count"), "1", "node_count")
-	assertEq(t, tt.Output(t, poolOpts, "out_volume_size"), "30", "volume_size")
-	assertEq(t, tt.Output(t, poolOpts, "out_volume_type"), volType, "volume_type")
+	require.Equalf(t, poolNameV1, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name")
+	require.Equalf(t, projectID, tt.Output(t, poolOpts, "out_project_id"), "%s mismatch", "project_id")
+	require.Equalf(t, regionID, tt.Output(t, poolOpts, "out_region_id"), "%s mismatch", "region_id")
+	require.Equalf(t, cl.ID, tt.Output(t, poolOpts, "out_cluster_id"), "%s mismatch", "cluster_id")
+	require.Equalf(t, cpFlavor, tt.Output(t, poolOpts, "out_flavor"), "%s mismatch", "flavor")
+	require.Equalf(t, "1", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count")
+	require.Equalf(t, "30", tt.Output(t, poolOpts, "out_volume_size"), "%s mismatch", "volume_size")
+	require.Equalf(t, volType, tt.Output(t, poolOpts, "out_volume_type"), "%s mismatch", "volume_type")
 	_ = tt.Output(t, poolOpts, "out_state")
 	_ = tt.Output(t, poolOpts, "out_status")
 
@@ -170,8 +234,8 @@ func TestMkaasPool_ApplyUpdateImportDestroy(t *testing.T) {
 		t.Fatalf("write pool main.tf (update): %v", err)
 	}
 	tt.ApplyAndIdempotent(t, poolOpts)
-	assertEq(t, tt.Output(t, poolOpts, "pool_name"), poolNameV2, "pool_name (after update)")
-	assertEq(t, tt.Output(t, poolOpts, "out_node_count"), "2", "node_count (after update)")
+	require.Equalf(t, poolNameV2, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name (after update)")
+	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count (after update)")
 
 	// IMPORT pool
 	importDir := filepath.Join(poolDir, "import")
@@ -225,6 +289,30 @@ import {
 	); err != nil {
 		t.Fatalf("terraform plan for pool after import/apply is not empty (err=%v)\n%s", err, out)
 	}
+
+	// --- DELETE cluster via API (before cleanup of network/subnet/keypair)
+	t.Log("Deleting cluster via API...")
+	err = DeleteTestMKaaSCluster(t, mkaasClient, cl.ID)
+	require.NoError(t, err, "failed to delete cluster")
+	t.Log("Cluster deleted successfully")
+
+	// Cleanup network, subnet and keypair after cluster is deleted
+	// Note: cleanup functions are executed in reverse order (LIFO)
+	t.Cleanup(func() {
+		if err := DeleteTestSubnet(subnetClient, cleanupSubnetID); err != nil {
+			t.Logf("failed to delete subnet %s: %v", cleanupSubnetID, err)
+		}
+	})
+	t.Cleanup(func() {
+		if err := DeleteTestNetwork(networkClient, cleanupNetworkID); err != nil {
+			t.Logf("failed to delete network %s: %v", cleanupNetworkID, err)
+		}
+	})
+	t.Cleanup(func() {
+		if err := DeleteTestKeypair(t, keypairClient, cleanupKeypairID); err != nil {
+			t.Logf("failed to delete SSH keypair %s: %v", cleanupKeypairID, err)
+		}
+	})
 }
 
 func renderTemplateToWith(path, tmpl string, data any) error {
