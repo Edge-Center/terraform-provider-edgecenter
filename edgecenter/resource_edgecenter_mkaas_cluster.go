@@ -3,12 +3,13 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -25,12 +26,13 @@ const (
 	MKaaSClusterDeleteTimeout    = 20 * time.Minute
 	MKaaSClusterKeypairNameField = "ssh_keypair_name"
 
-	MKaaSClusterControlPlaneField = "control_plane"
-	MKaaSClusterFlavorField       = "flavor"
-	MKaaSClusterNodeCountField    = "node_count"
-	MKaaSClusterVolumeSizeField   = "volume_size"
-	MKaaSClusterVolumeTypeField   = "volume_type"
-	MKaaSClusterVersionField      = "version"
+	MKaaSClusterControlPlaneField        = "control_plane"
+	MKaaSClusterFlavorField              = "flavor"
+	MKaaSClusterPublishKubeAPIToInternet = "publish_kube_api_to_internet"
+	MKaaSClusterNodeCountField           = "node_count"
+	MKaaSClusterVolumeSizeField          = "volume_size"
+	MKaaSClusterVolumeTypeField          = "volume_type"
+	MKaaSClusterVersionField             = "version"
 
 	MKaaSClusterInternalIPField = "internal_ip"
 	MKaaSClusterExternalIPField = "external_ip"
@@ -104,6 +106,11 @@ func resourceMKaaSCluster() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the SSH keypair.",
+			},
+			MKaaSClusterPublishKubeAPIToInternet: {
+				Type:        schema.TypeBool,
+				Description: "Publish kube-api to internet.",
+				Optional:    true,
 			},
 			NetworkIDField: {
 				Type:        schema.TypeString,
@@ -194,6 +201,10 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 		SSHKeyPairName: d.Get(MKaaSClusterKeypairNameField).(string),
 		NetworkID:      d.Get(NetworkIDField).(string),
 		SubnetID:       d.Get(SubnetIDField).(string),
+	}
+
+	if v, ok := d.GetOk(MKaaSClusterPublishKubeAPIToInternet); ok {
+		createOpts.PublishKubeAPIToInternet = v.(bool)
 	}
 
 	if v, ok := d.GetOk("control_plane"); ok {
