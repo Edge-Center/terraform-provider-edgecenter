@@ -102,7 +102,11 @@ func resourceResellerImagesV2Create(ctx context.Context, d *schema.ResourceData,
 		return iOpt[RegionIDField].(int) < jOpt[RegionIDField].(int)
 	})
 
-	for _, optRaw := range riOptions {
+	// Get raw config to check what user actually set
+	rawOptionsConfig := d.GetRawConfig().GetAttr(ResellerImagesOptionsField)
+	rawOptionsList := rawOptionsConfig.AsValueSlice()
+
+	for idx, optRaw := range riOptions {
 		opt := optRaw.(map[string]interface{})
 
 		isImageIDsNull := false
@@ -113,11 +117,10 @@ func resourceResellerImagesV2Create(ctx context.Context, d *schema.ResourceData,
 		var imageIDsPtr *edgecloudV2.ImageIDs = nil
 
 		if isImageIDsNull {
-			if v, has := opt[ImageIDsField]; has {
+			// Check if user actually set image_ids in raw config
+			rawOption := rawOptionsList[idx]
+			if !(rawOption.IsNull() || rawOption.GetAttr(ImageIDsField).IsNull()) {
 				return diag.Errorf("%s must not be set when %s is true", ImageIDsField, ImageIDsIsNullField)
-			} else {
-				fmt.Printf("imageIDs not present: %+v\n", v)
-
 			}
 		} else {
 			imageIDs := edgecloudV2.ImageIDs{}
@@ -128,7 +131,6 @@ func resourceResellerImagesV2Create(ctx context.Context, d *schema.ResourceData,
 					imageIDs = append(imageIDs, imageID.(string))
 				}
 			}
-			fmt.Printf("imageIDs: %+v\n", imageIDs)
 			imageIDsPtr = &imageIDs
 		}
 

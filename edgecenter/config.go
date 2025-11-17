@@ -2,7 +2,6 @@ package edgecenter
 
 import (
 	"fmt"
-	"net/http"
 
 	dnsSDK "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
@@ -21,7 +20,6 @@ type Config struct {
 	StorageClient    *storageSDK.SDK
 	DNSClient        *dnsSDK.Client
 	ProtectionClient *protection.Client
-	HTTPClient       *http.Client
 }
 
 func NewConfig(
@@ -47,8 +45,7 @@ func NewConfig(
 }
 
 func (c *Config) NewCloudClient() (*edgecloudV2.Client, error) {
-	cloudClient, err := edgecloudV2.NewWithRetries(
-		c.HTTPClient,
+	cloudClient, err := edgecloudV2.NewWithRetries(nil,
 		edgecloudV2.SetUserAgent(c.UserAgent),
 		edgecloudV2.SetAPIKey(c.PermanentToken),
 		edgecloudV2.SetBaseURL(c.CloudBaseURL),
