@@ -14,10 +14,6 @@ import (
 )
 
 func TestAccResellerImagesV2DataSource(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode")
-	}
-
 	ctx := context.Background()
 	client, err := createTestCloudClient()
 	if err != nil {
@@ -76,10 +72,6 @@ func TestAccResellerImagesV2DataSource(t *testing.T) {
 }
 
 func TestAccResellerImagesV2DataSource_ImageIDsIsNull_Null(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode")
-	}
-
 	ctx := context.Background()
 	client, err := createTestCloudClient()
 	if err != nil {
@@ -135,10 +127,6 @@ func TestAccResellerImagesV2DataSource_ImageIDsIsNull_Null(t *testing.T) {
 }
 
 func TestAccResellerImagesV2DataSource_ImageIDsIsNull_Empty(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode")
-	}
-
 	ctx := context.Background()
 	client, err := createTestCloudClient()
 	if err != nil {

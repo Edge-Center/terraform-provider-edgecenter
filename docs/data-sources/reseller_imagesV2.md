@@ -52,5 +52,6 @@ Read-Only:
 
 - `created_at` (String)
 - `image_ids` (Set of String)
+- `image_ids_is_null` (Boolean)
 - `region_id` (Number)
 - `updated_at` (String)

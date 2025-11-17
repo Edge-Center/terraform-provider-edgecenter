@@ -19,7 +19,7 @@ import (
 const checkResellerImagesEntityID = 936337
 const checkResellerImagesEntityType = edgecloudV2.ResellerType
 
-func TestAccEdgecenterResellerImagesV2Resource(t *testing.T) {
+func TestAccResellerImagesV2Resource(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
@@ -61,65 +61,63 @@ func TestAccEdgecenterResellerImagesV2Resource(t *testing.T) {
 	})
 }
 
-func TestAccEdgecenterResellerImagesV2Resource_ImageIDsIsNull(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode")
-	}
-
-	t.Parallel()
-
+func TestAccResellerImagesV2Resource_ImageIDsIsNull(t *testing.T) {
 	resourceName := "edgecenter_reseller_imagesV2.rimgs"
 	checkRegionID := 8
 
 	// Step 1: image_ids = [] && image_ids_is_null = false
 	cfgEmptyFalse := fmt.Sprintf(`
-	  resource "edgecenter_reseller_imagesV2" "rimgs" {
-	      entity_id   = %d
-	      entity_type = "%s"
-	      options {
-	          region_id          = %d
-	          image_ids          = []
-	          image_ids_is_null  = false
-	      }
-	  }
-	`, checkResellerImagesEntityID, checkResellerImagesEntityType, checkRegionID)
+		resource "edgecenter_reseller_imagesV2" "rimgs" {
+			entity_id   = %d
+			entity_type = "%s"
+			options {
+			region_id          = %d
+				image_ids          = []
+				image_ids_is_null  = false
+			}
+		}
+		`, checkResellerImagesEntityID, checkResellerImagesEntityType, checkRegionID,
+	)
 
 	// Step 2: image_ids_is_null = true (no image_ids provided)
 	cfgNullTrue := fmt.Sprintf(`
-	   resource "edgecenter_reseller_imagesV2" "rimgs" {
-	       entity_id   = %d
-	       entity_type = "%s"
-	       options {
-	           region_id          = %d
-	           image_ids_is_null  = true
-	       }
-	   }
-	`, checkResellerImagesEntityID, checkResellerImagesEntityType, checkRegionID)
+		resource "edgecenter_reseller_imagesV2" "rimgs" {
+			entity_id   = %d
+			entity_type = "%s"
+			options {
+				region_id          = %d
+				image_ids_is_null  = true
+			}
+		}
+		`, checkResellerImagesEntityID, checkResellerImagesEntityType, checkRegionID,
+	)
 
 	// Step 3: image_ids = [] (no image_ids_is_null provided)
 	cfgEmptyOnly := fmt.Sprintf(`
-	  resource "edgecenter_reseller_imagesV2" "rimgs" {
-	      entity_id   = %d
-	      entity_type = "%s"
-	      options {
-	          region_id          = %d
-	          image_ids          = []
-	      }
-	  }
-	`, checkResellerImagesEntityID, checkResellerImagesEntityType, checkRegionID)
+		resource "edgecenter_reseller_imagesV2" "rimgs" {
+			entity_id   = %d
+			entity_type = "%s"
+			options {
+				region_id          = %d
+				image_ids          = []
+			}
+		}
+		`, checkResellerImagesEntityID, checkResellerImagesEntityType, checkRegionID,
+	)
 
 	// Step 4: image_ids_is_null=true and image_ids=[] both are set
 	cfgInvalid := fmt.Sprintf(`
-	   resource "edgecenter_reseller_imagesV2" "rimgs" {
-	       entity_id   = %d
-	       entity_type = "%s"
-	       options {
-	           region_id          = %d
-	           image_ids          = []
-	           image_ids_is_null  = true
-	       }
-	   }
-	`, checkResellerImagesEntityID, checkResellerImagesEntityType, checkRegionID)
+		resource "edgecenter_reseller_imagesV2" "rimgs" {
+			entity_id   = %d
+			entity_type = "%s"
+			options {
+				region_id          = %d
+				image_ids          = []
+				image_ids_is_null  = true
+			}
+		}
+		`, checkResellerImagesEntityID, checkResellerImagesEntityType, checkRegionID,
+	)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
