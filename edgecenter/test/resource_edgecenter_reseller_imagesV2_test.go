@@ -1,4 +1,4 @@
-//go:build cloud_resource
+//go:build cloud_reseller_resource
 
 package edgecenter_test
 
@@ -16,16 +16,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-const checkResellerImagesEntityID = 936337
+const checkResellerImagesEntityID = 976100
 const checkResellerImagesEntityType = edgecloudV2.ResellerType
 
 func TestAccResellerImagesV2Resource(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode")
-	}
-
-	t.Parallel()
-
 	resourceName := "edgecenter_reseller_imagesV2.rimgs"
 
 	checkImageIDs0 := "0052a312-e6d8-4177-8e29-b017a3a6b588"
@@ -33,10 +27,10 @@ func TestAccResellerImagesV2Resource(t *testing.T) {
 	checkRegionID := 8
 
 	resellerImagesTemplate := fmt.Sprintf(`
-			resource "edgecenter_reseller_images" "rimgs" {
-  					entity_id = %[1]d
-  					entity_type = %[2]s
-					options {
+			resource "edgecenter_reseller_imagesV2" "rimgs" {
+				entity_id = %[1]d
+				entity_type = "%[2]s"
+				options {
   					region_id = %[3]d
   					image_ids = ["%[4]s","%[5]s"]
 				}
