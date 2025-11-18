@@ -11,8 +11,7 @@ import (
 	tt "github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 // HCL для пула + полезные outputs
@@ -109,7 +108,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 
 	// Create network and subnet clients
 	t.Log("Creating network and subnet clients...")
-	networkClient, subnetClient, err := CreateNetworkAndSubnetClients(t, token, endpoint, projectID, regionID)
+	networkClient, err := CreateNetworkAndSubnetClients(t, token, endpoint, projectID, regionID)
 	require.NoError(t, err, "failed to create network and subnet clients")
 	t.Log("Network and subnet clients created successfully")
 
@@ -131,9 +130,10 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	t.Log("Creating network...")
 	networkName := base + "-net"
 	t.Logf("Creating network with name: %s", networkName)
-	networkID, err := CreateTestNetwork(networkClient, networks.CreateOpts{
-		Name: networkName,
-		Type: "vxlan",
+	networkID, err := CreateTestNetwork(networkClient, &edgecloudV2.NetworkCreateRequest{
+		Name:         networkName,
+		Type:         edgecloudV2.VXLAN,
+		CreateRouter: true,
 	})
 	require.NoError(t, err, "failed to create network")
 	t.Logf("Network created successfully with ID: %s", networkID)
@@ -141,10 +141,13 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	t.Log("Creating subnet...")
 	subnetName := base + "-subnet"
 	t.Logf("Creating subnet with name: %s in network: %s", subnetName, networkID)
-	subnetID, err := CreateTestSubnet(subnetClient, subnets.CreateOpts{
-		Name:      subnetName,
-		NetworkID: networkID,
-	}, "192.168.42.0/24")
+	subnetID, err := CreateTestSubnet(networkClient, &edgecloudV2.SubnetworkCreateRequest{
+		Name:                   subnetName,
+		NetworkID:              networkID,
+		CIDR:                   "192.168.42.0/24",
+		EnableDHCP:             true,
+		ConnectToNetworkRouter: true,
+	})
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
 
@@ -297,9 +300,8 @@ import {
 	t.Log("Cluster deleted successfully")
 
 	// Cleanup network, subnet and keypair after cluster is deleted
-	// Note: cleanup functions are executed in reverse order (LIFO)
 	t.Cleanup(func() {
-		if err := DeleteTestSubnet(subnetClient, cleanupSubnetID); err != nil {
+		if err := DeleteTestSubnet(networkClient, cleanupSubnetID); err != nil {
 			t.Logf("failed to delete subnet %s: %v", cleanupSubnetID, err)
 		}
 	})

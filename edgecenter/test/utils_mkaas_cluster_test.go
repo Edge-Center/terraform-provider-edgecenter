@@ -2,9 +2,7 @@ package edgecenter_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,11 +12,6 @@ import (
 
 	tt "github.com/gruntwork-io/terratest/modules/terraform"
 
-	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
@@ -237,164 +230,116 @@ func requireEnv(t *testing.T, key string) string {
 
 // --- network and subnet utilities
 
-// CreateNetworkAndSubnetClients creates API clients for network and subnet operations
-func CreateNetworkAndSubnetClients(t *testing.T, token, endpoint, projectID, regionID string) (*edgecloud.ServiceClient, *edgecloud.ServiceClient, error) {
+// CreateNetworkAndSubnetClients создаёт V2 клиент для операций с сетями и подсетями
+func CreateNetworkAndSubnetClients(t *testing.T, token, endpoint, projectID,
+	regionID string) (*edgecloudV2.Client, error) {
 	t.Helper()
-
-	cloudAPI := endpoint
-	if !strings.HasSuffix(cloudAPI, "/cloud") {
-		cloudAPI = endpoint + "/cloud"
-	}
-
-	t.Logf("Creating provider client with API URL: %s", cloudAPI)
-	provider, err := ec.APITokenClient(edgecloud.APITokenOptions{
-		APIURL:   cloudAPI,
-		APIToken: token,
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create provider client: %w", err)
-	}
-	t.Log("Provider client created successfully")
-
-	projectIDInt, err := strconv.Atoi(projectID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse project ID: %w", err)
-	}
-
-	regionIDInt, err := strconv.Atoi(regionID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse region ID: %w", err)
-	}
-
-	networkClient, err := ec.ClientServiceFromProvider(provider, edgecloud.EndpointOpts{
-		Name:    edgecenter.NetworksPoint,
-		Region:  regionIDInt,
-		Project: projectIDInt,
-		Version: edgecenter.VersionPointV1,
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create network client: %w", err)
-	}
-
-	subnetClient, err := ec.ClientServiceFromProvider(provider, edgecloud.EndpointOpts{
-		Name:    edgecenter.SubnetPoint,
-		Region:  regionIDInt,
-		Project: projectIDInt,
-		Version: edgecenter.VersionPointV1,
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create subnet client: %w", err)
-	}
-
-	return networkClient, subnetClient, nil
+	return CreateMKaaSClient(t, token, endpoint, projectID, regionID)
 }
 
-// CreateTestNetwork creates a network using the API client
-func CreateTestNetwork(client *edgecloud.ServiceClient, opts networks.CreateOpts) (string, error) {
-	// Note: t.Log is not available here, so we can't add logging
-	result, err := networks.Create(client, opts).Extract()
+// CreateTestNetwork создаёт сеть через V2 API
+func CreateTestNetwork(client *edgecloudV2.Client, req *edgecloudV2.NetworkCreateRequest) (string, error) {
+	ctx := context.Background()
+
+	results, _, err := client.Networks.Create(ctx, req)
 	if err != nil {
 		return "", err
 	}
 
-	taskID := result.Tasks[0]
-	timeoutSeconds := int(edgecenter.NetworkCreatingTimeout.Seconds())
-	networkID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, timeoutSeconds, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		networkID, err := networks.ExtractNetworkIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve network ID from task info: %w", err)
-		}
-		return networkID, nil
-	})
+	if len(results.Tasks) == 0 {
+		return "", fmt.Errorf("no task returned for network creation")
+	}
+	taskID := results.Tasks[0]
+
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, edgecenter.NetworkCreatingTimeout)
 	if err != nil {
 		return "", err
 	}
 
-	return networkID.(string), nil
+	createdNetworksRaw, ok := taskInfo.CreatedResources[edgecenter.NetworksPoint]
+	if !ok {
+		return "", fmt.Errorf("cannot retrieve Network ID from task info: %s", taskID)
+	}
+
+	createdNetworks, ok := createdNetworksRaw.([]interface{})
+	if !ok || len(createdNetworks) == 0 {
+		return "", fmt.Errorf("unexpected created networks payload for task %s", taskID)
+	}
+
+	networkID, ok := createdNetworks[0].(string)
+	if !ok {
+		return "", fmt.Errorf("unexpected network id type %T", createdNetworks[0])
+	}
+
+	return networkID, nil
 }
 
-// DeleteTestNetwork deletes a network using the API client
-func DeleteTestNetwork(client *edgecloud.ServiceClient, networkID string) error {
-	result, err := networks.Delete(client, networkID).Extract()
+// DeleteTestNetwork удаляет сеть через V2 API
+func DeleteTestNetwork(client *edgecloudV2.Client, networkID string) error {
+	ctx := context.Background()
+
+	results, _, err := client.Networks.Delete(ctx, networkID)
 	if err != nil {
 		return err
 	}
 
-	taskID := result.Tasks[0]
-	err = tasks.WaitTaskAndProcessResult(client, taskID, true, int(edgecenter.NetworkDeletingTimeout.Seconds()), func(task tasks.TaskID) error {
-		_, err := networks.Get(client, networkID).Extract()
-		if err == nil {
-			return fmt.Errorf("cannot delete network with ID: %s", networkID)
-		}
-
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil
-		}
-		return fmt.Errorf("extracting Network resource error: %w", err)
-	})
-
-	return err
-}
-
-// CreateTestSubnet creates a subnet using the API client
-func CreateTestSubnet(client *edgecloud.ServiceClient, opts subnets.CreateOpts, cidr string) (string, error) {
-	var eccidr edgecloud.CIDR
-	_, netIPNet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return "", err
+	if len(results.Tasks) == 0 {
+		return fmt.Errorf("no task returned for network deletion")
 	}
-	eccidr.IP = netIPNet.IP
-	eccidr.Mask = netIPNet.Mask
-	opts.CIDR = eccidr
+	taskID := results.Tasks[0]
 
-	result, err := subnets.Create(client, opts).Extract()
-	if err != nil {
-		return "", err
-	}
-
-	taskID := result.Tasks[0]
-	subnetID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.SubnetCreatingTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		subnet, err := subnets.ExtractSubnetIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve Subnet ID from task info: %w", err)
-		}
-		return subnet, nil
-	})
-
-	return subnetID.(string), err
-}
-
-// DeleteTestSubnet deletes a subnet using the API client
-func DeleteTestSubnet(client *edgecloud.ServiceClient, subnetID string) error {
-	result, err := subnets.Delete(client, subnetID).Extract()
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, edgecenter.NetworkDeletingTimeout)
 	if err != nil {
 		return err
 	}
 
-	taskID := result.Tasks[0]
-	err = tasks.WaitTaskAndProcessResult(client, taskID, true, int(edgecenter.SubnetCreatingTimeout.Seconds()), func(task tasks.TaskID) error {
-		_, err := subnets.Get(client, subnetID).Extract()
-		if err == nil {
-			return fmt.Errorf("cannot delete subnet with ID: %s", subnetID)
-		}
+	if taskInfo.State == edgecloudV2.TaskStateError {
+		return fmt.Errorf("cannot delete network with ID: %s", networkID)
+	}
 
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil
-		}
-		return fmt.Errorf("extracting Subnet resource error: %w", err)
-	})
+	return nil
+}
 
-	return err
+// CreateTestSubnet создаёт подсеть через V2 API
+func CreateTestSubnet(client *edgecloudV2.Client, req *edgecloudV2.SubnetworkCreateRequest) (string, error) {
+	ctx := context.Background()
+
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Subnetworks.Create, req, client, edgecenter.SubnetCreatingTimeout)
+	if err != nil {
+		return "", err
+	}
+
+	if len(taskResult.Subnets) == 0 {
+		return "", fmt.Errorf("no subnet ID returned after creation")
+	}
+
+	return taskResult.Subnets[0], nil
+}
+
+// DeleteTestSubnet удаляет подсеть через V2 API
+func DeleteTestSubnet(client *edgecloudV2.Client, subnetID string) error {
+	ctx := context.Background()
+
+	results, _, err := client.Subnetworks.Delete(ctx, subnetID)
+	if err != nil {
+		return err
+	}
+
+	if len(results.Tasks) == 0 {
+		return fmt.Errorf("no task returned for subnet deletion")
+	}
+	taskID := results.Tasks[0]
+
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, edgecenter.SubnetCreatingTimeout)
+	if err != nil {
+		return err
+	}
+
+	if taskInfo.State == edgecloudV2.TaskStateError {
+		return fmt.Errorf("cannot delete subnet with ID: %s", subnetID)
+	}
+
+	return nil
 }
 
 // --- SSH keypair utilities

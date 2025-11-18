@@ -1,6 +1,7 @@
 package edgecenter_test
 
 import (
+	"net"
 	"os"
 	"strings"
 	"testing"
@@ -9,8 +10,7 @@ import (
 	tt "github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
@@ -61,7 +61,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 
 	// Create network and subnet clients
 	t.Log("Creating network and subnet clients...")
-	networkClient, subnetClient, err := CreateNetworkAndSubnetClients(t, token, endpoint, projectID, regionID)
+	networkClient, err := CreateNetworkAndSubnetClients(t, token, endpoint, projectID, regionID)
 	require.NoError(t, err, "failed to create network and subnet clients")
 	t.Log("Network and subnet clients created successfully")
 
@@ -78,9 +78,9 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	t.Log("Creating network...")
 	networkName := baseName + "-net"
 	t.Logf("Creating network with name: %s", networkName)
-	networkID, err := CreateTestNetwork(networkClient, networks.CreateOpts{
+	networkID, err := CreateTestNetwork(networkClient, &edgecloudV2.NetworkCreateRequest{
 		Name:         networkName,
-		Type:         "vxlan",
+		Type:         edgecloudV2.VXLAN,
 		CreateRouter: true,
 	})
 	require.NoError(t, err, "failed to create network")
@@ -89,10 +89,15 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	t.Log("Creating subnet...")
 	subnetName := baseName + "-subnet"
 	t.Logf("Creating subnet with name: %s in network: %s", subnetName, networkID)
-	subnetID, err := CreateTestSubnet(subnetClient, subnets.CreateOpts{
-		Name:      subnetName,
-		NetworkID: networkID,
-	}, "192.168.42.0/24")
+	ip := net.ParseIP("192.168.42.1")
+	subnetID, err := CreateTestSubnet(networkClient, &edgecloudV2.SubnetworkCreateRequest{
+		Name:                   subnetName,
+		NetworkID:              networkID,
+		CIDR:                   "192.168.42.0/24",
+		EnableDHCP:             true,
+		ConnectToNetworkRouter: true,
+		GatewayIP:              &ip,
+	})
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
 
@@ -105,7 +110,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 
 	var cleanupSubnetID = subnetID
 	t.Cleanup(func() {
-		if err := DeleteTestSubnet(subnetClient, cleanupSubnetID); err != nil {
+		if err := DeleteTestSubnet(networkClient, cleanupSubnetID); err != nil {
 			t.Logf("failed to delete subnet %s: %v", cleanupSubnetID, err)
 		}
 	})
