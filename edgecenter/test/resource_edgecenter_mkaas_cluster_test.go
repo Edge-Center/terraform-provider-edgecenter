@@ -95,11 +95,26 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
 
-	// Store resources for cleanup (will be deleted after cluster)
 	var cleanupNetworkID = networkID
-	var cleanupSubnetID = subnetID
-	var cleanupKeypairID = keypairID
+	t.Cleanup(func() {
+		if err := DeleteTestNetwork(networkClient, cleanupNetworkID); err != nil {
+			t.Logf("failed to delete network %s: %v", cleanupNetworkID, err)
+		}
+	})
 
+	var cleanupSubnetID = subnetID
+	t.Cleanup(func() {
+		if err := DeleteTestSubnet(subnetClient, cleanupSubnetID); err != nil {
+			t.Logf("failed to delete subnet %s: %v", cleanupSubnetID, err)
+		}
+	})
+
+	var cleanupKeypairID = keypairID
+	t.Cleanup(func() {
+		if err := DeleteTestKeypair(t, keypairClient, cleanupKeypairID); err != nil {
+			t.Logf("failed to delete SSH keypair %s: %v", cleanupKeypairID, err)
+		}
+	})
 	nameV1 := baseName + "-v1"
 	nameV2 := baseName + "-v2"
 
@@ -162,23 +177,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.NoError(t, err, "failed to delete cluster")
 	t.Log("Cluster deleted successfully")
 
-	// Cleanup network, subnet and keypair after cluster is deleted
-	// Note: cleanup functions are executed in reverse order (LIFO)
-	t.Cleanup(func() {
-		if err := DeleteTestSubnet(subnetClient, cleanupSubnetID); err != nil {
-			t.Logf("failed to delete subnet %s: %v", cleanupSubnetID, err)
-		}
-	})
-	t.Cleanup(func() {
-		if err := DeleteTestNetwork(networkClient, cleanupNetworkID); err != nil {
-			t.Logf("failed to delete network %s: %v", cleanupNetworkID, err)
-		}
-	})
-	t.Cleanup(func() {
-		if err := DeleteTestKeypair(t, keypairClient, cleanupKeypairID); err != nil {
-			t.Logf("failed to delete SSH keypair %s: %v", cleanupKeypairID, err)
-		}
-	})
 }
 
 func output(t *testing.T, cl *Cluster, name string) string {
