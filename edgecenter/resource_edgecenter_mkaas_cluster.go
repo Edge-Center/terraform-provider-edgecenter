@@ -3,12 +3,13 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -38,7 +39,6 @@ const (
 	MKaaSClusterProcessingField = "processing"
 	MKaaSClusterStatusField     = "status"
 	MkaasClusterStateField      = "state"
-
 )
 
 func resourceMKaaSCluster() *schema.Resource {
@@ -298,36 +298,40 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	if d.HasChange(MKaaSClusterControlPlaneField) || d.HasChange(NameField) {
+	updateReq := edgecloudV2.MkaaSClusterUpdateRequest{}
+	needsUpdate := false
+
+	if d.HasChange(NameField) {
+		updateReq.Name = d.Get(NameField).(string)
+		needsUpdate = true
+	}
+
+	controlPlaneNodeCountPath := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, MKaaSClusterNodeCountField)
+	if d.HasChange(controlPlaneNodeCountPath) {
 		if v, ok := d.GetOk(MKaaSClusterControlPlaneField); ok {
 			cpList := v.([]interface{})
 			if len(cpList) > 0 {
 				cp := cpList[0].(map[string]interface{})
-				nodeCount := cp[MKaaSClusterNodeCountField].(int)
-
-				opts := edgecloudV2.MkaaSClusterUpdateRequest{}
-
-				if d.HasChange(NameField) {
-					opts.Name = NameField
-				}
-
-				if d.HasChange(MKaaSClusterNodeCountField) {
-					opts.MasterNodeCount = nodeCount
-				}
-
-				task, _, err := clientV2.MkaaS.ClusterUpdate(ctx, clusterID, opts)
-				if err != nil {
-					return diag.FromErr(err)
-				}
-
-				taskID := task.Tasks[0]
-
-				err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSClusterUpdateTimeout)
-				if err != nil {
-					return diag.FromErr(err)
-				}
+				updateReq.MasterNodeCount = cp[MKaaSClusterNodeCountField].(int)
+				needsUpdate = true
 			}
 		}
+	}
+
+	if !needsUpdate {
+		tflog.Info(ctx, "No MKaaS cluster fields require update")
+		return resourceMKaaSClusterRead(ctx, d, m)
+	}
+
+	task, _, err := clientV2.MkaaS.ClusterUpdate(ctx, clusterID, updateReq)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	taskID := task.Tasks[0]
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSClusterUpdateTimeout)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	tflog.Info(ctx, "Finish MKaaS Cluster update")
