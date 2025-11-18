@@ -4,55 +4,23 @@ on:
   pull_request:
     branches: [ master, main, release-cloud, instanceV2]
 
-jobs:
-#  build:
-#    env:
-#      EC_USERNAME: ${{ secrets.EC_USERNAME }}
-#      EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
-#      EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
-#      EC_API: ${{ secrets.EC_API }}
-#      EC_CDN_URL: ${{ secrets.EC_CDN_URL }}
-#      EC_DNS_API: ${{ secrets.EC_DNS_API }}
-#      EC_PLATFORM: ${{ secrets.EC_PLATFORM }}
-#      EC_STORAGE_API: ${{ secrets.EC_STORAGE_API }}
-#      TEST_PROJECT_ID: ${{ secrets.TEST_PROJECT_ID }}
-#      TEST_REGION_ID: ${{ secrets.TEST_REGION_ID }}
-#      TF_ACC: ${{ secrets.TF_ACC }}
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3
-#
-#      - name: Set up Go
-#        uses: actions/setup-go@v3
-#        with:
-#          go-version: 1.24.4
-#
-#      - name: Linters
-#        run: make linters
-#
-#      - name: Build
-#        run: go build -v ./...
-#
-#      - name: Tests data_source
-#        run: go test -v ./edgecenter/test -tags cloud_data_source -short -timeout=20m
-#
-#      - name: Tests resource
-#        run: go test -v ./edgecenter/test -tags cloud_resource -short -timeout=20m
+env:
+  EC_USERNAME: ${{ secrets.EC_USERNAME }}
+  EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
+  EC_API: ${{ secrets.EC_API }}
+  EC_CDN_URL: ${{ secrets.EC_CDN_URL }}
+  EC_DNS_API: ${{ secrets.EC_DNS_API }}
+  EC_PLATFORM: ${{ secrets.EC_PLATFORM }}
+  EC_STORAGE_API: ${{ secrets.EC_STORAGE_API }}
+  TEST_PROJECT_ID: ${{ secrets.TEST_PROJECT_ID }}
+  TEST_REGION_ID: ${{ secrets.TEST_REGION_ID }}
+  TF_ACC: ${{ secrets.TF_ACC }}
 
-  reseller-tests:
-    env:
-      EC_USERNAME: ${{ secrets.EC_USERNAME }}
-      EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
-      EC_PERMANENT_TOKEN: ${{ secrets.EC_RESELLER_PERMANENT_TOKEN }}
-      EC_API: ${{ secrets.EC_API }}
-      EC_CDN_URL: ${{ secrets.EC_CDN_URL }}
-      EC_DNS_API: ${{ secrets.EC_DNS_API }}
-      EC_PLATFORM: ${{ secrets.EC_PLATFORM }}
-      EC_STORAGE_API: ${{ secrets.EC_STORAGE_API }}
-      TEST_PROJECT_ID: ${{ secrets.TEST_PROJECT_ID }}
-      TEST_REGION_ID: ${{ secrets.TEST_REGION_ID }}
-      TF_ACC: ${{ secrets.TF_ACC }}
+jobs:
+  build:
     runs-on: ubuntu-latest
+    env:
+      EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
     steps:
       - uses: actions/checkout@v3
 
@@ -61,11 +29,50 @@ jobs:
         with:
           go-version: 1.24.4
 
+      - name: Linters
+        run: make linters
+
       - name: Build
         run: go build -v ./...
 
-      - name: Tests data_source with reseller flag
-        run: go test -v ./edgecenter/test -tags cloud_reseller_data_source -short -timeout=5m
+  tests:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
+    strategy:
+      matrix:
+        kind:
+          - tag: cloud_data_source
+          - tag: cloud_resource
+      fail-fast: true
+      max-parallel: 1
+    name: tests-${{ matrix.kind.tag }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.24.4
+      - name: Run tests (${{ matrix.kind.tag }})
+        run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=20m
 
-      - name: Tests resource with reseller flag
-        run: go test -v ./edgecenter/test -tags cloud_reseller_resource -short -timeout=5m
+  reseller-tests:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      EC_PERMANENT_TOKEN: ${{ secrets.EC_RESELLER_PERMANENT_TOKEN }}
+    strategy:
+      matrix:
+        kind:
+          - tag: cloud_reseller_data_source
+          - tag: cloud_reseller_resource
+      fail-fast: true
+      max-parallel: 1
+    name: tests-${{ matrix.kind.tag }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.24.4
+      - name: Run tests (${{ matrix.kind.tag }})
+        run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=5m

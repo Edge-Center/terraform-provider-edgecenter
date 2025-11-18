@@ -16,8 +16,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-const checkResellerImagesEntityID = 976100
-const checkResellerImagesEntityType = edgecloudV2.ResellerType
+const (
+	checkResellerImagesEntityID   = 976100
+	checkResellerImagesEntityType = edgecloudV2.ResellerType
+)
 
 func TestAccResellerImagesV2Resource(t *testing.T) {
 	resourceName := "edgecenter_reseller_imagesV2.rimgs"
