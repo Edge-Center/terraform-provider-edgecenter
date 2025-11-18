@@ -163,7 +163,6 @@ terraform {
 
 provider "edgecenter" {
   permanent_api_token  = "` + token + `"
-  edgecenter_cloud_api = "` + endpoint + `"
 }
 
 import {
@@ -228,13 +227,10 @@ func requireEnv(t *testing.T, key string) string {
 	return val
 }
 
-// --- network and subnet utilities
-
-// CreateNetworkAndSubnetClients создаёт V2 клиент для операций с сетями и подсетями
 func CreateNetworkAndSubnetClients(t *testing.T, token, endpoint, projectID,
 	regionID string) (*edgecloudV2.Client, error) {
 	t.Helper()
-	return CreateMKaaSClient(t, token, endpoint, projectID, regionID)
+	return CreateClient(t, token, endpoint, projectID, regionID)
 }
 
 // CreateTestNetwork создаёт сеть через V2 API
@@ -347,36 +343,6 @@ func DeleteTestSubnet(client *edgecloudV2.Client, subnetID string) error {
 // Test SSH public key for dynamic keypair creation
 const testSSHPublicKey = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC1bdbQYquD/swsZpFPXagY9KvhlNUTKYMdhRNtlGglAMgRxJS3Q0V74BNElJtP+UU/AbZD4H2ZAwW3PLLD/maclnLlrA48xg/ez9IhppBop0WADZ/nB4EcvQfR/Db7nHDTZERW6EiiGhV6CkHVasK2sY/WNRXqPveeWUlwCqtSnU90l/s9kQCoEfkM2auO6ppJkVrXbs26vcRclS8KL7Cff4HwdVpV7b+edT5seZdtrFUCbkEof9D9nGpahNvg8mYWf0ofx4ona4kaXm1NdPID+ljvE/dbYUX8WZRmyLjMvVQS+VxDJtsiDQIVtwbC4w+recqwDvHhLWwoeczsbEsp test@mkaas`
 
-// CreateKeypairClient creates a V2 API client for keypair operations
-func CreateKeypairClient(t *testing.T, token, endpoint, projectID string) (*edgecloudV2.Client, error) {
-	t.Helper()
-
-	cloudAPI := endpoint
-	if !strings.HasSuffix(cloudAPI, "/cloud") {
-		cloudAPI = endpoint + "/cloud"
-	}
-
-	clientV2, err := edgecloudV2.NewWithRetries(nil,
-		edgecloudV2.SetUserAgent("terraform-test"),
-		edgecloudV2.SetAPIKey(token),
-		edgecloudV2.SetBaseURL(cloudAPI),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create V2 client: %w", err)
-	}
-
-	projectIDInt, err := strconv.Atoi(projectID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse project ID: %w", err)
-	}
-
-	// For KeyPairsV2 endpoints, only project is needed, region is set to stub value 1
-	clientV2.Project = projectIDInt
-	clientV2.Region = 1
-
-	return clientV2, nil
-}
-
 // CreateTestKeypair creates an SSH keypair using the V2 API client
 func CreateTestKeypair(t *testing.T, clientV2 *edgecloudV2.Client, keypairName string) (string, error) {
 	t.Helper()
@@ -411,8 +377,8 @@ func DeleteTestKeypair(t *testing.T, clientV2 *edgecloudV2.Client, keypairID str
 
 // --- MKaaS cluster utilities
 
-// CreateMKaaSClient creates a V2 API client for MKaaS cluster operations
-func CreateMKaaSClient(t *testing.T, token, endpoint, projectID, regionID string) (*edgecloudV2.Client, error) {
+// CreateClient creates a V2 API client for MKaaS cluster operations
+func CreateClient(t *testing.T, token, endpoint, projectID, regionID string) (*edgecloudV2.Client, error) {
 	t.Helper()
 
 	cloudAPI := endpoint

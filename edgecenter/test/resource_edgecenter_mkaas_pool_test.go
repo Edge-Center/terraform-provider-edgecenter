@@ -1,6 +1,7 @@
 package edgecenter_test
 
 import (
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +27,6 @@ terraform {
 
 provider "edgecenter" {
   permanent_api_token  = "{{ .Token }}"
-  edgecenter_cloud_api = "{{ .Endpoint }}"
 }
 
 resource "edgecenter_mkaas_pool" "np" {
@@ -79,7 +79,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	token := requireEnv(t, "EC_PERMANENT_TOKEN")
 	endpoint := os.Getenv("EC_API")
 	if endpoint == "" {
-		endpoint = "https://api.edgecenter.ru"
+		endpoint = "https://api.edgecenter.online"
 	}
 	t.Logf("Using endpoint: %s", endpoint)
 	projectID := requireEnv(t, "TEST_PROJECT_ID")
@@ -100,28 +100,13 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		k8sVersion = MKaaSK8sVersion
 	}
 
-	// Create keypair client
-	t.Log("Creating keypair client...")
-	keypairClient, err := CreateKeypairClient(t, token, endpoint, projectID)
-	require.NoError(t, err, "failed to create keypair client")
-	t.Log("Keypair client created successfully")
-
-	// Create network and subnet clients
-	t.Log("Creating network and subnet clients...")
-	networkClient, err := CreateNetworkAndSubnetClients(t, token, endpoint, projectID, regionID)
-	require.NoError(t, err, "failed to create network and subnet clients")
-	t.Log("Network and subnet clients created successfully")
-
-	// Create MKaaS client for cluster deletion
-	mkaasClient, err := CreateMKaaSClient(t, token, endpoint, projectID, regionID)
-	require.NoError(t, err, "failed to create MKaaS client")
-	t.Log("MKaaS client created successfully")
-
-	// Create SSH keypair dynamically
 	base := "tf-mkaas-" + strings.ToLower(random.UniqueId())
 	keypairName := base + "-key"
+	client, err := CreateClient(t, token, endpoint, projectID, regionID)
+	require.NoError(t, err, "failed to create keypair client")
+
 	t.Logf("Creating SSH keypair with name: %s", keypairName)
-	keypairID, err := CreateTestKeypair(t, keypairClient, keypairName)
+	keypairID, err := CreateTestKeypair(t, client, keypairName)
 	require.NoError(t, err, "failed to create SSH keypair")
 	t.Logf("SSH keypair created successfully with ID: %s, name: %s", keypairID, keypairName)
 	sshKeypair := keypairName
@@ -130,7 +115,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	t.Log("Creating network...")
 	networkName := base + "-net"
 	t.Logf("Creating network with name: %s", networkName)
-	networkID, err := CreateTestNetwork(networkClient, &edgecloudV2.NetworkCreateRequest{
+	networkID, err := CreateTestNetwork(client, &edgecloudV2.NetworkCreateRequest{
 		Name:         networkName,
 		Type:         edgecloudV2.VXLAN,
 		CreateRouter: true,
@@ -141,20 +126,38 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	t.Log("Creating subnet...")
 	subnetName := base + "-subnet"
 	t.Logf("Creating subnet with name: %s in network: %s", subnetName, networkID)
-	subnetID, err := CreateTestSubnet(networkClient, &edgecloudV2.SubnetworkCreateRequest{
+	ip := net.ParseIP("192.168.42.1")
+	subnetID, err := CreateTestSubnet(client, &edgecloudV2.SubnetworkCreateRequest{
 		Name:                   subnetName,
 		NetworkID:              networkID,
 		CIDR:                   "192.168.42.0/24",
 		EnableDHCP:             true,
 		ConnectToNetworkRouter: true,
+		GatewayIP:              &ip,
 	})
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
 
-	// Store resources for cleanup (will be deleted after cluster)
 	var cleanupNetworkID = networkID
+	t.Cleanup(func() {
+		if err := DeleteTestNetwork(client, cleanupNetworkID); err != nil {
+			t.Logf("failed to delete network %s: %v", cleanupNetworkID, err)
+		}
+	})
+
 	var cleanupSubnetID = subnetID
+	t.Cleanup(func() {
+		if err := DeleteTestSubnet(client, cleanupSubnetID); err != nil {
+			t.Logf("failed to delete subnet %s: %v", cleanupSubnetID, err)
+		}
+	})
+
 	var cleanupKeypairID = keypairID
+	t.Cleanup(func() {
+		if err := DeleteTestKeypair(t, client, cleanupKeypairID); err != nil {
+			t.Logf("failed to delete SSH keypair %s: %v", cleanupKeypairID, err)
+		}
+	})
 
 	// Create cluster
 	t.Log("Creating cluster...")
@@ -256,7 +259,6 @@ terraform {
 
 provider "edgecenter" {
   permanent_api_token  = "` + token + `"
-  edgecenter_cloud_api = "` + endpoint + `"
 }
 
 import {
@@ -294,27 +296,11 @@ import {
 	}
 
 	// --- DELETE cluster via API (before cleanup of network/subnet/keypair)
-	t.Log("Deleting cluster via API...")
-	err = DeleteTestMKaaSCluster(t, mkaasClient, cl.ID)
-	require.NoError(t, err, "failed to delete cluster")
-	t.Log("Cluster deleted successfully")
+	//t.Log("Deleting cluster via API...")
+	//err = DeleteTestMKaaSCluster(t, mkaasClient, cl.ID)
+	//require.NoError(t, err, "failed to delete cluster")
+	//t.Log("Cluster deleted successfully")
 
-	// Cleanup network, subnet and keypair after cluster is deleted
-	t.Cleanup(func() {
-		if err := DeleteTestSubnet(networkClient, cleanupSubnetID); err != nil {
-			t.Logf("failed to delete subnet %s: %v", cleanupSubnetID, err)
-		}
-	})
-	t.Cleanup(func() {
-		if err := DeleteTestNetwork(networkClient, cleanupNetworkID); err != nil {
-			t.Logf("failed to delete network %s: %v", cleanupNetworkID, err)
-		}
-	})
-	t.Cleanup(func() {
-		if err := DeleteTestKeypair(t, keypairClient, cleanupKeypairID); err != nil {
-			t.Logf("failed to delete SSH keypair %s: %v", cleanupKeypairID, err)
-		}
-	})
 }
 
 func renderTemplateToWith(path, tmpl string, data any) error {

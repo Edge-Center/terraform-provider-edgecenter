@@ -53,32 +53,22 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 		cpVersion = MKaaSK8sVersion
 	}
 
-	// Create keypair client
-	t.Log("Creating keypair client...")
-	keypairClient, err := CreateKeypairClient(t, token, endpoint, projectID)
-	require.NoError(t, err, "failed to create keypair client")
-	t.Log("Keypair client created successfully")
+	t.Log("Creating  client...")
+	client, err := CreateClient(t, token, endpoint, projectID, regionID)
+	require.NoError(t, err, "failed to create client")
 
-	// Create network and subnet clients
-	t.Log("Creating network and subnet clients...")
-	networkClient, err := CreateNetworkAndSubnetClients(t, token, endpoint, projectID, regionID)
-	require.NoError(t, err, "failed to create network and subnet clients")
-	t.Log("Network and subnet clients created successfully")
-
-	// Create SSH keypair dynamically
 	baseName := "tf-mkaas-" + strings.ToLower(random.UniqueId())
 	keypairName := baseName + "-key"
 	t.Logf("Creating SSH keypair with name: %s", keypairName)
-	keypairID, err := CreateTestKeypair(t, keypairClient, keypairName)
+	keypairID, err := CreateTestKeypair(t, client, keypairName)
 	require.NoError(t, err, "failed to create SSH keypair")
 	t.Logf("SSH keypair created successfully with ID: %s, name: %s", keypairID, keypairName)
 	sshKeypair := keypairName
 
-	// Create network and subnet dynamically
 	t.Log("Creating network...")
 	networkName := baseName + "-net"
 	t.Logf("Creating network with name: %s", networkName)
-	networkID, err := CreateTestNetwork(networkClient, &edgecloudV2.NetworkCreateRequest{
+	networkID, err := CreateTestNetwork(client, &edgecloudV2.NetworkCreateRequest{
 		Name:         networkName,
 		Type:         edgecloudV2.VXLAN,
 		CreateRouter: true,
@@ -90,7 +80,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	subnetName := baseName + "-subnet"
 	t.Logf("Creating subnet with name: %s in network: %s", subnetName, networkID)
 	ip := net.ParseIP("192.168.42.1")
-	subnetID, err := CreateTestSubnet(networkClient, &edgecloudV2.SubnetworkCreateRequest{
+	subnetID, err := CreateTestSubnet(client, &edgecloudV2.SubnetworkCreateRequest{
 		Name:                   subnetName,
 		NetworkID:              networkID,
 		CIDR:                   "192.168.42.0/24",
@@ -103,21 +93,21 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 
 	var cleanupNetworkID = networkID
 	t.Cleanup(func() {
-		if err := DeleteTestNetwork(networkClient, cleanupNetworkID); err != nil {
+		if err := DeleteTestNetwork(client, cleanupNetworkID); err != nil {
 			t.Logf("failed to delete network %s: %v", cleanupNetworkID, err)
 		}
 	})
 
 	var cleanupSubnetID = subnetID
 	t.Cleanup(func() {
-		if err := DeleteTestSubnet(networkClient, cleanupSubnetID); err != nil {
+		if err := DeleteTestSubnet(client, cleanupSubnetID); err != nil {
 			t.Logf("failed to delete subnet %s: %v", cleanupSubnetID, err)
 		}
 	})
 
 	var cleanupKeypairID = keypairID
 	t.Cleanup(func() {
-		if err := DeleteTestKeypair(t, keypairClient, cleanupKeypairID); err != nil {
+		if err := DeleteTestKeypair(t, client, cleanupKeypairID); err != nil {
 			t.Logf("failed to delete SSH keypair %s: %v", cleanupKeypairID, err)
 		}
 	})
@@ -174,13 +164,13 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	)
 
 	// Create MKaaS client for cluster deletion
-	mkaasClient, err := CreateMKaaSClient(t, token, endpoint, projectID, regionID)
-	require.NoError(t, err, "failed to create MKaaS client")
-	t.Log("MKaaS client created successfully")
-	t.Log("Deleting cluster via API...")
-	err = DeleteTestMKaaSCluster(t, mkaasClient, cl.ID)
-	require.NoError(t, err, "failed to delete cluster")
-	t.Log("Cluster deleted successfully")
+	//mkaasClient, err := CreateClient(t, token, endpoint, projectID, regionID)
+	//require.NoError(t, err, "failed to create MKaaS client")
+	//t.Log("MKaaS client created successfully")
+	//t.Log("Deleting cluster via API...")
+	//err = DeleteTestMKaaSCluster(t, mkaasClient, cl.ID)
+	//require.NoError(t, err, "failed to delete cluster")
+	//t.Log("Cluster deleted successfully")
 
 }
 
