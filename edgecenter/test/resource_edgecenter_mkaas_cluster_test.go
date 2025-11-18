@@ -168,7 +168,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 		cl.Opts.RetryableTerraformErrors,
 	)
 
-	// --- DELETE cluster via API (before cleanup of network/subnet/keypair)
 	// Create MKaaS client for cluster deletion
 	mkaasClient, err := CreateMKaaSClient(t, token, endpoint, projectID, regionID)
 	require.NoError(t, err, "failed to create MKaaS client")
