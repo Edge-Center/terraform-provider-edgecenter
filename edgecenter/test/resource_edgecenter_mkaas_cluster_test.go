@@ -79,8 +79,9 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	networkName := baseName + "-net"
 	t.Logf("Creating network with name: %s", networkName)
 	networkID, err := CreateTestNetwork(networkClient, networks.CreateOpts{
-		Name: networkName,
-		Type: "vxlan",
+		Name:         networkName,
+		Type:         "vxlan",
+		CreateRouter: true,
 	})
 	require.NoError(t, err, "failed to create network")
 	t.Logf("Network created successfully with ID: %s", networkID)
