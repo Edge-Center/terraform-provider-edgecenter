@@ -54,10 +54,10 @@ If image_ids = None, all public images are available. If image_ids = [], no publ
 								Type: schema.TypeString,
 							},
 						},
-						ImageIDsIsNullField: {
+						AllPublicImagesAreAvailableField: {
 							Type:        schema.TypeBool,
 							Computed:    true,
-							Description: "True if image_ids = None, False if image_ids = []",
+							Description: "Flag to indicate that all public images are available.",
 						},
 						CreatedAtField: {
 							Type:        schema.TypeString,

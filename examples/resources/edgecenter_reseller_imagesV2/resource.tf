@@ -14,7 +14,7 @@ resource "edgecenter_reseller_imagesV2" "rimgs" {
     image_ids = []
   }
   options {
-    region_id         = 321
-    image_ids_is_null = true
+    region_id                       = 321
+    all_public_images_are_available = true
   }
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -29,10 +30,10 @@ var ResellerImageV2 = map[string]*schema.Schema{
 			Type: schema.TypeString,
 		},
 	},
-	ImageIDsIsNullField: {
+	AllPublicImagesAreAvailableField: {
 		Type:        schema.TypeBool,
 		Optional:    true,
-		Description: "Set True if image_ids = None",
+		Description: "Flag to indicate that all public images are available.",
 	},
 	CreatedAtField: {
 		Type:        schema.TypeString,
@@ -82,7 +83,29 @@ If the reseller, client or project has image_ids = [] or doesn't have an image_i
 				},
 			},
 		},
+		CustomizeDiff: customdiff.All(
+			validateResellerImagesOptions,
+		),
 	}
+}
+
+func validateResellerImagesOptions(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
+	rawOptionsConfig := diff.GetRawConfig().GetAttr(ResellerImagesOptionsField)
+	rawOptionsList := rawOptionsConfig.AsValueSlice()
+
+	for _, val := range rawOptionsList {
+		isImageIDsNull := val.GetAttr(ImageIDsField).IsNull()
+		areAllPublicImagesAvailable := val.GetAttr(AllPublicImagesAreAvailableField).True()
+		if !isImageIDsNull && areAllPublicImagesAvailable {
+			return fmt.Errorf(
+				"%s must not be set when %s is true",
+				ImageIDsField,
+				AllPublicImagesAreAvailableField,
+			)
+		}
+	}
+
+	return nil
 }
 
 func resourceResellerImagesV2Create(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -102,27 +125,17 @@ func resourceResellerImagesV2Create(ctx context.Context, d *schema.ResourceData,
 		return iOpt[RegionIDField].(int) < jOpt[RegionIDField].(int)
 	})
 
-	// Get raw config to check what user actually set
-	rawOptionsConfig := d.GetRawConfig().GetAttr(ResellerImagesOptionsField)
-	rawOptionsList := rawOptionsConfig.AsValueSlice()
-
-	for idx, optRaw := range riOptions {
+	for _, optRaw := range riOptions {
 		opt := optRaw.(map[string]interface{})
 
-		isImageIDsNull := false
-		if v, ok := opt[ImageIDsIsNullField]; ok {
-			isImageIDsNull = v.(bool)
+		areAllPublicImagesAvailable := false
+		if v, ok := opt[AllPublicImagesAreAvailableField]; ok {
+			areAllPublicImagesAvailable = v.(bool)
 		}
 
 		var imageIDsPtr *edgecloudV2.ImageIDs = nil
 
-		if isImageIDsNull {
-			// Check if user actually set image_ids in raw config
-			rawOption := rawOptionsList[idx]
-			if !(rawOption.IsNull() || rawOption.GetAttr(ImageIDsField).IsNull()) {
-				return diag.Errorf("%s must not be set when %s is true", ImageIDsField, ImageIDsIsNullField)
-			}
-		} else {
+		if !areAllPublicImagesAvailable {
 			imageIDs := edgecloudV2.ImageIDs{}
 			if v, ok := opt[ImageIDsField]; ok {
 				imageIDsList := v.(*schema.Set).List()

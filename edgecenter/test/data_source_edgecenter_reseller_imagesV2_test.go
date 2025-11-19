@@ -67,14 +67,14 @@ func TestAccResellerImagesV2DataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.RegionIDField, strconv.Itoa(checkRegionID)),
 					resource.TestCheckResourceAttr(datasourceName, edgecenter.EntityIDField, strconv.Itoa(checkResellerImagesEntityID)),
 					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.ImageIDsField+".#", "2"),
-					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.ImageIDsIsNullField, "false"),
+					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.AllPublicImagesAreAvailableField, "false"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccResellerImagesV2DataSource_ImageIDsIsNull_Null(t *testing.T) {
+func TestAccResellerImagesV2DataSource_AllPublicImagesAreAvailable(t *testing.T) {
 	ctx := context.Background()
 	client, err := createTestCloudClient()
 	if err != nil {
@@ -120,14 +120,14 @@ func TestAccResellerImagesV2DataSource_ImageIDsIsNull_Null(t *testing.T) {
 					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.RegionIDField, strconv.Itoa(checkRegionID)),
 					resource.TestCheckResourceAttr(datasourceName, edgecenter.EntityIDField, strconv.Itoa(checkResellerImagesEntityID)),
 					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.ImageIDsField+".#", "0"),
-					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.ImageIDsIsNullField, "true"),
+					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.AllPublicImagesAreAvailableField, "true"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccResellerImagesV2DataSource_ImageIDsIsNull_Empty(t *testing.T) {
+func TestAccResellerImagesV2DataSource_PublicImagesAreNotAvailable(t *testing.T) {
 	ctx := context.Background()
 	client, err := createTestCloudClient()
 	if err != nil {
@@ -173,7 +173,7 @@ func TestAccResellerImagesV2DataSource_ImageIDsIsNull_Empty(t *testing.T) {
 					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.RegionIDField, strconv.Itoa(checkRegionID)),
 					resource.TestCheckResourceAttr(datasourceName, edgecenter.EntityIDField, strconv.Itoa(checkResellerImagesEntityID)),
 					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.ImageIDsField+".#", "0"),
-					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.ImageIDsIsNullField, "false"),
+					resource.TestCheckResourceAttr(datasourceName, edgecenter.ResellerImagesOptionsField+".0."+edgecenter.AllPublicImagesAreAvailableField, "false"),
 				),
 			},
 		},
