@@ -15,7 +15,6 @@ import (
 
 const (
 	MKaaSVolumeType = "ssd_hiiops"
-	MKaaSRegionId   = "2403"
 	MKaaSK8sVersion = "v1.31.0"
 	MKaaSCpFlavor   = "g3-standard-2-4"
 )
@@ -36,7 +35,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 	t.Logf("Using endpoint: %s", endpoint)
 	projectID := requireEnv(t, "TEST_PROJECT_ID")
-	regionID := MKaaSRegionId //TODO: when 8 region will be strong - requireEnv(t, "TEST_REGION_ID")
+	regionID := requireEnv(t, "TEST_MKAAS_REGION_ID")
 
 	cpFlavor := os.Getenv("EC_MKAAS_CP_FLAVOR")
 	if cpFlavor == "" {
@@ -57,6 +56,8 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	client, err := CreateClient(t, token, endpoint, projectID, regionID)
 	require.NoError(t, err, "failed to create client")
 
+	cleaner := NewMSaaSTestCleaner(t, client)
+
 	baseName := "tf-mkaas-" + strings.ToLower(random.UniqueId())
 	keypairName := baseName + "-key"
 	t.Logf("Creating SSH keypair with name: %s", keypairName)
@@ -64,6 +65,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.NoError(t, err, "failed to create SSH keypair")
 	t.Logf("SSH keypair created successfully with ID: %s, name: %s", keypairID, keypairName)
 	sshKeypair := keypairName
+	cleaner.SetKeypairID(keypairID)
 
 	t.Log("Creating network...")
 	networkName := baseName + "-net"
@@ -75,6 +77,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	})
 	require.NoError(t, err, "failed to create network")
 	t.Logf("Network created successfully with ID: %s", networkID)
+	cleaner.SetNetworkID(networkID)
 
 	t.Log("Creating subnet...")
 	subnetName := baseName + "-subnet"
@@ -90,29 +93,11 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	})
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
+	cleaner.SetSubnetID(subnetID)
 
-	var cleanupNetworkID = networkID
-	t.Cleanup(func() {
-		if err := DeleteTestNetwork(client, cleanupNetworkID); err != nil {
-			t.Logf("failed to delete network %s: %v", cleanupNetworkID, err)
-		}
-	})
-
-	var cleanupSubnetID = subnetID
-	t.Cleanup(func() {
-		if err := DeleteTestSubnet(client, cleanupSubnetID); err != nil {
-			t.Logf("failed to delete subnet %s: %v", cleanupSubnetID, err)
-		}
-	})
-
-	var cleanupKeypairID = keypairID
-	t.Cleanup(func() {
-		if err := DeleteTestKeypair(t, client, cleanupKeypairID); err != nil {
-			t.Logf("failed to delete SSH keypair %s: %v", cleanupKeypairID, err)
-		}
-	})
 	nameV1 := baseName + "-v1"
 	nameV2 := baseName + "-v2"
+	cleaner.SetClusterName(nameV1)
 
 	data := tfData{
 		Token:        token,
@@ -131,7 +116,12 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 
 	// --- CREATE cluster
-	cl := CreateCluster(t, data)
+	cl, err := CreateCluster(t, data)
+	if err != nil {
+		t.Logf("cluster creation failed: %v", err)
+		cleaner.Failf("failed to create cluster: %v", err)
+	}
+	cleaner.AttachCluster(cl)
 
 	// Check cluster
 	require.Equalf(t, cl.ID, output(t, cl, "cluster_id"), "%s mismatch", "cluster_id non-empty")
@@ -148,29 +138,27 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, cpVersion, output(t, cl, "out_k8s_version"), "%s mismatch", "control_plane.version")
 
 	// --- UPDATE cluster
-	cl.UpdateCluster(t, func(d *tfData) {
+	err = cl.UpdateCluster(t, func(d *tfData) {
 		d.Name = nameV2
 		d.CPNodeCount = 3
 	})
+	if err != nil {
+		t.Logf("cluster update failed: %v", err)
+		cleaner.Failf("failed to update cluster: %v", err)
+	}
+	require.NoError(t, err, "failed to update cluster")
 	require.Equalf(t, "3", output(t, cl, "out_cp_node_count"), "%s mismatch", "control_plane.node_count (after update)")
 	require.Equalf(t, nameV2, output(t, cl, "cluster_name"), "%s mismatch", "cluster_name (after update)")
 
 	// --- IMPORT cluster
-	_ = ImportClusterPlanApply(
+	if _, err := ImportClusterPlanApply(
 		t,
 		token, endpoint, projectID, regionID, cl.ID,
 		cl.Dir,
 		cl.Opts.RetryableTerraformErrors,
-	)
-
-	// Create MKaaS client for cluster deletion
-	//mkaasClient, err := CreateClient(t, token, endpoint, projectID, regionID)
-	//require.NoError(t, err, "failed to create MKaaS client")
-	//t.Log("MKaaS client created successfully")
-	//t.Log("Deleting cluster via API...")
-	//err = DeleteTestMKaaSCluster(t, mkaasClient, cl.ID)
-	//require.NoError(t, err, "failed to delete cluster")
-	//t.Log("Cluster deleted successfully")
+	); err != nil {
+		cleaner.Failf("failed to import cluster: %v", err)
+	}
 
 }
 

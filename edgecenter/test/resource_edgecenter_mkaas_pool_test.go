@@ -83,7 +83,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 	t.Logf("Using endpoint: %s", endpoint)
 	projectID := requireEnv(t, "TEST_PROJECT_ID")
-	regionID := MKaaSRegionId //TODO: when 8 region will be strong - requireEnv(t, "TEST_REGION_ID")
+	regionID := requireEnv(t, "TEST_MKAAS_REGION_ID")
 
 	cpFlavor := os.Getenv("EC_MKAAS_CP_FLAVOR")
 	if cpFlavor == "" {
@@ -104,12 +104,14 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	keypairName := base + "-key"
 	client, err := CreateClient(t, token, endpoint, projectID, regionID)
 	require.NoError(t, err, "failed to create keypair client")
+	cleanup := NewMSaaSTestCleaner(t, client)
 
 	t.Logf("Creating SSH keypair with name: %s", keypairName)
 	keypairID, err := CreateTestKeypair(t, client, keypairName)
 	require.NoError(t, err, "failed to create SSH keypair")
 	t.Logf("SSH keypair created successfully with ID: %s, name: %s", keypairID, keypairName)
 	sshKeypair := keypairName
+	cleanup.SetKeypairID(keypairID)
 
 	// Create network and subnet dynamically
 	t.Log("Creating network...")
@@ -122,6 +124,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	})
 	require.NoError(t, err, "failed to create network")
 	t.Logf("Network created successfully with ID: %s", networkID)
+	cleanup.SetNetworkID(networkID)
 
 	t.Log("Creating subnet...")
 	subnetName := base + "-subnet"
@@ -137,32 +140,13 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	})
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
-
-	var cleanupNetworkID = networkID
-	t.Cleanup(func() {
-		if err := DeleteTestNetwork(client, cleanupNetworkID); err != nil {
-			t.Logf("failed to delete network %s: %v", cleanupNetworkID, err)
-		}
-	})
-
-	var cleanupSubnetID = subnetID
-	t.Cleanup(func() {
-		if err := DeleteTestSubnet(client, cleanupSubnetID); err != nil {
-			t.Logf("failed to delete subnet %s: %v", cleanupSubnetID, err)
-		}
-	})
-
-	var cleanupKeypairID = keypairID
-	t.Cleanup(func() {
-		if err := DeleteTestKeypair(t, client, cleanupKeypairID); err != nil {
-			t.Logf("failed to delete SSH keypair %s: %v", cleanupKeypairID, err)
-		}
-	})
+	cleanup.SetSubnetID(subnetID)
 
 	// Create cluster
 	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
-	cl := CreateCluster(t, tfData{
+	cleanup.SetClusterName(clusterName)
+	cl, err := CreateCluster(t, tfData{
 		Token:        token,
 		Endpoint:     endpoint,
 		ProjectID:    projectID,
@@ -177,12 +161,18 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		CPVolumeType: volType,
 		CPVersion:    k8sVersion,
 	})
+	if err != nil {
+		t.Logf("cluster creation failed: %v", err)
+		cleanup.Failf("failed to create cluster: %v", err)
+	}
+	cleanup.AttachCluster(cl)
+	require.NoError(t, err, "failed to create cluster")
 	t.Logf("Cluster created successfully with ID: %s", cl.ID)
 
 	// Create pool
 	poolDir := filepath.Join(cl.Dir, "pool")
 	if err := os.MkdirAll(poolDir, 0755); err != nil {
-		t.Fatalf("mkdir pool dir: %v", err)
+		cleanup.Failf("mkdir pool dir: %v", err)
 	}
 	poolMain := filepath.Join(poolDir, "main.tf")
 
@@ -200,7 +190,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		VolumeType: volType,
 	}
 	if err := renderTemplateToWith(poolMain, poolMainTmpl, poolData); err != nil {
-		t.Fatalf("write pool main.tf (create): %v", err)
+		cleanup.Failf("write pool main.tf (create): %v", err)
 	}
 
 	poolOpts := &tt.Options{
@@ -214,12 +204,14 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 	// Note: pool will be destroyed when cluster is deleted, so no cleanup needed here
 
-	tt.ApplyAndIdempotent(t, poolOpts)
+	if _, err := tt.ApplyAndIdempotentE(t, poolOpts); err != nil {
+		cleanup.Failf("terraform apply (pool create): %v", err)
+	}
 
 	// Check pool
 	poolID := tt.Output(t, poolOpts, "pool_id")
 	if strings.TrimSpace(poolID) == "" {
-		t.Fatalf("pool_id is empty after create")
+		cleanup.Failf("pool_id is empty after create")
 	}
 	require.Equalf(t, poolNameV1, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name")
 	require.Equalf(t, projectID, tt.Output(t, poolOpts, "out_project_id"), "%s mismatch", "project_id")
@@ -237,16 +229,18 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	poolData.Name = poolNameV2
 	poolData.NodeCount = 2
 	if err := renderTemplateToWith(poolMain, poolMainTmpl, poolData); err != nil {
-		t.Fatalf("write pool main.tf (update): %v", err)
+		cleanup.Failf("write pool main.tf (update): %v", err)
 	}
-	tt.ApplyAndIdempotent(t, poolOpts)
+	if _, err := tt.ApplyAndIdempotentE(t, poolOpts); err != nil {
+		cleanup.Failf("terraform apply (pool update): %v", err)
+	}
 	require.Equalf(t, poolNameV2, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name (after update)")
 	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count (after update)")
 
 	// IMPORT pool
 	importDir := filepath.Join(poolDir, "import")
 	if err := os.MkdirAll(importDir, 0755); err != nil {
-		t.Fatalf("mkdir pool import dir: %v", err)
+		cleanup.Failf("mkdir pool import dir: %v", err)
 	}
 	importMain := `
 terraform {
@@ -267,24 +261,28 @@ import {
 }
 `
 	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0644); err != nil {
-		t.Fatalf("write pool import main.tf: %v", err)
+		cleanup.Failf("write pool import main.tf: %v", err)
 	}
 	importOpts := &tt.Options{
 		TerraformDir:             importDir,
 		NoColor:                  true,
 		RetryableTerraformErrors: poolOpts.RetryableTerraformErrors,
 	}
-	tt.RunTerraformCommand(
+	if _, err := tt.RunTerraformCommandE(
 		t, importOpts,
 		"plan",
 		"-generate-config-out=generated.tf",
 		"-input=false",
 		"-lock-timeout=5m",
-	)
-	if _, err := os.Stat(filepath.Join(importDir, "generated.tf")); err != nil {
-		t.Fatalf("pool generated.tf not found after plan -generate-config-out: %v", err)
+	); err != nil {
+		cleanup.Failf("terraform plan (pool import generate config): %v", err)
 	}
-	tt.ApplyAndIdempotent(t, importOpts)
+	if _, err := os.Stat(filepath.Join(importDir, "generated.tf")); err != nil {
+		cleanup.Failf("pool generated.tf not found after plan -generate-config-out: %v", err)
+	}
+	if _, err := tt.ApplyAndIdempotentE(t, importOpts); err != nil {
+		cleanup.Failf("terraform apply (pool import dir): %v", err)
+	}
 	if out, err := tt.RunTerraformCommandE(
 		t, importOpts,
 		"plan",
@@ -292,14 +290,8 @@ import {
 		"-input=false",
 		"-lock-timeout=5m",
 	); err != nil {
-		t.Fatalf("terraform plan for pool after import/apply is not empty (err=%v)\n%s", err, out)
+		cleanup.Failf("terraform plan for pool after import/apply is not empty (err=%v)\n%s", err, out)
 	}
-
-	// --- DELETE cluster via API (before cleanup of network/subnet/keypair)
-	//t.Log("Deleting cluster via API...")
-	//err = DeleteTestMKaaSCluster(t, mkaasClient, cl.ID)
-	//require.NoError(t, err, "failed to delete cluster")
-	//t.Log("Cluster deleted successfully")
 
 }
 

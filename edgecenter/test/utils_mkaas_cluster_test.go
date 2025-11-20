@@ -2,11 +2,13 @@ package edgecenter_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"text/template"
 
@@ -90,17 +92,18 @@ type Cluster struct {
 	Opts     *tt.Options
 	Data     tfData
 	ID       string
+	once     sync.Once
 }
 
 // CreateCluster
-func CreateCluster(t *testing.T, data tfData) *Cluster {
+func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 	t.Helper()
 
 	tmp := t.TempDir()
 	mainPath := filepath.Join(tmp, "main.tf")
 
 	if err := renderTemplateTo(mainPath, data); err != nil {
-		t.Fatalf("write main.tf: %v", err)
+		return nil, fmt.Errorf("write main.tf: %w", err)
 	}
 
 	opts := &tt.Options{
@@ -113,11 +116,23 @@ func CreateCluster(t *testing.T, data tfData) *Cluster {
 		},
 	}
 
-	tt.ApplyAndIdempotent(t, opts)
-	id := tt.Output(t, opts, "cluster_id")
-	if strings.TrimSpace(id) == "" {
-		tt.Destroy(t, opts)
-		t.Fatalf("cluster_id is empty after create")
+	if _, err := tt.ApplyAndIdempotentE(t, opts); err != nil {
+		t.Logf("terraform apply failed: %v", err)
+		if _, destroyErr := tt.DestroyE(t, opts); destroyErr != nil {
+			t.Logf("terraform destroy attempt after failed apply returned error: %v", destroyErr)
+		}
+		return nil, fmt.Errorf("terraform apply: %w", err)
+	}
+
+	id, err := tt.OutputRequiredE(t, opts, "cluster_id")
+	if err != nil || strings.TrimSpace(id) == "" {
+		if _, destroyErr := tt.DestroyE(t, opts); destroyErr != nil {
+			t.Logf("terraform destroy attempt after empty cluster_id returned error: %v", destroyErr)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("cluster_id output: %w", err)
+		}
+		return nil, fmt.Errorf("cluster_id is empty after create")
 	}
 
 	c := &Cluster{
@@ -127,29 +142,47 @@ func CreateCluster(t *testing.T, data tfData) *Cluster {
 		Data:     data,
 		ID:       id,
 	}
-	t.Cleanup(func() { tt.Destroy(t, opts) })
-	return c
+	t.Cleanup(func() {
+		if err := c.Destroy(t); err != nil {
+			t.Logf("terraform destroy (cleanup) failed: %v", err)
+		}
+	})
+	return c, nil
+}
+
+// Destroy tears down cluster resources once.
+func (c *Cluster) Destroy(t *testing.T) error {
+	t.Helper()
+	var destroyErr error
+	c.once.Do(func() {
+		_, destroyErr = tt.DestroyE(t, c.Opts)
+	})
+	return destroyErr
 }
 
 // UpdateCluster
-func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) {
+func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) error {
 	t.Helper()
 	if mutate != nil {
 		mutate(&c.Data)
 	}
 	if err := renderTemplateTo(c.MainPath, c.Data); err != nil {
-		t.Fatalf("write main.tf (update): %v", err)
+		return fmt.Errorf("write main.tf (update): %w", err)
 	}
-	tt.ApplyAndIdempotent(t, c.Opts)
+	_, err := tt.ApplyAndIdempotentE(t, c.Opts)
+	if err != nil {
+		return fmt.Errorf("terraform apply (update): %w", err)
+	}
+	return nil
 }
 
 // ImportClusterPlanApply
-func ImportClusterPlanApply(t *testing.T, token, endpoint, projectID, regionID, clusterID, workDir string, retry map[string]string) *tt.Options {
+func ImportClusterPlanApply(t *testing.T, token, endpoint, projectID, regionID, clusterID, workDir string, retry map[string]string) (*tt.Options, error) {
 	t.Helper()
 
 	importDir := filepath.Join(workDir, "import")
 	if err := os.MkdirAll(importDir, 0755); err != nil {
-		t.Fatalf("mkdir import: %v", err)
+		return nil, fmt.Errorf("mkdir import: %w", err)
 	}
 
 	importMain := `
@@ -171,7 +204,7 @@ import {
 }
 `
 	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0644); err != nil {
-		t.Fatalf("write import/main.tf: %v", err)
+		return nil, fmt.Errorf("write import/main.tf: %w", err)
 	}
 
 	opts := &tt.Options{
@@ -180,18 +213,22 @@ import {
 		RetryableTerraformErrors: retry,
 	}
 
-	tt.RunTerraformCommand(
+	if _, err := tt.RunTerraformCommandE(
 		t, opts,
 		"plan",
 		"-generate-config-out=generated.tf",
 		"-input=false",
 		"-lock-timeout=5m",
-	)
+	); err != nil {
+		return nil, fmt.Errorf("terraform plan (import generate config): %w", err)
+	}
 	if _, err := os.Stat(filepath.Join(importDir, "generated.tf")); err != nil {
-		t.Fatalf("generated.tf not found after plan -generate-config-out: %v", err)
+		return nil, fmt.Errorf("generated.tf not found after plan -generate-config-out: %w", err)
 	}
 
-	tt.ApplyAndIdempotent(t, opts)
+	if _, err := tt.ApplyAndIdempotentE(t, opts); err != nil {
+		return nil, fmt.Errorf("terraform apply (import dir): %w", err)
+	}
 
 	if out, err := tt.RunTerraformCommandE(
 		t, opts,
@@ -200,10 +237,10 @@ import {
 		"-input=false",
 		"-lock-timeout=5m",
 	); err != nil {
-		t.Fatalf("terraform plan after import/apply is not empty (err=%v)\n%s", err, out)
+		return nil, fmt.Errorf("terraform plan after import/apply is not empty (err=%v)\n%s", err, out)
 	}
 
-	return opts
+	return opts, nil
 }
 
 // --- common utils
@@ -437,4 +474,157 @@ func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterI
 	}
 
 	return nil
+}
+
+// DeleteTestMKaaSClusterByName deletes an MKaaS cluster when only its name is known.
+func DeleteTestMKaaSClusterByName(t *testing.T, clientV2 *edgecloudV2.Client, clusterName string) error {
+	t.Helper()
+
+	ctx := context.Background()
+	clusters, _, err := clientV2.MkaaS.ClustersList(ctx, &edgecloudV2.MkaaSClusterListOptions{
+		Name:  clusterName,
+		Limit: 10,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list clusters by name %q: %w", clusterName, err)
+	}
+
+	if len(clusters) == 0 {
+		return fmt.Errorf("no clusters found with name %q", clusterName)
+	}
+
+	var deleteErrs []error
+	var deleted bool
+
+	for _, cluster := range clusters {
+		if cluster.Name != clusterName {
+			continue
+		}
+		deleted = true
+		if err := DeleteTestMKaaSCluster(t, clientV2, strconv.Itoa(cluster.ID)); err != nil {
+			deleteErrs = append(deleteErrs, fmt.Errorf("cluster id %d: %w", cluster.ID, err))
+		}
+	}
+
+	if !deleted {
+		return fmt.Errorf("clusters list response did not include %q", clusterName)
+	}
+
+	if len(deleteErrs) > 0 {
+		return errors.Join(deleteErrs...)
+	}
+
+	return nil
+}
+
+// --- cleanup helpers
+
+type MkaasTestCleanup struct {
+	t           *testing.T
+	client      *edgecloudV2.Client
+	cluster     *Cluster
+	clusterName string
+	networkID   string
+	subnetID    string
+	keypairID   string
+	once        sync.Once
+	failed      bool
+}
+
+func NewMSaaSTestCleaner(t *testing.T, client *edgecloudV2.Client) *MkaasTestCleanup {
+	c := &MkaasTestCleanup{
+		t:      t,
+		client: client,
+	}
+	t.Cleanup(c.Run)
+	return c
+}
+
+func (c *MkaasTestCleanup) SetClusterName(name string) {
+	c.clusterName = name
+}
+
+func (c *MkaasTestCleanup) AttachCluster(cluster *Cluster) {
+	c.cluster = cluster
+}
+
+func (c *MkaasTestCleanup) SetNetworkID(id string) {
+	c.networkID = id
+}
+
+func (c *MkaasTestCleanup) SetSubnetID(id string) {
+	c.subnetID = id
+}
+
+func (c *MkaasTestCleanup) SetKeypairID(id string) {
+	c.keypairID = id
+}
+
+func (c *MkaasTestCleanup) Run() {
+	c.once.Do(func() {
+		if c.t.Failed() {
+			c.failed = true
+		}
+		if c.failed {
+			c.cleanupCluster()
+		}
+		c.cleanupSubnet()
+		c.cleanupNetwork()
+		c.cleanupKeypair()
+	})
+}
+
+func (c *MkaasTestCleanup) Failf(format string, args ...interface{}) {
+	c.failed = true
+	c.Run()
+	c.t.Fatalf(format, args...)
+}
+
+func (c *MkaasTestCleanup) cleanupCluster() {
+	if c.cluster != nil {
+		if err := c.cluster.Destroy(c.t); err != nil {
+			c.t.Logf("terraform destroy (cluster) failed: %v", err)
+			if err := DeleteTestMKaaSCluster(c.t, c.client, c.cluster.ID); err != nil {
+				c.t.Logf("failed to delete cluster %s via API: %v", c.cluster.ID, err)
+			}
+		}
+		c.cluster = nil
+		return
+	}
+	if c.clusterName != "" {
+		if err := DeleteTestMKaaSClusterByName(c.t, c.client, c.clusterName); err != nil {
+			c.t.Logf("failed to delete cluster by name %s: %v", c.clusterName, err)
+		}
+		c.clusterName = ""
+	}
+}
+
+func (c *MkaasTestCleanup) cleanupNetwork() {
+	if c.networkID == "" {
+		return
+	}
+	if err := DeleteTestNetwork(c.client, c.networkID); err != nil {
+		c.t.Logf("failed to delete network %s: %v", c.networkID, err)
+	}
+	c.networkID = ""
+}
+
+func (c *MkaasTestCleanup) cleanupSubnet() {
+	if c.subnetID == "" {
+		return
+	}
+	if err := DeleteTestSubnet(c.client, c.subnetID); err != nil {
+		c.t.Logf("failed to delete subnet %s: %v", c.subnetID, err)
+	}
+	c.subnetID = ""
+}
+
+func (c *MkaasTestCleanup) cleanupKeypair() {
+	if c.keypairID == "" {
+		return
+	}
+	if err := DeleteTestKeypair(c.t, c.client, c.keypairID); err != nil {
+		c.t.Logf("failed to delete SSH keypair %s: %v", c.keypairID, err)
+	}
+	c.keypairID = ""
 }
