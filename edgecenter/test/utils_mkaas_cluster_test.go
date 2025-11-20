@@ -141,11 +141,6 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 		Data:     data,
 		ID:       id,
 	}
-	t.Cleanup(func() {
-		if err := c.Destroy(t); err != nil {
-			t.Logf("terraform destroy (cleanup) failed: %v", err)
-		}
-	})
 	return c, nil
 }
 
@@ -485,7 +480,6 @@ type MkaasTestCleanup struct {
 	subnetID  string
 	keypairID string
 	once      sync.Once
-	failed    bool
 }
 
 func NewMSaaSTestCleaner(t *testing.T, client *edgecloudV2.Client) *MkaasTestCleanup {
@@ -515,12 +509,7 @@ func (c *MkaasTestCleanup) SetKeypairID(id string) {
 
 func (c *MkaasTestCleanup) Run() {
 	c.once.Do(func() {
-		if c.t.Failed() {
-			c.failed = true
-		}
-		if c.failed {
-			c.cleanupCluster()
-		}
+		c.cleanupCluster()
 		c.cleanupSubnet()
 		c.cleanupNetwork()
 		c.cleanupKeypair()
@@ -528,7 +517,6 @@ func (c *MkaasTestCleanup) Run() {
 }
 
 func (c *MkaasTestCleanup) Failf(format string, args ...interface{}) {
-	c.failed = true
 	c.Run()
 	c.t.Fatalf(format, args...)
 }
