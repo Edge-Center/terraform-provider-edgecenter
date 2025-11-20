@@ -145,7 +145,6 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	// Create cluster
 	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
-	cleanup.SetClusterName(clusterName)
 	cl, err := CreateCluster(t, tfData{
 		Token:        token,
 		Endpoint:     endpoint,

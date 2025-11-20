@@ -2,7 +2,6 @@ package edgecenter_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -476,59 +475,17 @@ func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterI
 	return nil
 }
 
-// DeleteTestMKaaSClusterByName deletes an MKaaS cluster when only its name is known.
-func DeleteTestMKaaSClusterByName(t *testing.T, clientV2 *edgecloudV2.Client, clusterName string) error {
-	t.Helper()
-
-	ctx := context.Background()
-	clusters, _, err := clientV2.MkaaS.ClustersList(ctx, &edgecloudV2.MkaaSClusterListOptions{
-		Name:  clusterName,
-		Limit: 10,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to list clusters by name %q: %w", clusterName, err)
-	}
-
-	if len(clusters) == 0 {
-		return fmt.Errorf("no clusters found with name %q", clusterName)
-	}
-
-	var deleteErrs []error
-	var deleted bool
-
-	for _, cluster := range clusters {
-		if cluster.Name != clusterName {
-			continue
-		}
-		deleted = true
-		if err := DeleteTestMKaaSCluster(t, clientV2, strconv.Itoa(cluster.ID)); err != nil {
-			deleteErrs = append(deleteErrs, fmt.Errorf("cluster id %d: %w", cluster.ID, err))
-		}
-	}
-
-	if !deleted {
-		return fmt.Errorf("clusters list response did not include %q", clusterName)
-	}
-
-	if len(deleteErrs) > 0 {
-		return errors.Join(deleteErrs...)
-	}
-
-	return nil
-}
-
 // --- cleanup helpers
 
 type MkaasTestCleanup struct {
-	t           *testing.T
-	client      *edgecloudV2.Client
-	cluster     *Cluster
-	clusterName string
-	networkID   string
-	subnetID    string
-	keypairID   string
-	once        sync.Once
-	failed      bool
+	t         *testing.T
+	client    *edgecloudV2.Client
+	cluster   *Cluster
+	networkID string
+	subnetID  string
+	keypairID string
+	once      sync.Once
+	failed    bool
 }
 
 func NewMSaaSTestCleaner(t *testing.T, client *edgecloudV2.Client) *MkaasTestCleanup {
@@ -538,10 +495,6 @@ func NewMSaaSTestCleaner(t *testing.T, client *edgecloudV2.Client) *MkaasTestCle
 	}
 	t.Cleanup(c.Run)
 	return c
-}
-
-func (c *MkaasTestCleanup) SetClusterName(name string) {
-	c.clusterName = name
 }
 
 func (c *MkaasTestCleanup) AttachCluster(cluster *Cluster) {
@@ -589,13 +542,6 @@ func (c *MkaasTestCleanup) cleanupCluster() {
 			}
 		}
 		c.cluster = nil
-		return
-	}
-	if c.clusterName != "" {
-		if err := DeleteTestMKaaSClusterByName(c.t, c.client, c.clusterName); err != nil {
-			c.t.Logf("failed to delete cluster by name %s: %v", c.clusterName, err)
-		}
-		c.clusterName = ""
 	}
 }
 

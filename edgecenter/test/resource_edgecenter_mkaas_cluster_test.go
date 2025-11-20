@@ -97,7 +97,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 
 	nameV1 := baseName + "-v1"
 	nameV2 := baseName + "-v2"
-	cleaner.SetClusterName(nameV1)
 
 	data := tfData{
 		Token:        token,
@@ -118,7 +117,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	// --- CREATE cluster
 	cl, err := CreateCluster(t, data)
 	if err != nil {
-		t.Logf("cluster creation failed: %v", err)
 		cleaner.Failf("failed to create cluster: %v", err)
 	}
 	cleaner.AttachCluster(cl)
@@ -143,7 +141,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 		d.CPNodeCount = 3
 	})
 	if err != nil {
-		t.Logf("cluster update failed: %v", err)
 		cleaner.Failf("failed to update cluster: %v", err)
 	}
 	require.NoError(t, err, "failed to update cluster")
