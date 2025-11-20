@@ -36,6 +36,10 @@ resource "edgecenter_reseller_imagesV2" "rimgs" {
     region_id = 456
     image_ids = []
   }
+  options {
+    region_id                       = 321
+    all_public_images_are_available = true
+  }
 }
 ```
 
@@ -61,6 +65,7 @@ Required:
 
 Optional:
 
+- `all_public_images_are_available` (Boolean) Flag to indicate that all public images are available.
 - `image_ids` (Set of String) A list of image IDs available for clients of the entity.
 
 Read-Only:

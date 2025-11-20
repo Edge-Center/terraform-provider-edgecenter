@@ -85,6 +85,12 @@ test_cloud_resource: install_godotenv
 test_not_cloud: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags dns storage cdn -v -timeout=5m
 
+test_cloud_reseller_data_source: install_godotenv
+	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_reseller_data_source -short -timeout=5m
+
+test_cloud_reseller_resource: install_godotenv
+	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_reseller_resource -short -timeout=5m
+
 
 # DOCS
 docs_fmt:

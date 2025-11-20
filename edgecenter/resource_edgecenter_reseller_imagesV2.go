@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -28,6 +29,11 @@ var ResellerImageV2 = map[string]*schema.Schema{
 		Elem: &schema.Schema{
 			Type: schema.TypeString,
 		},
+	},
+	AllPublicImagesAreAvailableField: {
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "Flag to indicate that all public images are available.",
 	},
 	CreatedAtField: {
 		Type:        schema.TypeString,
@@ -77,7 +83,29 @@ If the reseller, client or project has image_ids = [] or doesn't have an image_i
 				},
 			},
 		},
+		CustomizeDiff: customdiff.All(
+			validateResellerImagesOptions,
+		),
 	}
+}
+
+func validateResellerImagesOptions(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
+	rawOptionsConfig := diff.GetRawConfig().GetAttr(ResellerImagesOptionsField)
+	rawOptionsList := rawOptionsConfig.AsValueSlice()
+
+	for _, val := range rawOptionsList {
+		isImageIDsNull := val.GetAttr(ImageIDsField).IsNull()
+		areAllPublicImagesAvailable := val.GetAttr(AllPublicImagesAreAvailableField).True()
+		if !isImageIDsNull && areAllPublicImagesAvailable {
+			return fmt.Errorf(
+				"%s must not be set when %s is true",
+				ImageIDsField,
+				AllPublicImagesAreAvailableField,
+			)
+		}
+	}
+
+	return nil
 }
 
 func resourceResellerImagesV2Create(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -98,22 +126,29 @@ func resourceResellerImagesV2Create(ctx context.Context, d *schema.ResourceData,
 	})
 
 	for _, optRaw := range riOptions {
-		imageIDs := edgecloudV2.ImageIDs{}
-
 		opt := optRaw.(map[string]interface{})
 
-		if v, ok := opt[ImageIDsField]; ok {
-			imageIDsList := v.(*schema.Set).List()
+		areAllPublicImagesAvailable := false
+		if v, ok := opt[AllPublicImagesAreAvailableField]; ok {
+			areAllPublicImagesAvailable = v.(bool)
+		}
 
-			imageIDs = make(edgecloudV2.ImageIDs, 0, len(imageIDsList))
+		var imageIDsPtr *edgecloudV2.ImageIDs = nil
 
-			for _, imageID := range imageIDsList {
-				imageIDs = append(imageIDs, imageID.(string))
+		if !areAllPublicImagesAvailable {
+			imageIDs := edgecloudV2.ImageIDs{}
+			if v, ok := opt[ImageIDsField]; ok {
+				imageIDsList := v.(*schema.Set).List()
+				imageIDs = make(edgecloudV2.ImageIDs, 0, len(imageIDsList))
+				for _, imageID := range imageIDsList {
+					imageIDs = append(imageIDs, imageID.(string))
+				}
 			}
+			imageIDsPtr = &imageIDs
 		}
 
 		opts := &edgecloudV2.ResellerImageV2UpdateRequest{
-			ImageIDs:   &imageIDs,
+			ImageIDs:   imageIDsPtr,
 			RegionID:   opt[RegionIDField].(int),
 			EntityID:   d.Get(EntityIDField).(int),
 			EntityType: d.Get(EntityTypeField).(string),

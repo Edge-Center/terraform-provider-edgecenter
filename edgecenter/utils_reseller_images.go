@@ -45,6 +45,9 @@ func prepareResellerImagesV2Options(d *schema.ResourceData, riList []edgecloudV2
 			}
 
 			riOption[ImageIDsField] = schema.NewSet(schema.HashString, imageIDs)
+			riOption[AllPublicImagesAreAvailableField] = false
+		} else {
+			riOption[AllPublicImagesAreAvailableField] = true
 		}
 
 		riOption[RegionIDField] = ri.RegionID

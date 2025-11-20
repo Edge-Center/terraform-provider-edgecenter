@@ -50,6 +50,7 @@ output "view" {
 
 Read-Only:
 
+- `all_public_images_are_available` (Boolean)
 - `created_at` (String)
 - `image_ids` (Set of String)
 - `region_id` (Number)
