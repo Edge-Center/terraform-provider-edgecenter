@@ -74,6 +74,44 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 
 	t.Log("Starting TestMKaaSPool_ApplyUpdateImportDestroy")
 
+	testFailed := true
+	var cluster *Cluster
+	var networkID string
+	var subnetID string
+	var keypairID string
+	var client *edgecloudV2.Client
+
+	t.Cleanup(func() {
+		if client == nil {
+			return
+		}
+
+		if cluster != nil && testFailed {
+			if err := DeleteTestMKaaSCluster(t, client, cluster.ID); err != nil {
+				t.Fatalf("cleanup failed: delete cluster %s via API: %v", cluster.ID, err)
+			}
+			cluster = nil
+		}
+
+		if subnetID != "" {
+			if err := DeleteTestSubnet(client, subnetID); err != nil {
+				t.Fatalf("cleanup failed: delete subnet %s: %v", subnetID, err)
+			}
+		}
+
+		if networkID != "" {
+			if err := DeleteTestNetwork(client, networkID); err != nil {
+				t.Fatalf("cleanup failed: delete network %s: %v", networkID, err)
+			}
+		}
+
+		if keypairID != "" {
+			if err := DeleteTestKeypair(t, client, keypairID); err != nil {
+				t.Fatalf("cleanup failed: delete SSH keypair %s: %v", keypairID, err)
+			}
+		}
+	})
+
 	// --- env
 	t.Log("Reading environment variables...")
 	token := requireEnv(t, "EC_PERMANENT_TOKEN")
@@ -102,35 +140,33 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 
 	base := "tf-mkaas-" + strings.ToLower(random.UniqueId())
 	keypairName := base + "-key"
-	client, err := CreateClient(t, token, endpoint, projectID, regionID)
+	var err error
+	client, err = CreateClient(t, token, endpoint, projectID, regionID)
 	require.NoError(t, err, "failed to create keypair client")
-	cleanup := NewMSaaSTestCleaner(t, client)
 
 	t.Logf("Creating SSH keypair with name: %s", keypairName)
-	keypairID, err := CreateTestKeypair(t, client, keypairName)
+	keypairID, err = CreateTestKeypair(t, client, keypairName)
 	require.NoError(t, err, "failed to create SSH keypair")
 	t.Logf("SSH keypair created successfully with ID: %s, name: %s", keypairID, keypairName)
 	sshKeypair := keypairName
-	cleanup.SetKeypairID(keypairID)
 
 	// Create network and subnet dynamically
 	t.Log("Creating network...")
 	networkName := base + "-net"
 	t.Logf("Creating network with name: %s", networkName)
-	networkID, err := CreateTestNetwork(client, &edgecloudV2.NetworkCreateRequest{
+	networkID, err = CreateTestNetwork(client, &edgecloudV2.NetworkCreateRequest{
 		Name:         networkName,
 		Type:         edgecloudV2.VXLAN,
 		CreateRouter: true,
 	})
 	require.NoError(t, err, "failed to create network")
 	t.Logf("Network created successfully with ID: %s", networkID)
-	cleanup.SetNetworkID(networkID)
 
 	t.Log("Creating subnet...")
 	subnetName := base + "-subnet"
 	t.Logf("Creating subnet with name: %s in network: %s", subnetName, networkID)
 	ip := net.ParseIP("192.168.42.1")
-	subnetID, err := CreateTestSubnet(client, &edgecloudV2.SubnetworkCreateRequest{
+	subnetID, err = CreateTestSubnet(client, &edgecloudV2.SubnetworkCreateRequest{
 		Name:                   subnetName,
 		NetworkID:              networkID,
 		CIDR:                   "192.168.42.0/24",
@@ -140,12 +176,11 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	})
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
-	cleanup.SetSubnetID(subnetID)
 
 	// Create cluster
 	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
-	cl, err := CreateCluster(t, tfData{
+	cluster, err = CreateCluster(t, tfData{
 		Token:        token,
 		Endpoint:     endpoint,
 		ProjectID:    projectID,
@@ -162,10 +197,9 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Logf("cluster creation failed: %v", err)
 		t.Fatalf("failed to create cluster: %v", err)
 	}
-	cleanup.AttachCluster(cl)
+	cl := cluster
 	require.NoError(t, err, "failed to create cluster")
 	t.Logf("Cluster created successfully with ID: %s", cl.ID)
 
@@ -197,11 +231,6 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	poolOpts := &tt.Options{
 		TerraformDir: poolDir,
 		NoColor:      true,
-		RetryableTerraformErrors: map[string]string{
-			".*429.*":              "rate-limit",
-			".*timeout.*":          "transient network",
-			".*connection reset.*": "transient network",
-		},
 	}
 	// Note: pool will be destroyed when cluster is deleted, so no cleanup needed here
 
@@ -267,9 +296,8 @@ import {
 		t.Fatalf("write pool import main.tf: %v", err)
 	}
 	importOpts := &tt.Options{
-		TerraformDir:             importDir,
-		NoColor:                  true,
-		RetryableTerraformErrors: poolOpts.RetryableTerraformErrors,
+		TerraformDir: importDir,
+		NoColor:      true,
 	}
 	if _, err := tt.RunTerraformCommandE(
 		t, importOpts,
@@ -296,6 +324,11 @@ import {
 		t.Fatalf("terraform plan for pool after import/apply is not empty (err=%v)\n%s", err, out)
 	}
 
+	if err := cluster.Destroy(t); err != nil {
+		t.Fatalf("terraform destroy for cluster: %v", err)
+	}
+	cluster = nil
+	testFailed = false
 }
 
 func renderTemplateToWith(path, tmpl string, data any) error {

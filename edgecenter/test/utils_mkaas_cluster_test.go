@@ -101,27 +101,21 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 	tmp := t.TempDir()
 	mainPath := filepath.Join(tmp, "main.tf")
 
-	err := renderTemplateTo(mainPath, data)
-	if err != nil {
+	if err := renderTemplateTo(mainPath, data); err != nil {
 		return nil, fmt.Errorf("write main.tf: %w", err)
 	}
 
 	opts := &tt.Options{
 		TerraformDir: tmp,
 		NoColor:      true,
-		RetryableTerraformErrors: map[string]string{
-			".*429.*":              "rate-limit",
-			".*timeout.*":          "transient network",
-			".*connection reset.*": "transient network",
-		},
 	}
 
-	if _, err := tt.ApplyAndIdempotentE(t, opts); err != nil {
-		t.Logf("terraform apply failed: %v", err)
+	if _, err := tt.InitAndApplyE(t, opts); err != nil {
+		t.Logf("terraform init/apply failed: %v", err)
 		if _, destroyErr := tt.DestroyE(t, opts); destroyErr != nil {
 			t.Logf("terraform destroy attempt after failed apply returned error: %v", destroyErr)
 		}
-		return nil, fmt.Errorf("terraform apply: %w", err)
+		return nil, fmt.Errorf("terraform init/apply: %w", err)
 	}
 
 	id, err := tt.OutputRequiredE(t, opts, "cluster_id")
@@ -135,14 +129,13 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 		return nil, fmt.Errorf("cluster_id is empty after create")
 	}
 
-	c := &Cluster{
+	return &Cluster{
 		Dir:      tmp,
 		MainPath: mainPath,
 		Opts:     opts,
 		Data:     data,
 		ID:       id,
-	}
-	return c, nil
+	}, nil
 }
 
 // Destroy tears down cluster resources once.
@@ -161,13 +154,11 @@ func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) error {
 	if mutate != nil {
 		mutate(&c.Data)
 	}
-	err := renderTemplateTo(c.MainPath, c.Data)
-	if err != nil {
+	if err := renderTemplateTo(c.MainPath, c.Data); err != nil {
 		return fmt.Errorf("write main.tf (update): %w", err)
 	}
 
-	_, err = tt.ApplyAndIdempotentE(t, c.Opts)
-	if err != nil {
+	if _, err := tt.ApplyE(t, c.Opts); err != nil {
 		return fmt.Errorf("terraform apply (update): %w", err)
 	}
 	return nil
@@ -205,9 +196,8 @@ import {
 	}
 
 	opts := &tt.Options{
-		TerraformDir:             importDir,
-		NoColor:                  true,
-		RetryableTerraformErrors: retry,
+		TerraformDir: importDir,
+		NoColor:      true,
 	}
 
 	if _, err := tt.RunTerraformCommandE(
@@ -466,113 +456,5 @@ func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterI
 		return fmt.Errorf("cannot delete MKaaS cluster with ID: %d", clusterIDInt)
 	}
 
-	return nil
-}
-
-// --- cleanup helpers
-
-type MKaaSTestCleaner struct {
-	t         *testing.T
-	client    *edgecloudV2.Client
-	cluster   *Cluster
-	networkID string
-	subnetID  string
-	keypairID string
-	once      sync.Once
-	// fifo 0->1->2
-	cleaners []func() error
-}
-
-func NewMSaaSTestCleaner(t *testing.T, client *edgecloudV2.Client) *MKaaSTestCleaner {
-	c := &MKaaSTestCleaner{
-		t:      t,
-		client: client,
-	}
-	c.AddCleaner(c.cleanupCluster)
-	c.AddCleaner(c.cleanupSubnet)
-	c.AddCleaner(c.cleanupNetwork)
-	c.AddCleaner(c.cleanupKeypair)
-	t.Cleanup(c.Run)
-	return c
-}
-
-func (c *MKaaSTestCleaner) AddCleaner(cleaner func() error) {
-	c.cleaners = append(c.cleaners, cleaner)
-}
-
-func (c *MKaaSTestCleaner) AttachCluster(cluster *Cluster) {
-	c.cluster = cluster
-}
-
-func (c *MKaaSTestCleaner) SetNetworkID(id string) {
-	c.networkID = id
-}
-
-func (c *MKaaSTestCleaner) SetSubnetID(id string) {
-	c.subnetID = id
-}
-
-func (c *MKaaSTestCleaner) SetKeypairID(id string) {
-	c.keypairID = id
-}
-
-func (c *MKaaSTestCleaner) Run() {
-	c.once.Do(func() {
-		for _, cleaner := range c.cleaners {
-			err := cleaner()
-			if err != nil {
-				c.t.Fatalf("filed to clean resource:%v", err)
-			}
-		}
-	})
-}
-
-func (c *MKaaSTestCleaner) cleanupCluster() error {
-	if c.cluster != nil {
-		if err := c.cluster.Destroy(c.t); err != nil {
-			c.t.Logf("terraform destroy (cluster) failed: %v", err)
-			if err := DeleteTestMKaaSCluster(c.t, c.client, c.cluster.ID); err != nil {
-				return fmt.Errorf("failed to delete cluster %s via API: %v", c.cluster.ID, err)
-			}
-		}
-		c.cluster = nil
-	}
-	return nil
-}
-
-func (c *MKaaSTestCleaner) cleanupNetwork() error {
-	if c.networkID == "" {
-		return nil
-	}
-
-	if err := DeleteTestNetwork(c.client, c.networkID); err != nil {
-		return fmt.Errorf("failed to delete network %s: %v", c.networkID, err)
-	}
-	c.networkID = ""
-
-	return nil
-}
-
-func (c *MKaaSTestCleaner) cleanupSubnet() error {
-	if c.subnetID == "" {
-		return nil
-	}
-	if err := DeleteTestSubnet(c.client, c.subnetID); err != nil {
-		return fmt.Errorf("failed to delete subnet %s: %v", c.subnetID, err)
-	}
-	c.subnetID = ""
-
-	return nil
-}
-
-func (c *MKaaSTestCleaner) cleanupKeypair() error {
-	if c.keypairID == "" {
-		return nil
-	}
-	if err := DeleteTestKeypair(c.t, c.client, c.keypairID); err != nil {
-		return fmt.Errorf("failed to delete SSH keypair %s: %v", c.keypairID, err)
-	}
-
-	c.keypairID = ""
 	return nil
 }

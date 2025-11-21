@@ -26,6 +26,44 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 
 	t.Log("Starting TestMKaaSCluster_ApplyUpdateImportDestroy")
 
+	testFailed := true
+	var cluster *Cluster
+	var networkID string
+	var subnetID string
+	var keypairID string
+	var client *edgecloudV2.Client
+
+	t.Cleanup(func() {
+		if client == nil {
+			return
+		}
+
+		if cluster != nil && testFailed {
+			if err := DeleteTestMKaaSCluster(t, client, cluster.ID); err != nil {
+				t.Fatalf("cleanup failed: delete cluster %s via API: %v", cluster.ID, err)
+			}
+			cluster = nil
+		}
+
+		if subnetID != "" {
+			if err := DeleteTestSubnet(client, subnetID); err != nil {
+				t.Fatalf("cleanup failed: delete subnet %s: %v", subnetID, err)
+			}
+		}
+
+		if networkID != "" {
+			if err := DeleteTestNetwork(client, networkID); err != nil {
+				t.Fatalf("cleanup failed: delete network %s: %v", networkID, err)
+			}
+		}
+
+		if keypairID != "" {
+			if err := DeleteTestKeypair(t, client, keypairID); err != nil {
+				t.Fatalf("cleanup failed: delete SSH keypair %s: %v", keypairID, err)
+			}
+		}
+	})
+
 	// --- env
 	t.Log("Reading environment variables...")
 	token := requireEnv(t, "EC_PERMANENT_TOKEN")
@@ -53,37 +91,34 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 
 	t.Log("Creating  client...")
-	client, err := CreateClient(t, token, endpoint, projectID, regionID)
+	var err error
+	client, err = CreateClient(t, token, endpoint, projectID, regionID)
 	require.NoError(t, err, "failed to create client")
-
-	cleaner := NewMSaaSTestCleaner(t, client)
 
 	baseName := "tf-mkaas-" + strings.ToLower(random.UniqueId())
 	keypairName := baseName + "-key"
 	t.Logf("Creating SSH keypair with name: %s", keypairName)
-	keypairID, err := CreateTestKeypair(t, client, keypairName)
+	keypairID, err = CreateTestKeypair(t, client, keypairName)
 	require.NoError(t, err, "failed to create SSH keypair")
 	t.Logf("SSH keypair created successfully with ID: %s, name: %s", keypairID, keypairName)
 	sshKeypair := keypairName
-	cleaner.SetKeypairID(keypairID)
 
 	t.Log("Creating network...")
 	networkName := baseName + "-net"
 	t.Logf("Creating network with name: %s", networkName)
-	networkID, err := CreateTestNetwork(client, &edgecloudV2.NetworkCreateRequest{
+	networkID, err = CreateTestNetwork(client, &edgecloudV2.NetworkCreateRequest{
 		Name:         networkName,
 		Type:         edgecloudV2.VXLAN,
 		CreateRouter: true,
 	})
 	require.NoError(t, err, "failed to create network")
 	t.Logf("Network created successfully with ID: %s", networkID)
-	cleaner.SetNetworkID(networkID)
 
 	t.Log("Creating subnet...")
 	subnetName := baseName + "-subnet"
 	t.Logf("Creating subnet with name: %s in network: %s", subnetName, networkID)
 	ip := net.ParseIP("192.168.42.1")
-	subnetID, err := CreateTestSubnet(client, &edgecloudV2.SubnetworkCreateRequest{
+	subnetID, err = CreateTestSubnet(client, &edgecloudV2.SubnetworkCreateRequest{
 		Name:                   subnetName,
 		NetworkID:              networkID,
 		CIDR:                   "192.168.42.0/24",
@@ -93,7 +128,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	})
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
-	cleaner.SetSubnetID(subnetID)
 
 	nameV1 := baseName + "-v1"
 	nameV2 := baseName + "-v2"
@@ -119,8 +153,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create cluster: %v", err)
 	}
-
-	cleaner.AttachCluster(cl)
+	cluster = cl
 
 	// Check cluster
 	require.Equalf(t, cl.ID, output(t, cl, "cluster_id"), "%s mismatch", "cluster_id non-empty")
@@ -159,6 +192,11 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 		t.Fatalf("failed to import cluster: %v", err)
 	}
 
+	if err := cluster.Destroy(t); err != nil {
+		t.Fatalf("terraform destroy for cluster: %v", err)
+	}
+	cluster = nil
+	testFailed = false
 }
 
 func output(t *testing.T, cl *Cluster, name string) string {
