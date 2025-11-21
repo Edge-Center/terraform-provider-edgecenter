@@ -95,14 +95,15 @@ type Cluster struct {
 }
 
 // CreateCluster
-func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
+func CreateCluster(t *testing.T, data tfData) (*Cluster, func() error, error) {
 	t.Helper()
 
 	tmp := t.TempDir()
 	mainPath := filepath.Join(tmp, "main.tf")
 
-	if err := renderTemplateTo(mainPath, data); err != nil {
-		return nil, fmt.Errorf("write main.tf: %w", err)
+	fileMainTFCloser, err := renderTemplateTo(mainPath, data)
+	if err != nil {
+		return nil, nil, fmt.Errorf("write main.tf: %w", err)
 	}
 
 	opts := &tt.Options{
@@ -120,7 +121,7 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 		if _, destroyErr := tt.DestroyE(t, opts); destroyErr != nil {
 			t.Logf("terraform destroy attempt after failed apply returned error: %v", destroyErr)
 		}
-		return nil, fmt.Errorf("terraform apply: %w", err)
+		return nil, fileMainTFCloser, fmt.Errorf("terraform apply: %w", err)
 	}
 
 	id, err := tt.OutputRequiredE(t, opts, "cluster_id")
@@ -129,9 +130,9 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 			t.Logf("terraform destroy attempt after empty cluster_id returned error: %v", destroyErr)
 		}
 		if err != nil {
-			return nil, fmt.Errorf("cluster_id output: %w", err)
+			return nil, fileMainTFCloser, fmt.Errorf("cluster_id output: %w", err)
 		}
-		return nil, fmt.Errorf("cluster_id is empty after create")
+		return nil, fileMainTFCloser, fmt.Errorf("cluster_id is empty after create")
 	}
 
 	c := &Cluster{
@@ -141,7 +142,7 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 		Data:     data,
 		ID:       id,
 	}
-	return c, nil
+	return c, fileMainTFCloser, nil
 }
 
 // Destroy tears down cluster resources once.
@@ -155,19 +156,21 @@ func (c *Cluster) Destroy(t *testing.T) error {
 }
 
 // UpdateCluster
-func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) error {
+func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) (func() error, error) {
 	t.Helper()
 	if mutate != nil {
 		mutate(&c.Data)
 	}
-	if err := renderTemplateTo(c.MainPath, c.Data); err != nil {
-		return fmt.Errorf("write main.tf (update): %w", err)
-	}
-	_, err := tt.ApplyAndIdempotentE(t, c.Opts)
+	fileMainTFCloser, err := renderTemplateTo(c.MainPath, c.Data)
 	if err != nil {
-		return fmt.Errorf("terraform apply (update): %w", err)
+		return fileMainTFCloser, fmt.Errorf("write main.tf (update): %w", err)
 	}
-	return nil
+
+	_, err = tt.ApplyAndIdempotentE(t, c.Opts)
+	if err != nil {
+		return fileMainTFCloser, fmt.Errorf("terraform apply (update): %w", err)
+	}
+	return fileMainTFCloser, nil
 }
 
 // ImportClusterPlanApply
@@ -239,14 +242,13 @@ import {
 
 // --- common utils
 
-func renderTemplateTo(path string, data tfData) error {
+func renderTemplateTo(path string, data tfData) (func() error, error) {
 	tpl := template.Must(template.New("main").Parse(mainTmpl))
 	f, err := os.Create(path)
 	if err != nil {
-		return err
+		return f.Close, err
 	}
-	defer f.Close()
-	return tpl.Execute(f, data)
+	return f.Close, tpl.Execute(f, data)
 }
 
 func requireEnv(t *testing.T, key string) string {
@@ -508,11 +510,6 @@ func (c *MkaasTestCleanup) Run() {
 		c.cleanupNetwork()
 		c.cleanupKeypair()
 	})
-}
-
-func (c *MkaasTestCleanup) Failf(format string, args ...interface{}) {
-	c.Run()
-	c.t.Fatalf(format, args...)
 }
 
 func (c *MkaasTestCleanup) cleanupCluster() {

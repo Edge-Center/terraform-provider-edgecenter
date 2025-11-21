@@ -115,10 +115,18 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 
 	// --- CREATE cluster
-	cl, err := CreateCluster(t, data)
+	cl, fileMainTFCreateClusterCloser, err := CreateCluster(t, data)
 	if err != nil {
-		cleaner.Failf("failed to create cluster: %v", err)
+		t.Fatalf("failed to create cluster: %v", err)
 	}
+
+	defer (func() {
+		err := fileMainTFCreateClusterCloser()
+		if err != nil {
+			t.Fatalf("error while close the main.tf file: %v", err)
+		}
+	})()
+
 	cleaner.AttachCluster(cl)
 
 	// Check cluster
@@ -136,12 +144,20 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, cpVersion, output(t, cl, "out_k8s_version"), "%s mismatch", "control_plane.version")
 
 	// --- UPDATE cluster
-	err = cl.UpdateCluster(t, func(d *tfData) {
+	fileMainTFUpdateClusterCloser, err := cl.UpdateCluster(t, func(d *tfData) {
 		d.Name = nameV2
 		d.CPNodeCount = 3
 	})
+
+	defer (func() {
+		err := fileMainTFUpdateClusterCloser()
+		if err != nil {
+			t.Fatalf("error while close the main.tf file: %v", err)
+		}
+	})()
+
 	if err != nil {
-		cleaner.Failf("failed to update cluster: %v", err)
+		t.Fatalf("failed to update cluster: %v", err)
 	}
 	require.NoError(t, err, "failed to update cluster")
 	require.Equalf(t, "3", output(t, cl, "out_cp_node_count"), "%s mismatch", "control_plane.node_count (after update)")
@@ -154,7 +170,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 		cl.Dir,
 		cl.Opts.RetryableTerraformErrors,
 	); err != nil {
-		cleaner.Failf("failed to import cluster: %v", err)
+		t.Fatalf("failed to import cluster: %v", err)
 	}
 
 }

@@ -145,7 +145,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	// Create cluster
 	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
-	cl, err := CreateCluster(t, tfData{
+	cl, fileMainTFCreateClusterCloser, err := CreateCluster(t, tfData{
 		Token:        token,
 		Endpoint:     endpoint,
 		ProjectID:    projectID,
@@ -160,9 +160,17 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		CPVolumeType: volType,
 		CPVersion:    k8sVersion,
 	})
+
+	defer (func() {
+		err := fileMainTFCreateClusterCloser()
+		if err != nil {
+			t.Fatalf("error while close the main.tf file: %v", err)
+		}
+	})()
+
 	if err != nil {
 		t.Logf("cluster creation failed: %v", err)
-		cleanup.Failf("failed to create cluster: %v", err)
+		t.Fatalf("failed to create cluster: %v", err)
 	}
 	cleanup.AttachCluster(cl)
 	require.NoError(t, err, "failed to create cluster")
@@ -171,7 +179,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	// Create pool
 	poolDir := filepath.Join(cl.Dir, "pool")
 	if err := os.MkdirAll(poolDir, 0755); err != nil {
-		cleanup.Failf("mkdir pool dir: %v", err)
+		t.Fatalf("mkdir pool dir: %v", err)
 	}
 	poolMain := filepath.Join(poolDir, "main.tf")
 
@@ -188,9 +196,17 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		VolumeSize: 30,
 		VolumeType: volType,
 	}
-	if err := renderTemplateToWith(poolMain, poolMainTmpl, poolData); err != nil {
-		cleanup.Failf("write pool main.tf (create): %v", err)
+	filePoolTFClose, err := renderTemplateToWith(poolMain, poolMainTmpl, poolData)
+	if err != nil {
+		t.Fatalf("write pool main.tf (create): %v", err)
 	}
+
+	defer (func() {
+		err := filePoolTFClose()
+		if err != nil {
+			t.Fatalf("error while close the main.tf file: %v", err)
+		}
+	})()
 
 	poolOpts := &tt.Options{
 		TerraformDir: poolDir,
@@ -204,13 +220,13 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	// Note: pool will be destroyed when cluster is deleted, so no cleanup needed here
 
 	if _, err := tt.ApplyAndIdempotentE(t, poolOpts); err != nil {
-		cleanup.Failf("terraform apply (pool create): %v", err)
+		t.Fatalf("terraform apply (pool create): %v", err)
 	}
 
 	// Check pool
 	poolID := tt.Output(t, poolOpts, "pool_id")
 	if strings.TrimSpace(poolID) == "" {
-		cleanup.Failf("pool_id is empty after create")
+		t.Fatalf("pool_id is empty after create")
 	}
 	require.Equalf(t, poolNameV1, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name")
 	require.Equalf(t, projectID, tt.Output(t, poolOpts, "out_project_id"), "%s mismatch", "project_id")
@@ -227,11 +243,19 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	poolNameV2 := base + "-pool-v2"
 	poolData.Name = poolNameV2
 	poolData.NodeCount = 2
-	if err := renderTemplateToWith(poolMain, poolMainTmpl, poolData); err != nil {
-		cleanup.Failf("write pool main.tf (update): %v", err)
+	filePoolMainTFCloser, err := renderTemplateToWith(poolMain, poolMainTmpl, poolData)
+	defer (func() {
+		err := filePoolMainTFCloser()
+		if err != nil {
+			t.Fatalf("error while close the main.tf file: %v", err)
+		}
+	})()
+
+	if err != nil {
+		t.Fatalf("write pool main.tf (update): %v", err)
 	}
 	if _, err := tt.ApplyAndIdempotentE(t, poolOpts); err != nil {
-		cleanup.Failf("terraform apply (pool update): %v", err)
+		t.Fatalf("terraform apply (pool update): %v", err)
 	}
 	require.Equalf(t, poolNameV2, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name (after update)")
 	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count (after update)")
@@ -239,7 +263,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	// IMPORT pool
 	importDir := filepath.Join(poolDir, "import")
 	if err := os.MkdirAll(importDir, 0755); err != nil {
-		cleanup.Failf("mkdir pool import dir: %v", err)
+		t.Fatalf("mkdir pool import dir: %v", err)
 	}
 	importMain := `
 terraform {
@@ -260,7 +284,7 @@ import {
 }
 `
 	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0644); err != nil {
-		cleanup.Failf("write pool import main.tf: %v", err)
+		t.Fatalf("write pool import main.tf: %v", err)
 	}
 	importOpts := &tt.Options{
 		TerraformDir:             importDir,
@@ -274,13 +298,13 @@ import {
 		"-input=false",
 		"-lock-timeout=5m",
 	); err != nil {
-		cleanup.Failf("terraform plan (pool import generate config): %v", err)
+		t.Fatalf("terraform plan (pool import generate config): %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(importDir, "generated.tf")); err != nil {
-		cleanup.Failf("pool generated.tf not found after plan -generate-config-out: %v", err)
+		t.Fatalf("pool generated.tf not found after plan -generate-config-out: %v", err)
 	}
 	if _, err := tt.ApplyAndIdempotentE(t, importOpts); err != nil {
-		cleanup.Failf("terraform apply (pool import dir): %v", err)
+		t.Fatalf("terraform apply (pool import dir): %v", err)
 	}
 	if out, err := tt.RunTerraformCommandE(
 		t, importOpts,
@@ -289,17 +313,16 @@ import {
 		"-input=false",
 		"-lock-timeout=5m",
 	); err != nil {
-		cleanup.Failf("terraform plan for pool after import/apply is not empty (err=%v)\n%s", err, out)
+		t.Fatalf("terraform plan for pool after import/apply is not empty (err=%v)\n%s", err, out)
 	}
 
 }
 
-func renderTemplateToWith(path, tmpl string, data any) error {
+func renderTemplateToWith(path, tmpl string, data any) (func() error, error) {
 	tpl := template.Must(template.New("pool").Parse(tmpl))
 	f, err := os.Create(path)
 	if err != nil {
-		return err
+		return f.Close, err
 	}
-	defer f.Close()
-	return tpl.Execute(f, data)
+	return f.Close, tpl.Execute(f, data)
 }
