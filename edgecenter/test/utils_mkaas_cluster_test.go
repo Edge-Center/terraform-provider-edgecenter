@@ -258,12 +258,6 @@ func requireEnv(t *testing.T, key string) string {
 	return val
 }
 
-func CreateNetworkAndSubnetClients(t *testing.T, token, endpoint, projectID,
-	regionID string) (*edgecloudV2.Client, error) {
-	t.Helper()
-	return CreateClient(t, token, endpoint, projectID, regionID)
-}
-
 // CreateTestNetwork создаёт сеть через V2 API
 func CreateTestNetwork(client *edgecloudV2.Client, req *edgecloudV2.NetworkCreateRequest) (string, error) {
 	ctx := context.Background()
