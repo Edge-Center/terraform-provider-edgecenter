@@ -109,29 +109,6 @@ func createTestSubnet(client *edgecloud.ServiceClient, opts subnets.CreateOpts, 
 	return subnetID.(string), err
 }
 
-func deleteTestSubnet(client *edgecloud.ServiceClient, subnetID string) error {
-	result, err := subnets.Delete(client, subnetID).Extract()
-	if err != nil {
-		return err
-	}
-
-	taskID := result.Tasks[0]
-	err = tasks.WaitTaskAndProcessResult(client, taskID, true, int(edgecenter.SubnetCreatingTimeout.Seconds()), func(task tasks.TaskID) error {
-		_, err := subnets.Get(client, subnetID).Extract()
-		if err == nil {
-			return fmt.Errorf("cannot delete subnet with ID: %s", subnetID)
-		}
-
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil
-		}
-		return fmt.Errorf("extracting Subnet resource error: %w", err)
-	})
-
-	return err
-}
-
 func patchRouterForK8S(provider *edgecloud.ProviderClient, networkID string) error {
 	routersClient, err := createTestClient(provider, edgecenter.RouterPoint, edgecenter.VersionPointV1)
 	if err != nil {
