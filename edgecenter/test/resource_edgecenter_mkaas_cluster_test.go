@@ -115,12 +115,10 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 
 	// --- CREATE cluster
-	cl, fileMainTFCreateClusterCloser, err := CreateCluster(t, data)
+	cl, err := CreateCluster(t, data)
 	if err != nil {
 		t.Fatalf("failed to create cluster: %v", err)
 	}
-
-	cleaner.AddCleaner(fileMainTFCreateClusterCloser)
 
 	cleaner.AttachCluster(cl)
 
@@ -139,12 +137,10 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, cpVersion, output(t, cl, "out_k8s_version"), "%s mismatch", "control_plane.version")
 
 	// --- UPDATE cluster
-	fileMainTFUpdateClusterCloser, err := cl.UpdateCluster(t, func(d *tfData) {
+	err = cl.UpdateCluster(t, func(d *tfData) {
 		d.Name = nameV2
 		d.CPNodeCount = 3
 	})
-
-	cleaner.AddCleaner(fileMainTFUpdateClusterCloser)
 
 	if err != nil {
 		t.Fatalf("failed to update cluster: %v", err)

@@ -145,7 +145,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	// Create cluster
 	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
-	cl, fileMainTFCreateClusterCloser, err := CreateCluster(t, tfData{
+	cl, err := CreateCluster(t, tfData{
 		Token:        token,
 		Endpoint:     endpoint,
 		ProjectID:    projectID,
@@ -160,13 +160,6 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		CPVolumeType: volType,
 		CPVersion:    k8sVersion,
 	})
-
-	defer (func() {
-		err := fileMainTFCreateClusterCloser()
-		if err != nil {
-			t.Fatalf("error while close the main.tf file: %v", err)
-		}
-	})()
 
 	if err != nil {
 		t.Logf("cluster creation failed: %v", err)
@@ -196,17 +189,10 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		VolumeSize: 30,
 		VolumeType: volType,
 	}
-	filePoolTFClose, err := renderTemplateToWith(poolMain, poolMainTmpl, poolData)
+	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
 	if err != nil {
 		t.Fatalf("write pool main.tf (create): %v", err)
 	}
-
-	defer (func() {
-		err := filePoolTFClose()
-		if err != nil {
-			t.Fatalf("error while close the main.tf file: %v", err)
-		}
-	})()
 
 	poolOpts := &tt.Options{
 		TerraformDir: poolDir,
@@ -243,13 +229,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	poolNameV2 := base + "-pool-v2"
 	poolData.Name = poolNameV2
 	poolData.NodeCount = 2
-	filePoolMainTFCloser, err := renderTemplateToWith(poolMain, poolMainTmpl, poolData)
-	defer (func() {
-		err := filePoolMainTFCloser()
-		if err != nil {
-			t.Fatalf("error while close the main.tf file: %v", err)
-		}
-	})()
+	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
 
 	if err != nil {
 		t.Fatalf("write pool main.tf (update): %v", err)
@@ -318,11 +298,14 @@ import {
 
 }
 
-func renderTemplateToWith(path, tmpl string, data any) (func() error, error) {
+func renderTemplateToWith(path, tmpl string, data any) error {
 	tpl := template.Must(template.New("pool").Parse(tmpl))
 	f, err := os.Create(path)
 	if err != nil {
-		return f.Close, err
+		return err
 	}
-	return f.Close, tpl.Execute(f, data)
+
+	defer f.Close()
+
+	return tpl.Execute(f, data)
 }

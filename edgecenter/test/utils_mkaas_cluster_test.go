@@ -95,15 +95,15 @@ type Cluster struct {
 }
 
 // CreateCluster
-func CreateCluster(t *testing.T, data tfData) (*Cluster, func() error, error) {
+func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 	t.Helper()
 
 	tmp := t.TempDir()
 	mainPath := filepath.Join(tmp, "main.tf")
 
-	fileMainTFCloser, err := renderTemplateTo(mainPath, data)
+	err := renderTemplateTo(mainPath, data)
 	if err != nil {
-		return nil, nil, fmt.Errorf("write main.tf: %w", err)
+		return nil, fmt.Errorf("write main.tf: %w", err)
 	}
 
 	opts := &tt.Options{
@@ -121,7 +121,7 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, func() error, error) {
 		if _, destroyErr := tt.DestroyE(t, opts); destroyErr != nil {
 			t.Logf("terraform destroy attempt after failed apply returned error: %v", destroyErr)
 		}
-		return nil, fileMainTFCloser, fmt.Errorf("terraform apply: %w", err)
+		return nil, fmt.Errorf("terraform apply: %w", err)
 	}
 
 	id, err := tt.OutputRequiredE(t, opts, "cluster_id")
@@ -130,9 +130,9 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, func() error, error) {
 			t.Logf("terraform destroy attempt after empty cluster_id returned error: %v", destroyErr)
 		}
 		if err != nil {
-			return nil, fileMainTFCloser, fmt.Errorf("cluster_id output: %w", err)
+			return nil, fmt.Errorf("cluster_id output: %w", err)
 		}
-		return nil, fileMainTFCloser, fmt.Errorf("cluster_id is empty after create")
+		return nil, fmt.Errorf("cluster_id is empty after create")
 	}
 
 	c := &Cluster{
@@ -142,7 +142,7 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, func() error, error) {
 		Data:     data,
 		ID:       id,
 	}
-	return c, fileMainTFCloser, nil
+	return c, nil
 }
 
 // Destroy tears down cluster resources once.
@@ -156,21 +156,21 @@ func (c *Cluster) Destroy(t *testing.T) error {
 }
 
 // UpdateCluster
-func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) (func() error, error) {
+func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) error {
 	t.Helper()
 	if mutate != nil {
 		mutate(&c.Data)
 	}
-	fileMainTFCloser, err := renderTemplateTo(c.MainPath, c.Data)
+	err := renderTemplateTo(c.MainPath, c.Data)
 	if err != nil {
-		return fileMainTFCloser, fmt.Errorf("write main.tf (update): %w", err)
+		return fmt.Errorf("write main.tf (update): %w", err)
 	}
 
 	_, err = tt.ApplyAndIdempotentE(t, c.Opts)
 	if err != nil {
-		return fileMainTFCloser, fmt.Errorf("terraform apply (update): %w", err)
+		return fmt.Errorf("terraform apply (update): %w", err)
 	}
-	return fileMainTFCloser, nil
+	return nil
 }
 
 // ImportClusterPlanApply
@@ -242,13 +242,16 @@ import {
 
 // --- common utils
 
-func renderTemplateTo(path string, data tfData) (func() error, error) {
+func renderTemplateTo(path string, data tfData) error {
 	tpl := template.Must(template.New("main").Parse(mainTmpl))
 	f, err := os.Create(path)
 	if err != nil {
-		return f.Close, err
+		return err
 	}
-	return f.Close, tpl.Execute(f, data)
+
+	defer f.Close()
+
+	return tpl.Execute(f, data)
 }
 
 func requireEnv(t *testing.T, key string) string {
@@ -468,7 +471,7 @@ func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterI
 
 // --- cleanup helpers
 
-type MSaaSTestCleaner struct {
+type MKaaSTestCleaner struct {
 	t         *testing.T
 	client    *edgecloudV2.Client
 	cluster   *Cluster
@@ -480,8 +483,8 @@ type MSaaSTestCleaner struct {
 	cleaners []func() error
 }
 
-func NewMSaaSTestCleaner(t *testing.T, client *edgecloudV2.Client) *MSaaSTestCleaner {
-	c := &MSaaSTestCleaner{
+func NewMSaaSTestCleaner(t *testing.T, client *edgecloudV2.Client) *MKaaSTestCleaner {
+	c := &MKaaSTestCleaner{
 		t:      t,
 		client: client,
 	}
@@ -493,27 +496,27 @@ func NewMSaaSTestCleaner(t *testing.T, client *edgecloudV2.Client) *MSaaSTestCle
 	return c
 }
 
-func (c *MSaaSTestCleaner) AddCleaner(cleaner func() error) {
+func (c *MKaaSTestCleaner) AddCleaner(cleaner func() error) {
 	c.cleaners = append(c.cleaners, cleaner)
 }
 
-func (c *MSaaSTestCleaner) AttachCluster(cluster *Cluster) {
+func (c *MKaaSTestCleaner) AttachCluster(cluster *Cluster) {
 	c.cluster = cluster
 }
 
-func (c *MSaaSTestCleaner) SetNetworkID(id string) {
+func (c *MKaaSTestCleaner) SetNetworkID(id string) {
 	c.networkID = id
 }
 
-func (c *MSaaSTestCleaner) SetSubnetID(id string) {
+func (c *MKaaSTestCleaner) SetSubnetID(id string) {
 	c.subnetID = id
 }
 
-func (c *MSaaSTestCleaner) SetKeypairID(id string) {
+func (c *MKaaSTestCleaner) SetKeypairID(id string) {
 	c.keypairID = id
 }
 
-func (c *MSaaSTestCleaner) Run() {
+func (c *MKaaSTestCleaner) Run() {
 	c.once.Do(func() {
 		for _, cleaner := range c.cleaners {
 			err := cleaner()
@@ -524,7 +527,7 @@ func (c *MSaaSTestCleaner) Run() {
 	})
 }
 
-func (c *MSaaSTestCleaner) cleanupCluster() error {
+func (c *MKaaSTestCleaner) cleanupCluster() error {
 	if c.cluster != nil {
 		if err := c.cluster.Destroy(c.t); err != nil {
 			c.t.Logf("terraform destroy (cluster) failed: %v", err)
@@ -537,7 +540,7 @@ func (c *MSaaSTestCleaner) cleanupCluster() error {
 	return nil
 }
 
-func (c *MSaaSTestCleaner) cleanupNetwork() error {
+func (c *MKaaSTestCleaner) cleanupNetwork() error {
 	if c.networkID == "" {
 		return nil
 	}
@@ -550,7 +553,7 @@ func (c *MSaaSTestCleaner) cleanupNetwork() error {
 	return nil
 }
 
-func (c *MSaaSTestCleaner) cleanupSubnet() error {
+func (c *MKaaSTestCleaner) cleanupSubnet() error {
 	if c.subnetID == "" {
 		return nil
 	}
@@ -562,7 +565,7 @@ func (c *MSaaSTestCleaner) cleanupSubnet() error {
 	return nil
 }
 
-func (c *MSaaSTestCleaner) cleanupKeypair() error {
+func (c *MKaaSTestCleaner) cleanupKeypair() error {
 	if c.keypairID == "" {
 		return nil
 	}
