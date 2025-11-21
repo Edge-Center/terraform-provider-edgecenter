@@ -120,12 +120,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 		t.Fatalf("failed to create cluster: %v", err)
 	}
 
-	defer (func() {
-		err := fileMainTFCreateClusterCloser()
-		if err != nil {
-			t.Fatalf("error while close the main.tf file: %v", err)
-		}
-	})()
+	cleaner.AddCleaner(fileMainTFCreateClusterCloser)
 
 	cleaner.AttachCluster(cl)
 
@@ -149,12 +144,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 		d.CPNodeCount = 3
 	})
 
-	defer (func() {
-		err := fileMainTFUpdateClusterCloser()
-		if err != nil {
-			t.Fatalf("error while close the main.tf file: %v", err)
-		}
-	})()
+	cleaner.AddCleaner(fileMainTFUpdateClusterCloser)
 
 	if err != nil {
 		t.Fatalf("failed to update cluster: %v", err)

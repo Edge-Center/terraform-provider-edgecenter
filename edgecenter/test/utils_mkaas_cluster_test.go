@@ -468,7 +468,7 @@ func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterI
 
 // --- cleanup helpers
 
-type MkaasTestCleanup struct {
+type MSaaSTestCleaner struct {
 	t         *testing.T
 	client    *edgecloudV2.Client
 	cluster   *Cluster
@@ -476,80 +476,100 @@ type MkaasTestCleanup struct {
 	subnetID  string
 	keypairID string
 	once      sync.Once
+	// fifo 0->1->2
+	cleaners []func() error
 }
 
-func NewMSaaSTestCleaner(t *testing.T, client *edgecloudV2.Client) *MkaasTestCleanup {
-	c := &MkaasTestCleanup{
+func NewMSaaSTestCleaner(t *testing.T, client *edgecloudV2.Client) *MSaaSTestCleaner {
+	c := &MSaaSTestCleaner{
 		t:      t,
 		client: client,
 	}
+	c.AddCleaner(c.cleanupCluster)
+	c.AddCleaner(c.cleanupSubnet)
+	c.AddCleaner(c.cleanupNetwork)
+	c.AddCleaner(c.cleanupKeypair)
 	t.Cleanup(c.Run)
 	return c
 }
 
-func (c *MkaasTestCleanup) AttachCluster(cluster *Cluster) {
+func (c *MSaaSTestCleaner) AddCleaner(cleaner func() error) {
+	c.cleaners = append(c.cleaners, cleaner)
+}
+
+func (c *MSaaSTestCleaner) AttachCluster(cluster *Cluster) {
 	c.cluster = cluster
 }
 
-func (c *MkaasTestCleanup) SetNetworkID(id string) {
+func (c *MSaaSTestCleaner) SetNetworkID(id string) {
 	c.networkID = id
 }
 
-func (c *MkaasTestCleanup) SetSubnetID(id string) {
+func (c *MSaaSTestCleaner) SetSubnetID(id string) {
 	c.subnetID = id
 }
 
-func (c *MkaasTestCleanup) SetKeypairID(id string) {
+func (c *MSaaSTestCleaner) SetKeypairID(id string) {
 	c.keypairID = id
 }
 
-func (c *MkaasTestCleanup) Run() {
+func (c *MSaaSTestCleaner) Run() {
 	c.once.Do(func() {
-		c.cleanupCluster()
-		c.cleanupSubnet()
-		c.cleanupNetwork()
-		c.cleanupKeypair()
+		for _, cleaner := range c.cleaners {
+			err := cleaner()
+			if err != nil {
+				c.t.Fatalf("filed to clean resource:%v", err)
+			}
+		}
 	})
 }
 
-func (c *MkaasTestCleanup) cleanupCluster() {
+func (c *MSaaSTestCleaner) cleanupCluster() error {
 	if c.cluster != nil {
 		if err := c.cluster.Destroy(c.t); err != nil {
 			c.t.Logf("terraform destroy (cluster) failed: %v", err)
 			if err := DeleteTestMKaaSCluster(c.t, c.client, c.cluster.ID); err != nil {
-				c.t.Logf("failed to delete cluster %s via API: %v", c.cluster.ID, err)
+				return fmt.Errorf("failed to delete cluster %s via API: %v", c.cluster.ID, err)
 			}
 		}
 		c.cluster = nil
 	}
+	return nil
 }
 
-func (c *MkaasTestCleanup) cleanupNetwork() {
+func (c *MSaaSTestCleaner) cleanupNetwork() error {
 	if c.networkID == "" {
-		return
+		return nil
 	}
+
 	if err := DeleteTestNetwork(c.client, c.networkID); err != nil {
-		c.t.Logf("failed to delete network %s: %v", c.networkID, err)
+		return fmt.Errorf("failed to delete network %s: %v", c.networkID, err)
 	}
 	c.networkID = ""
+
+	return nil
 }
 
-func (c *MkaasTestCleanup) cleanupSubnet() {
+func (c *MSaaSTestCleaner) cleanupSubnet() error {
 	if c.subnetID == "" {
-		return
+		return nil
 	}
 	if err := DeleteTestSubnet(c.client, c.subnetID); err != nil {
-		c.t.Logf("failed to delete subnet %s: %v", c.subnetID, err)
+		return fmt.Errorf("failed to delete subnet %s: %v", c.subnetID, err)
 	}
 	c.subnetID = ""
+
+	return nil
 }
 
-func (c *MkaasTestCleanup) cleanupKeypair() {
+func (c *MSaaSTestCleaner) cleanupKeypair() error {
 	if c.keypairID == "" {
-		return
+		return nil
 	}
 	if err := DeleteTestKeypair(c.t, c.client, c.keypairID); err != nil {
-		c.t.Logf("failed to delete SSH keypair %s: %v", c.keypairID, err)
+		return fmt.Errorf("failed to delete SSH keypair %s: %v", c.keypairID, err)
 	}
+
 	c.keypairID = ""
+	return nil
 }
