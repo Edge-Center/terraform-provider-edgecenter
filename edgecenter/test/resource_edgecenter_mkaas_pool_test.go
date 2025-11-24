@@ -74,44 +74,6 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 
 	t.Log("Starting TestMKaaSPool_ApplyUpdateImportDestroy")
 
-	testFailed := true
-	var cluster *Cluster
-	var networkID string
-	var subnetID string
-	var keypairID string
-	var client *edgecloudV2.Client
-
-	t.Cleanup(func() {
-		if client == nil {
-			return
-		}
-
-		if cluster != nil && testFailed {
-			if err := DeleteTestMKaaSCluster(t, client, cluster.ID); err != nil {
-				t.Fatalf("cleanup failed: delete cluster %s via API: %v", cluster.ID, err)
-			}
-			cluster = nil
-		}
-
-		if subnetID != "" {
-			if err := DeleteTestSubnet(client, subnetID); err != nil {
-				t.Fatalf("cleanup failed: delete subnet %s: %v", subnetID, err)
-			}
-		}
-
-		if networkID != "" {
-			if err := DeleteTestNetwork(client, networkID); err != nil {
-				t.Fatalf("cleanup failed: delete network %s: %v", networkID, err)
-			}
-		}
-
-		if keypairID != "" {
-			if err := DeleteTestKeypair(t, client, keypairID); err != nil {
-				t.Fatalf("cleanup failed: delete SSH keypair %s: %v", keypairID, err)
-			}
-		}
-	})
-
 	// --- env
 	t.Log("Reading environment variables...")
 	token := requireEnv(t, "EC_PERMANENT_TOKEN")
@@ -141,32 +103,41 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	base := "tf-mkaas-" + strings.ToLower(random.UniqueId())
 	keypairName := base + "-key"
 	var err error
-	client, err = CreateClient(t, token, endpoint, projectID, regionID)
+	client, err := CreateClient(t, token, endpoint, projectID, regionID)
 	require.NoError(t, err, "failed to create keypair client")
 
 	t.Logf("Creating SSH keypair with name: %s", keypairName)
-	keypairID, err = CreateTestKeypair(t, client, keypairName)
+	keypairID, err := CreateTestKeypair(t, client, keypairName)
 	require.NoError(t, err, "failed to create SSH keypair")
 	t.Logf("SSH keypair created successfully with ID: %s, name: %s", keypairID, keypairName)
-	sshKeypair := keypairName
+	t.Cleanup(func() {
+		if err := DeleteTestKeypair(t, client, keypairID); err != nil {
+			t.Errorf("cleanup failed: delete SSH keypair %s: %v", keypairID, err)
+		}
+	})
 
 	// Create network and subnet dynamically
 	t.Log("Creating network...")
 	networkName := base + "-net"
 	t.Logf("Creating network with name: %s", networkName)
-	networkID, err = CreateTestNetwork(client, &edgecloudV2.NetworkCreateRequest{
+	networkID, err := CreateTestNetwork(client, &edgecloudV2.NetworkCreateRequest{
 		Name:         networkName,
 		Type:         edgecloudV2.VXLAN,
 		CreateRouter: true,
 	})
 	require.NoError(t, err, "failed to create network")
 	t.Logf("Network created successfully with ID: %s", networkID)
+	t.Cleanup(func() {
+		if err := DeleteTestNetwork(client, networkID); err != nil {
+			t.Errorf("cleanup failed: delete network %s: %v", networkID, err)
+		}
+	})
 
 	t.Log("Creating subnet...")
 	subnetName := base + "-subnet"
 	t.Logf("Creating subnet with name: %s in network: %s", subnetName, networkID)
 	ip := net.ParseIP("192.168.42.1")
-	subnetID, err = CreateTestSubnet(client, &edgecloudV2.SubnetworkCreateRequest{
+	subnetID, err := CreateTestSubnet(client, &edgecloudV2.SubnetworkCreateRequest{
 		Name:                   subnetName,
 		NetworkID:              networkID,
 		CIDR:                   "192.168.42.0/24",
@@ -176,18 +147,23 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	})
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
+	t.Cleanup(func() {
+		if err := DeleteTestSubnet(client, subnetID); err != nil {
+			t.Errorf("cleanup failed: delete subnet %s: %v", subnetID, err)
+		}
+	})
 
 	// Create cluster
 	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
-	cluster, err = CreateCluster(t, tfData{
+	cluster, err := CreateCluster(t, tfData{
 		Token:        token,
 		Endpoint:     endpoint,
 		ProjectID:    projectID,
 		RegionID:     regionID,
 		NetworkID:    networkID,
 		SubnetID:     subnetID,
-		SSHKeypair:   sshKeypair,
+		SSHKeypair:   keypairName,
 		Name:         clusterName,
 		CPFlavor:     cpFlavor,
 		CPNodeCount:  1,
@@ -195,16 +171,22 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		CPVolumeType: volType,
 		CPVersion:    k8sVersion,
 	})
-
 	if err != nil {
 		t.Fatalf("failed to create cluster: %v", err)
 	}
-	cl := cluster
 	require.NoError(t, err, "failed to create cluster")
-	t.Logf("Cluster created successfully with ID: %s", cl.ID)
+	t.Logf("Cluster created successfully with ID: %s", cluster.ID)
+	var testSuceed bool
+	t.Cleanup(func() {
+		if cluster != nil && !testSuceed {
+			if err := DeleteTestMKaaSCluster(t, client, cluster.ID); err != nil {
+				t.Errorf("cleanup failed: delete cluster %s via API: %v", cluster.ID, err)
+			}
+		}
+	})
 
 	// Create pool
-	poolDir := filepath.Join(cl.Dir, "pool")
+	poolDir := filepath.Join(cluster.Dir, "pool")
 	if err := os.MkdirAll(poolDir, 0755); err != nil {
 		t.Fatalf("mkdir pool dir: %v", err)
 	}
@@ -214,9 +196,9 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	poolData := poolTfData{
 		Token:      token,
 		Endpoint:   endpoint,
-		ProjectID:  cl.Data.ProjectID,
-		RegionID:   cl.Data.RegionID,
-		ClusterID:  cl.ID,
+		ProjectID:  cluster.Data.ProjectID,
+		RegionID:   cluster.Data.RegionID,
+		ClusterID:  cluster.ID,
 		Name:       poolNameV1,
 		Flavor:     cpFlavor,
 		NodeCount:  1,
@@ -246,7 +228,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, poolNameV1, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name")
 	require.Equalf(t, projectID, tt.Output(t, poolOpts, "out_project_id"), "%s mismatch", "project_id")
 	require.Equalf(t, regionID, tt.Output(t, poolOpts, "out_region_id"), "%s mismatch", "region_id")
-	require.Equalf(t, cl.ID, tt.Output(t, poolOpts, "out_cluster_id"), "%s mismatch", "cluster_id")
+	require.Equalf(t, cluster.ID, tt.Output(t, poolOpts, "out_cluster_id"), "%s mismatch", "cluster_id")
 	require.Equalf(t, cpFlavor, tt.Output(t, poolOpts, "out_flavor"), "%s mismatch", "flavor")
 	require.Equalf(t, "1", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count")
 	require.Equalf(t, "30", tt.Output(t, poolOpts, "out_volume_size"), "%s mismatch", "volume_size")
@@ -289,7 +271,7 @@ provider "edgecenter" {
 
 import {
   to = edgecenter_mkaas_pool.np
-  id = "` + strings.Join([]string{projectID, regionID, poolID, cl.ID}, ":") + `"
+  id = "` + strings.Join([]string{projectID, regionID, poolID, cluster.ID}, ":") + `"
 }
 `
 	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0644); err != nil {
@@ -327,8 +309,7 @@ import {
 	if err := cluster.Destroy(t); err != nil {
 		t.Fatalf("terraform destroy for cluster: %v", err)
 	}
-	cluster = nil
-	testFailed = false
+	testSuceed = true
 }
 
 func renderTemplateToWith(path, tmpl string, data any) error {

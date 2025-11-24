@@ -26,44 +26,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 
 	t.Log("Starting TestMKaaSCluster_ApplyUpdateImportDestroy")
 
-	testFailed := true
-	var cluster *Cluster
-	var networkID string
-	var subnetID string
-	var keypairID string
-	var client *edgecloudV2.Client
-
-	t.Cleanup(func() {
-		if client == nil {
-			return
-		}
-
-		if cluster != nil && testFailed {
-			if err := DeleteTestMKaaSCluster(t, client, cluster.ID); err != nil {
-				t.Fatalf("cleanup failed: delete cluster %s via API: %v", cluster.ID, err)
-			}
-			cluster = nil
-		}
-
-		if subnetID != "" {
-			if err := DeleteTestSubnet(client, subnetID); err != nil {
-				t.Fatalf("cleanup failed: delete subnet %s: %v", subnetID, err)
-			}
-		}
-
-		if networkID != "" {
-			if err := DeleteTestNetwork(client, networkID); err != nil {
-				t.Fatalf("cleanup failed: delete network %s: %v", networkID, err)
-			}
-		}
-
-		if keypairID != "" {
-			if err := DeleteTestKeypair(t, client, keypairID); err != nil {
-				t.Fatalf("cleanup failed: delete SSH keypair %s: %v", keypairID, err)
-			}
-		}
-	})
-
 	// --- env
 	t.Log("Reading environment variables...")
 	token := requireEnv(t, "EC_PERMANENT_TOKEN")
@@ -92,33 +54,42 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 
 	t.Log("Creating  client...")
 	var err error
-	client, err = CreateClient(t, token, endpoint, projectID, regionID)
+	client, err := CreateClient(t, token, endpoint, projectID, regionID)
 	require.NoError(t, err, "failed to create client")
 
 	baseName := "tf-mkaas-" + strings.ToLower(random.UniqueId())
 	keypairName := baseName + "-key"
 	t.Logf("Creating SSH keypair with name: %s", keypairName)
-	keypairID, err = CreateTestKeypair(t, client, keypairName)
+	keypairID, err := CreateTestKeypair(t, client, keypairName)
 	require.NoError(t, err, "failed to create SSH keypair")
 	t.Logf("SSH keypair created successfully with ID: %s, name: %s", keypairID, keypairName)
-	sshKeypair := keypairName
+	t.Cleanup(func() {
+		if err := DeleteTestKeypair(t, client, keypairID); err != nil {
+			t.Errorf("cleanup failed: delete SSH keypair %s: %v", keypairID, err)
+		}
+	})
 
 	t.Log("Creating network...")
 	networkName := baseName + "-net"
 	t.Logf("Creating network with name: %s", networkName)
-	networkID, err = CreateTestNetwork(client, &edgecloudV2.NetworkCreateRequest{
+	networkID, err := CreateTestNetwork(client, &edgecloudV2.NetworkCreateRequest{
 		Name:         networkName,
 		Type:         edgecloudV2.VXLAN,
 		CreateRouter: true,
 	})
 	require.NoError(t, err, "failed to create network")
 	t.Logf("Network created successfully with ID: %s", networkID)
+	t.Cleanup(func() {
+		if err := DeleteTestNetwork(client, networkID); err != nil {
+			t.Errorf("cleanup failed: delete network %s: %v", networkID, err)
+		}
+	})
 
 	t.Log("Creating subnet...")
 	subnetName := baseName + "-subnet"
 	t.Logf("Creating subnet with name: %s in network: %s", subnetName, networkID)
 	ip := net.ParseIP("192.168.42.1")
-	subnetID, err = CreateTestSubnet(client, &edgecloudV2.SubnetworkCreateRequest{
+	subnetID, err := CreateTestSubnet(client, &edgecloudV2.SubnetworkCreateRequest{
 		Name:                   subnetName,
 		NetworkID:              networkID,
 		CIDR:                   "192.168.42.0/24",
@@ -128,6 +99,11 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	})
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
+	t.Cleanup(func() {
+		if err := DeleteTestSubnet(client, subnetID); err != nil {
+			t.Errorf("cleanup failed: delete subnet %s: %v", subnetID, err)
+		}
+	})
 
 	nameV1 := baseName + "-v1"
 	nameV2 := baseName + "-v2"
@@ -139,7 +115,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 		RegionID:     regionID,
 		NetworkID:    networkID,
 		SubnetID:     subnetID,
-		SSHKeypair:   sshKeypair,
+		SSHKeypair:   keypairName,
 		Name:         nameV1,
 		CPFlavor:     cpFlavor,
 		CPNodeCount:  1,
@@ -149,28 +125,34 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 
 	// --- CREATE cluster
-	cl, err := CreateCluster(t, data)
+	cluster, err := CreateCluster(t, data)
 	if err != nil {
 		t.Fatalf("failed to create cluster: %v", err)
 	}
-	cluster = cl
-
+	var testSucceed bool
+	t.Cleanup(func() {
+		if cluster != nil && !testSucceed {
+			if err := DeleteTestMKaaSCluster(t, client, cluster.ID); err != nil {
+				t.Errorf("cleanup failed: delete cluster %s via API: %v", cluster.ID, err)
+			}
+		}
+	})
 	// Check cluster
-	require.Equalf(t, cl.ID, output(t, cl, "cluster_id"), "%s mismatch", "cluster_id non-empty")
-	require.Equalf(t, nameV1, output(t, cl, "cluster_name"), "%s mismatch", "cluster_name")
-	require.Equalf(t, projectID, output(t, cl, "out_project_id"), "%s mismatch", "project_id")
-	require.Equalf(t, regionID, output(t, cl, "out_region_id"), "%s mismatch", "region_id")
-	require.Equalf(t, sshKeypair, output(t, cl, "out_ssh_keypair_name"), "%s mismatch", "ssh_keypair_name")
-	require.Equalf(t, networkID, output(t, cl, "out_network_id"), "%s mismatch", "network_id")
-	require.Equalf(t, subnetID, output(t, cl, "out_subnet_id"), "%s mismatch", "subnet_id")
-	require.Equalf(t, cpFlavor, output(t, cl, "out_cp_flavor"), "%s mismatch", "control_plane.flavor")
-	require.Equalf(t, "1", output(t, cl, "out_cp_node_count"), "%s mismatch", "control_plane.node_count")
-	require.Equalf(t, "30", output(t, cl, "out_cp_volume_size"), "%s mismatch", "control_plane.volume_size")
-	require.Equalf(t, cpVolumeType, output(t, cl, "out_cp_volume_type"), "%s mismatch", "control_plane.volume_type")
-	require.Equalf(t, cpVersion, output(t, cl, "out_k8s_version"), "%s mismatch", "control_plane.version")
+	require.Equalf(t, cluster.ID, output(t, cluster, "cluster_id"), "%s mismatch", "cluster_id non-empty")
+	require.Equalf(t, nameV1, output(t, cluster, "cluster_name"), "%s mismatch", "cluster_name")
+	require.Equalf(t, projectID, output(t, cluster, "out_project_id"), "%s mismatch", "project_id")
+	require.Equalf(t, regionID, output(t, cluster, "out_region_id"), "%s mismatch", "region_id")
+	require.Equalf(t, keypairName, output(t, cluster, "out_ssh_keypair_name"), "%s mismatch", "ssh_keypair_name")
+	require.Equalf(t, networkID, output(t, cluster, "out_network_id"), "%s mismatch", "network_id")
+	require.Equalf(t, subnetID, output(t, cluster, "out_subnet_id"), "%s mismatch", "subnet_id")
+	require.Equalf(t, cpFlavor, output(t, cluster, "out_cp_flavor"), "%s mismatch", "control_plane.flavor")
+	require.Equalf(t, "1", output(t, cluster, "out_cp_node_count"), "%s mismatch", "control_plane.node_count")
+	require.Equalf(t, "30", output(t, cluster, "out_cp_volume_size"), "%s mismatch", "control_plane.volume_size")
+	require.Equalf(t, cpVolumeType, output(t, cluster, "out_cp_volume_type"), "%s mismatch", "control_plane.volume_type")
+	require.Equalf(t, cpVersion, output(t, cluster, "out_k8s_version"), "%s mismatch", "control_plane.version")
 
 	// --- UPDATE cluster
-	err = cl.UpdateCluster(t, func(d *tfData) {
+	err = cluster.UpdateCluster(t, func(d *tfData) {
 		d.Name = nameV2
 		d.CPNodeCount = 3
 	})
@@ -179,15 +161,15 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 		t.Fatalf("failed to update cluster: %v", err)
 	}
 	require.NoError(t, err, "failed to update cluster")
-	require.Equalf(t, "3", output(t, cl, "out_cp_node_count"), "%s mismatch", "control_plane.node_count (after update)")
-	require.Equalf(t, nameV2, output(t, cl, "cluster_name"), "%s mismatch", "cluster_name (after update)")
+	require.Equalf(t, "3", output(t, cluster, "out_cp_node_count"), "%s mismatch", "control_plane.node_count (after update)")
+	require.Equalf(t, nameV2, output(t, cluster, "cluster_name"), "%s mismatch", "cluster_name (after update)")
 
 	// --- IMPORT cluster
 	if _, err := ImportClusterPlanApply(
 		t,
-		token, endpoint, projectID, regionID, cl.ID,
-		cl.Dir,
-		cl.Opts.RetryableTerraformErrors,
+		token, endpoint, projectID, regionID, cluster.ID,
+		cluster.Dir,
+		cluster.Opts.RetryableTerraformErrors,
 	); err != nil {
 		t.Fatalf("failed to import cluster: %v", err)
 	}
@@ -195,11 +177,10 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	if err := cluster.Destroy(t); err != nil {
 		t.Fatalf("terraform destroy for cluster: %v", err)
 	}
-	cluster = nil
-	testFailed = false
+	testSucceed = true
 }
 
-func output(t *testing.T, cl *Cluster, name string) string {
+func output(t *testing.T, cluster *Cluster, name string) string {
 	t.Helper()
-	return tt.Output(t, cl.Opts, name)
+	return tt.Output(t, cluster.Opts, name)
 }

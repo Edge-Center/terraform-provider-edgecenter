@@ -118,16 +118,6 @@ func resourceMKaaSPool() *schema.Resource {
 				Required:    true,
 				Description: "The current number of nodes in the pool.",
 			},
-			MKaaSPoolMinNodeCountField: {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "The minimum number of nodes in the pool.",
-			},
-			MKaaSPoolMaxNodeCountField: {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "The maximum number of nodes in the pool.",
-			},
 			MKaaSPoolVolumeSizeField: {
 				Type:     schema.TypeInt,
 				Required: true,
@@ -147,35 +137,6 @@ func resourceMKaaSPool() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The ID of the security group associated with the pool.",
-			},
-			MKaaSPoolLabelsField: {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: "A map of key-value pairs of labels to apply to the pool.",
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-			MKaaSPoolTaintsField: {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Description: "A set of taints to apply to the pool nodes.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"key": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"effect": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-					},
-				},
 			},
 			MKaaSPoolStateField: {
 				Type:        schema.TypeString,
@@ -298,60 +259,18 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set(MKaaSPoolStateField, pool.State)
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)
 
-	// Only set optional fields if they were set in the original configuration
-	// Check raw config to see if field was originally set
-	rawConfig := d.GetRawConfig()
-
-	// Helper function to check if field was in config
-	// Safely check if rawConfig is not null before calling AsValueMap()
-	fieldInConfig := func(fieldName string) bool {
-		if rawConfig.IsNull() {
-			return false
+	if pool.Labels != nil {
+		labels := map[string]string{}
+		for k, v := range pool.Labels {
+			labels[k] = v
 		}
-		rawConfigMap := rawConfig.AsValueMap()
-		if rawConfigMap == nil {
-			return false
-		}
-		val, ok := rawConfigMap[fieldName]
-		return ok && !val.IsNull()
+		_ = d.Set(MKaaSPoolLabelsField, labels)
 	}
 
-	// For min_node_count - only set if it was in config
-	if fieldInConfig(MKaaSPoolMinNodeCountField) {
-		// Field was in config, set it from API response
-		_ = d.Set(MKaaSPoolMinNodeCountField, pool.MinNodeCount)
-	}
-
-	// For max_node_count - only set if it was in config
-	if fieldInConfig(MKaaSPoolMaxNodeCountField) {
-		// Field was in config, set it from API response
-		_ = d.Set(MKaaSPoolMaxNodeCountField, pool.MaxNodeCount)
-	}
-
-	// For labels - only set if they were in config
-	if fieldInConfig(MKaaSPoolLabelsField) {
-		if len(pool.Labels) > 0 {
-			// Field was in config and API returned values
-			labels := map[string]string{}
-			for k, v := range pool.Labels {
-				labels[k] = v
-			}
-			_ = d.Set(MKaaSPoolLabelsField, labels)
-		} else {
-			// Field was in config but API returned empty, set empty map
-			_ = d.Set(MKaaSPoolLabelsField, map[string]string{})
-		}
-	}
-
-	// For taints - only set if they were in config
-	if fieldInConfig(MKaaSPoolTaintsField) {
-		if len(pool.Taints) > 0 {
-			// Field was in config and API returned values
-			_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
-		} else {
-			// Field was in config but API returned empty, set empty list
-			_ = d.Set(MKaaSPoolTaintsField, []interface{}{})
-		}
+	if pool.Taints != nil {
+		_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
+	} else {
+		_ = d.Set(MKaaSPoolTaintsField, nil)
 	}
 
 	return diags
