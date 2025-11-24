@@ -3,10 +3,11 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"log"
 	"strconv"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -54,9 +55,13 @@ func resourceMKaaSPool() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData,
 				meta interface{}) ([]*schema.ResourceData, error) {
-				projectID, regionID, poolID, clusterID, err := ImportStringParserExtended(d.Id())
+				projectID, regionID, poolID, clusterIDStr, err := ImportStringParserExtended(d.Id())
 				if err != nil {
 					return nil, err
+				}
+				clusterID, err := strconv.Atoi(clusterIDStr)
+				if err != nil {
+					return nil, fmt.Errorf("invalid cluster_id %q: %w", clusterIDStr, err)
 				}
 				d.Set("project_id", projectID)
 				d.Set("region_id", regionID)
@@ -242,30 +247,17 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(fmt.Errorf("invalid pool id %q: %w", poolIDStr, err))
 	}
 	pool, _, err := clientV2.MkaaS.PoolGet(ctx, clusterID, poolID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	_ = d.Set(NameField, pool.Name)
 	_ = d.Set(MKaaSClusterIDField, clusterID)
 	_ = d.Set(MKaaSPoolFlavorField, pool.Flavor)
 	_ = d.Set(MKaaSPoolNodeCountField, pool.NodeCount)
-	_ = d.Set(MKaaSPoolMinNodeCountField, pool.MinNodeCount)
-	_ = d.Set(MKaaSPoolMaxNodeCountField, pool.MaxNodeCount)
 	_ = d.Set(MKaaSPoolVolumeSizeField, pool.VolumeSize)
 	_ = d.Set(MKaaSPoolVolumeTypeField, string(pool.VolumeType))
 	_ = d.Set(MKaaSPoolStateField, pool.State)
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)
-
-	if pool.Labels != nil {
-		labels := map[string]string{}
-		for k, v := range pool.Labels {
-			labels[k] = v
-		}
-		_ = d.Set(MKaaSPoolLabelsField, labels)
-	}
-
-	if pool.Taints != nil {
-		_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
-	} else {
-		_ = d.Set(MKaaSPoolTaintsField, nil)
-	}
 
 	return diags
 }
@@ -284,24 +276,35 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	if d.HasChange(NameField) || d.HasChange(MKaaSPoolNodeCountField) {
+	updateReq := edgecloudV2.MkaaSPoolUpdateRequest{}
+	needsUpdate := false
+
+	if d.HasChange(NameField) {
 		name := d.Get(NameField).(string)
+		updateReq.Name = &name
+		needsUpdate = true
+	}
+
+	if d.HasChange(MKaaSPoolNodeCountField) {
 		nodeCount := d.Get(MKaaSPoolNodeCountField).(int)
-		opts := edgecloudV2.MkaaSPoolUpdateRequest{
-			Name:      &name,
-			NodeCount: &nodeCount,
-		}
-		task, _, err := clientV2.MkaaS.PoolUpdate(ctx, clusterID, poolID, opts)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+		updateReq.NodeCount = &nodeCount
+		needsUpdate = true
+	}
 
-		taskID := task.Tasks[0]
+	if !needsUpdate {
+		log.Println("No MKaaS Pool fields require update")
+		return resourceMKaaSPoolRead(ctx, d, m)
+	}
 
-		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+	task, _, err := clientV2.MkaaS.PoolUpdate(ctx, clusterID, poolID, updateReq)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	taskID := task.Tasks[0]
+	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	log.Println("Finish MKaaS Pool update")
