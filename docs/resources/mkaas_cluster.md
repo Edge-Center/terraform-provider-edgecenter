@@ -63,6 +63,7 @@ resource "edgecenter_mkaas_cluster" "example" {
 - `id` (String) The ID of this resource.
 - `internal_ip` (String) Internal IP address for the Kubernetes cluster.
 - `processing` (Boolean)
+- `state` (String) State of the Kubernetes cluster.
 - `status` (String) Status of the Kubernetes cluster.
 
 <a id="nestedblock--control_plane"></a>
