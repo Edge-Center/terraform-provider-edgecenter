@@ -110,12 +110,12 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 		NoColor:      true,
 	}
 
-	if _, err := tt.ApplyE(t, opts); err != nil {
-		t.Logf("terraform init/apply failed: %v", err)
+	if _, err := tt.ApplyAndIdempotentE(t, opts); err != nil {
+		t.Logf("terraform apply failed: %v", err)
 		if _, destroyErr := tt.DestroyE(t, opts); destroyErr != nil {
 			t.Logf("terraform destroy attempt after failed apply returned error: %v", destroyErr)
 		}
-		return nil, fmt.Errorf("terraform init/apply: %w", err)
+		return nil, fmt.Errorf("terraform apply: %w", err)
 	}
 
 	id, err := tt.OutputRequiredE(t, opts, "cluster_id")
