@@ -57,8 +57,8 @@ func dataSourceUserActionsAMQPRead(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	opts := &edgecloudV2.UserActionsOpts{ClientID: d.Get(ClientIDField).(int)}
-	subs, _, err := clientV2.UserActions.ListAMQPSubscriptionsWithOpts(ctx, opts)
+	opts := edgecloudV2.UserActionsOpts{ClientID: d.Get(ClientIDField).(int)}
+	subs, _, err := clientV2.UserActions.ListAMQPSubscriptionsWithOpts(ctx, &opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
