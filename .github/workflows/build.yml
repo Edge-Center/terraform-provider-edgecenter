@@ -39,6 +39,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
+      EC_CLIENT_ID: ${{ secrets.EC_RESELLER_CLIENT_ID }}
       EC_PERMANENT_TOKEN: ${{ secrets.EC_RESELLER_PERMANENT_TOKEN }}
     strategy:
       matrix:
@@ -60,6 +61,7 @@ jobs:
     needs: reseller-tests
     runs-on: ubuntu-latest
     env:
+      EC_CLIENT_ID: ${{ secrets.EC_CLIENT_ID }}
       EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
     strategy:
       matrix:
