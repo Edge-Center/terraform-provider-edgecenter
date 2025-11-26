@@ -1,4 +1,4 @@
-//go:build cloud_resource || cloud_reseller_data_source
+//go:build cloud_resource || cloud_reseller_resource
 
 package edgecenter_test
 
@@ -15,6 +15,8 @@ import (
 )
 
 func TestAccEdgecenterUserActionsAMQPResource(t *testing.T) {
+	prepareTestEnvironment(t)
+
 	checkConnectionString := "amqps://guest:guest@192.168.123.21:5671/user_action_events"
 	checkReceiveChildClientEvents := "true"
 	checkRoutingKey := "routing_key"
@@ -48,9 +50,7 @@ func TestAccEdgecenterUserActionsAMQPResource(t *testing.T) {
 }
 
 func TestAccEdgecenterUserActionsAMQPResourceWithClientID(t *testing.T) {
-	if EC_CLIENT_ID == "" {
-		t.Fatalf("%q must be set for acceptance test", EC_CLIENT_ID)
-	}
+	prepareTestEnvironment(t)
 
 	checkConnectionString := "amqps://guest:guest@192.168.123.21:5671/user_action_events"
 	checkReceiveChildClientEvents := "true"
@@ -85,6 +85,26 @@ func TestAccEdgecenterUserActionsAMQPResourceWithClientID(t *testing.T) {
 			},
 		},
 	})
+}
+
+func prepareTestEnvironment(t *testing.T) {
+	client, err := createTestCloudClient()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if EC_CLIENT_ID == "" {
+		t.Fatalf("%q must be set for acceptance test", EC_CLIENT_ID)
+	}
+
+	clientID, err := strconv.Atoi(EC_CLIENT_ID)
+	if err != nil {
+		t.Error(err)
+	}
+
+	opts := edgecloudV2.UserActionsOpts{ClientID: clientID}
+	// Unsubscribing any existing subscriptions
+	client.UserActions.UnsubscribeAMQPWithOpts(context.Background(), &opts)
 }
 
 func testAccAMQPSubsDestroy(s *terraform.State) error {
