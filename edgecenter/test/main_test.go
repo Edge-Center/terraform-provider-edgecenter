@@ -90,6 +90,7 @@ const (
 	EC_CLUSTER_ID_VAR         VarName = "EC_CLUSTER_ID"
 	EC_CLUSTER_POOL_ID_VAR    VarName = "EC_CLUSTER_POOL_ID"
 	EC_PERMANENT_TOKEN_VAR    VarName = "EC_PERMANENT_TOKEN"
+	EC_CLIENT_ID_VAR          VarName = "EC_CLIENT_ID"
 )
 
 func getEnv(name VarName) string {
@@ -101,6 +102,7 @@ var (
 	EC_USERNAME           = getEnv(EC_USERNAME_VAR)
 	EC_PASSWORD           = getEnv(EC_PASSWORD_VAR)
 	EC_PERMANENT_TOKEN    = getEnv(EC_PERMANENT_TOKEN_VAR)
+	EC_CLIENT_ID          = getEnv(EC_CLIENT_ID_VAR)
 	EC_CDN_URL            = getEnv(EC_CDN_URL_VAR)
 	EC_IMAGE              = getEnv(EC_IMAGE_VAR)
 	EC_SECGROUP           = getEnv(EC_SECGROUP_VAR)
@@ -128,6 +130,7 @@ var varsMap = map[VarName]string{
 	EC_USERNAME_VAR:           EC_USERNAME,
 	EC_PASSWORD_VAR:           EC_PASSWORD,
 	EC_PERMANENT_TOKEN_VAR:    EC_PERMANENT_TOKEN,
+	EC_CLIENT_ID_VAR:          EC_CLIENT_ID,
 	EC_CDN_URL_VAR:            EC_CDN_URL,
 	EC_IMAGE_VAR:              EC_IMAGE,
 	EC_SECGROUP_VAR:           EC_SECGROUP,
