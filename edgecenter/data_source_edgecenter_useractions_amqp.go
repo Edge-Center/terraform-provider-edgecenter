@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func dataSourceUserActionsListAMQPSubscriptions() *schema.Resource {
@@ -38,6 +40,11 @@ func dataSourceUserActionsListAMQPSubscriptions() *schema.Resource {
 				Computed:    true,
 				Description: "Exchange name.",
 			},
+			ClientIDField: {
+				Type:        schema.TypeInt,
+				Description: "The ID of the client.",
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -50,7 +57,8 @@ func dataSourceUserActionsAMQPRead(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	subs, _, err := clientV2.UserActions.ListAMQPSubscriptions(ctx)
+	opts := &edgecloudV2.UserActionsOpts{ClientID: d.Get(ClientIDField).(int)}
+	subs, _, err := clientV2.UserActions.ListAMQPSubscriptionsWithOpts(ctx, opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}

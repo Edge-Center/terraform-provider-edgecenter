@@ -100,3 +100,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/Edge-Center/edgecentercloud-go/v2 v2.4.7 => github.com/Edge-Center/edgecentercloud-go/v2 v2.4.8-0.20251125142808-f2a51a7e153a

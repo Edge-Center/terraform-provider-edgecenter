@@ -9,3 +9,12 @@ output "view" {
   value = data.edgecenter_useractions_subscription_amqp.sub
 }
 
+
+data "edgecenter_useractions_subscription_amqp" "sub_for_client" {
+  client_id = 123
+}
+
+output "view" {
+  value = data.edgecenter_useractions_subscription_amqp.sub_for_client
+}
+
