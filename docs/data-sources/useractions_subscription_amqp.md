@@ -29,7 +29,7 @@ data "edgecenter_useractions_subscription_amqp" "sub_for_client" {
   client_id = 123
 }
 
-output "view" {
+output "sub_client_view" {
   value = data.edgecenter_useractions_subscription_amqp.sub_for_client
 }
 ```
