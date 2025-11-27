@@ -9,6 +9,8 @@ resource "edgecenter_mkaas_cluster" "example" {
   ssh_keypair_name             = "tf-keypair"
   network_id                   = "6bf878c1-1ce4-47c3-a39b-6b5f1d79bf25"
   subnet_id                    = "dc3a3ea9-86ae-47ad-a8e8-79df0ce04839"
+  pod_subnet                   = "192.168.128.0/18"
+  service_subnet               = "192.168.64.0/18"
   publish_kube_api_to_internet = true
 
   control_plane {

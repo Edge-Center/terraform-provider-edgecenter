@@ -27,10 +27,6 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	projectID := requireEnv(t, "TEST_PROJECT_ID")
 	regionID := requireEnv(t, "TEST_MKAAS_REGION_ID")
 
-	cpVersion := "v1.31.0"
-	cpFlavor := "g3-standard-2-4"
-	cpVolumeType := "ssd_hiiops"
-
 	base := "tf-mkaas-" + strings.ToLower(random.UniqueId())
 	keypairName := base + "-key"
 	var err error
@@ -83,18 +79,20 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
 	cluster, err := CreateCluster(t, tfData{
-		Token:        token,
-		ProjectID:    projectID,
-		RegionID:     regionID,
-		NetworkID:    networkID,
-		SubnetID:     subnetID,
-		SSHKeypair:   keypairName,
-		Name:         clusterName,
-		CPFlavor:     cpFlavor,
-		CPNodeCount:  1,
-		CPVolumeSize: 30,
-		CPVolumeType: volType,
-		CPVersion:    k8sVersion,
+		Token:         token,
+		ProjectID:     projectID,
+		RegionID:      regionID,
+		NetworkID:     networkID,
+		SubnetID:      subnetID,
+		SSHKeypair:    keypairName,
+		ServiceSubnet: serviceSubnet,
+		PodSubnet:     podSubnet,
+		Name:          clusterName,
+		CPFlavor:      masterFlavor,
+		CPNodeCount:   1,
+		CPVolumeSize:  30,
+		CPVolumeType:  masterVolumeType,
+		CPVersion:     kubernetesVersion,
 	})
 	if err != nil {
 		t.Fatalf("failed to create cluster: %v", err)
@@ -124,10 +122,10 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		RegionID:   cluster.Data.RegionID,
 		ClusterID:  cluster.ID,
 		Name:       poolNameV1,
-		Flavor:     cpFlavor,
+		Flavor:     masterFlavor,
 		NodeCount:  1,
 		VolumeSize: 30,
-		VolumeType: volType,
+		VolumeType: workerVolumeType,
 	}
 	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
 	if err != nil {
@@ -153,10 +151,10 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, projectID, tt.Output(t, poolOpts, "out_project_id"), "%s mismatch", "project_id")
 	require.Equalf(t, regionID, tt.Output(t, poolOpts, "out_region_id"), "%s mismatch", "region_id")
 	require.Equalf(t, cluster.ID, tt.Output(t, poolOpts, "out_cluster_id"), "%s mismatch", "cluster_id")
-	require.Equalf(t, cpFlavor, tt.Output(t, poolOpts, "out_flavor"), "%s mismatch", "flavor")
+	require.Equalf(t, masterFlavor, tt.Output(t, poolOpts, "out_flavor"), "%s mismatch", "flavor")
 	require.Equalf(t, "1", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count")
 	require.Equalf(t, "30", tt.Output(t, poolOpts, "out_volume_size"), "%s mismatch", "volume_size")
-	require.Equalf(t, volType, tt.Output(t, poolOpts, "out_volume_type"), "%s mismatch", "volume_type")
+	require.Equalf(t, workerVolumeType, tt.Output(t, poolOpts, "out_volume_type"), "%s mismatch", "volume_type")
 	_ = tt.Output(t, poolOpts, "out_state")
 	_ = tt.Output(t, poolOpts, "out_status")
 

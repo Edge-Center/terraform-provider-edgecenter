@@ -3,12 +3,15 @@ package edgecenter
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+
+	validationCustom "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/validation"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -30,6 +33,7 @@ func resourceMKaaSCluster() *schema.Resource {
 		ReadContext:   resourceMKaaSClusterRead,
 		UpdateContext: resourceMKaaSClusterUpdate,
 		DeleteContext: resourceMKaaSClusterDelete,
+		CustomizeDiff: customMKaaSClusterDiff,
 		Description:   "Represent resourceMKaaSCluster cluster.",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(MKaaSClusterCreateTimeout),
@@ -172,6 +176,22 @@ func resourceMKaaSCluster() *schema.Resource {
 				Computed:    true,
 				Description: "State of the Kubernetes cluster.",
 			},
+			MKaaSClusterPodSubnetField: {
+				Type:     schema.TypeString,
+				Required: true,
+				Description: "Pod subnet in CIDR format. Must not overlap with service_subnet and cluster subnet. " +
+					"Selected CIDR must be inside RFC1918 ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16",
+				ValidateDiagFunc: validationCustom.ValidateCIDRInRanges,
+				ForceNew:         true,
+			},
+			MKaaSClusterServiceSubnetField: {
+				Type:     schema.TypeString,
+				Required: true,
+				Description: "Service subnet in CIDR format. Must not overlap with pod_subnet and cluster subnet. " +
+					"Selected CIDR must be inside RFC1918 ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16",
+				ValidateDiagFunc: validationCustom.ValidateCIDRInRanges,
+				ForceNew:         true,
+			},
 		},
 	}
 }
@@ -189,6 +209,16 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 		SSHKeyPairName: d.Get(MKaaSClusterKeypairNameField).(string),
 		NetworkID:      d.Get(NetworkIDField).(string),
 		SubnetID:       d.Get(SubnetIDField).(string),
+	}
+
+	if v, ok := d.GetOk(MKaaSClusterPodSubnetField); ok {
+		podSubnet := v.(string)
+		createOpts.PodSubnet = &podSubnet
+	}
+
+	if v, ok := d.GetOk(MKaaSClusterServiceSubnetField); ok {
+		serviceSubnet := v.(string)
+		createOpts.ServiceSubnet = &serviceSubnet
 	}
 
 	if v, ok := d.GetOk(MKaaSClusterPublishKubeAPIToInternet); ok {
@@ -273,6 +303,8 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(MKaaSClusterProcessingField, cluster.Processing)
 	_ = d.Set(StatusField, cluster.Status)
 	_ = d.Set(MKaaSClusterStateField, cluster.State)
+	_ = d.Set(MKaaSClusterPodSubnetField, cluster.PodSubnet)
+	_ = d.Set(MKaaSClusterServiceSubnetField, cluster.ServiceSubnet)
 
 	return diag.Diagnostics{}
 }
@@ -364,4 +396,41 @@ func resourceMKaaSClusterDelete(ctx context.Context, d *schema.ResourceData, m i
 	tflog.Info(ctx, "Finish of MKaaS cluster deleting")
 
 	return diag.Diagnostics{}
+}
+
+func customMKaaSClusterDiff(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+	podStr := d.Get(MKaaSClusterPodSubnetField).(string)
+	svcStr := d.Get(MKaaSClusterServiceSubnetField).(string)
+
+	if podStr == "" || svcStr == "" {
+		return nil
+	}
+
+	if podStr == svcStr {
+		return fmt.Errorf("pod_subnet and service_subnet cannot be the same CIDR")
+	}
+
+	_, podCIDR, err := net.ParseCIDR(podStr)
+	if err != nil {
+		return fmt.Errorf("invalid pod_subnet: %s", err)
+	}
+
+	_, svcCIDR, err := net.ParseCIDR(svcStr)
+	if err != nil {
+		return fmt.Errorf("invalid service_subnet: %s", err)
+	}
+
+	if validationCustom.CidrIntersects(podCIDR, svcCIDR) {
+		return fmt.Errorf("pod_subnet (%s) intersects with service_subnet (%s)", podStr, svcStr)
+	}
+
+	if !validationCustom.CidrInRFC1918(podCIDR) {
+		return fmt.Errorf("pod_subnet %s must belong to private ranges RFC1918", podStr)
+	}
+
+	if !validationCustom.CidrInRFC1918(svcCIDR) {
+		return fmt.Errorf("service_subnet %s must belong to private ranges RFC1918", svcStr)
+	}
+
+	return nil
 }
