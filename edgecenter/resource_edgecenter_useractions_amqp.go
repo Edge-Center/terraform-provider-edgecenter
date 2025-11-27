@@ -47,6 +47,7 @@ func resourceUserActionsSubscriptionAMQP() *schema.Resource {
 			ClientIDField: {
 				Type:        schema.TypeInt,
 				Description: "The ID of the client.",
+				ForceNew:    true,
 				Optional:    true,
 			},
 		},

@@ -94,7 +94,7 @@ func prepareTestEnvironment(t *testing.T) {
 	}
 
 	if EC_CLIENT_ID == "" {
-		t.Fatalf("%q must be set for acceptance test", EC_CLIENT_ID)
+		t.Error("'EC_CLIENT_ID' must be set for acceptance test")
 	}
 
 	clientID, err := strconv.Atoi(EC_CLIENT_ID)
@@ -104,7 +104,9 @@ func prepareTestEnvironment(t *testing.T) {
 
 	opts := edgecloudV2.UserActionsOpts{ClientID: clientID}
 	// Unsubscribing any existing subscriptions
-	client.UserActions.UnsubscribeAMQPWithOpts(context.Background(), &opts)
+	if _, err = client.UserActions.UnsubscribeAMQPWithOpts(context.Background(), &opts); err != nil {
+		t.Log(err)
+	}
 }
 
 func testAccAMQPSubsDestroy(s *terraform.State) error {
