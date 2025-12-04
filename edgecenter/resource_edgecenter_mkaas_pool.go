@@ -24,6 +24,7 @@ const (
 	MKaaSPoolDeleteTimeout = 20 * time.Minute
 	MKaaSClusterIDField    = "cluster_id"
 
+	MKaaSPoolIDField           = "pool_id"
 	MKaaSPoolFlavorField       = "flavor"
 	MKaaSPoolNodeCountField    = "node_count"
 	MKaaSPoolVolumeSizeField   = "volume_size"
