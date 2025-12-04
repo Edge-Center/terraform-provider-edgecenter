@@ -20,26 +20,10 @@ import (
 )
 
 const (
-	MKaaSClusterReadTimeout      = 10 * time.Minute
-	MKaaSClusterCreateTimeout    = 30 * time.Minute
-	MKaaSClusterUpdateTimeout    = 30 * time.Minute
-	MKaaSClusterDeleteTimeout    = 20 * time.Minute
-	MKaaSClusterKeypairNameField = "ssh_keypair_name"
-
-	MKaaSClusterControlPlaneField        = "control_plane"
-	MKaaSClusterFlavorField              = "flavor"
-	MKaaSClusterPublishKubeAPIToInternet = "publish_kube_api_to_internet"
-	MKaaSClusterNodeCountField           = "node_count"
-	MKaaSClusterVolumeSizeField          = "volume_size"
-	MKaaSClusterVolumeTypeField          = "volume_type"
-	MKaaSClusterVersionField             = "version"
-
-	MKaaSClusterInternalIPField = "internal_ip"
-	MKaaSClusterExternalIPField = "external_ip"
-	MKaaSClusterCreatedField    = "created"
-	MKaaSClusterProcessingField = "processing"
-	MKaaSClusterStatusField     = "status"
-	MkaasClusterStateField      = "state"
+	MKaaSClusterReadTimeout   = 10 * time.Minute
+	MKaaSClusterCreateTimeout = 30 * time.Minute
+	MKaaSClusterUpdateTimeout = 30 * time.Minute
+	MKaaSClusterDeleteTimeout = 20 * time.Minute
 )
 
 func resourceMKaaSCluster() *schema.Resource {
@@ -129,7 +113,7 @@ func resourceMKaaSCluster() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						MKaaSClusterFlavorField: {
+						FlavorField: {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The flavor type of the flavor.",
@@ -180,12 +164,12 @@ func resourceMKaaSCluster() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			MKaaSClusterStatusField: {
+			StatusField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Status of the Kubernetes cluster.",
 			},
-			MkaasClusterStateField: {
+			MKaaSClusterStateField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "State of the Kubernetes cluster.",
@@ -202,7 +186,7 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	createOpts := edgecloudV2.MkaaSClusterCreateRequest{
+	createOpts := edgecloudV2.MKaaSClusterCreateRequest{
 		Name:           d.Get(NameField).(string),
 		SSHKeyPairName: d.Get(MKaaSClusterKeypairNameField).(string),
 		NetworkID:      d.Get(NetworkIDField).(string),
@@ -218,7 +202,7 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 		if len(cpList) > 0 {
 			cp := cpList[0].(map[string]interface{})
 			createOpts.ControlPlane = edgecloudV2.ControlPlaneCreateRequest{
-				Flavor:     cp[MKaaSClusterFlavorField].(string),
+				Flavor:     cp[FlavorField].(string),
 				NodeCount:  cp[MKaaSClusterNodeCountField].(int),
 				VolumeSize: cp[MKaaSClusterVolumeSizeField].(int),
 				Version:    cp[MKaaSClusterVersionField].(string),
@@ -278,7 +262,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(SubnetIDField, cluster.SubnetID)
 
 	cp := map[string]interface{}{
-		MKaaSClusterFlavorField:     cluster.ControlPlane.Flavor,
+		FlavorField:                 cluster.ControlPlane.Flavor,
 		MKaaSClusterNodeCountField:  cluster.ControlPlane.NodeCount,
 		MKaaSClusterVolumeSizeField: cluster.ControlPlane.VolumeSize,
 		MKaaSClusterVolumeTypeField: string(cluster.ControlPlane.VolumeType),
@@ -290,7 +274,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(MKaaSClusterCreatedField, cluster.Created)
 	_ = d.Set(MKaaSClusterProcessingField, cluster.Processing)
 	_ = d.Set(StatusField, cluster.Status)
-	_ = d.Set(MkaasClusterStateField, cluster.State)
+	_ = d.Set(MKaaSClusterStateField, cluster.State)
 
 	return diag.Diagnostics{}
 }
@@ -308,7 +292,7 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	updateReq := edgecloudV2.MkaaSClusterUpdateRequest{}
+	updateReq := edgecloudV2.MKaaSClusterUpdateRequest{}
 	needsUpdate := false
 
 	if d.HasChange(NameField) {

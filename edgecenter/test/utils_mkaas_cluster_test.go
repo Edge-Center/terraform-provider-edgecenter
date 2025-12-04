@@ -18,6 +18,19 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
+type poolTfData struct {
+	Token      string
+	Endpoint   string
+	ProjectID  string
+	RegionID   string
+	ClusterID  string
+	Name       string
+	Flavor     string
+	NodeCount  int
+	VolumeSize int
+	VolumeType string
+}
+
 type tfData struct {
 	Token        string
 	Endpoint     string
@@ -453,3 +466,54 @@ func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterI
 
 	return nil
 }
+
+func renderTemplateToWith(path, tmpl string, data any) error {
+	tpl := template.Must(template.New("pool").Parse(tmpl))
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	return tpl.Execute(f, data)
+}
+
+// HCL для пула + полезные outputs
+const poolMainTmpl = `
+terraform {
+  required_providers {
+    edgecenter = {
+      source = "local.edgecenter.ru/repo/edgecenter"
+    }
+  }
+}
+
+provider "edgecenter" {
+  permanent_api_token  = "{{ .Token }}"
+}
+
+resource "edgecenter_mkaas_pool" "np" {
+  project_id   = {{ .ProjectID }}
+  region_id    = {{ .RegionID }}
+  cluster_id   = {{ .ClusterID }}
+
+  name         = "{{ .Name }}"
+  flavor       = "{{ .Flavor }}"
+  node_count   = {{ .NodeCount }}
+  volume_size  = {{ .VolumeSize }}
+  volume_type  = "{{ .VolumeType }}"
+}
+
+output "pool_id"           { value = edgecenter_mkaas_pool.np.id }
+output "pool_name"         { value = edgecenter_mkaas_pool.np.name }
+output "out_project_id"    { value = tostring(edgecenter_mkaas_pool.np.project_id) }
+output "out_region_id"     { value = tostring(edgecenter_mkaas_pool.np.region_id) }
+output "out_cluster_id"    { value = tostring(edgecenter_mkaas_pool.np.cluster_id) }
+output "out_flavor"        { value = edgecenter_mkaas_pool.np.flavor }
+output "out_node_count"    { value = tostring(edgecenter_mkaas_pool.np.node_count) }
+output "out_volume_size"   { value = tostring(edgecenter_mkaas_pool.np.volume_size) }
+output "out_volume_type"   { value = edgecenter_mkaas_pool.np.volume_type }
+output "out_state"         { value = edgecenter_mkaas_pool.np.state }
+output "out_status"        { value = edgecenter_mkaas_pool.np.status }
+`

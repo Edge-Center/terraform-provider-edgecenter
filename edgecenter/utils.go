@@ -24,6 +24,11 @@ const (
 
 	ProjectPoint = "projects"
 	RegionPoint  = "regions"
+
+	// K8sPoint — endpoint name for legacy K8s service clients used in tests.
+	K8sPoint = "k8s"
+	// K8sCreateTimeout — timeout (in seconds) for legacy K8s tasks in tests.
+	K8sCreateTimeout = 1200
 )
 
 // MapStructureDecoder decodes the given map into the provided structure using the specified decoder configuration.

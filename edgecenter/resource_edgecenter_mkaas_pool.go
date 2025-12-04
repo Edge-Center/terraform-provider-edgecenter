@@ -24,6 +24,7 @@ const (
 	MKaaSPoolDeleteTimeout = 20 * time.Minute
 	MKaaSClusterIDField    = "cluster_id"
 
+	MKaaSPoolIDField           = "pool_id"
 	MKaaSPoolFlavorField       = "flavor"
 	MKaaSPoolNodeCountField    = "node_count"
 	MKaaSPoolVolumeSizeField   = "volume_size"
@@ -34,9 +35,10 @@ const (
 	MKaaSPoolLabelsField = "labels"
 	MKaaSPoolTaintsField = "taints"
 
-	MKaaSPoolSecurityGroupIDField = "security_group_id"
-	MKaaSPoolStateField           = "state"
-	MKaaSPoolStatusField          = "status"
+	MKaaSPoolSecurityGroupIDField  = "security_group_id"
+	MKaaSPoolStateField            = "state"
+	MKaaSPoolStatusField           = "status"
+	MKaaSPoolSecurityGroupIDsField = "security_group_ids"
 )
 
 func resourceMKaaSPool() *schema.Resource {
@@ -63,9 +65,9 @@ func resourceMKaaSPool() *schema.Resource {
 				if err != nil {
 					return nil, fmt.Errorf("invalid cluster_id %q: %w", clusterIDStr, err)
 				}
-				d.Set("project_id", projectID)
-				d.Set("region_id", regionID)
-				d.Set("cluster_id", clusterID)
+				_ = d.Set("project_id", projectID)
+				_ = d.Set("region_id", regionID)
+				_ = d.Set("cluster_id", clusterID)
 				d.SetId(poolID)
 
 				return []*schema.ResourceData{d}, nil
@@ -162,14 +164,14 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 	clusterID := d.Get(MKaaSClusterIDField).(int)
 
-	createOpts := edgecloudV2.MkaaSPoolCreateRequest{
+	createOpts := edgecloudV2.MKaaSPoolCreateRequest{
 		Name:       d.Get(NameField).(string),
 		Flavor:     d.Get(MKaaSPoolFlavorField).(string),
 		NodeCount:  d.Get(MKaaSPoolNodeCountField).(int),
 		VolumeSize: d.Get(MKaaSPoolVolumeSizeField).(int),
 		VolumeType: edgecloudV2.VolumeType(d.Get(MKaaSPoolVolumeTypeField).(string)),
 		Labels:     map[string]string{},
-		Taints:     []edgecloudV2.MkaaSTaint{},
+		Taints:     []edgecloudV2.MKaaSTaint{},
 	}
 
 	if v, ok := d.GetOk(MKaaSPoolMinNodeCountField); ok {
@@ -194,7 +196,7 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 		set := raw.(*schema.Set)
 		for _, item := range set.List() {
 			m := item.(map[string]interface{})
-			createOpts.Taints = append(createOpts.Taints, edgecloudV2.MkaaSTaint{
+			createOpts.Taints = append(createOpts.Taints, edgecloudV2.MKaaSTaint{
 				Key:    m["key"].(string),
 				Value:  m["value"].(string),
 				Effect: m["effect"].(string),
@@ -276,7 +278,7 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	updateReq := edgecloudV2.MkaaSPoolUpdateRequest{}
+	updateReq := edgecloudV2.MKaaSPoolUpdateRequest{}
 	needsUpdate := false
 
 	if d.HasChange(NameField) {

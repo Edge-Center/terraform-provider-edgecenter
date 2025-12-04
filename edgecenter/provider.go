@@ -117,6 +117,23 @@ const (
 	SnapshotIDField               = "snapshot_id"
 )
 
+const (
+	MKaaSClusterKeypairNameField = "ssh_keypair_name"
+
+	MKaaSClusterControlPlaneField        = "control_plane"
+	MKaaSClusterPublishKubeAPIToInternet = "publish_kube_api_to_internet"
+	MKaaSClusterNodeCountField           = "node_count"
+	MKaaSClusterVolumeSizeField          = "volume_size"
+	MKaaSClusterVolumeTypeField          = "volume_type"
+	MKaaSClusterVersionField             = "version"
+
+	MKaaSClusterInternalIPField = "internal_ip"
+	MKaaSClusterExternalIPField = "external_ip"
+	MKaaSClusterCreatedField    = "created"
+	MKaaSClusterProcessingField = "processing"
+	MKaaSClusterStateField      = "state"
+)
+
 type CloudClientConf struct {
 	DoNotUseRegionID  bool
 	DoNotUseProjectID bool
@@ -290,6 +307,7 @@ func Provider() *schema.Provider {
 			"edgecenter_k8s":                           dataSourceK8s(),
 			"edgecenter_k8s_pool":                      dataSourceK8sPool(),
 			"edgecenter_k8s_client_config":             dataSourceK8sClientConfig(),
+			"edgecenter_mkaas_pool":                    dataSourceMKaaSPool(),
 			"edgecenter_secret":                        dataSourceSecret(),
 			"edgecenter_lb_l7policy":                   dataSourceL7Policy(),
 			"edgecenter_lb_l7rule":                     datasourceL7Rule(),

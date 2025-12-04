@@ -1,4 +1,4 @@
-//go:build cloud_resource_mkaas
+//go:build cloud_data_source_mkaas
 
 package edgecenter_test
 
@@ -16,9 +16,56 @@ import (
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
-func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
+// HCL для data source пула
+const dataSourcePoolMainTmpl = `
+terraform {
+  required_providers {
+    edgecenter = {
+      source = "local.edgecenter.ru/repo/edgecenter"
+    }
+  }
+}
 
-	t.Log("Starting TestMKaaSPool_ApplyUpdateImportDestroy")
+provider "edgecenter" {
+  permanent_api_token  = "{{ .Token }}"
+}
+
+data "edgecenter_mkaas_pool" "acctest" {
+  project_id = {{ .ProjectID }}
+  region_id  = {{ .RegionID }}
+  cluster_id = {{ .ClusterID }}
+  pool_id    = {{ .PoolID }}
+}
+
+output "pool_id"           { value = data.edgecenter_mkaas_pool.acctest.id }
+output "pool_name"         { value = data.edgecenter_mkaas_pool.acctest.name }
+output "out_cluster_id"    { value = tostring(data.edgecenter_mkaas_pool.acctest.cluster_id) }
+output "out_flavor"        { value = data.edgecenter_mkaas_pool.acctest.flavor }
+output "out_node_count"    { value = tostring(data.edgecenter_mkaas_pool.acctest.node_count) }
+output "out_volume_size"   { value = tostring(data.edgecenter_mkaas_pool.acctest.volume_size) }
+output "out_volume_type"   { value = data.edgecenter_mkaas_pool.acctest.volume_type }
+output "out_state"         { value = data.edgecenter_mkaas_pool.acctest.state }
+output "out_status"        { value = data.edgecenter_mkaas_pool.acctest.status }
+output "out_security_group_ids" { value = data.edgecenter_mkaas_pool.acctest.security_group_ids }
+`
+
+const (
+	MKaaSVolumeType = "ssd_hiiops"
+	MKaaSK8sVersion = "v1.31.0"
+	MKaaSCpFlavor   = "g3-standard-2-4"
+)
+
+type dataSourcePoolTfData struct {
+	Token     string
+	ProjectID string
+	RegionID  string
+	ClusterID string
+	PoolID    string
+}
+
+func TestAccDataSourceMKaaSPool(t *testing.T) {
+
+	t.Log("Starting TestAccDataSourceMKaaSPool")
 
 	// --- env
 	t.Log("Reading environment variables...")
@@ -28,12 +75,10 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	regionID := requireEnv(t, "TEST_MKAAS_REGION_ID")
 
 	cpFlavor := MKaaSCpFlavor
-
 	volType := MKaaSVolumeType
-
 	k8sVersion := MKaaSK8sVersion
 
-	base := "tf-mkaas-" + strings.ToLower(random.UniqueId())
+	base := "tf-mkaas-ds-" + strings.ToLower(random.UniqueId())
 	keypairName := base + "-key"
 	var err error
 	client, err := CreateClient(t, token, cloudAPIURL, projectID, regionID)
@@ -103,9 +148,9 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 	require.NoError(t, err, "failed to create cluster")
 	t.Logf("Cluster created successfully with ID: %s", cluster.ID)
-	var testSuceed bool
+	var testSucceed bool
 	t.Cleanup(func() {
-		if cluster != nil && !testSuceed {
+		if cluster != nil && !testSucceed {
 			if err := DeleteTestMKaaSCluster(t, client, cluster.ID); err != nil {
 				t.Errorf("cleanup failed: delete cluster %s via API: %v", cluster.ID, err)
 			}
@@ -119,13 +164,13 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 	poolMain := filepath.Join(poolDir, "main.tf")
 
-	poolNameV1 := base + "-pool-v1"
+	poolName := base + "-pool"
 	poolData := poolTfData{
 		Token:      token,
 		ProjectID:  cluster.Data.ProjectID,
 		RegionID:   cluster.Data.RegionID,
 		ClusterID:  cluster.ID,
-		Name:       poolNameV1,
+		Name:       poolName,
 		Flavor:     cpFlavor,
 		NodeCount:  1,
 		VolumeSize: 30,
@@ -146,94 +191,56 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		t.Fatalf("terraform apply (pool create): %v", err)
 	}
 
-	// Check pool
+	// Check pool was created successfully
 	poolID := tt.Output(t, poolOpts, "pool_id")
 	if strings.TrimSpace(poolID) == "" {
 		t.Fatalf("pool_id is empty after create")
 	}
-	require.Equalf(t, poolNameV1, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name")
-	require.Equalf(t, projectID, tt.Output(t, poolOpts, "out_project_id"), "%s mismatch", "project_id")
-	require.Equalf(t, regionID, tt.Output(t, poolOpts, "out_region_id"), "%s mismatch", "region_id")
-	require.Equalf(t, cluster.ID, tt.Output(t, poolOpts, "out_cluster_id"), "%s mismatch", "cluster_id")
-	require.Equalf(t, cpFlavor, tt.Output(t, poolOpts, "out_flavor"), "%s mismatch", "flavor")
-	require.Equalf(t, "1", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count")
-	require.Equalf(t, "30", tt.Output(t, poolOpts, "out_volume_size"), "%s mismatch", "volume_size")
-	require.Equalf(t, volType, tt.Output(t, poolOpts, "out_volume_type"), "%s mismatch", "volume_type")
-	_ = tt.Output(t, poolOpts, "out_state")
-	_ = tt.Output(t, poolOpts, "out_status")
+	t.Logf("Pool created successfully with ID: %s", poolID)
 
-	// UPDATE pool
-	poolNameV2 := base + "-pool-v2"
-	poolData.Name = poolNameV2
-	poolData.NodeCount = 2
-	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
+	// Test data source
+	t.Log("Testing data source...")
+	dataSourceDir := filepath.Join(cluster.Dir, "data-source")
+	if err := os.MkdirAll(dataSourceDir, 0755); err != nil {
+		t.Fatalf("mkdir data-source dir: %v", err)
+	}
+	dataSourceMain := filepath.Join(dataSourceDir, "main.tf")
 
+	dataSourceData := dataSourcePoolTfData{
+		Token:     token,
+		ProjectID: cluster.Data.ProjectID,
+		RegionID:  cluster.Data.RegionID,
+		ClusterID: cluster.ID,
+		PoolID:    poolID,
+	}
+	err = renderTemplateToWith(dataSourceMain, dataSourcePoolMainTmpl, dataSourceData)
 	if err != nil {
-		t.Fatalf("write pool main.tf (update): %v", err)
+		t.Fatalf("write data-source main.tf: %v", err)
 	}
-	if _, err := tt.ApplyAndIdempotentE(t, poolOpts); err != nil {
-		t.Fatalf("terraform apply (pool update): %v", err)
-	}
-	require.Equalf(t, poolNameV2, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name (after update)")
-	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count (after update)")
 
-	// IMPORT pool
-	importDir := filepath.Join(poolDir, "import")
-	if err := os.MkdirAll(importDir, 0755); err != nil {
-		t.Fatalf("mkdir pool import dir: %v", err)
-	}
-	importMain := `
-terraform {
-  required_providers {
-    edgecenter = {
-      source = "local.edgecenter.ru/repo/edgecenter"
-    }
-  }
-}
-
-provider "edgecenter" {
-  permanent_api_token  = "` + token + `"
-}
-
-import {
-  to = edgecenter_mkaas_pool.np
-  id = "` + strings.Join([]string{projectID, regionID, poolID, cluster.ID}, ":") + `"
-}
-`
-	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0644); err != nil {
-		t.Fatalf("write pool import main.tf: %v", err)
-	}
-	importOpts := &tt.Options{
-		TerraformDir: importDir,
+	dataSourceOpts := &tt.Options{
+		TerraformDir: dataSourceDir,
 		NoColor:      true,
 	}
-	if _, err := tt.RunTerraformCommandE(
-		t, importOpts,
-		"plan",
-		"-generate-config-out=generated.tf",
-		"-input=false",
-		"-lock-timeout=5m",
-	); err != nil {
-		t.Fatalf("terraform plan (pool import generate config): %v", err)
+
+	if _, err := tt.ApplyAndIdempotentE(t, dataSourceOpts); err != nil {
+		t.Fatalf("terraform apply (data-source): %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(importDir, "generated.tf")); err != nil {
-		t.Fatalf("pool generated.tf not found after plan -generate-config-out: %v", err)
-	}
-	if _, err := tt.ApplyAndIdempotentE(t, importOpts); err != nil {
-		t.Fatalf("terraform apply (pool import dir): %v", err)
-	}
-	if out, err := tt.RunTerraformCommandE(
-		t, importOpts,
-		"plan",
-		"-detailed-exitcode",
-		"-input=false",
-		"-lock-timeout=5m",
-	); err != nil {
-		t.Fatalf("terraform plan for pool after import/apply is not empty (err=%v)\n%s", err, out)
-	}
+
+	// Check data source outputs
+	require.Equalf(t, poolID, tt.Output(t, dataSourceOpts, "pool_id"), "%s mismatch", "pool_id")
+	require.Equalf(t, poolName, tt.Output(t, dataSourceOpts, "pool_name"), "%s mismatch", "pool_name")
+	require.Equalf(t, cluster.ID, tt.Output(t, dataSourceOpts, "out_cluster_id"), "%s mismatch", "cluster_id")
+	require.Equalf(t, cpFlavor, tt.Output(t, dataSourceOpts, "out_flavor"), "%s mismatch", "flavor")
+	require.Equalf(t, "1", tt.Output(t, dataSourceOpts, "out_node_count"), "%s mismatch", "node_count")
+	require.Equalf(t, "30", tt.Output(t, dataSourceOpts, "out_volume_size"), "%s mismatch", "volume_size")
+	require.Equalf(t, volType, tt.Output(t, dataSourceOpts, "out_volume_type"), "%s mismatch", "volume_type")
+	require.Equalf(t, "[]", tt.Output(t, dataSourceOpts, "out_security_group_ids"), "%s mismatch", "security_group_ids")
+	_ = tt.Output(t, dataSourceOpts, "out_state")
+	_ = tt.Output(t, dataSourceOpts, "out_status")
 
 	if err := cluster.Destroy(t); err != nil {
 		t.Fatalf("terraform destroy for cluster: %v", err)
 	}
-	testSuceed = true
+	testSucceed = true
 }
