@@ -143,14 +143,15 @@ func resourceUserActionsAMQPUpdate(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	_, err = clientV2.UserActions.UnsubscribeAMQP(ctx)
+	opts := edgecloudV2.UserActionsOpts{ClientID: d.Get(ClientIDField).(int)}
+
+	_, err = clientV2.UserActions.UnsubscribeAMQPWithOpts(ctx, &opts)
 	if err != nil {
 		rollbackAMQPSubscriptionData(ctx, d)
 		return diag.FromErr(err)
 	}
 
 	req := prepareAMQPSubscriptionCreateRequest(d)
-	opts := edgecloudV2.UserActionsOpts{ClientID: d.Get(ClientIDField).(int)}
 
 	_, err = clientV2.UserActions.SubscribeAMQPWithOpts(ctx, &opts, &req)
 	if err != nil {
