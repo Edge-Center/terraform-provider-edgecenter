@@ -59,4 +59,5 @@ Import is supported using the following syntax:
 ```shell
 # import using <subscription_id> format
 terraform import edgecenter_useractions_subscription_amqp.subs 123
+terraform import edgecenter_useractions_subscription_amqp.subs_for_client 124
 ```

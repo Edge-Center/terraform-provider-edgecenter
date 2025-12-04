@@ -1,4 +1,4 @@
-//go:build cloud_data_source
+//go:build cloud_data_source || cloud_reseller_data_source
 
 package edgecenter_test
 
