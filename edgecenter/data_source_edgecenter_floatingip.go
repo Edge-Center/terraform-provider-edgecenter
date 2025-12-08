@@ -99,19 +99,6 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 				Computed:    true,
 				Description: "The ID (uuid) of the router that the floating IP is associated with.",
 			},
-			"metadata_k": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Filtration query opts (only key).",
-			},
-			"metadata_kv": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: `Filtration query opts, for example, {offset = "10", limit = "10"}.`,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
 			"metadata_read_only": {
 				Type:        schema.TypeList,
 				Computed:    true,
