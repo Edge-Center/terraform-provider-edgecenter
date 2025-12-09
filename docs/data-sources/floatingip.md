@@ -45,8 +45,6 @@ output "view" {
 
 - `floating_ip_address` (String) The floating IP address assigned to the resource. It must be a valid IP address.
 - `id` (String) floating IP uuid
-- `metadata_k` (String) Filtration query opts (only key).
-- `metadata_kv` (Map of String) Filtration query opts, for example, {offset = "10", limit = "10"}.
 - `port_id` (String) The ID (uuid) of the network port that the floating IP is associated with.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
