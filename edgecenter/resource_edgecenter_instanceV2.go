@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -620,10 +621,6 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 		return diags
 	}
 
-	if d.HasChange(AvailabilityZoneField) {
-		return diag.Errorf("cannot update availability zone in instance with ID: %s", instanceID)
-	}
-
 	if d.HasChange(NameField) {
 		nameTemplate := d.Get(InstanceNameTemplateField).(string)
 		if len(nameTemplate) == 0 {
@@ -632,6 +629,37 @@ func resourceInstanceUpdateV2(ctx context.Context, d *schema.ResourceData, m int
 				return diag.FromErr(err)
 			}
 		}
+	}
+
+	if d.HasChange(AvailabilityZoneField) {
+		tflog.Debug(ctx, "Start instance migration", map[string]interface{}{
+			"instanceID": instanceID,
+		})
+
+		reqBody := edgecloudV2.InstanceMigrateRequest{AvailabilityZone: d.Get(AvailabilityZoneField).(string)}
+		result, _, err := clientV2.Instances.Migrate(ctx, instanceID, &reqBody)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		taskID := result.Tasks[0]
+		tflog.Debug(ctx, "Waiting migration task", map[string]interface{}{
+			"instanceID": instanceID,
+			"taskID":     taskID,
+		})
+
+		task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, InstanceMigrateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if task.State == edgecloudV2.TaskStateError {
+			return diag.Errorf("cannot migrate instance with ID: %s", instanceID)
+		}
+
+		tflog.Debug(ctx, "Finish instance migration", map[string]interface{}{
+			"instanceID": instanceID,
+		})
 	}
 
 	if d.HasChange(FlavorIDField) {
