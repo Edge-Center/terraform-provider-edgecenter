@@ -25,7 +25,7 @@ const (
 	InstanceCreateTimeout  = 10 * time.Minute
 	InstanceDeleteTimeout  = 10 * time.Minute
 	InstanceUpdateTimeout  = 10 * time.Minute
-	InstanceMigrateTimeout = 10 * time.Minute
+	InstanceMigrateTimeout = 60 * time.Minute
 	InstancePoint          = "instances"
 
 	InstanceVMStateActive  = "active"
