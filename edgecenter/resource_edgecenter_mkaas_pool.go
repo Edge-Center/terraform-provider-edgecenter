@@ -187,7 +187,7 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	log.Println(fmt.Sprintf("MKaaS Pool create request: %+v", createOpts))
+	tflog.Info(ctx, fmt.Sprintf("MKaaS Pool create request: %+v", createOpts))
 
 	results, _, err := clientV2.MkaaS.PoolCreate(ctx, clusterID, createOpts)
 	if err != nil {
@@ -206,11 +206,11 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	poolID := taskResult.MkaasPools[0]
-	log.Println(fmt.Sprintf("MKaaS Pool id (from taskResult): %.0f", poolID))
+	tflog.Info(ctx, fmt.Sprintf("MKaaS Pool id (from taskResult): %.0f", poolID))
 	d.SetId(strconv.FormatFloat(poolID, 'f', -1, 64))
 	resourceMKaaSPoolRead(ctx, d, m)
 
-	log.Println(fmt.Sprintf("Finish MKaaS creating (%s)",
+	tflog.Info(ctx, fmt.Sprintf("Finish MKaaS creating (%s)",
 		strconv.FormatFloat(poolID, 'f', -1, 64)))
 
 	return diags
@@ -298,7 +298,7 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 }
 
 func resourceMKaaSPoolDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("Start MKaaS delete")
+	tflog.Info(ctx, "Start MKaaS delete")
 	var diags diag.Diagnostics
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
@@ -317,7 +317,7 @@ func resourceMKaaSPoolDelete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 	taskID := results.Tasks[0]
-	log.Println(fmt.Sprintf("Task id (%s)", taskID))
+	tflog.Info(ctx, fmt.Sprintf("Task id (%s)", taskID))
 	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, MKaaSPoolDeleteTimeout)
 	if err != nil {
 		return diag.FromErr(err)
@@ -327,7 +327,7 @@ func resourceMKaaSPoolDelete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.Errorf("cannot delete MKaaS Pool with ID: %d", poolID)
 	}
 	d.SetId("")
-	log.Println("Finish of MKaaS Pool deleting")
+	tflog.Info(ctx, "Finish of MKaaS Pool deleting")
 
 	return diags
 }

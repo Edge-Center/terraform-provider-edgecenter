@@ -3,7 +3,6 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -237,7 +236,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	if err != nil {
 		return diag.Errorf("invalid cluster id: %s", err)
 	}
-	log.Println(fmt.Sprintf("MKaaS id = %d", clusterID))
+	tflog.Info(ctx, fmt.Sprintf("MKaaS id = %d", clusterID))
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {

@@ -174,6 +174,7 @@ func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) error {
 	if _, err := tt.ApplyE(t, c.Opts); err != nil {
 		return fmt.Errorf("terraform apply (update): %w", err)
 	}
+
 	return nil
 }
 
