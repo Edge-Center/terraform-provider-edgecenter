@@ -18,7 +18,7 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-type poolTfData struct {
+type poolTfData struct { //nolint:unused
 	Token      string
 	Endpoint   string
 	ProjectID  string
@@ -205,7 +205,7 @@ import {
   id = "` + strings.Join([]string{projectID, regionID, clusterID}, ":") + `"
 }
 `
-	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0o600); err != nil {
 		return nil, fmt.Errorf("write import/main.tf: %w", err)
 	}
 
@@ -258,7 +258,7 @@ func renderTemplateTo(path string, data tfData) error {
 	return tpl.Execute(f, data)
 }
 
-func requireEnv(t *testing.T, key string) string {
+func requireEnv(t *testing.T, key string) string { //nolint:unused
 	t.Helper()
 	val := strings.TrimSpace(os.Getenv(key))
 	if val == "" {
@@ -468,7 +468,7 @@ func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterI
 	return nil
 }
 
-func renderTemplateToWith(path, tmpl string, data any) error {
+func renderTemplateToWith(path, tmpl string, data any) error { //nolint:unused
 	tpl := template.Must(template.New("pool").Parse(tmpl))
 	f, err := os.Create(path)
 	if err != nil {
@@ -481,6 +481,8 @@ func renderTemplateToWith(path, tmpl string, data any) error {
 }
 
 // HCL для пула + полезные outputs.
+//
+//nolint:unused
 const poolMainTmpl = `
 terraform {
   required_providers {
