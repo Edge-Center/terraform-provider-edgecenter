@@ -53,22 +53,22 @@ func dataSourceMKaaSPool() *schema.Resource {
 				Computed:    true,
 				Description: "The name of the Kubernetes pool.",
 			},
-			MKaaSPoolFlavorField: {
+			FlavorField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The identifier of the flavor used for nodes in this pool, e.g. g1-standard-2-4.",
 			},
-			MKaaSPoolNodeCountField: {
+			MKaaSNodeCountField: {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "The current number of nodes in the pool.",
 			},
-			MKaaSPoolVolumeSizeField: {
+			MKaaSVolumeSizeField: {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "The size of the volumes used by nodes in the pool, specified in gigabytes (GB).",
 			},
-			MKaaSPoolVolumeTypeField: {
+			MKaaSVolumeTypeField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The type of volume used by nodes in the pool.",
@@ -113,10 +113,10 @@ func dataSourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m inte
 	_ = d.Set(MKaaSClusterIDField, clusterID)
 	_ = d.Set(MKaaSPoolIDField, pool.ID)
 	_ = d.Set(NameField, pool.Name)
-	_ = d.Set(MKaaSPoolFlavorField, pool.Flavor)
-	_ = d.Set(MKaaSPoolNodeCountField, pool.NodeCount)
-	_ = d.Set(MKaaSPoolVolumeSizeField, pool.VolumeSize)
-	_ = d.Set(MKaaSPoolVolumeTypeField, string(pool.VolumeType))
+	_ = d.Set(FlavorField, pool.Flavor)
+	_ = d.Set(MKaaSNodeCountField, pool.NodeCount)
+	_ = d.Set(MKaaSVolumeSizeField, pool.VolumeSize)
+	_ = d.Set(MKaaSVolumeTypeField, string(pool.VolumeType))
 	_ = d.Set(MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)
 	_ = d.Set(MKaaSPoolStateField, pool.State)
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)

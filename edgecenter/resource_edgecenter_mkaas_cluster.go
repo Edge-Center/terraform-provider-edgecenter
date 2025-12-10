@@ -118,19 +118,19 @@ func resourceMKaaSCluster() *schema.Resource {
 							Required:    true,
 							Description: "The flavor type of the flavor.",
 						},
-						MKaaSClusterNodeCountField: {
+						MKaaSNodeCountField: {
 							Type:         schema.TypeInt,
 							Required:     true,
 							Description:  "The number of control nodes in the cluster (allowed values: `1`, `3`).",
 							ValidateFunc: validation.IntInSlice([]int{1, 3}),
 						},
-						MKaaSClusterVolumeSizeField: {
+						MKaaSVolumeSizeField: {
 							Type:         schema.TypeInt,
 							Required:     true,
 							Description:  "The size of the control volumes in the cluster, specified in gigabytes (GB). Allowed range: `20–1024` GiB.",
 							ValidateFunc: validation.IntBetween(20, 1024),
 						},
-						MKaaSClusterVolumeTypeField: {
+						MKaaSVolumeTypeField: {
 							Type:         schema.TypeString,
 							Required:     true,
 							Description:  fmt.Sprintf("The type of volumes in the cluster (allowed values: `%s`).", edgecloudV2.VolumeTypeSsdHiIops),
@@ -203,10 +203,10 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 			cp := cpList[0].(map[string]interface{})
 			createOpts.ControlPlane = edgecloudV2.ControlPlaneCreateRequest{
 				Flavor:     cp[FlavorField].(string),
-				NodeCount:  cp[MKaaSClusterNodeCountField].(int),
-				VolumeSize: cp[MKaaSClusterVolumeSizeField].(int),
+				NodeCount:  cp[MKaaSNodeCountField].(int),
+				VolumeSize: cp[MKaaSVolumeSizeField].(int),
 				Version:    cp[MKaaSClusterVersionField].(string),
-				VolumeType: edgecloudV2.VolumeType(cp[MKaaSClusterVolumeTypeField].(string)),
+				VolumeType: edgecloudV2.VolumeType(cp[MKaaSVolumeTypeField].(string)),
 			}
 		}
 	}
@@ -262,11 +262,11 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(SubnetIDField, cluster.SubnetID)
 
 	cp := map[string]interface{}{
-		FlavorField:                 cluster.ControlPlane.Flavor,
-		MKaaSClusterNodeCountField:  cluster.ControlPlane.NodeCount,
-		MKaaSClusterVolumeSizeField: cluster.ControlPlane.VolumeSize,
-		MKaaSClusterVolumeTypeField: string(cluster.ControlPlane.VolumeType),
-		MKaaSClusterVersionField:    cluster.ControlPlane.Version,
+		FlavorField:              cluster.ControlPlane.Flavor,
+		MKaaSNodeCountField:      cluster.ControlPlane.NodeCount,
+		MKaaSVolumeSizeField:     cluster.ControlPlane.VolumeSize,
+		MKaaSVolumeTypeField:     string(cluster.ControlPlane.VolumeType),
+		MKaaSClusterVersionField: cluster.ControlPlane.Version,
 	}
 	_ = d.Set(MKaaSClusterControlPlaneField, []interface{}{cp})
 	_ = d.Set(MKaaSClusterInternalIPField, cluster.InternalIP)
@@ -300,13 +300,13 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		needsUpdate = true
 	}
 
-	controlPlaneNodeCountPath := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, MKaaSClusterNodeCountField)
+	controlPlaneNodeCountPath := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, MKaaSNodeCountField)
 	if d.HasChange(controlPlaneNodeCountPath) {
 		if v, ok := d.GetOk(MKaaSClusterControlPlaneField); ok {
 			cpList := v.([]interface{})
 			if len(cpList) > 0 {
 				cp := cpList[0].(map[string]interface{})
-				updateReq.MasterNodeCount = cp[MKaaSClusterNodeCountField].(int)
+				updateReq.MasterNodeCount = cp[MKaaSNodeCountField].(int)
 				needsUpdate = true
 			}
 		}

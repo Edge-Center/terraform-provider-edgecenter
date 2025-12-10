@@ -22,23 +22,6 @@ const (
 	MKaaSPoolCreateTimeout = 60 * time.Minute
 	MKaaSPoolUpdateTimeout = 60 * time.Minute
 	MKaaSPoolDeleteTimeout = 20 * time.Minute
-	MKaaSClusterIDField    = "cluster_id"
-
-	MKaaSPoolIDField           = "pool_id"
-	MKaaSPoolFlavorField       = "flavor"
-	MKaaSPoolNodeCountField    = "node_count"
-	MKaaSPoolVolumeSizeField   = "volume_size"
-	MKaaSPoolVolumeTypeField   = "volume_type"
-	MKaaSPoolMaxNodeCountField = "max_node_count"
-	MKaaSPoolMinNodeCountField = "min_node_count"
-
-	MKaaSPoolLabelsField = "labels"
-	MKaaSPoolTaintsField = "taints"
-
-	MKaaSPoolSecurityGroupIDField  = "security_group_id"
-	MKaaSPoolStateField            = "state"
-	MKaaSPoolStatusField           = "status"
-	MKaaSPoolSecurityGroupIDsField = "security_group_ids"
 )
 
 func resourceMKaaSPool() *schema.Resource {
@@ -110,24 +93,24 @@ func resourceMKaaSPool() *schema.Resource {
 				Required:    true,
 				Description: "The name of the Kubernetes pool.",
 			},
-			MKaaSPoolFlavorField: {
+			FlavorField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The identifier of the flavor used for nodes in this pool, e.g. g1-standard-2-4.",
 			},
-			MKaaSPoolNodeCountField: {
+			MKaaSNodeCountField: {
 				Type:        schema.TypeInt,
 				Required:    true,
 				Description: "The current number of nodes in the pool.",
 			},
-			MKaaSPoolVolumeSizeField: {
+			MKaaSVolumeSizeField: {
 				Type:     schema.TypeInt,
 				Required: true,
 				Description: "The size of the control volumes in the cluster, specified in gigabytes (GB)." +
 					" Allowed range: `20–1024` GiB.",
 				ValidateFunc: validation.IntBetween(20, 1024),
 			},
-			MKaaSPoolVolumeTypeField: {
+			MKaaSVolumeTypeField: {
 				Type:     schema.TypeString,
 				Required: true,
 				Description: fmt.Sprintf("The type of volume. Available values are `%s`,"+
@@ -166,10 +149,10 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 
 	createOpts := edgecloudV2.MKaaSPoolCreateRequest{
 		Name:       d.Get(NameField).(string),
-		Flavor:     d.Get(MKaaSPoolFlavorField).(string),
-		NodeCount:  d.Get(MKaaSPoolNodeCountField).(int),
-		VolumeSize: d.Get(MKaaSPoolVolumeSizeField).(int),
-		VolumeType: edgecloudV2.VolumeType(d.Get(MKaaSPoolVolumeTypeField).(string)),
+		Flavor:     d.Get(FlavorField).(string),
+		NodeCount:  d.Get(MKaaSNodeCountField).(int),
+		VolumeSize: d.Get(MKaaSVolumeSizeField).(int),
+		VolumeType: edgecloudV2.VolumeType(d.Get(MKaaSVolumeTypeField).(string)),
 		Labels:     map[string]string{},
 		Taints:     []edgecloudV2.MKaaSTaint{},
 	}
@@ -254,10 +237,10 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	_ = d.Set(NameField, pool.Name)
 	_ = d.Set(MKaaSClusterIDField, clusterID)
-	_ = d.Set(MKaaSPoolFlavorField, pool.Flavor)
-	_ = d.Set(MKaaSPoolNodeCountField, pool.NodeCount)
-	_ = d.Set(MKaaSPoolVolumeSizeField, pool.VolumeSize)
-	_ = d.Set(MKaaSPoolVolumeTypeField, string(pool.VolumeType))
+	_ = d.Set(FlavorField, pool.Flavor)
+	_ = d.Set(MKaaSNodeCountField, pool.NodeCount)
+	_ = d.Set(MKaaSVolumeSizeField, pool.VolumeSize)
+	_ = d.Set(MKaaSVolumeTypeField, string(pool.VolumeType))
 	_ = d.Set(MKaaSPoolStateField, pool.State)
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)
 
@@ -287,8 +270,8 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		needsUpdate = true
 	}
 
-	if d.HasChange(MKaaSPoolNodeCountField) {
-		nodeCount := d.Get(MKaaSPoolNodeCountField).(int)
+	if d.HasChange(MKaaSNodeCountField) {
+		nodeCount := d.Get(MKaaSNodeCountField).(int)
 		updateReq.NodeCount = &nodeCount
 		needsUpdate = true
 	}

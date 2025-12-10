@@ -49,12 +49,6 @@ output "out_status"        { value = data.edgecenter_mkaas_pool.acctest.status }
 output "out_security_group_ids" { value = data.edgecenter_mkaas_pool.acctest.security_group_ids }
 `
 
-const (
-	MKaaSVolumeType = "ssd_hiiops"
-	MKaaSK8sVersion = "v1.31.0"
-	MKaaSCpFlavor   = "g3-standard-2-4"
-)
-
 type dataSourcePoolTfData struct {
 	Token     string
 	ProjectID string
@@ -74,9 +68,9 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 	projectID := requireEnv(t, "TEST_PROJECT_ID")
 	regionID := requireEnv(t, "TEST_MKAAS_REGION_ID")
 
-	cpFlavor := MKaaSCpFlavor
-	volType := MKaaSVolumeType
-	k8sVersion := MKaaSK8sVersion
+	k8sVersion := "v1.31.0"
+	cpFlavor := "g3-standard-2-4"
+	volType := "ssd_hiiops"
 
 	base := "tf-mkaas-ds-" + strings.ToLower(random.UniqueId())
 	keypairName := base + "-key"

@@ -27,11 +27,9 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	projectID := requireEnv(t, "TEST_PROJECT_ID")
 	regionID := requireEnv(t, "TEST_MKAAS_REGION_ID")
 
-	cpFlavor := MKaaSCpFlavor
-
-	volType := MKaaSVolumeType
-
-	k8sVersion := MKaaSK8sVersion
+	cpVersion := "v1.31.0"
+	cpFlavor := "g3-standard-2-4"
+	cpVolumeType := "ssd_hiiops"
 
 	base := "tf-mkaas-" + strings.ToLower(random.UniqueId())
 	keypairName := base + "-key"

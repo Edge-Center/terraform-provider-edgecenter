@@ -14,12 +14,6 @@ import (
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
-const (
-	MKaaSVolumeType = "ssd_hiiops"
-	MKaaSK8sVersion = "v1.31.0"
-	MKaaSCpFlavor   = "g3-standard-2-4"
-)
-
 func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 
 	t.Log("Starting TestMKaaSCluster_ApplyUpdateImportDestroy")
@@ -31,11 +25,9 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	projectID := requireEnv(t, "TEST_PROJECT_ID")
 	regionID := requireEnv(t, "TEST_MKAAS_REGION_ID")
 
-	cpFlavor := MKaaSCpFlavor
-
-	cpVolumeType := MKaaSVolumeType
-
-	cpVersion := MKaaSK8sVersion
+	cpVersion := "v1.31.0"
+	cpFlavor := "g3-standard-2-4"
+	cpVolumeType := "ssd_hiiops"
 
 	t.Log("Creating  client...")
 	var err error
