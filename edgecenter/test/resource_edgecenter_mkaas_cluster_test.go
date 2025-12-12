@@ -1,8 +1,9 @@
+//go:build cloud_resource_mkaas
+
 package edgecenter_test
 
 import (
 	"net"
-	"os"
 	"strings"
 	"testing"
 
@@ -13,16 +14,7 @@ import (
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
-const (
-	MKaaSVolumeType = "ssd_hiiops"
-	MKaaSK8sVersion = "v1.31.0"
-	MKaaSCpFlavor   = "g3-standard-2-4"
-)
-
 func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
-	if os.Getenv("RUN_MKAAS_IT") != "1" {
-		t.Skip("This test requires RUN_MKAAS_IT=1")
-	}
 
 	t.Log("Starting TestMKaaSCluster_ApplyUpdateImportDestroy")
 
@@ -33,20 +25,9 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	projectID := requireEnv(t, "TEST_PROJECT_ID")
 	regionID := requireEnv(t, "TEST_MKAAS_REGION_ID")
 
-	cpFlavor := os.Getenv("EC_MKAAS_CP_FLAVOR")
-	if cpFlavor == "" {
-		cpFlavor = MKaaSCpFlavor
-	}
-
-	cpVolumeType := os.Getenv("EC_MKAAS_VOLUME_TYPE")
-	if cpVolumeType == "" {
-		cpVolumeType = MKaaSVolumeType
-	}
-
-	cpVersion := os.Getenv("EC_MKAAS_K8S_VERSION")
-	if cpVersion == "" {
-		cpVersion = MKaaSK8sVersion
-	}
+	cpVersion := "v1.31.0"
+	cpFlavor := "g3-standard-2-4"
+	cpVolumeType := "ssd_hiiops"
 
 	t.Log("Creating  client...")
 	var err error
@@ -95,12 +76,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	})
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
-	t.Cleanup(func() {
-		if err := DeleteTestSubnet(client, subnetID); err != nil {
-			t.Errorf("cleanup failed: delete subnet %s: %v", subnetID, err)
-		}
-	})
-
 	nameV1 := baseName + "-v1"
 	nameV2 := baseName + "-v2"
 

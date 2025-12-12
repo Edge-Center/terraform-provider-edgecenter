@@ -3,14 +3,12 @@ package edgecenter
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -20,26 +18,10 @@ import (
 )
 
 const (
-	MKaaSClusterReadTimeout      = 10 * time.Minute
-	MKaaSClusterCreateTimeout    = 30 * time.Minute
-	MKaaSClusterUpdateTimeout    = 30 * time.Minute
-	MKaaSClusterDeleteTimeout    = 20 * time.Minute
-	MKaaSClusterKeypairNameField = "ssh_keypair_name"
-
-	MKaaSClusterControlPlaneField        = "control_plane"
-	MKaaSClusterFlavorField              = "flavor"
-	MKaaSClusterPublishKubeAPIToInternet = "publish_kube_api_to_internet"
-	MKaaSClusterNodeCountField           = "node_count"
-	MKaaSClusterVolumeSizeField          = "volume_size"
-	MKaaSClusterVolumeTypeField          = "volume_type"
-	MKaaSClusterVersionField             = "version"
-
-	MKaaSClusterInternalIPField = "internal_ip"
-	MKaaSClusterExternalIPField = "external_ip"
-	MKaaSClusterCreatedField    = "created"
-	MKaaSClusterProcessingField = "processing"
-	MKaaSClusterStatusField     = "status"
-	MkaasClusterStateField      = "state"
+	MKaaSClusterReadTimeout   = 10 * time.Minute
+	MKaaSClusterCreateTimeout = 30 * time.Minute
+	MKaaSClusterUpdateTimeout = 30 * time.Minute
+	MKaaSClusterDeleteTimeout = 20 * time.Minute
 )
 
 func resourceMKaaSCluster() *schema.Resource {
@@ -129,24 +111,24 @@ func resourceMKaaSCluster() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						MKaaSClusterFlavorField: {
+						FlavorField: {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The flavor type of the flavor.",
 						},
-						MKaaSClusterNodeCountField: {
+						MKaaSNodeCountField: {
 							Type:         schema.TypeInt,
 							Required:     true,
 							Description:  "The number of control nodes in the cluster (allowed values: `1`, `3`).",
 							ValidateFunc: validation.IntInSlice([]int{1, 3}),
 						},
-						MKaaSClusterVolumeSizeField: {
+						MKaaSVolumeSizeField: {
 							Type:         schema.TypeInt,
 							Required:     true,
 							Description:  "The size of the control volumes in the cluster, specified in gigabytes (GB). Allowed range: `20–1024` GiB.",
 							ValidateFunc: validation.IntBetween(20, 1024),
 						},
-						MKaaSClusterVolumeTypeField: {
+						MKaaSVolumeTypeField: {
 							Type:         schema.TypeString,
 							Required:     true,
 							Description:  fmt.Sprintf("The type of volumes in the cluster (allowed values: `%s`).", edgecloudV2.VolumeTypeSsdHiIops),
@@ -180,12 +162,12 @@ func resourceMKaaSCluster() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			MKaaSClusterStatusField: {
+			StatusField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Status of the Kubernetes cluster.",
 			},
-			MkaasClusterStateField: {
+			MKaaSClusterStateField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "State of the Kubernetes cluster.",
@@ -195,14 +177,14 @@ func resourceMKaaSCluster() *schema.Resource {
 }
 
 func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	tflog.Info(ctx, fmt.Sprintf("Start MKaaS creating"))
+	tflog.Info(ctx, "Start MKaaS creating")
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	createOpts := edgecloudV2.MkaaSClusterCreateRequest{
+	createOpts := edgecloudV2.MKaaSClusterCreateRequest{
 		Name:           d.Get(NameField).(string),
 		SSHKeyPairName: d.Get(MKaaSClusterKeypairNameField).(string),
 		NetworkID:      d.Get(NetworkIDField).(string),
@@ -218,11 +200,11 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 		if len(cpList) > 0 {
 			cp := cpList[0].(map[string]interface{})
 			createOpts.ControlPlane = edgecloudV2.ControlPlaneCreateRequest{
-				Flavor:     cp[MKaaSClusterFlavorField].(string),
-				NodeCount:  cp[MKaaSClusterNodeCountField].(int),
-				VolumeSize: cp[MKaaSClusterVolumeSizeField].(int),
+				Flavor:     cp[FlavorField].(string),
+				NodeCount:  cp[MKaaSNodeCountField].(int),
+				VolumeSize: cp[MKaaSVolumeSizeField].(int),
 				Version:    cp[MKaaSClusterVersionField].(string),
-				VolumeType: edgecloudV2.VolumeType(cp[MKaaSClusterVolumeTypeField].(string)),
+				VolumeType: edgecloudV2.VolumeType(cp[MKaaSVolumeTypeField].(string)),
 			}
 		}
 	}
@@ -253,7 +235,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	if err != nil {
 		return diag.Errorf("invalid cluster id: %s", err)
 	}
-	log.Println(fmt.Sprintf("MKaaS id = %d", clusterID))
+	tflog.Info(ctx, fmt.Sprintf("MKaaS id = %d", clusterID))
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
@@ -278,11 +260,11 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(SubnetIDField, cluster.SubnetID)
 
 	cp := map[string]interface{}{
-		MKaaSClusterFlavorField:     cluster.ControlPlane.Flavor,
-		MKaaSClusterNodeCountField:  cluster.ControlPlane.NodeCount,
-		MKaaSClusterVolumeSizeField: cluster.ControlPlane.VolumeSize,
-		MKaaSClusterVolumeTypeField: string(cluster.ControlPlane.VolumeType),
-		MKaaSClusterVersionField:    cluster.ControlPlane.Version,
+		FlavorField:              cluster.ControlPlane.Flavor,
+		MKaaSNodeCountField:      cluster.ControlPlane.NodeCount,
+		MKaaSVolumeSizeField:     cluster.ControlPlane.VolumeSize,
+		MKaaSVolumeTypeField:     string(cluster.ControlPlane.VolumeType),
+		MKaaSClusterVersionField: cluster.ControlPlane.Version,
 	}
 	_ = d.Set(MKaaSClusterControlPlaneField, []interface{}{cp})
 	_ = d.Set(MKaaSClusterInternalIPField, cluster.InternalIP)
@@ -290,7 +272,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(MKaaSClusterCreatedField, cluster.Created)
 	_ = d.Set(MKaaSClusterProcessingField, cluster.Processing)
 	_ = d.Set(StatusField, cluster.Status)
-	_ = d.Set(MkaasClusterStateField, cluster.State)
+	_ = d.Set(MKaaSClusterStateField, cluster.State)
 
 	return diag.Diagnostics{}
 }
@@ -308,7 +290,7 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	updateReq := edgecloudV2.MkaaSClusterUpdateRequest{}
+	updateReq := edgecloudV2.MKaaSClusterUpdateRequest{}
 	needsUpdate := false
 
 	if d.HasChange(NameField) {
@@ -316,13 +298,13 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		needsUpdate = true
 	}
 
-	controlPlaneNodeCountPath := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, MKaaSClusterNodeCountField)
+	controlPlaneNodeCountPath := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, MKaaSNodeCountField)
 	if d.HasChange(controlPlaneNodeCountPath) {
 		if v, ok := d.GetOk(MKaaSClusterControlPlaneField); ok {
 			cpList := v.([]interface{})
 			if len(cpList) > 0 {
 				cp := cpList[0].(map[string]interface{})
-				updateReq.MasterNodeCount = cp[MKaaSClusterNodeCountField].(int)
+				updateReq.MasterNodeCount = cp[MKaaSNodeCountField].(int)
 				needsUpdate = true
 			}
 		}
