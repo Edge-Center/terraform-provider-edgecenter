@@ -40,10 +40,12 @@ const (
 	DescriptionField                 = "description"
 	StateField                       = "state"
 	IsDefaultField                   = "is_default"
+	DisabledField                    = "disabled"
 	TypeField                        = "type"
 	TypeNameField                    = "type_name"
 	OrderField                       = "order"
 	KeyField                         = "key"
+	NetworkField                     = "network"
 	NetworkIDField                   = "network_id"
 	NetworkNameField                 = "network_name"
 	SubnetIDField                    = "subnet_id"
@@ -62,10 +64,15 @@ const (
 	MetadataField                    = "metadata"
 	ValueField                       = "value"
 	FlavorField                      = "flavor"
+	FlavorsField                     = "flavors"
 	FlavorNameField                  = "flavor_name"
 	FlavorIDField                    = "flavor_id"
 	RAMField                         = "ram"
+	CPUField                         = "cpu"
+	GPUField                         = "gpu"
 	VCPUsField                       = "vcpus"
+	DiskField                        = "disk"
+	IPUField                         = "ipu"
 	StatusField                      = "status"
 	OperatingStatusField             = "operating_status"
 	ProvisioningStatusField          = "provisioning_status"
@@ -116,6 +123,10 @@ const (
 	ListenerIDField                  = "listener_id"
 	VolumeIDField                    = "volume_id"
 	SnapshotIDField                  = "snapshot_id"
+	PoplarCountField                 = "poplar_count"
+	HardwareDescriptionField         = "hardware_description"
+	SgxEpcSizeField                  = "sgx_epc_size"
+	ResourceClassField               = "resource_class"
 )
 
 type CloudClientConf struct {
@@ -271,6 +282,7 @@ func Provider() *schema.Provider {
 			"edgecenter_project":                       dataSourceProject(),
 			"edgecenter_region":                        dataSourceRegion(),
 			"edgecenter_availability_zone":             dataSourceAvailabilityZone(),
+			"edgecenter_flavor":                        dataSourceFlavor(),
 			"edgecenter_securitygroup":                 dataSourceSecurityGroup(),
 			"edgecenter_image":                         dataSourceImage(),
 			"edgecenter_volume":                        dataSourceVolume(),
