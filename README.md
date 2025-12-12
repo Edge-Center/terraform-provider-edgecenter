@@ -89,7 +89,7 @@ Development
 
 -	[Terraform](https://www.terraform.io/downloads.html) >= 0.13
 -   [vault](https://developer.hashicorp.com/vault/install)
--	[Go](https://golang.org/doc/install) 1.23 (to build the provider plugin)
+-	[Go](https://golang.org/doc/install) 1.25.4 (to build the provider plugin)
 
 
 
