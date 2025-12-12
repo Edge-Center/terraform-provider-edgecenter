@@ -24,6 +24,8 @@ resource "edgecenter_mkaas_cluster" "example" {
   ssh_keypair_name             = "tf-keypair"
   network_id                   = "6bf878c1-1ce4-47c3-a39b-6b5f1d79bf25"
   subnet_id                    = "dc3a3ea9-86ae-47ad-a8e8-79df0ce04839"
+  pod_subnet                   = "192.168.128.0/18"
+  service_subnet               = "192.168.64.0/18"
   publish_kube_api_to_internet = true
 
   control_plane {
@@ -44,6 +46,8 @@ resource "edgecenter_mkaas_cluster" "example" {
 - `control_plane` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--control_plane))
 - `name` (String) The name of the Kubernetes cluster (must be a valid: up to 63 characters, only letters, digits, or '-', and cannot start or end with '-')
 - `network_id` (String) The id of the network that created the cluster.
+- `pod_subnet` (String) Pod subnet in CIDR format. Must not overlap with service_subnet and cluster subnet. Selected CIDR must be inside RFC1918 ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+- `service_subnet` (String) Service subnet in CIDR format. Must not overlap with pod_subnet and cluster subnet. Selected CIDR must be inside RFC1918 ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
 - `ssh_keypair_name` (String) The name of the SSH keypair.
 - `subnet_id` (String) The id of the subnet that created the cluster.
 

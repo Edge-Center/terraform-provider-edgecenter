@@ -115,6 +115,9 @@ const (
 	ListenerIDField               = "listener_id"
 	VolumeIDField                 = "volume_id"
 	SnapshotIDField               = "snapshot_id"
+
+	MKaaSClusterPodSubnetField     = "pod_subnet"
+	MKaaSClusterServiceSubnetField = "service_subnet"
 )
 
 const (

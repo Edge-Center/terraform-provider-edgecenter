@@ -25,10 +25,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	projectID := requireEnv(t, "TEST_PROJECT_ID")
 	regionID := requireEnv(t, "TEST_MKAAS_REGION_ID")
 
-	cpVersion := "v1.31.0"
-	cpFlavor := "g3-standard-2-4"
-	cpVolumeType := "ssd_hiiops"
-
 	t.Log("Creating  client...")
 	var err error
 	client, err := CreateClient(t, token, cloudAPIURL, projectID, regionID)
@@ -80,18 +76,20 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	nameV2 := baseName + "-v2"
 
 	data := tfData{
-		Token:        token,
-		ProjectID:    projectID,
-		RegionID:     regionID,
-		NetworkID:    networkID,
-		SubnetID:     subnetID,
-		SSHKeypair:   keypairName,
-		Name:         nameV1,
-		CPFlavor:     cpFlavor,
-		CPNodeCount:  1,
-		CPVolumeSize: 30,
-		CPVolumeType: cpVolumeType,
-		CPVersion:    cpVersion,
+		Token:         token,
+		ProjectID:     projectID,
+		RegionID:      regionID,
+		NetworkID:     networkID,
+		SubnetID:      subnetID,
+		PodSubnet:     podSubnet,
+		ServiceSubnet: serviceSubnet,
+		SSHKeypair:    keypairName,
+		Name:          nameV1,
+		CPFlavor:      masterFlavor,
+		CPNodeCount:   1,
+		CPVolumeSize:  30,
+		CPVolumeType:  masterVolumeType,
+		CPVersion:     kubernetesVersion,
 	}
 
 	// --- CREATE cluster
@@ -115,11 +113,13 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, keypairName, output(t, cluster, "out_ssh_keypair_name"), "%s mismatch", "ssh_keypair_name")
 	require.Equalf(t, networkID, output(t, cluster, "out_network_id"), "%s mismatch", "network_id")
 	require.Equalf(t, subnetID, output(t, cluster, "out_subnet_id"), "%s mismatch", "subnet_id")
-	require.Equalf(t, cpFlavor, output(t, cluster, "out_cp_flavor"), "%s mismatch", "control_plane.flavor")
+	require.Equal(t, podSubnet, output(t, cluster, "out_pod_subnet"))
+	require.Equal(t, serviceSubnet, output(t, cluster, "out_service_subnet"))
+	require.Equalf(t, masterFlavor, output(t, cluster, "out_cp_flavor"), "%s mismatch", "control_plane.flavor")
 	require.Equalf(t, "1", output(t, cluster, "out_cp_node_count"), "%s mismatch", "control_plane.node_count")
 	require.Equalf(t, "30", output(t, cluster, "out_cp_volume_size"), "%s mismatch", "control_plane.volume_size")
-	require.Equalf(t, cpVolumeType, output(t, cluster, "out_cp_volume_type"), "%s mismatch", "control_plane.volume_type")
-	require.Equalf(t, cpVersion, output(t, cluster, "out_k8s_version"), "%s mismatch", "control_plane.version")
+	require.Equalf(t, masterVolumeType, output(t, cluster, "out_cp_volume_type"), "%s mismatch", "control_plane.volume_type")
+	require.Equalf(t, kubernetesVersion, output(t, cluster, "out_k8s_version"), "%s mismatch", "control_plane.version")
 
 	// --- UPDATE cluster
 	err = cluster.UpdateCluster(t, func(d *tfData) {

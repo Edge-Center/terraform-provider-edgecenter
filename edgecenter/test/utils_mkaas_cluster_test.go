@@ -32,19 +32,21 @@ type poolTfData struct { //nolint:unused
 }
 
 type tfData struct {
-	Token        string
-	Endpoint     string
-	ProjectID    string
-	RegionID     string
-	NetworkID    string
-	SubnetID     string
-	SSHKeypair   string
-	Name         string
-	CPFlavor     string
-	CPNodeCount  int
-	CPVolumeSize int
-	CPVolumeType string
-	CPVersion    string
+	Token         string
+	Endpoint      string
+	ProjectID     string
+	RegionID      string
+	NetworkID     string
+	SubnetID      string
+	PodSubnet     string
+	ServiceSubnet string
+	SSHKeypair    string
+	Name          string
+	CPFlavor      string
+	CPNodeCount   int
+	CPVolumeSize  int
+	CPVolumeType  string
+	CPVersion     string
 }
 
 const mainTmpl = `
@@ -69,6 +71,9 @@ resource "edgecenter_mkaas_cluster" "test" {
   network_id         = "{{ .NetworkID }}"
   subnet_id          = "{{ .SubnetID }}"
 
+  pod_subnet         = "{{ .PodSubnet }}"
+  service_subnet     = "{{ .ServiceSubnet }}"
+
   control_plane {
     flavor      = "{{ .CPFlavor }}"
     node_count  = {{ .CPNodeCount }}
@@ -84,6 +89,8 @@ output "out_project_id"     { value = tostring(edgecenter_mkaas_cluster.test.pro
 output "out_region_id"      { value = tostring(edgecenter_mkaas_cluster.test.region_id) }
 output "out_network_id"     { value = edgecenter_mkaas_cluster.test.network_id }
 output "out_subnet_id"      { value = edgecenter_mkaas_cluster.test.subnet_id }
+output "out_pod_subnet"     { value = edgecenter_mkaas_cluster.test.pod_subnet }
+output "out_service_subnet" { value = edgecenter_mkaas_cluster.test.service_subnet }
 output "out_ssh_keypair_name" { value = edgecenter_mkaas_cluster.test.ssh_keypair_name }
 output "out_cp_flavor"      { value = edgecenter_mkaas_cluster.test.control_plane[0].flavor }
 output "out_cp_node_count"  { value = tostring(edgecenter_mkaas_cluster.test.control_plane[0].node_count) }
@@ -97,6 +104,16 @@ output "external_ip"        { value = edgecenter_mkaas_cluster.test.external_ip 
 output "state"              { value = edgecenter_mkaas_cluster.test.state }
 output "created"            { value = edgecenter_mkaas_cluster.test.created }
 `
+
+const (
+	podSubnet         = "10.244.0.0/16"
+	serviceSubnet     = "10.96.0.0/12"
+	kubernetesVersion = "v1.31.0"
+	masterVolumeType  = "ssd_hiiops"
+	workerVolumeType  = "ssd_hiiops"
+	masterFlavor      = "g3-standard-2-4"
+	workerFlavor      = "g3-standard-2-4"
+)
 
 type Cluster struct {
 	Dir      string
