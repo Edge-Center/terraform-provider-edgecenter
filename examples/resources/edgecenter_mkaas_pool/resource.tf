@@ -19,3 +19,6 @@ resource "edgecenter_mkaas_pool" "apps" {
   project_id = 1234
   region_id  = "1234"
 }
+
+
+

@@ -18,6 +18,19 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
+type poolTfData struct { //nolint:unused
+	Token      string
+	Endpoint   string
+	ProjectID  string
+	RegionID   string
+	ClusterID  string
+	Name       string
+	Flavor     string
+	NodeCount  int
+	VolumeSize int
+	VolumeType string
+}
+
 type tfData struct {
 	Token        string
 	Endpoint     string
@@ -94,7 +107,7 @@ type Cluster struct {
 	once     sync.Once
 }
 
-// CreateCluster
+// CreateCluster.
 func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 	t.Helper()
 
@@ -148,7 +161,7 @@ func (c *Cluster) Destroy(t *testing.T) error {
 	return destroyErr
 }
 
-// UpdateCluster
+// UpdateCluster.
 func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) error {
 	t.Helper()
 	if mutate != nil {
@@ -161,15 +174,16 @@ func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) error {
 	if _, err := tt.ApplyE(t, c.Opts); err != nil {
 		return fmt.Errorf("terraform apply (update): %w", err)
 	}
+
 	return nil
 }
 
-// ImportClusterPlanApply
+// ImportClusterPlanApply.
 func ImportClusterPlanApply(t *testing.T, token, projectID, regionID, clusterID, workDir string) (*tt.Options, error) {
 	t.Helper()
 
 	importDir := filepath.Join(workDir, "import")
-	if err := os.MkdirAll(importDir, 0755); err != nil {
+	if err := os.MkdirAll(importDir, 0o755); err != nil {
 		return nil, fmt.Errorf("mkdir import: %w", err)
 	}
 
@@ -191,7 +205,7 @@ import {
   id = "` + strings.Join([]string{projectID, regionID, clusterID}, ":") + `"
 }
 `
-	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0o600); err != nil {
 		return nil, fmt.Errorf("write import/main.tf: %w", err)
 	}
 
@@ -224,7 +238,7 @@ import {
 		"-input=false",
 		"-lock-timeout=5m",
 	); err != nil {
-		return nil, fmt.Errorf("terraform plan after import/apply is not empty (err=%v)\n%s", err, out)
+		return nil, fmt.Errorf("terraform plan after import/apply is not empty (err=%w)\n%s", err, out)
 	}
 
 	return opts, nil
@@ -244,7 +258,7 @@ func renderTemplateTo(path string, data tfData) error {
 	return tpl.Execute(f, data)
 }
 
-func requireEnv(t *testing.T, key string) string {
+func requireEnv(t *testing.T, key string) string { //nolint:unused
 	t.Helper()
 	val := strings.TrimSpace(os.Getenv(key))
 	if val == "" {
@@ -253,7 +267,7 @@ func requireEnv(t *testing.T, key string) string {
 	return val
 }
 
-// CreateTestNetwork создаёт сеть через V2 API
+// CreateTestNetwork создаёт сеть через V2 API.
 func CreateTestNetwork(client *edgecloudV2.Client, req *edgecloudV2.NetworkCreateRequest) (string, error) {
 	ctx := context.Background()
 
@@ -290,7 +304,7 @@ func CreateTestNetwork(client *edgecloudV2.Client, req *edgecloudV2.NetworkCreat
 	return networkID, nil
 }
 
-// DeleteTestNetwork удаляет сеть через V2 API
+// DeleteTestNetwork удаляет сеть через V2 API.
 func DeleteTestNetwork(client *edgecloudV2.Client, networkID string) error {
 	ctx := context.Background()
 
@@ -316,7 +330,7 @@ func DeleteTestNetwork(client *edgecloudV2.Client, networkID string) error {
 	return nil
 }
 
-// CreateTestSubnet создаёт подсеть через V2 API
+// CreateTestSubnet создаёт подсеть через V2 API.
 func CreateTestSubnet(client *edgecloudV2.Client, req *edgecloudV2.SubnetworkCreateRequest) (string, error) {
 	ctx := context.Background()
 
@@ -332,7 +346,7 @@ func CreateTestSubnet(client *edgecloudV2.Client, req *edgecloudV2.SubnetworkCre
 	return taskResult.Subnets[0], nil
 }
 
-// DeleteTestSubnet удаляет подсеть через V2 API
+// DeleteTestSubnet удаляет подсеть через V2 API.
 func DeleteTestSubnet(client *edgecloudV2.Client, subnetID string) error {
 	ctx := context.Background()
 
@@ -360,10 +374,10 @@ func DeleteTestSubnet(client *edgecloudV2.Client, subnetID string) error {
 
 // --- SSH keypair utilities
 
-// Test SSH public key for dynamic keypair creation
+// Test SSH public key for dynamic keypair creation.
 const testSSHPublicKey = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC1bdbQYquD/swsZpFPXagY9KvhlNUTKYMdhRNtlGglAMgRxJS3Q0V74BNElJtP+UU/AbZD4H2ZAwW3PLLD/maclnLlrA48xg/ez9IhppBop0WADZ/nB4EcvQfR/Db7nHDTZERW6EiiGhV6CkHVasK2sY/WNRXqPveeWUlwCqtSnU90l/s9kQCoEfkM2auO6ppJkVrXbs26vcRclS8KL7Cff4HwdVpV7b+edT5seZdtrFUCbkEof9D9nGpahNvg8mYWf0ofx4ona4kaXm1NdPID+ljvE/dbYUX8WZRmyLjMvVQS+VxDJtsiDQIVtwbC4w+recqwDvHhLWwoeczsbEsp test@mkaas`
 
-// CreateTestKeypair creates an SSH keypair using the V2 API client
+// CreateTestKeypair creates an SSH keypair using the V2 API client.
 func CreateTestKeypair(t *testing.T, clientV2 *edgecloudV2.Client, keypairName string) (string, error) {
 	t.Helper()
 
@@ -382,7 +396,7 @@ func CreateTestKeypair(t *testing.T, clientV2 *edgecloudV2.Client, keypairName s
 	return kp.SSHKeyID, nil
 }
 
-// DeleteTestKeypair deletes an SSH keypair using the V2 API client
+// DeleteTestKeypair deletes an SSH keypair using the V2 API client.
 func DeleteTestKeypair(t *testing.T, clientV2 *edgecloudV2.Client, keypairID string) error {
 	t.Helper()
 
@@ -397,7 +411,7 @@ func DeleteTestKeypair(t *testing.T, clientV2 *edgecloudV2.Client, keypairID str
 
 // --- MKaaS cluster utilities
 
-// CreateClient creates a V2 API client for MKaaS cluster operations
+// CreateClient creates a V2 API client for MKaaS cluster operations.
 func CreateClient(t *testing.T, token, cloudAPIURL, projectID, regionID string) (*edgecloudV2.Client, error) {
 	t.Helper()
 
@@ -426,7 +440,7 @@ func CreateClient(t *testing.T, token, cloudAPIURL, projectID, regionID string) 
 	return clientV2, nil
 }
 
-// DeleteTestMKaaSCluster deletes an MKaaS cluster using the V2 API client
+// DeleteTestMKaaSCluster deletes an MKaaS cluster using the V2 API client.
 func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterID string) error {
 	t.Helper()
 
@@ -453,3 +467,56 @@ func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterI
 
 	return nil
 }
+
+func renderTemplateToWith(path, tmpl string, data any) error { //nolint:unused
+	tpl := template.Must(template.New("pool").Parse(tmpl))
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	return tpl.Execute(f, data)
+}
+
+// HCL для пула + полезные outputs.
+//
+//nolint:unused
+const poolMainTmpl = `
+terraform {
+  required_providers {
+    edgecenter = {
+      source = "local.edgecenter.ru/repo/edgecenter"
+    }
+  }
+}
+
+provider "edgecenter" {
+  permanent_api_token  = "{{ .Token }}"
+}
+
+resource "edgecenter_mkaas_pool" "np" {
+  project_id   = {{ .ProjectID }}
+  region_id    = {{ .RegionID }}
+  cluster_id   = {{ .ClusterID }}
+
+  name         = "{{ .Name }}"
+  flavor       = "{{ .Flavor }}"
+  node_count   = {{ .NodeCount }}
+  volume_size  = {{ .VolumeSize }}
+  volume_type  = "{{ .VolumeType }}"
+}
+
+output "pool_id"           { value = edgecenter_mkaas_pool.np.id }
+output "pool_name"         { value = edgecenter_mkaas_pool.np.name }
+output "out_project_id"    { value = tostring(edgecenter_mkaas_pool.np.project_id) }
+output "out_region_id"     { value = tostring(edgecenter_mkaas_pool.np.region_id) }
+output "out_cluster_id"    { value = tostring(edgecenter_mkaas_pool.np.cluster_id) }
+output "out_flavor"        { value = edgecenter_mkaas_pool.np.flavor }
+output "out_node_count"    { value = tostring(edgecenter_mkaas_pool.np.node_count) }
+output "out_volume_size"   { value = tostring(edgecenter_mkaas_pool.np.volume_size) }
+output "out_volume_type"   { value = edgecenter_mkaas_pool.np.volume_type }
+output "out_state"         { value = edgecenter_mkaas_pool.np.state }
+output "out_status"        { value = edgecenter_mkaas_pool.np.status }
+`
