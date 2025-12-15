@@ -77,7 +77,7 @@ func dataSourceFlavor() *schema.Resource {
 			FlavorsField: {
 				Type:        schema.TypeList,
 				Computed:    true,
-				Description: "A list of available flavors (VM and baremetal).",
+				Description: "A list of available flavors.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						TypeField: {
