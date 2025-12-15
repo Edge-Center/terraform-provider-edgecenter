@@ -127,6 +127,9 @@ const (
 	HardwareDescriptionField         = "hardware_description"
 	SgxEpcSizeField                  = "sgx_epc_size"
 	ResourceClassField               = "resource_class"
+	PricePerHourField                = "price_per_hour"
+	PricePerMonthField               = "price_per_month"
+	CurrencyCodeField                = "currency_code"
 )
 
 type CloudClientConf struct {

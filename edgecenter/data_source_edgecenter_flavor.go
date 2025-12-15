@@ -2,7 +2,7 @@ package edgecenter
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -75,6 +75,21 @@ func dataSourceFlavor() *schema.Resource {
 							Computed:    true,
 							Description: "The flavor resource class for mapping to hardware capacity.",
 						},
+						PricePerHourField: {
+							Type:        schema.TypeFloat,
+							Computed:    true,
+							Description: "",
+						},
+						PricePerMonthField: {
+							Type:        schema.TypeFloat,
+							Computed:    true,
+							Description: "",
+						},
+						CurrencyCodeField: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "",
+						},
 						HardwareDescriptionField: {
 							Type:        schema.TypeMap,
 							Computed:    true,
@@ -110,7 +125,7 @@ func dataSourceFlavorsRead(ctx context.Context, d *schema.ResourceData, m interf
 
 	flavors = append(flavors, baremetalFlavors...)
 
-	d.SetId(strconv.Itoa(clientV2.Region))
+	d.SetId(fmt.Sprintf("%d:%d", clientV2.Region, clientV2.Project))
 
 	flavorOptions := prepareFlavors(flavors)
 	if err := d.Set("flavors", flavorOptions); err != nil {
@@ -132,6 +147,9 @@ func prepareFlavors(flavors []edgecloudV2.Flavor) []interface{} {
 			VCPUsField:         flavor.VCPUS,
 			DisabledField:      flavor.Disabled,
 			ResourceClassField: flavor.ResourceClass,
+			PricePerHourField:  flavor.PricePerHour,
+			PricePerMonthField: flavor.PricePerMonth,
+			CurrencyCodeField:  flavor.CurrencyCode,
 			HardwareDescriptionField: map[string]interface{}{
 				CPUField:         flavor.HardwareDescription.CPU,
 				IPUField:         flavor.HardwareDescription.IPU,
