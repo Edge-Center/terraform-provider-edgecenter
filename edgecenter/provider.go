@@ -125,11 +125,14 @@ const (
 	SnapshotIDField                  = "snapshot_id"
 	PoplarCountField                 = "poplar_count"
 	HardwareDescriptionField         = "hardware_description"
-	SgxEpcSizeField                  = "sgx_epc_size"
+	SgxEPCSizeField                  = "sgx_epc_size"
 	ResourceClassField               = "resource_class"
 	PricePerHourField                = "price_per_hour"
 	PricePerMonthField               = "price_per_month"
 	CurrencyCodeField                = "currency_code"
+	IncludeDisabledField             = "include_disabled"
+	ExcludeWindowsField              = "exclude_windows"
+	IncludePricesField               = "include_prices"
 )
 
 type CloudClientConf struct {
