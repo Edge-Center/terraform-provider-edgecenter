@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 const (
@@ -211,7 +212,7 @@ func fetchInstanceFlavors(ctx context.Context, client *edgecloudV2.Client, d *sc
 	options := buildFlavorListOptions(d)
 	flavors, _, err := client.Flavors.List(ctx, options)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch instance flavors: %w", err)
 	}
 	return flavors, nil
 }
@@ -220,7 +221,7 @@ func fetchBaremetalFlavors(ctx context.Context, client *edgecloudV2.Client, d *s
 	options := buildFlavorListOptions(d)
 	flavors, _, err := client.Flavors.ListBaremetal(ctx, options)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch baremetal flavors: %w", err)
 	}
 	return flavors, nil
 }
@@ -231,7 +232,7 @@ func fetchLoadBalancerFlavors(ctx context.Context, client *edgecloudV2.Client, d
 	}
 	flavors, _, err := client.Loadbalancers.FlavorList(ctx, options)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch load balancer flavors: %w", err)
 	}
 	return flavors, nil
 }

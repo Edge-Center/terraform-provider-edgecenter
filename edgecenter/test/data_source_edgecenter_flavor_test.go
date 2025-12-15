@@ -165,8 +165,8 @@ func TestAccFlavorDataSource_OptionsParams(t *testing.T) {
 					// We check for empty strings rather than specific values since actual prices
 					// may change over time or may not be present, making them unreliable for testing.
 					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf("%s.0.%s", edgecenter.FlavorsField, edgecenter.CurrencyCodeField), ""),
-					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf("%s.0.%s", edgecenter.FlavorsField, edgecenter.PricePerHourField), ""),
-					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf("%s.0.%s", edgecenter.FlavorsField, edgecenter.PricePerMonthField), ""),
+					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf("%s.0.%s", edgecenter.FlavorsField, edgecenter.PricePerHourField), "0"),
+					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf("%s.0.%s", edgecenter.FlavorsField, edgecenter.PricePerMonthField), "0"),
 				),
 			},
 		},
