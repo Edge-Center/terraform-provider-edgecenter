@@ -67,6 +67,7 @@ func dataSourceFlavor() *schema.Resource {
 			TypeField: {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Default:     "",
 				Description: "Type of flavors to return: instance, baremetal, or load_balancer. If not specified, all flavors are returned.",
 				ValidateFunc: validation.StringInSlice([]string{
 					instanceFlavorType,
