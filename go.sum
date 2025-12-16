@@ -15,6 +15,8 @@ github.com/Edge-Center/edgecentercloud-go/v2 v2.4.7 h1:E3S/VcW/ekjbEnic4XO28tCx6
 github.com/Edge-Center/edgecentercloud-go/v2 v2.4.7/go.mod h1:ukw29nT+EKFe+qrPsInTwE9Ok35KC0hUnZ3bKwfIEcg=
 github.com/Edge-Center/edgecentercloud-go/v2 v2.4.8-0.20251215120716-8ce042750b9b h1:KME9xA2RctvUiRWuKfUhf0UdE+S/+8QGq7FquyVD0yE=
 github.com/Edge-Center/edgecentercloud-go/v2 v2.4.8-0.20251215120716-8ce042750b9b/go.mod h1:ukw29nT+EKFe+qrPsInTwE9Ok35KC0hUnZ3bKwfIEcg=
+github.com/Edge-Center/edgecentercloud-go/v2 v2.4.8-0.20251216091625-7bf64987607b h1:HFPo4Ldi3eg2mvC5CeoV6Q1zb3u6uvFBqb0Ecf+JoyQ=
+github.com/Edge-Center/edgecentercloud-go/v2 v2.4.8-0.20251216091625-7bf64987607b/go.mod h1:ukw29nT+EKFe+qrPsInTwE9Ok35KC0hUnZ3bKwfIEcg=
 github.com/Edge-Center/edgecenterprotection-go v0.1.7 h1:f9AF/B8+5a9OqbF5lhegKSClGvPvRG18pqZRuDJPSFI=
 github.com/Edge-Center/edgecenterprotection-go v0.1.7/go.mod h1:AtcLxO2MNM1boGknY593k09EVfo0JAmRL60klHC1kt4=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
