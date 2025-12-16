@@ -67,7 +67,7 @@ output "bmFlavors" {
 
 - `exclude_windows` (Boolean) Set to true to exclude flavors dedicated for Windows images.
 - `include_disabled` (Boolean) Set to true to include disabled flavors.
-- `include_prices` (Boolean) Set to true if the response should include flavor prices.
+- `include_prices` (Boolean) Set to true if the response should include flavor prices. Default is true.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.

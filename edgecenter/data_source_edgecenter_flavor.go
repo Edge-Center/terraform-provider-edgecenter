@@ -62,8 +62,8 @@ func dataSourceFlavor() *schema.Resource {
 			IncludePricesField: {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
-				Description: "Set to true if the response should include flavor prices.",
+				Default:     true,
+				Description: "Set to true if the response should include flavor prices. Default is true.",
 			},
 			TypeField: {
 				Type:        schema.TypeString,
