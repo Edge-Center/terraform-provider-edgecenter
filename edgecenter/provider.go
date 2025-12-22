@@ -136,6 +136,9 @@ const (
 	ExcludeWindowsField              = "exclude_windows"
 	IncludePricesField               = "include_prices"
 	RMONPlaceAll                     = "all"
+
+	MKaaSClusterPodSubnetField     = "pod_subnet"
+	MKaaSClusterServiceSubnetField = "service_subnet"
 )
 
 const (
