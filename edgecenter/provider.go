@@ -372,6 +372,7 @@ func Provider() *schema.Provider {
 			"edgecenter_reseller_images":               dataSourceResellerImages(),
 			"edgecenter_reseller_networks":             dataSourceResellerNetworksList(),
 			"edgecenter_reseller_imagesV2":             dataSourceResellerImagesV2(),
+			"edgecenter_mkaas_cluster":                 dataSourceMKaaSCluster(),
 		},
 	}
 

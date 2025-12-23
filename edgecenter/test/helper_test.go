@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/k8s/v1/clusters"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/availablenetworks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
@@ -152,54 +151,6 @@ func patchRouterForK8S(provider *edgecloud.ProviderClient, networkID string) err
 	}
 
 	return nil
-}
-
-func createTestCluster(client *edgecloud.ServiceClient, opts clusters.CreateOpts) (string, error) {
-	result, err := clusters.Create(client, opts).Extract()
-	if err != nil {
-		return "", err
-	}
-
-	taskID := result.Tasks[0]
-	clusterID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, edgecenter.K8sCreateTimeout, func(task tasks.TaskID) (interface{}, error) {
-		taskInfo, err := tasks.Get(client, string(task)).Extract()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)
-		}
-		clusterID, err := clusters.ExtractClusterIDFromTask(taskInfo)
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve cluster ID from task info: %w", err)
-		}
-		return clusterID, nil
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return clusterID.(string), nil
-}
-
-func deleteTestCluster(client *edgecloud.ServiceClient, clusterID string) error {
-	result, err := clusters.Delete(client, clusterID).Extract()
-	if err != nil {
-		return err
-	}
-
-	taskID := result.Tasks[0]
-	err = tasks.WaitTaskAndProcessResult(client, taskID, true, edgecenter.K8sCreateTimeout, func(task tasks.TaskID) error {
-		_, err := clusters.Get(client, clusterID).Extract()
-		if err == nil {
-			return fmt.Errorf("cannot delete k8s cluster with ID: %s", clusterID)
-		}
-
-		var errDefault404 edgecloud.Default404Error
-		if errors.As(err, &errDefault404) {
-			return nil
-		}
-		return fmt.Errorf("extracting k8s cluster resource error: %w", err)
-	})
-
-	return err
 }
 
 func createTestLoadBalancerWithListener(client *edgecloud.ServiceClient, opts loadbalancers.CreateOpts) (string, error) {
