@@ -27,9 +27,8 @@ resource "edgecenter_mkaas_pool" "apps" {
   volume_size = 20
   volume_type = "standard"
 
-  #   # Необязательные поля
-  #   security_group_id = "b4a1b1d3-xxxx-xxxx-xxxx-1b2c3d4e5f6a"
-
+  # Необязательные поля
+  # security_group_ids = ["b4a1b1d3-xxxx-xxxx-xxxx-1b2c3d4e5f6a"]
 
   project_id = 1234
   region_id  = "1234"
@@ -54,7 +53,7 @@ resource "edgecenter_mkaas_pool" "apps" {
 - `project_name` (String) The name of the project. Either `project_id` or `project_name` must be specified.
 - `region_id` (Number) The uuid of the region. Either `region_id` or `region_name` must be specified.
 - `region_name` (String) The name of the region. Either `region_id` or `region_name` must be specified.
-- `security_group_id` (String) The ID of the security group associated with the pool.
+- `security_group_ids` (List of String) The list of security group IDs associated with the pool.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
