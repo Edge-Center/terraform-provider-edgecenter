@@ -19,16 +19,17 @@ import (
 )
 
 type poolTfData struct { //nolint:unused
-	Token      string
-	Endpoint   string
-	ProjectID  string
-	RegionID   string
-	ClusterID  string
-	Name       string
-	Flavor     string
-	NodeCount  int
-	VolumeSize int
-	VolumeType string
+	Token            string
+	Endpoint         string
+	ProjectID        string
+	RegionID         string
+	ClusterID        string
+	Name             string
+	Flavor           string
+	NodeCount        int
+	VolumeSize       int
+	VolumeType       string
+	SecurityGroupIDs []string
 }
 
 type tfData struct {
@@ -523,17 +524,19 @@ resource "edgecenter_mkaas_pool" "np" {
   node_count   = {{ .NodeCount }}
   volume_size  = {{ .VolumeSize }}
   volume_type  = "{{ .VolumeType }}"
+  security_group_ids = [{{- if .SecurityGroupIDs }}{{ range $i, $id := .SecurityGroupIDs }}{{ if $i }}, {{ end }}"{{ $id }}"{{ end }}{{- end }}]
 }
 
-output "pool_id"           { value = edgecenter_mkaas_pool.np.id }
-output "pool_name"         { value = edgecenter_mkaas_pool.np.name }
-output "out_project_id"    { value = tostring(edgecenter_mkaas_pool.np.project_id) }
-output "out_region_id"     { value = tostring(edgecenter_mkaas_pool.np.region_id) }
-output "out_cluster_id"    { value = tostring(edgecenter_mkaas_pool.np.cluster_id) }
-output "out_flavor"        { value = edgecenter_mkaas_pool.np.flavor }
-output "out_node_count"    { value = tostring(edgecenter_mkaas_pool.np.node_count) }
-output "out_volume_size"   { value = tostring(edgecenter_mkaas_pool.np.volume_size) }
-output "out_volume_type"   { value = edgecenter_mkaas_pool.np.volume_type }
-output "out_state"         { value = edgecenter_mkaas_pool.np.state }
-output "out_status"        { value = edgecenter_mkaas_pool.np.status }
+output "pool_id"                { value = edgecenter_mkaas_pool.np.id }
+output "pool_name"              { value = edgecenter_mkaas_pool.np.name }
+output "out_project_id"         { value = tostring(edgecenter_mkaas_pool.np.project_id) }
+output "out_region_id"          { value = tostring(edgecenter_mkaas_pool.np.region_id) }
+output "out_cluster_id"         { value = tostring(edgecenter_mkaas_pool.np.cluster_id) }
+output "out_flavor"             { value = edgecenter_mkaas_pool.np.flavor }
+output "out_node_count"         { value = tostring(edgecenter_mkaas_pool.np.node_count) }
+output "out_volume_size"        { value = tostring(edgecenter_mkaas_pool.np.volume_size) }
+output "out_volume_type"        { value = edgecenter_mkaas_pool.np.volume_type }
+output "out_security_group_ids" { value = edgecenter_mkaas_pool.np.security_group_ids }
+output "out_state"              { value = edgecenter_mkaas_pool.np.state }
+output "out_status"             { value = edgecenter_mkaas_pool.np.status }
 `

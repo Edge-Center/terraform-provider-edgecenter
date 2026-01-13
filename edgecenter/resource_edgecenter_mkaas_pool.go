@@ -120,10 +120,13 @@ func resourceMKaaSPool() *schema.Resource {
 					string(edgecloudV2.VolumeTypeSsdHiIops),
 				}, false),
 			},
-			MKaaSPoolSecurityGroupIDField: {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The ID of the security group associated with the pool.",
+			MKaaSPoolSecurityGroupIDsField: {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "The list of security group IDs associated with the pool.",
 			},
 			MKaaSPoolStateField: {
 				Type:        schema.TypeString,
@@ -167,9 +170,13 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 		val := v.(int)
 		createOpts.MaxNodeCount = &val
 	}
-	if v, ok := d.GetOk(MKaaSPoolSecurityGroupIDField); ok {
-		sg := v.(string)
-		createOpts.SecurityGroupID = &sg
+	if v, ok := d.GetOk(MKaaSPoolSecurityGroupIDsField); ok {
+		sgs := v.([]interface{})
+		ids := make([]string, 0, len(sgs))
+		for _, sg := range sgs {
+			ids = append(ids, sg.(string))
+		}
+		createOpts.SecurityGroupIds = ids
 	}
 	if v, ok := d.GetOk(MKaaSPoolLabelsField); ok {
 		for k, iv := range v.(map[string]interface{}) {
@@ -245,6 +252,7 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set(MKaaSVolumeTypeField, string(pool.VolumeType))
 	_ = d.Set(MKaaSPoolStateField, pool.State)
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)
+	_ = d.Set(MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)
 
 	return diags
 }

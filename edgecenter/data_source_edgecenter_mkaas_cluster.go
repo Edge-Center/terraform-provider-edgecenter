@@ -90,7 +90,7 @@ func dataSourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	var (
-		cluster   *edgecloudV2.MkaaSCluster
+		cluster   *edgecloudV2.MKaaSCluster
 		clusterID int
 	)
 
@@ -119,7 +119,7 @@ func dataSourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m i
 			return diag.Errorf("either 'id' or 'name' must be specified")
 		}
 
-		opts := &edgecloudV2.MkaaSClusterListOptions{
+		opts := &edgecloudV2.MKaaSClusterListOptions{
 			Name:  name,
 			Limit: 2,
 		}

@@ -3,6 +3,7 @@
 package edgecenter_test
 
 import (
+	"context"
 	"net"
 	"os"
 	"path/filepath"
@@ -116,6 +117,22 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 	require.NoError(t, err, "failed to create subnet")
 	t.Logf("Subnet created successfully with ID: %s", subnetID)
 
+	// Create a security group
+	t.Log("Creating security group...")
+	sgName := base + "-sg"
+	sg, _, err := client.SecurityGroups.Create(context.Background(), &edgecloudV2.SecurityGroupCreateRequest{
+		SecurityGroup: edgecloudV2.SecurityGroupCreateRequestInner{
+			Name: sgName,
+		},
+	})
+	require.NoError(t, err, "failed to create security group")
+	t.Logf("Security group created successfully with ID: %s", sg.ID)
+	t.Cleanup(func() {
+		if _, err := client.SecurityGroups.Delete(context.Background(), sg.ID); err != nil {
+			t.Errorf("cleanup failed: delete security group %s: %v", sg.ID, err)
+		}
+	})
+
 	// Create cluster
 	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
@@ -158,15 +175,16 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 
 	poolName := base + "-pool"
 	poolData := poolTfData{
-		Token:      token,
-		ProjectID:  cluster.Data.ProjectID,
-		RegionID:   cluster.Data.RegionID,
-		ClusterID:  cluster.ID,
-		Name:       poolName,
-		Flavor:     masterFlavor,
-		NodeCount:  1,
-		VolumeSize: 30,
-		VolumeType: workerVolumeType,
+		Token:            token,
+		ProjectID:        cluster.Data.ProjectID,
+		RegionID:         cluster.Data.RegionID,
+		ClusterID:        cluster.ID,
+		Name:             poolName,
+		Flavor:           masterFlavor,
+		NodeCount:        1,
+		VolumeSize:       30,
+		VolumeType:       workerVolumeType,
+		SecurityGroupIDs: []string{sg.ID},
 	}
 	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
 	if err != nil {
@@ -227,7 +245,7 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 	require.Equalf(t, "1", tt.Output(t, dataSourceOpts, "out_node_count"), "%s mismatch", "node_count")
 	require.Equalf(t, "30", tt.Output(t, dataSourceOpts, "out_volume_size"), "%s mismatch", "volume_size")
 	require.Equalf(t, workerVolumeType, tt.Output(t, dataSourceOpts, "out_volume_type"), "%s mismatch", "volume_type")
-	require.Equalf(t, "[]", tt.Output(t, dataSourceOpts, "out_security_group_ids"), "%s mismatch", "security_group_ids")
+	require.Equalf(t, "["+sg.ID+"]", tt.Output(t, dataSourceOpts, "out_security_group_ids"), "%s mismatch", "security_group_ids")
 	_ = tt.Output(t, dataSourceOpts, "out_state")
 	_ = tt.Output(t, dataSourceOpts, "out_status")
 
