@@ -12,9 +12,8 @@ resource "edgecenter_mkaas_pool" "apps" {
   volume_size = 20
   volume_type = "standard"
 
-  #   # Необязательные поля
-  #   security_group_id = "b4a1b1d3-xxxx-xxxx-xxxx-1b2c3d4e5f6a"
-
+  # Необязательные поля
+  # security_group_ids = ["b4a1b1d3-xxxx-xxxx-xxxx-1b2c3d4e5f6a"]
 
   project_id = 1234
   region_id  = "1234"
