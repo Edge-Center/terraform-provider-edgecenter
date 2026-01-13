@@ -144,7 +144,6 @@ const (
 	MKaaSPoolLabelsField = "labels"
 	MKaaSPoolTaintsField = "taints"
 
-	MKaaSPoolSecurityGroupIDField  = "security_group_id"
 	MKaaSPoolStateField            = "state"
 	MKaaSPoolStatusField           = "status"
 	MKaaSPoolSecurityGroupIDsField = "security_group_ids"
