@@ -82,6 +82,9 @@ test_cloud_data_source: install_godotenv
 test_cloud_resource: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_resource -short -timeout=20m
 
+test_mkaas_resource: install_godotenv
+	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_resource_mkaas -short -timeout=20m
+
 test_not_cloud: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags dns storage cdn -v -timeout=5m
 
