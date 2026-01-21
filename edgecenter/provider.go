@@ -134,7 +134,7 @@ const (
 	MKaaSClusterExternalIPField = "external_ip"
 	MKaaSClusterCreatedField    = "created"
 	MKaaSClusterProcessingField = "processing"
-	MKaaSClusterStateField      = "state"
+	MKaaSClusterStageField      = "stage"
 	MKaaSClusterIDField         = "cluster_id"
 
 	MKaaSPoolIDField           = "pool_id"

@@ -116,7 +116,7 @@ output "view" {
 - `network_id` (String) Network ID.
 - `processing` (Boolean)
 - `ssh_keypair_name` (String) SSH keypair name.
-- `state` (String)
+- `stage` (String)
 - `status` (String)
 - `subnet_id` (String) Subnet ID.
 

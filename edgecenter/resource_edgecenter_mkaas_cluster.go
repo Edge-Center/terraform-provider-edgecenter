@@ -171,10 +171,10 @@ func resourceMKaaSCluster() *schema.Resource {
 				Computed:    true,
 				Description: "Status of the Kubernetes cluster.",
 			},
-			MKaaSClusterStateField: {
+			MKaaSClusterStageField: {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "State of the Kubernetes cluster.",
+				Description: "Stage of the Kubernetes cluster.",
 			},
 			MKaaSClusterPodSubnetField: {
 				Type:     schema.TypeString,
@@ -302,7 +302,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(MKaaSClusterCreatedField, cluster.Created)
 	_ = d.Set(MKaaSClusterProcessingField, cluster.Processing)
 	_ = d.Set(StatusField, cluster.Status)
-	_ = d.Set(MKaaSClusterStateField, cluster.State)
+	_ = d.Set(MKaaSClusterStageField, cluster.Stage)
 	_ = d.Set(MKaaSClusterPodSubnetField, cluster.PodSubnet)
 	_ = d.Set(MKaaSClusterServiceSubnetField, cluster.ServiceSubnet)
 
