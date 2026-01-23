@@ -312,6 +312,17 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start MKaaS update")
 
+	if unsupported := mkaasClusterUnsupportedUpdateChanges(d); len(unsupported) > 0 {
+		return diag.Errorf(
+			"MKaaS cluster update is not supported for these fields: %v. "+
+				"Only %q and %q are supported. "+
+				"Please revert changes, or recreate the resource if applicable.",
+			unsupported,
+			NameField,
+			fmt.Sprintf("%s.0.%s", MKaaSClusterControlPlaneField, MKaaSNodeCountField),
+		)
+	}
+
 	clusterID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("invalid cluster id: %w", err))
