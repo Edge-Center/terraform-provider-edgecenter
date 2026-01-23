@@ -258,9 +258,10 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("Start MKaaS Pool update")
+	tflog.Info(ctx, "Start MKaaS Pool update")
 
 	clusterID := d.Get(MKaaSClusterIDField).(int)
+
 	poolID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("invalid pool id %q: %w", d.Id(), err))
@@ -271,38 +272,64 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	updateReq := edgecloudV2.MKaaSPoolUpdateRequest{}
-	needsUpdate := false
-
 	if d.HasChange(NameField) {
 		name := d.Get(NameField).(string)
-		updateReq.Name = &name
-		needsUpdate = true
+
+		tflog.Info(ctx, "Updating MKaaS pool name", map[string]interface{}{
+			"pool_id": poolID,
+			"name":    name,
+		})
+
+		req := edgecloudV2.MKaaSPoolUpdateNameRequest{
+			Name: &name,
+		}
+
+		taskResp, _, err := clientV2.MkaaS.PoolUpdateName(ctx, clusterID, poolID, req)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if taskResp != nil && len(taskResp.Tasks) > 0 {
+			taskID := taskResp.Tasks[0]
+
+			if err := utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout); err != nil {
+				return diag.FromErr(err)
+			}
+		}
 	}
 
 	if d.HasChange(MKaaSNodeCountField) {
 		nodeCount := d.Get(MKaaSNodeCountField).(int)
-		updateReq.NodeCount = &nodeCount
-		needsUpdate = true
+
+		tflog.Info(ctx, "Updating MKaaS pool node count", map[string]interface{}{
+			"pool_id":    poolID,
+			"node_count": nodeCount,
+		})
+
+		req := edgecloudV2.MKaaSPoolUpdateScaleRequest{
+			NodeCount: &nodeCount,
+		}
+
+		taskResp, _, err := clientV2.MkaaS.PoolUpdateNodeCount(ctx, clusterID, poolID, req)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if taskResp != nil && len(taskResp.Tasks) > 0 {
+			taskID := taskResp.Tasks[0]
+
+			if err := utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout); err != nil {
+				return diag.FromErr(err)
+			}
+		}
 	}
 
-	if !needsUpdate {
-		log.Println("No MKaaS Pool fields require update")
+	if !d.HasChange(NameField) && !d.HasChange(MKaaSNodeCountField) {
+		tflog.Info(ctx, "No MKaaS Pool fields require update")
 		return resourceMKaaSPoolRead(ctx, d, m)
 	}
 
-	task, _, err := clientV2.MkaaS.PoolUpdate(ctx, clusterID, poolID, updateReq)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	taskID := task.Tasks[0]
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	log.Println("Finish MKaaS Pool update")
+	tflog.Info(ctx, "Finish MKaaS Pool update")
 
 	return resourceMKaaSPoolRead(ctx, d, m)
 }
