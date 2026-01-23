@@ -62,7 +62,7 @@ func dataSourceMKaaSCluster() *schema.Resource {
 			"created":          {Type: schema.TypeString, Computed: true},
 			"processing":       {Type: schema.TypeBool, Computed: true},
 			"status":           {Type: schema.TypeString, Computed: true},
-			"state":            {Type: schema.TypeString, Computed: true},
+			"stage":            {Type: schema.TypeString, Computed: true},
 
 			"control_plane": {
 				Type:     schema.TypeList,
@@ -164,7 +164,7 @@ func dataSourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m i
 	_ = d.Set("created", cluster.Created)
 	_ = d.Set("processing", cluster.Processing)
 	_ = d.Set("status", cluster.Status)
-	_ = d.Set("state", cluster.State)
+	_ = d.Set("stage", cluster.Stage)
 
 	tflog.Debug(ctx, "[DEBUG] Finish MKaaS cluster reading")
 	return diag.Diagnostics{}

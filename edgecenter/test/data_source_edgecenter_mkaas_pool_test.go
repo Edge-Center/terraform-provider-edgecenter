@@ -137,20 +137,21 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
 	cluster, err := CreateCluster(t, tfData{
-		Token:         token,
-		ProjectID:     projectID,
-		RegionID:      regionID,
-		NetworkID:     networkID,
-		SubnetID:      subnetID,
-		PodSubnet:     podSubnet,
-		ServiceSubnet: serviceSubnet,
-		SSHKeypair:    keypairName,
-		Name:          clusterName,
-		CPFlavor:      masterFlavor,
-		CPNodeCount:   1,
-		CPVolumeSize:  30,
-		CPVolumeType:  workerVolumeType,
-		CPVersion:     kubernetesVersion,
+		Token:                    token,
+		ProjectID:                projectID,
+		RegionID:                 regionID,
+		NetworkID:                networkID,
+		SubnetID:                 subnetID,
+		PodSubnet:                podSubnet,
+		ServiceSubnet:            serviceSubnet,
+		PublishKubeApiToInternet: false,
+		SSHKeypair:               keypairName,
+		Name:                     clusterName,
+		CPFlavor:                 masterFlavor,
+		CPNodeCount:              1,
+		CPVolumeSize:             30,
+		CPVolumeType:             workerVolumeType,
+		CPVersion:                kubernetesVersion,
 	})
 	if err != nil {
 		t.Fatalf("failed to create cluster: %v", err)
