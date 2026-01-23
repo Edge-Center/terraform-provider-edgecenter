@@ -96,20 +96,21 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	t.Log("Creating cluster...")
 	clusterName := base + "-cls"
 	cluster, err := CreateCluster(t, tfData{
-		Token:         token,
-		ProjectID:     projectID,
-		RegionID:      regionID,
-		NetworkID:     networkID,
-		SubnetID:      subnetID,
-		SSHKeypair:    keypairName,
-		ServiceSubnet: serviceSubnet,
-		PodSubnet:     podSubnet,
-		Name:          clusterName,
-		CPFlavor:      masterFlavor,
-		CPNodeCount:   1,
-		CPVolumeSize:  30,
-		CPVolumeType:  masterVolumeType,
-		CPVersion:     kubernetesVersion,
+		Token:                    token,
+		ProjectID:                projectID,
+		RegionID:                 regionID,
+		NetworkID:                networkID,
+		SubnetID:                 subnetID,
+		SSHKeypair:               keypairName,
+		ServiceSubnet:            serviceSubnet,
+		PodSubnet:                podSubnet,
+		PublishKubeApiToInternet: false,
+		Name:                     clusterName,
+		CPFlavor:                 masterFlavor,
+		CPNodeCount:              1,
+		CPVolumeSize:             30,
+		CPVolumeType:             masterVolumeType,
+		CPVersion:                kubernetesVersion,
 	})
 	if err != nil {
 		t.Fatalf("failed to create cluster: %v", err)

@@ -76,20 +76,21 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	nameV2 := baseName + "-v2"
 
 	data := tfData{
-		Token:         token,
-		ProjectID:     projectID,
-		RegionID:      regionID,
-		NetworkID:     networkID,
-		SubnetID:      subnetID,
-		PodSubnet:     podSubnet,
-		ServiceSubnet: serviceSubnet,
-		SSHKeypair:    keypairName,
-		Name:          nameV1,
-		CPFlavor:      masterFlavor,
-		CPNodeCount:   1,
-		CPVolumeSize:  30,
-		CPVolumeType:  masterVolumeType,
-		CPVersion:     kubernetesVersion,
+		Token:                    token,
+		ProjectID:                projectID,
+		RegionID:                 regionID,
+		NetworkID:                networkID,
+		SubnetID:                 subnetID,
+		PodSubnet:                podSubnet,
+		ServiceSubnet:            serviceSubnet,
+		PublishKubeApiToInternet: false,
+		SSHKeypair:               keypairName,
+		Name:                     nameV1,
+		CPFlavor:                 masterFlavor,
+		CPNodeCount:              1,
+		CPVolumeSize:             30,
+		CPVolumeType:             masterVolumeType,
+		CPVersion:                kubernetesVersion,
 	}
 
 	// --- CREATE cluster
@@ -113,6 +114,7 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, keypairName, output(t, cluster, "out_ssh_keypair_name"), "%s mismatch", "ssh_keypair_name")
 	require.Equalf(t, networkID, output(t, cluster, "out_network_id"), "%s mismatch", "network_id")
 	require.Equalf(t, subnetID, output(t, cluster, "out_subnet_id"), "%s mismatch", "subnet_id")
+	require.Equalf(t, clusterWorkCompletedStage, output(t, cluster, "stage"), "%s mismatch", "stage")
 	require.Equal(t, podSubnet, output(t, cluster, "out_pod_subnet"))
 	require.Equal(t, serviceSubnet, output(t, cluster, "out_service_subnet"))
 	require.Equalf(t, masterFlavor, output(t, cluster, "out_cp_flavor"), "%s mismatch", "control_plane.flavor")

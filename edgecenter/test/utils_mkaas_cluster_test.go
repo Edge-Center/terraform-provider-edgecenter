@@ -33,21 +33,22 @@ type poolTfData struct { //nolint:unused
 }
 
 type tfData struct {
-	Token         string
-	Endpoint      string
-	ProjectID     string
-	RegionID      string
-	NetworkID     string
-	SubnetID      string
-	PodSubnet     string
-	ServiceSubnet string
-	SSHKeypair    string
-	Name          string
-	CPFlavor      string
-	CPNodeCount   int
-	CPVolumeSize  int
-	CPVolumeType  string
-	CPVersion     string
+	Token                    string
+	Endpoint                 string
+	ProjectID                string
+	RegionID                 string
+	NetworkID                string
+	SubnetID                 string
+	PodSubnet                string
+	ServiceSubnet            string
+	PublishKubeApiToInternet bool
+	SSHKeypair               string
+	Name                     string
+	CPFlavor                 string
+	CPNodeCount              int
+	CPVolumeSize             int
+	CPVolumeType             string
+	CPVersion                string
 }
 
 const mainTmpl = `
@@ -74,6 +75,7 @@ resource "edgecenter_mkaas_cluster" "test" {
 
   pod_subnet         = "{{ .PodSubnet }}"
   service_subnet     = "{{ .ServiceSubnet }}"
+  publish_kube_api_to_internet = {{ .PublishKubeApiToInternet }}
 
   control_plane {
     flavor      = "{{ .CPFlavor }}"
@@ -102,18 +104,19 @@ output "out_k8s_version"    { value = edgecenter_mkaas_cluster.test.control_plan
 # computed
 output "internal_ip"        { value = edgecenter_mkaas_cluster.test.internal_ip }
 output "external_ip"        { value = edgecenter_mkaas_cluster.test.external_ip }
-output "state"              { value = edgecenter_mkaas_cluster.test.state }
+output "stage"              { value = edgecenter_mkaas_cluster.test.stage }
 output "created"            { value = edgecenter_mkaas_cluster.test.created }
 `
 
 const (
-	podSubnet         = "10.244.0.0/16"
-	serviceSubnet     = "10.96.0.0/12"
-	kubernetesVersion = "v1.31.0"
-	masterVolumeType  = "ssd_hiiops"
-	workerVolumeType  = "ssd_hiiops"
-	masterFlavor      = "g3-standard-2-4"
-	workerFlavor      = "g3-standard-2-4"
+	podSubnet                 = "10.244.0.0/16"
+	serviceSubnet             = "10.96.0.0/12"
+	kubernetesVersion         = "v1.31.0"
+	masterVolumeType          = "ssd_hiiops"
+	workerVolumeType          = "ssd_hiiops"
+	masterFlavor              = "g3-standard-2-4"
+	workerFlavor              = "g3-standard-2-4"
+	clusterWorkCompletedStage = "WORK_COMPLETED"
 )
 
 type Cluster struct {

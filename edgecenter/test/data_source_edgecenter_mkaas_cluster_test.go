@@ -54,7 +54,7 @@ output "out_external_ip"  { value = data.edgecenter_mkaas_cluster.ds.external_ip
 output "out_created"      { value = data.edgecenter_mkaas_cluster.ds.created }
 output "out_processing"   { value = tostring(data.edgecenter_mkaas_cluster.ds.processing) }
 output "out_status"       { value = data.edgecenter_mkaas_cluster.ds.status }
-output "out_state"        { value = data.edgecenter_mkaas_cluster.ds.state }
+output "out_stage"        { value = data.edgecenter_mkaas_cluster.ds.stage }
 `
 
 type mkaasClusterDSData struct {
@@ -120,18 +120,21 @@ func TestMKaaSClusterDataSource_ReadByID(t *testing.T) {
 
 	clusterName := base + "-cls"
 	cluster, err := CreateCluster(t, tfData{
-		Token:        token,
-		ProjectID:    projectID,
-		RegionID:     regionID,
-		NetworkID:    networkID,
-		SubnetID:     subnetID,
-		SSHKeypair:   keypairName,
-		Name:         clusterName,
-		CPFlavor:     cpFlavor,
-		CPNodeCount:  1,
-		CPVolumeSize: 30,
-		CPVolumeType: volType,
-		CPVersion:    k8sVersion,
+		Token:                    token,
+		ProjectID:                projectID,
+		RegionID:                 regionID,
+		NetworkID:                networkID,
+		SubnetID:                 subnetID,
+		SSHKeypair:               keypairName,
+		PodSubnet:                podSubnet,
+		ServiceSubnet:            serviceSubnet,
+		PublishKubeApiToInternet: false,
+		Name:                     clusterName,
+		CPFlavor:                 cpFlavor,
+		CPNodeCount:              1,
+		CPVolumeSize:             30,
+		CPVolumeType:             volType,
+		CPVersion:                k8sVersion,
 	})
 	require.NoError(t, err, "failed to create cluster")
 	require.NotEmpty(t, cluster.ID, "cluster ID is empty")
@@ -185,7 +188,7 @@ func TestMKaaSClusterDataSource_ReadByID(t *testing.T) {
 	_ = tt.Output(t, dsOpts, "out_external_ip")
 	require.NotEmpty(t, tt.Output(t, dsOpts, "out_created"))
 	require.NotEmpty(t, tt.Output(t, dsOpts, "out_status"))
-	_ = tt.Output(t, dsOpts, "out_state")
+	require.Equal(t, clusterWorkCompletedStage, tt.Output(t, dsOpts, "out_stage"))
 
 	if err := cluster.Destroy(t); err != nil {
 		t.Fatalf("terraform destroy for cluster: %v", err)
