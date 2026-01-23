@@ -8,7 +8,7 @@ require (
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.1
 	github.com/Edge-Center/edgecentercdn-go v0.1.25
 	github.com/Edge-Center/edgecentercloud-go v1.2.0
-	github.com/Edge-Center/edgecentercloud-go/v2 v2.4.8-0.20260114082307-a93b750266d7
+	github.com/Edge-Center/edgecentercloud-go/v2 v2.4.8-0.20260121093047-d630b4f28439
 	github.com/Edge-Center/edgecenterprotection-go v0.1.7
 	github.com/connerdouglass/go-retry v1.0.1
 	github.com/gruntwork-io/terratest v0.51.0
