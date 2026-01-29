@@ -260,6 +260,17 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start MKaaS Pool update")
 
+	if unsupported := mkaasPoolUnsupportedUpdateChanges(d); len(unsupported) > 0 {
+		return diag.Errorf(
+			"MKaaS pool update is not supported for these fields: %v. "+
+				"Only %q and %q are supported. "+
+				"Please revert changes, or recreate the resource if applicable.",
+			unsupported,
+			NameField,
+			MKaaSNodeCountField,
+		)
+	}
+
 	clusterID := d.Get(MKaaSClusterIDField).(int)
 
 	poolID, err := strconv.Atoi(d.Id())
