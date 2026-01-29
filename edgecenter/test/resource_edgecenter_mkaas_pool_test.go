@@ -192,6 +192,23 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, poolNameV2, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name (after update)")
 	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count (after update)")
 
+	// --- UNSUPPORTED UPDATE
+	poolData.VolumeType = edgecloudV2.VolumeTypeStandard.String()
+	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
+	require.NoError(t, err)
+
+	_, err = tt.ApplyAndIdempotentE(t, poolOpts)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "MKaaS pool update is not supported")
+	require.Contains(t, err.Error(), "volume_type")
+
+	poolData.VolumeType = workerVolumeType
+	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
+	require.NoError(t, err)
+
+	_, err = tt.ApplyAndIdempotentE(t, poolOpts)
+	require.NoError(t, err)
+
 	// IMPORT pool
 	importDir := filepath.Join(poolDir, "import")
 	if err := os.MkdirAll(importDir, 0755); err != nil {
