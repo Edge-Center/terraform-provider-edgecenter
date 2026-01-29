@@ -136,6 +136,19 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, "3", output(t, cluster, "out_cp_node_count"), "%s mismatch", "control_plane.node_count (after update)")
 	require.Equalf(t, nameV2, output(t, cluster, "cluster_name"), "%s mismatch", "cluster_name (after update)")
 
+	// --- UNSUPPORTED UPDATE
+	err = cluster.UpdateCluster(t, func(d *tfData) {
+		d.CPFlavor = "g1-gpu-1-2-1"
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not supported")
+	require.Contains(t, err.Error(), "control_plane.0.flavor")
+
+	err = cluster.UpdateCluster(t, func(d *tfData) {
+		d.CPFlavor = masterFlavor
+	})
+	require.NoError(t, err)
+
 	// --- IMPORT cluster
 	if _, err := ImportClusterPlanApply(
 		t,
