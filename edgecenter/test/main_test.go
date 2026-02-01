@@ -21,6 +21,8 @@ import (
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	rmon "github.com/Edge-Center/edgecenteredgemon-go"
+	ermonProvider "github.com/Edge-Center/edgecenteredgemon-go/edgecenter/provider"
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
@@ -71,6 +73,7 @@ const (
 	EC_STORAGE_URL_VAR        VarName = "EC_STORAGE_API"
 	EC_DNS_URL_VAR            VarName = "EC_DNS_API"
 	EC_PROTECTION_URL_VAR     VarName = "EC_PROTECTION_API"
+	EC_RMON_URL_VAR           VarName = "EC_RMON_API"
 	EC_IMAGE_VAR              VarName = "EC_IMAGE"
 	EC_SECGROUP_VAR           VarName = "EC_SECGROUP"
 	EC_EXT_NET_VAR            VarName = "EC_EXT_NET"
@@ -113,6 +116,7 @@ var (
 	EC_STORAGE_API        = getEnv(EC_STORAGE_URL_VAR)
 	EC_DNS_API            = getEnv(EC_DNS_URL_VAR)
 	EC_PROTECTION_API     = getEnv(EC_PROTECTION_URL_VAR)
+	EC_RMON_API           = getEnv(EC_RMON_URL_VAR)
 	EC_NETWORK_ID         = getEnv(EC_NETWORK_ID_VAR)
 	EC_SUBNET_ID          = getEnv(EC_SUBNET_ID_VAR)
 	EC_CLUSTER_ID         = getEnv(EC_CLUSTER_ID_VAR)
@@ -139,6 +143,7 @@ var varsMap = map[VarName]string{
 	EC_STORAGE_URL_VAR:        EC_STORAGE_API,
 	EC_DNS_URL_VAR:            EC_DNS_API,
 	EC_PROTECTION_URL_VAR:     EC_PROTECTION_API,
+	EC_RMON_URL_VAR:           EC_RMON_API,
 	EC_NETWORK_ID_VAR:         EC_NETWORK_ID,
 	EC_SUBNET_ID_VAR:          EC_SUBNET_ID,
 	EC_CLUSTER_ID_VAR:         EC_CLUSTER_ID,
@@ -329,7 +334,22 @@ func createTestConfig() (*edgecenter.Config, error) {
 		}
 	}
 
-	config := edgecenter.NewConfig(provider, cdnService, storageClient, dnsClient, protectionClient, permanentToken, ecAPI, userAgent)
+	var rmonClient rmon.ClientService
+	if EC_RMON_API != "" {
+		rmonProvider := ermonProvider.NewClient(
+			EC_RMON_API,
+			ermonProvider.WithUserAgent(userAgent),
+			ermonProvider.WithSignerFunc(func(req *http.Request) error {
+				for k, v := range provider.AuthenticatedHeaders() {
+					req.Header.Set(k, v)
+				}
+				return nil
+			}),
+		)
+		rmonClient = rmon.NewService(rmonProvider)
+	}
+
+	config := edgecenter.NewConfig(provider, cdnService, storageClient, dnsClient, protectionClient, rmonClient, permanentToken, ecAPI, userAgent)
 
 	return &config, nil
 }
