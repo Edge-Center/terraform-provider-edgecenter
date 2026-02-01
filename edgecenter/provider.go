@@ -18,6 +18,8 @@ import (
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	rmon "github.com/Edge-Center/edgecenteredgemon-go"
+	ermonProvider "github.com/Edge-Center/edgecenteredgemon-go/edgecenter/provider"
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
 )
 
@@ -215,6 +217,12 @@ func Provider() *schema.Provider {
 				Description: "CDN API (define only if you want to override CDN API endpoint)",
 				DefaultFunc: schema.EnvDefaultFunc("EC_CDN_API", ""),
 			},
+			"edgecenter_rmon_api": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "RMON API",
+				DefaultFunc: schema.EnvDefaultFunc("EC_RMON_API", ""),
+			},
 			"edgecenter_storage_api": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -267,6 +275,15 @@ func Provider() *schema.Provider {
 			"edgecenter_cdn_rule":                              resourceCDNRule(),
 			"edgecenter_cdn_shielding":                         resourceCDNShielding(),
 			"edgecenter_cdn_sslcert":                           resourceCDNCert(),
+			"edgecenter_rmon_channel":                          resourceRMONChannel(),
+			"edgecenter_rmon_check_dns":                        resourceRMONCheckDNS(),
+			"edgecenter_rmon_check_group":                      resourceRMONCheckGroup(),
+			"edgecenter_rmon_check_http":                       resourceRMONCheckHTTP(),
+			"edgecenter_rmon_check_ping":                       resourceRMONCheckPing(),
+			"edgecenter_rmon_check_rabbitmq":                   resourceRMONCheckRabbitMQ(),
+			"edgecenter_rmon_check_smtp":                       resourceRMONCheckSMTP(),
+			"edgecenter_rmon_check_tcp":                        resourceRMONCheckTCP(),
+			"edgecenter_rmon_status_page":                      resourceRMONStatusPage(),
 			LifecyclePolicyResourceField:                       resourceLifecyclePolicy(),
 			"edgecenter_lb_l7policy":                           resourceL7Policy(),
 			"edgecenter_lb_l7rule":                             resourceL7Rule(),
@@ -357,6 +374,11 @@ func providerConfigure(
 		cdnAPI = apiEndpoint
 	}
 
+	rmonAPI := d.Get("edgecenter_rmon_api").(string)
+	if rmonAPI == "" {
+		rmonAPI = apiEndpoint
+	}
+
 	storageAPI := d.Get("edgecenter_storage_api").(string)
 	if storageAPI == "" {
 		storageAPI = apiEndpoint + "/storage"
@@ -424,6 +446,26 @@ func providerConfigure(
 		UserAgent:      userAgent,
 		Provider:       provider,
 		CDNClient:      cdnService,
+	}
+
+	if rmonAPI != "" {
+		rmonProvider := ermonProvider.NewClient(
+			rmonAPI,
+			ermonProvider.WithUserAgent(userAgent),
+			ermonProvider.WithSignerFunc(
+				func(req *http.Request) error {
+					for k, v := range provider.AuthenticatedHeaders() {
+						req.Header.Set(k, v)
+					}
+					return nil
+				},
+			),
+		)
+		if err != nil {
+			return nil, diag.FromErr(fmt.Errorf("rmon api client: %w", err))
+		}
+
+		config.RmonClient = rmon.NewService(rmonProvider)
 	}
 
 	if storageAPI != "" {

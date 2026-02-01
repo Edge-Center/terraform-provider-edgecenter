@@ -1,6 +1,6 @@
 module github.com/Edge-Center/terraform-provider-edgecenter
 
-go 1.24.4
+go 1.25.3
 
 require (
 	github.com/AlekSi/pointer v1.2.0
@@ -9,6 +9,7 @@ require (
 	github.com/Edge-Center/edgecentercdn-go v0.1.26
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
 	github.com/Edge-Center/edgecentercloud-go/v2 v2.4.8
+	github.com/Edge-Center/edgecenteredgemon-go v0.0.5
 	github.com/Edge-Center/edgecenterprotection-go v0.1.7
 	github.com/connerdouglass/go-retry v1.0.1
 	github.com/hashicorp/go-cty v1.5.0
