@@ -1,8 +1,6 @@
-version: "1.60"
-
 run:
   timeout: 10m
-  go: "1.25"
+  go: "1.22"
 
 linters:
   # Disable all linters.
