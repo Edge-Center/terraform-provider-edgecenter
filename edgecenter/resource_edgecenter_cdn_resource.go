@@ -1324,7 +1324,7 @@ func listToResourceOptions(l []interface{}) *cdn.ResourceOptions {
 		}
 	}
 	if opt, ok := getOptByName(fields, "host_header"); ok {
-		opts.HostHeaderNew = &cdn.HostHeader{
+		opts.HostHeader = &cdn.HostHeader{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(string),
 		}
@@ -1614,10 +1614,7 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 		m := structToMap(options.GzipCompression)
 		result["gzip_compression"] = []interface{}{m}
 	}
-	if options.HostHeaderNew != nil {
-		m := structToMap(options.HostHeaderNew)
-		result["host_header"] = []interface{}{m}
-	} else if options.HostHeader != nil {
+	if options.HostHeader != nil {
 		m := structToMap(options.HostHeader)
 		result["host_header"] = []interface{}{m}
 	}
