@@ -44,8 +44,12 @@ jobs:
 
       - name: Tests data_source_mkaas
         if: contains(github.head_ref, 'CLOUDMKAAS')
+        env:
+          TERRAFORM_BINARY: terraform
         run: go test -v ./edgecenter/test -tags cloud_data_source_mkaas -short -timeout=20m
 
       - name: Tests resource_mkaas
         if: contains(github.head_ref, 'CLOUDMKAAS')
+        env:
+          TERRAFORM_BINARY: terraform
         run: go test -v ./edgecenter/test -tags cloud_resource_mkaas -short -timeout=20m
