@@ -263,11 +263,12 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	if unsupported := mkaasPoolUnsupportedUpdateChanges(d); len(unsupported) > 0 {
 		return diag.Errorf(
 			"MKaaS pool update is not supported for these fields: %v. "+
-				"Only %q and %q are supported. "+
+				"Only %q, %q and %q are supported. "+
 				"Please revert changes, or recreate the resource if applicable.",
 			unsupported,
 			NameField,
 			MKaaSNodeCountField,
+			MKaaSPoolSecurityGroupIDsField,
 		)
 	}
 
@@ -335,7 +336,38 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if !d.HasChange(NameField) && !d.HasChange(MKaaSNodeCountField) {
+	if d.HasChange(MKaaSPoolSecurityGroupIDsField) {
+		raw := d.Get(MKaaSPoolSecurityGroupIDsField).([]interface{})
+		ids := make([]string, 0, len(raw))
+		for _, v := range raw {
+			ids = append(ids, v.(string))
+		}
+
+		tflog.Info(ctx, "Updating MKaaS pool client security groups", map[string]interface{}{
+			"pool_id":              poolID,
+			"security_group_ids":   ids,
+			"security_group_count": len(ids),
+		})
+
+		req := edgecloudV2.MKaaSPoolUpdateSecurityGroupsRequest{
+			SecurityGroupIds: ids,
+		}
+
+		taskResp, _, err := clientV2.MkaaS.PoolUpdateSecurityGroups(ctx, clusterID, poolID, req)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if taskResp != nil && len(taskResp.Tasks) > 0 {
+			taskID := taskResp.Tasks[0]
+
+			if err := utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	if !d.HasChange(NameField) && !d.HasChange(MKaaSNodeCountField) && !d.HasChange(MKaaSPoolSecurityGroupIDsField) {
 		tflog.Info(ctx, "No MKaaS Pool fields require update")
 		return resourceMKaaSPoolRead(ctx, d, m)
 	}

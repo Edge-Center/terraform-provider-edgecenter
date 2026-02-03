@@ -8,13 +8,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 )
 
-var (
-	rfc1918Ranges = []*net.IPNet{
-		mustParseCIDR("10.0.0.0/8"),
-		mustParseCIDR("172.16.0.0/12"),
-		mustParseCIDR("192.168.0.0/16"),
-	}
-)
+var rfc1918Ranges = []*net.IPNet{
+	mustParseCIDR("10.0.0.0/8"),
+	mustParseCIDR("172.16.0.0/12"),
+	mustParseCIDR("192.168.0.0/16"),
+}
 
 func mustParseCIDR(c string) *net.IPNet {
 	_, n, _ := net.ParseCIDR(c)
@@ -58,7 +56,7 @@ func ValidateCIDRInRanges(v interface{}, path cty.Path) diag.Diagnostics {
 			diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Incorrect CIDR",
-				Detail:   fmt.Sprintf("choosen subnet %s is too small, subnet must be larger than /18", str),
+				Detail:   fmt.Sprintf("chosen subnet %s is too small, subnet must be larger than /18", str),
 			},
 		}
 	}
