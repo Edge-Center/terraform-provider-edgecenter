@@ -24,7 +24,7 @@ func TestAccSecret(t *testing.T) {
       private_key = %q
       certificate = %q
       certificate_chain = %q
-      expiration = "2025-12-28T19:14:44.213"
+      expiration = "2030-12-28T19:14:44.213"
 	}
 	`, projectInfo(), regionInfo(), secretTestName, privateKey, certificate, certificateChain)
 
