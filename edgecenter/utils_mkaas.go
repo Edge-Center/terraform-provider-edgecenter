@@ -3,8 +3,9 @@ package edgecenter
 import (
 	"fmt"
 
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func flattenTaints(taints []edgecloudV2.MKaaSTaint) []map[string]interface{} { //nolint:unused

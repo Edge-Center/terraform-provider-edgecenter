@@ -167,5 +167,6 @@ func dataSourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m i
 	_ = d.Set("stage", cluster.Stage)
 
 	tflog.Debug(ctx, "[DEBUG] Finish MKaaS cluster reading")
+
 	return diag.Diagnostics{}
 }

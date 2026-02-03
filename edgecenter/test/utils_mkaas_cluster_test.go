@@ -108,6 +108,7 @@ output "stage"              { value = edgecenter_mkaas_cluster.test.stage }
 output "created"            { value = edgecenter_mkaas_cluster.test.created }
 `
 
+//nolint:unused
 const (
 	podSubnet                 = "10.244.0.0/16"
 	serviceSubnet             = "10.96.0.0/12"
