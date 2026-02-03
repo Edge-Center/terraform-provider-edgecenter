@@ -17,6 +17,7 @@ jobs:
       EC_STORAGE_API: ${{ secrets.EC_STORAGE_API }}
       TEST_PROJECT_ID: ${{ secrets.TEST_PROJECT_ID }}
       TEST_REGION_ID: ${{ secrets.TEST_REGION_ID }}
+      TEST_MKAAS_REGION_ID: ${{secrets.TEST_MKAAS_REGION_ID}}
       TF_ACC: ${{ secrets.TF_ACC }}
     runs-on: ubuntu-latest
     steps:
