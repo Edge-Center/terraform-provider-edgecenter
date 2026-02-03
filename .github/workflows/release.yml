@@ -54,4 +54,4 @@ jobs:
             -e S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }} \
             -e S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }} \
             -e S3_ENDPOINT=${{ secrets.S3_ENDPOINT }} \
-            docker.k8s-dt-1.cloud.ecnl.ru/cloud-scripts:terraS3-v0.1.34
+            harbor.mkaas.edgecenter.online/docker/cloud-scripts:terraS3-v1.0.0
