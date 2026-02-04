@@ -367,11 +367,6 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if !d.HasChange(NameField) && !d.HasChange(MKaaSNodeCountField) && !d.HasChange(MKaaSPoolSecurityGroupIDsField) {
-		tflog.Info(ctx, "No MKaaS Pool fields require update")
-		return resourceMKaaSPoolRead(ctx, d, m)
-	}
-
 	tflog.Info(ctx, "Finish MKaaS Pool update")
 
 	return resourceMKaaSPoolRead(ctx, d, m)
