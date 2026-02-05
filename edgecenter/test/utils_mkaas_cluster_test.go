@@ -108,6 +108,7 @@ output "stage"              { value = edgecenter_mkaas_cluster.test.stage }
 output "created"            { value = edgecenter_mkaas_cluster.test.created }
 `
 
+//nolint:unused
 const (
 	podSubnet                 = "10.244.0.0/16"
 	serviceSubnet             = "10.96.0.0/12"
@@ -365,32 +366,6 @@ func CreateTestSubnet(client *edgecloudV2.Client, req *edgecloudV2.SubnetworkCre
 	}
 
 	return taskResult.Subnets[0], nil
-}
-
-// DeleteTestSubnet удаляет подсеть через V2 API.
-func DeleteTestSubnet(client *edgecloudV2.Client, subnetID string) error {
-	ctx := context.Background()
-
-	results, _, err := client.Subnetworks.Delete(ctx, subnetID)
-	if err != nil {
-		return err
-	}
-
-	if len(results.Tasks) == 0 {
-		return fmt.Errorf("no task returned for subnet deletion")
-	}
-	taskID := results.Tasks[0]
-
-	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, edgecenter.SubnetCreatingTimeout)
-	if err != nil {
-		return err
-	}
-
-	if taskInfo.State == edgecloudV2.TaskStateError {
-		return fmt.Errorf("cannot delete subnet with ID: %s", subnetID)
-	}
-
-	return nil
 }
 
 // --- SSH keypair utilities
