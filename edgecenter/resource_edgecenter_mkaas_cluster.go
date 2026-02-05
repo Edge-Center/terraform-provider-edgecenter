@@ -10,14 +10,13 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
-	validationCustom "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/validation"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
+	validationCustom "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/validation"
 )
 
 const (
@@ -423,12 +422,12 @@ func customMKaaSClusterDiff(ctx context.Context, d *schema.ResourceDiff, meta in
 
 	_, podCIDR, err := net.ParseCIDR(podStr)
 	if err != nil {
-		return fmt.Errorf("invalid pod_subnet: %s", err)
+		return fmt.Errorf("invalid pod_subnet: %w", err)
 	}
 
 	_, svcCIDR, err := net.ParseCIDR(svcStr)
 	if err != nil {
-		return fmt.Errorf("invalid service_subnet: %s", err)
+		return fmt.Errorf("invalid service_subnet: %w", err)
 	}
 
 	if validationCustom.CidrIntersects(podCIDR, svcCIDR) {

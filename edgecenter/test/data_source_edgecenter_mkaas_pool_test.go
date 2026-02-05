@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gruntwork-io/terratest/modules/random"
 	tt "github.com/gruntwork-io/terratest/modules/terraform"
@@ -128,6 +129,7 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 	require.NoError(t, err, "failed to create security group")
 	t.Logf("Security group created successfully with ID: %s", sg.ID)
 	t.Cleanup(func() {
+		time.Sleep(30 * time.Second)
 		if _, err := client.SecurityGroups.Delete(context.Background(), sg.ID); err != nil {
 			t.Errorf("cleanup failed: delete security group %s: %v", sg.ID, err)
 		}

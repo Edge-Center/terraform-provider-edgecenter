@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gruntwork-io/terratest/modules/random"
 	tt "github.com/gruntwork-io/terratest/modules/terraform"
@@ -89,6 +90,23 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	t.Cleanup(func() {
 		if _, err := client.SecurityGroups.Delete(context.Background(), sg.ID); err != nil {
 			t.Errorf("cleanup failed: delete security group %s: %v", sg.ID, err)
+		}
+	})
+
+	// Create another security group for update tests
+	t.Log("Creating another security group for update...")
+	sg2Name := base + "-sg2"
+	sg2, _, err := client.SecurityGroups.Create(context.Background(), &edgecloudV2.SecurityGroupCreateRequest{
+		SecurityGroup: edgecloudV2.SecurityGroupCreateRequestInner{
+			Name: sg2Name,
+		},
+	})
+	require.NoError(t, err, "failed to create second security group")
+	t.Logf("Second security group created successfully with ID: %s", sg2.ID)
+	t.Cleanup(func() {
+		time.Sleep(30 * time.Second)
+		if _, err := client.SecurityGroups.Delete(context.Background(), sg2.ID); err != nil {
+			t.Errorf("cleanup failed: delete security group %s: %v", sg2.ID, err)
 		}
 	})
 
@@ -182,6 +200,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	poolNameV2 := base + "-pool-v2"
 	poolData.Name = poolNameV2
 	poolData.NodeCount = 2
+	poolData.SecurityGroupIDs = []string{sg2.ID}
 	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
 	if err != nil {
 		t.Fatalf("write pool main.tf (update): %v", err)
@@ -191,6 +210,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 	require.Equalf(t, poolNameV2, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name (after update)")
 	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count (after update)")
+	require.Equalf(t, "["+sg2.ID+"]", tt.Output(t, poolOpts, "out_security_group_ids"), "%s mismatch", "security_group_ids (after update)")
 
 	// --- UNSUPPORTED UPDATE
 	poolData.VolumeType = edgecloudV2.VolumeTypeStandard.String()
