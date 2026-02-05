@@ -8,6 +8,7 @@ import (
 	cdn "github.com/Edge-Center/edgecentercdn-go"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	rmon "github.com/Edge-Center/edgecenteredgemon-go"
 	protection "github.com/Edge-Center/edgecenterprotection-go"
 )
 
@@ -20,6 +21,7 @@ type Config struct {
 	StorageClient    *storageSDK.SDK
 	DNSClient        *dnsSDK.Client
 	ProtectionClient *protection.Client
+	RmonClient       rmon.ClientService
 }
 
 func NewConfig(
@@ -28,6 +30,7 @@ func NewConfig(
 	storageClient *storageSDK.SDK,
 	dnsClient *dnsSDK.Client,
 	protectionClient *protection.Client,
+	rmonClient rmon.ClientService,
 	permanentToken,
 	cloudBaseURL,
 	userAgent string,
@@ -41,6 +44,7 @@ func NewConfig(
 		StorageClient:    storageClient,
 		DNSClient:        dnsClient,
 		ProtectionClient: protectionClient,
+		RmonClient:       rmonClient,
 	}
 }
 
