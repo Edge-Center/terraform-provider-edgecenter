@@ -131,7 +131,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to update cluster (scale only): %v", err)
 	}
-	require.NoError(t, err, "failed to update cluster (scale only)")
 
 	// дождаться выхода кластера из обслуживания после масштабирования
 	err = WaitForMKaaSClusterStage(t, client, cluster.ID, clusterWorkCompletedStage, 10*time.Minute)
