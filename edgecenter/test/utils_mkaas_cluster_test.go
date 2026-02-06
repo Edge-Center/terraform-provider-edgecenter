@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 	"text/template"
+	"time"
 
 	tt "github.com/gruntwork-io/terratest/modules/terraform"
 
@@ -462,6 +463,43 @@ func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterI
 	}
 
 	return nil
+}
+
+// WaitForMKaaSClusterStage waits until MKaaS cluster reaches desired stage or timeout occurs.
+func WaitForMKaaSClusterStage(
+	t *testing.T,
+	clientV2 *edgecloudV2.Client,
+	clusterID string,
+	desiredStage string,
+	timeout time.Duration,
+) error {
+	t.Helper()
+
+	clusterIDInt, err := strconv.Atoi(clusterID)
+	if err != nil {
+		return fmt.Errorf("invalid cluster id: %w", err)
+	}
+
+	deadline := time.Now().Add(timeout)
+
+	for {
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for cluster %d to reach stage %s", clusterIDInt, desiredStage)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		cluster, _, err := clientV2.MkaaS.ClusterGet(ctx, clusterIDInt)
+		cancel()
+		if err != nil {
+			return fmt.Errorf("failed to get cluster while waiting for stage: %w", err)
+		}
+
+		if cluster.Stage == desiredStage {
+			return nil
+		}
+
+		time.Sleep(10 * time.Second)
+	}
 }
 
 func renderTemplateToWith(path, tmpl string, data any) error { //nolint:unused

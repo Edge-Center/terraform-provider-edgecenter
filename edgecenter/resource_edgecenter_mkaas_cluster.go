@@ -332,29 +332,27 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	updateReq := edgecloudV2.MKaaSClusterUpdateRequest{}
-	needsUpdate := false
-
-	if d.HasChange(NameField) {
-		updateReq.Name = d.Get(NameField).(string)
-		needsUpdate = true
-	}
-
 	controlPlaneNodeCountPath := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, MKaaSNodeCountField)
-	if d.HasChange(controlPlaneNodeCountPath) {
-		if v, ok := d.GetOk(MKaaSClusterControlPlaneField); ok {
-			cpList := v.([]interface{})
-			if len(cpList) > 0 {
-				cp := cpList[0].(map[string]interface{})
-				updateReq.MasterNodeCount = cp[MKaaSNodeCountField].(int)
-				needsUpdate = true
-			}
-		}
-	}
+	needsUpdate := d.HasChange(NameField) || d.HasChange(controlPlaneNodeCountPath)
 
 	if !needsUpdate {
 		tflog.Info(ctx, "No MKaaS cluster fields require update")
 		return resourceMKaaSClusterRead(ctx, d, m)
+	}
+
+	// Пока что API ожидает, что в запросе будут переданы валидные значения и для имени, и для
+	// количества master-нод, даже если изменяется только одно из этих полей.
+	// Поэтому всегда заполняем оба поля из актуального состояния Terraform.
+	updateReq := edgecloudV2.MKaaSClusterUpdateRequest{
+		Name: d.Get(NameField).(string),
+	}
+
+	if v, ok := d.GetOk(MKaaSClusterControlPlaneField); ok {
+		cpList := v.([]interface{})
+		if len(cpList) > 0 {
+			cp := cpList[0].(map[string]interface{})
+			updateReq.MasterNodeCount = cp[MKaaSNodeCountField].(int)
+		}
 	}
 
 	task, _, err := clientV2.MkaaS.ClusterUpdate(ctx, clusterID, updateReq)

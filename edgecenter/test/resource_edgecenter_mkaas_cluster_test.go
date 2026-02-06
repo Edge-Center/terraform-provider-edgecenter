@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gruntwork-io/terratest/modules/random"
 	tt "github.com/gruntwork-io/terratest/modules/terraform"
@@ -123,18 +124,30 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, masterVolumeType, output(t, cluster, "out_cp_volume_type"), "%s mismatch", "control_plane.volume_type")
 	require.Equalf(t, kubernetesVersion, output(t, cluster, "out_k8s_version"), "%s mismatch", "control_plane.version")
 
-	// --- UPDATE cluster
+	// --- UPDATE cluster: scale only (node_count)
 	err = cluster.UpdateCluster(t, func(d *tfData) {
-		d.Name = nameV2
 		d.CPNodeCount = 3
 	})
-
 	if err != nil {
-		t.Fatalf("failed to update cluster: %v", err)
+		t.Fatalf("failed to update cluster (scale only): %v", err)
 	}
-	require.NoError(t, err, "failed to update cluster")
-	require.Equalf(t, "3", output(t, cluster, "out_cp_node_count"), "%s mismatch", "control_plane.node_count (after update)")
-	require.Equalf(t, nameV2, output(t, cluster, "cluster_name"), "%s mismatch", "cluster_name (after update)")
+
+	// дождаться выхода кластера из обслуживания после масштабирования
+	err = WaitForMKaaSClusterStage(t, client, cluster.ID, clusterWorkCompletedStage, 10*time.Minute)
+	require.NoError(t, err, "cluster did not reach WORK_COMPLETED stage after scale update")
+	require.Equalf(t, "3", output(t, cluster, "out_cp_node_count"), "%s mismatch", "control_plane.node_count (after scale only)")
+	require.Equalf(t, nameV1, output(t, cluster, "cluster_name"), "%s mismatch", "cluster_name (after scale only)")
+
+	// --- UPDATE cluster: rename only
+	err = cluster.UpdateCluster(t, func(d *tfData) {
+		d.Name = nameV2
+	})
+	if err != nil {
+		t.Fatalf("failed to update cluster (rename only): %v", err)
+	}
+
+	require.Equalf(t, "3", output(t, cluster, "out_cp_node_count"), "%s mismatch", "control_plane.node_count (after rename only)")
+	require.Equalf(t, nameV2, output(t, cluster, "cluster_name"), "%s mismatch", "cluster_name (after rename only)")
 
 	// --- UNSUPPORTED UPDATE
 	err = cluster.UpdateCluster(t, func(d *tfData) {
