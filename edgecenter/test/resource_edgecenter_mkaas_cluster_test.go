@@ -147,7 +147,6 @@ func TestMKaaSCluster_ApplyUpdateImportDestroy(t *testing.T) {
 		t.Fatalf("failed to update cluster (rename only): %v", err)
 	}
 
-	require.NoError(t, err, "failed to update cluster (rename only)")
 	require.Equalf(t, "3", output(t, cluster, "out_cp_node_count"), "%s mismatch", "control_plane.node_count (after rename only)")
 	require.Equalf(t, nameV2, output(t, cluster, "cluster_name"), "%s mismatch", "cluster_name (after rename only)")
 
