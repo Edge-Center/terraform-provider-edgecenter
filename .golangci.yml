@@ -1,13 +1,25 @@
+version: "2"
+
 run:
   timeout: 10m
-  go: "1.22"
+  go: "1.26"
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard # Standard section: captures all standard packages.
+        - default # Default section: contains all imports that could not be matched to another section type.
+        - prefix(github.com/Edge-Center)
 
 linters:
-  # Disable all linters.
-  # Default: false
-  disable-all: true
-  # Enable specific linter
-  # https://golangci-lint.run/usage/linters/#enabled-by-default
+  default: none
+  # https://golangci-lint.run/docs/linters/
   enable:
     - asasalint
     - asciicheck
@@ -25,7 +37,6 @@ linters:
     - errorlint
     - exhaustive
     - forbidigo
-    - gci
     - ginkgolinter
     - gocheckcompilerdirectives
     - gochecknoinits
@@ -33,15 +44,11 @@ linters:
     - goconst
     - gocritic
     - godot
-    - gofmt
-    - gofumpt
     - goheader
-    - goimports
     - gomoddirectives
     - gomodguard
     - goprintffuncname
     - gosec
-    - gosimple
     - gosmopolitan
     - govet
     - grouper
@@ -73,10 +80,8 @@ linters:
     - spancheck
     - sqlclosecheck
     - staticcheck
-    - stylecheck
     - tagalign
     - tagliatelle
-    - tenv
     - testableexamples
     - testifylint
     - thelper
@@ -90,7 +95,7 @@ linters:
     - wrapcheck
     - zerologlint
     # complexity: need to refactor
-    # - wsl
+    # - wsl_v5
     # - wastedassign
     # - musttag
     # - perfsprint
@@ -115,40 +120,39 @@ linters:
     # - errcheck
     # - gocyclo
     # - dupl
-
-linters-settings:
-  nlreturn:
-    block-size: 10
-  perfsprint:
-    # Optimizes into strings concatenation.
-    # Default: true
-    strconcat: false
-  gci:
-    sections:
-      - standard # Standard section: captures all standard packages.
-      - default # Default section: contains all imports that could not be matched to another section type.
-      - prefix(github.com/Edge-Center)
-  varnamelen:
-    min-name-length: 1
-  gosec:
-    excludes:
-      # Flags for potentially-unsafe casting of ints, similar problem to globally-disabled G103
-      - G115
-      - G401
-      - G501
+  settings:
+    nlreturn:
+      block-size: 10
+    perfsprint:
+      # Optimizes into strings concatenation.
+      # Default: true
+      strconcat: false
+    varnamelen:
+      min-name-length: 1
+    gosec:
+      excludes:
+        # Unhandled errors from d.Set() / io.WriteString() — standard Terraform provider pattern
+        - G104
+        # Flags for potentially-unsafe casting of ints, similar problem to globally-disabled G103
+        - G115
+        - G401
+        - G501
+  exclusions:
+    generated: lax
+    rules:
+      # don't use ALL_CAPS in Go names; use CamelCase
+      - linters:
+          - staticcheck
+        text: "ST1003"
+      - path: '\.go'
+        linters:
+          - nolintlint
+        text: "should be written without leading space"
+      - path: 'utils|_test'
+        linters:
+          - wrapcheck
+          - funlen
 
 issues:
-  max-per-linter: 0
+  max-issues-per-linter: 0
   max-same-issues: 0
-  exclude:
-    # don't use ALL_CAPS in Go names; use CamelCase
-    - ST1003
-  exclude-rules:
-    - path: \.go
-      linters:
-        - nolintlint
-      text: should be written without leading space
-    - path: utils|_test
-      linters:
-        - wrapcheck
-        - funlen
