@@ -69,11 +69,11 @@ build_debug: tidy
 	go build -o bin/$(BINARY_NAME) -gcflags '-N -l'
 
 linters:
-	@test -f $(BIN_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.64.8
+	@test -f $(BIN_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.9.0
 	@$(BIN_DIR)/golangci-lint run
 
 linters_docker: # for windows
-	docker run --rm -v $(PROJECT_DIR):/app -w /app golangci/golangci-lint:v1.64.8 golangci-lint run -v
+	docker run --rm -v $(PROJECT_DIR):/app -w /app golangci/golangci-lint:v2.9.0 golangci-lint run -v
 
 # TESTS
 test_cloud_data_source: install_godotenv
