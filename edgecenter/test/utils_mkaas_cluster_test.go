@@ -31,6 +31,7 @@ type poolTfData struct { //nolint:unused
 	VolumeSize       int
 	VolumeType       string
 	SecurityGroupIDs []string
+	Labels           map[string]string
 }
 
 type tfData struct {
@@ -541,6 +542,11 @@ resource "edgecenter_mkaas_pool" "np" {
   volume_size  = {{ .VolumeSize }}
   volume_type  = "{{ .VolumeType }}"
   security_group_ids = [{{- if .SecurityGroupIDs }}{{ range $i, $id := .SecurityGroupIDs }}{{ if $i }}, {{ end }}"{{ $id }}"{{ end }}{{- end }}]
+  labels = {
+    {{- range $k, $v := .Labels }}
+    "{{ $k }}" = "{{ $v }}"
+    {{- end }}
+  }
 }
 
 output "pool_id"                { value = edgecenter_mkaas_pool.np.id }
@@ -552,6 +558,7 @@ output "out_flavor"             { value = edgecenter_mkaas_pool.np.flavor }
 output "out_node_count"         { value = tostring(edgecenter_mkaas_pool.np.node_count) }
 output "out_volume_size"        { value = tostring(edgecenter_mkaas_pool.np.volume_size) }
 output "out_volume_type"        { value = edgecenter_mkaas_pool.np.volume_type }
+output "out_label_env"          { value = edgecenter_mkaas_pool.np.labels["env"] }
 output "out_security_group_ids" { value = edgecenter_mkaas_pool.np.security_group_ids }
 output "out_state"              { value = edgecenter_mkaas_pool.np.state }
 output "out_status"             { value = edgecenter_mkaas_pool.np.status }

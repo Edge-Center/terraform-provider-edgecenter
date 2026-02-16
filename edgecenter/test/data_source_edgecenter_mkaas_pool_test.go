@@ -49,6 +49,7 @@ output "out_volume_type"   { value = data.edgecenter_mkaas_pool.acctest.volume_t
 output "out_state"         { value = data.edgecenter_mkaas_pool.acctest.state }
 output "out_status"        { value = data.edgecenter_mkaas_pool.acctest.status }
 output "out_security_group_ids" { value = data.edgecenter_mkaas_pool.acctest.security_group_ids }
+output "out_label_env"     { value = data.edgecenter_mkaas_pool.acctest.labels["env"] }
 `
 
 type dataSourcePoolTfData struct {
@@ -188,6 +189,9 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 		VolumeSize:       30,
 		VolumeType:       workerVolumeType,
 		SecurityGroupIDs: []string{sg.ID},
+		Labels: map[string]string{
+			"env": "test",
+		},
 	}
 	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
 	if err != nil {

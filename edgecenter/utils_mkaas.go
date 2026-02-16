@@ -76,6 +76,7 @@ func mkaasPoolUnsupportedUpdateChanges(d *schema.ResourceData) []string {
 		FlavorField,
 		MKaaSVolumeSizeField,
 		MKaaSVolumeTypeField,
+		MKaaSPoolLabelsField,
 	}
 
 	for _, f := range fields {
