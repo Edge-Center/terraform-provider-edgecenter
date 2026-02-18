@@ -138,10 +138,10 @@ func resourceStatusPageUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 	if d.HasChanges("name", "slug", "description", "custom_style", "checks") {
 		var req statuspage.Request
-		req.Base.Name = d.Get("name").(string)
-		req.Base.Slug = d.Get("slug").(string)
-		req.Base.Description = d.Get("description").(string)
-		req.Base.CustomStyle = d.Get("custom_style").(string)
+		req.Name = d.Get("name").(string)
+		req.Slug = d.Get("slug").(string)
+		req.Description = d.Get("description").(string)
+		req.CustomStyle = d.Get("custom_style").(string)
 
 		req.Checks = expandStatusPageChecks(d.Get("checks").([]interface{}))
 

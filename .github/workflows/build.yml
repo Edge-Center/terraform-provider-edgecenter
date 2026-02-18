@@ -22,12 +22,12 @@ jobs:
     env:
       EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.24.4
+          go-version: 1.26.0
 
       - name: Linters
         run: make linters
@@ -49,10 +49,10 @@ jobs:
       max-parallel: 1
     name: tests-${{ matrix.kind.tag }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: 1.24.4
+          go-version: 1.26.0
       - name: Run tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=5m
 
@@ -70,9 +70,9 @@ jobs:
       max-parallel: 1
     name: tests-${{ matrix.kind.tag }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: 1.24.4
+          go-version: 1.26.0
       - name: Run tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=20m

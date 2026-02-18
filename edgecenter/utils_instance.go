@@ -155,7 +155,7 @@ func decodeInstanceV2InterfaceOptsCreate(iFaceMap map[string]interface{}) edgecl
 
 // extractInstanceInterfaceToListCreate creates a list of InstanceInterface objects from a list of interfaces.
 func extractInstanceInterfaceToListCreate(interfaces []interface{}) []edgecloudV2.InstanceInterface {
-	interfaceInstanceCreateOptsList := make([]edgecloudV2.InstanceInterface, 0)
+	interfaceInstanceCreateOptsList := make([]edgecloudV2.InstanceInterface, 0, len(interfaces))
 	for _, tfIFace := range interfaces {
 		iFaceMap := tfIFace.(map[string]interface{})
 		iFace := decodeInstanceInterfaceOpts(iFaceMap)

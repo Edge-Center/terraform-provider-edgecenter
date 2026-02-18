@@ -1595,7 +1595,7 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 		result["forward_host_header"] = []interface{}{m}
 	}
 	if options.GeoAcl != nil {
-		var exceptedValues []interface{}
+		exceptedValues := make([]interface{}, 0, len(options.GeoAcl.Excepted))
 		for key, values := range options.GeoAcl.Excepted {
 			exceptedValues = append(exceptedValues, map[string]interface{}{
 				"key":    key,
@@ -1696,7 +1696,7 @@ func resourceOptionsToList(options *cdn.ResourceOptions) []interface{} {
 	}
 	if options.StaticResponseHeaders != nil {
 		m := structToMap(options.StaticResponseHeaders)
-		items := []interface{}{}
+		items := make([]interface{}, 0, len(m["value"].([]cdn.StaticResponseHeadersItem)))
 		for _, v := range m["value"].([]cdn.StaticResponseHeadersItem) {
 			items = append(items, structToMap(v))
 		}
