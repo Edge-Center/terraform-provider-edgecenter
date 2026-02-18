@@ -340,33 +340,48 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		return resourceMKaaSClusterRead(ctx, d, m)
 	}
 
-	// Пока что API ожидает, что в запросе будут переданы валидные значения и для имени, и для
-	// количества master-нод, даже если изменяется только одно из этих полей.
-	// Поэтому всегда заполняем оба поля из актуального состояния Terraform.
-	updateReq := edgecloudV2.MKaaSClusterUpdateRequest{
-		Name: d.Get(NameField).(string),
-	}
+	if d.HasChange(NameField) {
+		tflog.Info(ctx, "Updating MKaaS cluster name")
 
-	if v, ok := d.GetOk(MKaaSClusterControlPlaneField); ok {
-		cpList := v.([]interface{})
-		if len(cpList) > 0 {
-			cp := cpList[0].(map[string]interface{})
-			updateReq.MasterNodeCount = cp[MKaaSNodeCountField].(int)
+		updateNameReq := edgecloudV2.MKaaSClusterUpdateNameRequest{
+			Name: d.Get(NameField).(string),
 		}
+		task, _, err := clientV2.MkaaS.ClusterUpdateName(ctx, clusterID, updateNameReq)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		taskID := task.Tasks[0]
+		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSClusterUpdateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		tflog.Info(ctx, "Finish MKaaS Cluster name update")
 	}
 
-	task, _, err := clientV2.MkaaS.ClusterUpdate(ctx, clusterID, updateReq)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	if d.HasChange(controlPlaneNodeCountPath) {
+		tflog.Info(ctx, "Updating MKaaS cluster master node count")
 
-	taskID := task.Tasks[0]
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSClusterUpdateTimeout)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+		cpList := d.Get(MKaaSClusterControlPlaneField).([]interface{})
+		cp := cpList[0].(map[string]interface{})
+		updateMasterNodeCountReq := edgecloudV2.MKaaSClusterUpdateMasterNodeCountRequest{
+			MasterNodeCount: cp[MKaaSNodeCountField].(int),
+		}
 
-	tflog.Info(ctx, "Finish MKaaS Cluster update")
+		task, _, err := clientV2.MkaaS.ClusterUpdateMasterNodeCount(ctx, clusterID, updateMasterNodeCountReq)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		taskID := task.Tasks[0]
+		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSClusterUpdateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		tflog.Info(ctx, "Finish MKaaS Cluster master node count update")
+	}
 
 	return resourceMKaaSClusterRead(ctx, d, m)
 }
