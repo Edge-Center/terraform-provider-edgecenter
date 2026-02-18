@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func resourceUserActionsSubscriptionAMQP() *schema.Resource {
@@ -42,6 +44,12 @@ func resourceUserActionsSubscriptionAMQP() *schema.Resource {
 				Optional:    true,
 				Description: "Exchange name.",
 			},
+			ClientIDField: {
+				Type:        schema.TypeInt,
+				Description: "The ID of the client.",
+				ForceNew:    true,
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -55,8 +63,9 @@ func resourceUserActionsAMQPCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	req := prepareAMQPSubscriptionCreateRequest(d)
+	opts := edgecloudV2.UserActionsOpts{ClientID: d.Get(ClientIDField).(int)}
 
-	_, err = clientV2.UserActions.SubscribeAMQP(ctx, &req)
+	_, err = clientV2.UserActions.SubscribeAMQPWithOpts(ctx, &opts, &req)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -76,7 +85,8 @@ func resourceUserActionsAMQPRead(ctx context.Context, d *schema.ResourceData, m 
 		return diag.FromErr(err)
 	}
 
-	subs, _, err := clientV2.UserActions.ListAMQPSubscriptions(ctx)
+	opts := edgecloudV2.UserActionsOpts{ClientID: d.Get(ClientIDField).(int)}
+	subs, _, err := clientV2.UserActions.ListAMQPSubscriptionsWithOpts(ctx, &opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -133,7 +143,9 @@ func resourceUserActionsAMQPUpdate(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	_, err = clientV2.UserActions.UnsubscribeAMQP(ctx)
+	opts := edgecloudV2.UserActionsOpts{ClientID: d.Get(ClientIDField).(int)}
+
+	_, err = clientV2.UserActions.UnsubscribeAMQPWithOpts(ctx, &opts)
 	if err != nil {
 		rollbackAMQPSubscriptionData(ctx, d)
 		return diag.FromErr(err)
@@ -141,7 +153,7 @@ func resourceUserActionsAMQPUpdate(ctx context.Context, d *schema.ResourceData, 
 
 	req := prepareAMQPSubscriptionCreateRequest(d)
 
-	_, err = clientV2.UserActions.SubscribeAMQP(ctx, &req)
+	_, err = clientV2.UserActions.SubscribeAMQPWithOpts(ctx, &opts, &req)
 	if err != nil {
 		rollbackAMQPSubscriptionData(ctx, d)
 		errCreate := resourceUserActionsAMQPCreate(ctx, d, m)
@@ -169,7 +181,8 @@ func resourceUserActionsAMQPDelete(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	resp, err := clientV2.UserActions.UnsubscribeAMQP(ctx)
+	opts := edgecloudV2.UserActionsOpts{ClientID: d.Get(ClientIDField).(int)}
+	resp, err := clientV2.UserActions.UnsubscribeAMQPWithOpts(ctx, &opts)
 	if err != nil {
 		// If subscription for given client id does not exist, CloudAPI return 404
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
