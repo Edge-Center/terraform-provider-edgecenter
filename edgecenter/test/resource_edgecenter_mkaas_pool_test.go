@@ -163,6 +163,9 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		VolumeSize:       30,
 		VolumeType:       workerVolumeType,
 		SecurityGroupIDs: []string{sg.ID},
+		Labels: map[string]string{
+			"env": "test",
+		},
 	}
 	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
 	if err != nil {
@@ -193,6 +196,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, "30", tt.Output(t, poolOpts, "out_volume_size"), "%s mismatch", "volume_size")
 	require.Equalf(t, workerVolumeType, tt.Output(t, poolOpts, "out_volume_type"), "%s mismatch", "volume_type")
 	require.Equalf(t, "["+sg.ID+"]", tt.Output(t, poolOpts, "out_security_group_ids"), "%s mismatch", "security_group_ids")
+	require.Equalf(t, "test", tt.Output(t, poolOpts, "out_label_env"), "%s mismatch", "labels.env")
 	_ = tt.Output(t, poolOpts, "out_state")
 	_ = tt.Output(t, poolOpts, "out_status")
 
