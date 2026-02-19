@@ -73,6 +73,14 @@ func dataSourceMKaaSPool() *schema.Resource {
 				Computed:    true,
 				Description: "The type of volume used by nodes in the pool.",
 			},
+			MKaaSPoolLabelsField: {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "Arbitrary labels assigned to the pool.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			MKaaSPoolSecurityGroupIDsField: {
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -120,6 +128,7 @@ func dataSourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m inte
 	_ = d.Set(MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)
 	_ = d.Set(MKaaSPoolStateField, pool.State)
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)
+	_ = d.Set(MKaaSPoolLabelsField, pool.Labels)
 
 	return nil
 }

@@ -49,6 +49,7 @@ resource "edgecenter_mkaas_pool" "apps" {
 
 ### Optional
 
+- `labels` (Map of String) Arbitrary labels assigned to the pool.
 - `project_id` (Number) The uuid of the project. Either `project_id` or `project_name` must be specified.
 - `project_name` (String) The name of the project. Either `project_id` or `project_name` must be specified.
 - `region_id` (Number) The uuid of the region. Either `region_id` or `region_name` must be specified.
