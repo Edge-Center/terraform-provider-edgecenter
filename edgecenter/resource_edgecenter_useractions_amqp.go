@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -20,7 +21,16 @@ func resourceUserActionsSubscriptionAMQP() *schema.Resource {
 		DeleteContext: resourceUserActionsAMQPDelete,
 		Description:   `Resource provides access to user action logs and client subscription via AMQP.`,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				clientID, err := strconv.Atoi(d.Id())
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse client ID: %w", err)
+				}
+				if err = d.Set(ClientIDField, clientID); err != nil {
+					return nil, fmt.Errorf("failed to set client ID: %w", err)
+				}
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 		Schema: map[string]*schema.Schema{
 			ConnectionStringField: {
