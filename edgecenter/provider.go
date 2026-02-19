@@ -146,6 +146,7 @@ const (
 
 	MKaaSClusterControlPlaneField        = "control_plane"
 	MKaaSClusterPublishKubeAPIToInternet = "publish_kube_api_to_internet"
+	MKaaSClusterLabelsField              = "labels"
 	MKaaSNodeCountField                  = "node_count"
 	MKaaSVolumeSizeField                 = "volume_size"
 	MKaaSVolumeTypeField                 = "volume_type"

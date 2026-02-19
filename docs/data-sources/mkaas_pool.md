@@ -44,6 +44,7 @@ data "edgecenter_mkaas_pool" "apps" {
 
 - `flavor` (String) The identifier of the flavor used for nodes in this pool, e.g. g1-standard-2-4.
 - `id` (String) The ID of this resource.
+- `labels` (Map of String) Arbitrary labels assigned to the pool.
 - `name` (String) The name of the Kubernetes pool.
 - `node_count` (Number) The current number of nodes in the pool.
 - `security_group_ids` (List of String) List of security group IDs attached to the pool.

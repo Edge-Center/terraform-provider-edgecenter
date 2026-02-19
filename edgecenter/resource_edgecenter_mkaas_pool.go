@@ -138,6 +138,14 @@ func resourceMKaaSPool() *schema.Resource {
 				Computed:    true,
 				Description: "The status of the pool.",
 			},
+			MKaaSPoolLabelsField: {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Arbitrary labels assigned to the pool.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -253,6 +261,7 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set(MKaaSPoolStateField, pool.State)
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)
 	_ = d.Set(MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)
+	_ = d.Set(MKaaSPoolLabelsField, pool.Labels)
 
 	return diags
 }
