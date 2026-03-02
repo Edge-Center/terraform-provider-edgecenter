@@ -42,6 +42,7 @@ resource "edgecenter_useractions_subscription_log" "subs" {
 Import is supported using the following syntax:
 
 ```shell
-# import using <subscription_id> format
-terraform import edgecenter_useractions_subscription_log.subs 123
+# The import ID is not used for lookup - the subscription is identified by the current client token.
+# Any non-empty value is accepted; the real subscription ID will be set by the provider.
+terraform import edgecenter_useractions_subscription_log.subs 0
 ```

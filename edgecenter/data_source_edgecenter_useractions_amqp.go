@@ -63,12 +63,19 @@ func dataSourceUserActionsAMQPRead(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	if subs.Count == 0 {
-		return diag.Errorf("AMQP subscription to the user actions list is empty")
-	}
-
 	if subs.Count > 1 {
 		return diag.FromErr(fmt.Errorf("forbidden to use admin token. Please use user token"))
+	}
+
+	if subs.Count == 0 {
+		d.SetId("0")
+
+		return diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "AMQP subscription to the user actions list is empty",
+			},
+		}
 	}
 
 	sub := subs.Results[0]
