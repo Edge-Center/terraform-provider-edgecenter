@@ -105,11 +105,7 @@ func resourceUserActionsAMQPRead(ctx context.Context, d *schema.ResourceData, m 
 	case subs.Count > 1:
 		return diag.Errorf("forbidden to use admin token. Please use user token")
 	case subs.Count == 0:
-		if d.Id() != "" {
-			return diag.Errorf(
-				"current tfstate already has information about subscription, but subscription does not exist. " +
-					"Please check the APIKey or clear the tfstate.")
-		}
+		d.SetId("")
 
 		return nil
 	}
