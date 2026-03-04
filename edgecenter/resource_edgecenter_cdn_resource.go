@@ -1075,7 +1075,7 @@ func resourceCDNResourceCreate(ctx context.Context, d *schema.ResourceData, m in
 	req.Origin = d.Get("origin").(string)
 	req.OriginGroup = d.Get("origin_group").(int)
 	req.OriginProtocol = resources.Protocol(d.Get("origin_protocol").(string))
-	req.SSlEnabled = d.Get("ssl_enabled").(bool)
+	req.SSLEnabled = d.Get("ssl_enabled").(bool)
 	req.SSLData = d.Get("ssl_data").(int)
 	req.SSLAutomated = d.Get("ssl_automated").(bool)
 
@@ -1128,7 +1128,7 @@ func resourceCDNResourceRead(ctx context.Context, d *schema.ResourceData, m inte
 	d.Set("origin_group", result.OriginGroup)
 	d.Set("origin_protocol", result.OriginProtocol)
 	d.Set("secondary_hostnames", result.SecondaryHostnames)
-	d.Set("ssl_enabled", result.SSlEnabled)
+	d.Set("ssl_enabled", result.SSLEnabled)
 	d.Set("ssl_data", result.SSLData)
 	d.Set("ssl_automated", result.SSLAutomated)
 	d.Set("status", result.Status)
@@ -1158,7 +1158,7 @@ func resourceCDNResourceUpdate(ctx context.Context, d *schema.ResourceData, m in
 	req.Active = d.Get("active").(bool)
 	req.Description = d.Get("description").(string)
 	req.OriginGroup = d.Get("origin_group").(int)
-	req.SSlEnabled = d.Get("ssl_enabled").(bool)
+	req.SSLEnabled = d.Get("ssl_enabled").(bool)
 	if v, ok := d.GetOk("ssl_data"); ok {
 		val := v.(int)
 		req.SSLData = &val
