@@ -89,6 +89,7 @@ func resourceSubnet() *schema.Resource {
 			NetworkIDField: {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The ID of the network to which this subnet belongs.",
 			},
 			ConnectToNetworkRouterField: {
