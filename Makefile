@@ -85,6 +85,9 @@ test_cloud_resource: install_godotenv
 test_mkaas_resource: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_resource_mkaas -short -timeout=20m
 
+test_mkaas_data: install_godotenv
+	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_data_source_mkaas -short -timeout=20m
+
 test_not_cloud: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags dns storage cdn -v -timeout=5m
 
@@ -96,4 +99,4 @@ docs_fmt:
 docs: docs_fmt
 	tfplugindocs --provider-name=edgecenter
 
-.PHONY: tidy build build_debug err_check linters linters_docker envs_reader test_cloud_data_source test_cloud_resource test_not_cloud install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs
+.PHONY: tidy build build_debug err_check linters linters_docker envs_reader test_cloud_data_source test_cloud_resource test_not_cloud test_mkaas_resource test_mkaas_data  install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs

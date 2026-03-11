@@ -7,7 +7,7 @@ resource "edgecenter_mkaas_pool" "apps" {
 
   # Основные параметры пула
   name        = "apps-pool"
-  flavor      = "g3-standard-2-4"
+  flavor      = "mkaas-worker-g3-cpu-2-2"
   node_count  = 3
   volume_size = 20
   volume_type = "standard"
