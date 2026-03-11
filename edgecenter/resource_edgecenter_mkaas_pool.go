@@ -272,12 +272,13 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	if unsupported := mkaasPoolUnsupportedUpdateChanges(d); len(unsupported) > 0 {
 		return diag.Errorf(
 			"MKaaS pool update is not supported for these fields: %v. "+
-				"Only %q, %q and %q are supported. "+
+				"Only %q, %q, %q and %q are supported. "+
 				"Please revert changes, or recreate the resource if applicable.",
 			unsupported,
 			NameField,
 			MKaaSNodeCountField,
 			MKaaSPoolSecurityGroupIDsField,
+			MKaaSPoolLabelsField,
 		)
 	}
 
@@ -363,6 +364,36 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 
 		taskResp, _, err := clientV2.MkaaS.PoolUpdateSecurityGroups(ctx, clusterID, poolID, req)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if taskResp != nil && len(taskResp.Tasks) > 0 {
+			taskID := taskResp.Tasks[0]
+
+			if err := utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	if d.HasChange(MKaaSPoolLabelsField) {
+		raw := d.Get(MKaaSPoolLabelsField).(map[string]interface{})
+		labels := map[string]string{}
+		for k, v := range raw {
+			labels[k] = v.(string)
+		}
+
+		tflog.Info(ctx, "Updating MKaaS pool labels", map[string]interface{}{
+			"pool_id": poolID,
+			"labels":  labels,
+		})
+
+		req := edgecloudV2.MKaaSPoolUpdateLabelsRequest{
+			Labels: labels,
+		}
+
+		taskResp, _, err := clientV2.MkaaS.PoolUpdateLabels(ctx, clusterID, poolID, req)
 		if err != nil {
 			return diag.FromErr(err)
 		}

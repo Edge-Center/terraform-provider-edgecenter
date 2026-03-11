@@ -14,6 +14,9 @@ resource "edgecenter_mkaas_pool" "apps" {
 
   # Необязательные поля
   # security_group_ids = ["b4a1b1d3-xxxx-xxxx-xxxx-1b2c3d4e5f6a"]
+  # labels = {
+  #   key = "val"
+  # }
 
   project_id = 1234
   region_id  = "1234"
