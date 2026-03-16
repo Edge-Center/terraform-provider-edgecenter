@@ -5,11 +5,12 @@ package edgecenter_test
 import (
 	"context"
 	"fmt"
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
-	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"strconv"
 	"strings"
 	"testing"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"

@@ -150,22 +150,10 @@ func resourceRouter() *schema.Resource {
 				},
 			},
 			"routes": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of static routes to be applied to the router.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"destination": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"nexthop": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
-						},
-					},
-				},
+				Description: "Set of static routes to be applied to the router.",
+				Elem:        hostRouteSchema(true),
 			},
 			"last_updated": {
 				Type:        schema.TypeString,
@@ -209,8 +197,9 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	rs := d.Get("routes")
-	if len(rs.([]interface{})) > 0 {
-		routes, err := extractHostRoutesMapV2(rs.([]interface{}))
+	routesSet := rs.(*schema.Set)
+	if routesSet.Len() > 0 {
+		routes, err := extractHostRoutesMapV2(routesSet.List())
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -383,8 +372,9 @@ func resourceRouterUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	rs := d.Get("routes")
 	updateOpts.Routes = make([]edgecloudV2.HostRoute, 0)
-	if len(rs.([]interface{})) > 0 {
-		routes, err := extractHostRoutesMapV2(rs.([]interface{}))
+	routesSet := rs.(*schema.Set)
+	if routesSet.Len() > 0 {
+		routes, err := extractHostRoutesMapV2(routesSet.List())
 		if err != nil {
 			return diag.FromErr(err)
 		}

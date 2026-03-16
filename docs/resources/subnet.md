@@ -70,7 +70,7 @@ resource "edgecenter_subnet" "subnet" {
 - `dns_nameservers` (List of String) List of DNS name servers for the subnet.
 - `enable_dhcp` (Boolean) Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.
 - `gateway_ip` (String) The IP address of the gateway for this subnet. The subnet will be recreated if the gateway IP is changed.
-- `host_routes` (Block List) List of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedblock--host_routes))
+- `host_routes` (Block Set) Set of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedblock--host_routes))
 - `metadata_map` (Map of String) A map containing metadata, for example tags.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
@@ -97,8 +97,8 @@ Required:
 
 Required:
 
-- `destination` (String) The CIDR of the destination IPv4 subnet
-- `nexthop` (String) IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR
+- `destination` (String) The CIDR of the destination IPv4 subnet.
+- `nexthop` (String) IPv4 address to forward traffic to if its destination IP matches the destination CIDR.
 
 
 <a id="nestedatt--metadata_read_only"></a>

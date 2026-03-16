@@ -118,22 +118,10 @@ func dataSourceRouter() *schema.Resource {
 				},
 			},
 			"routes": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Computed:    true,
-				Description: "List of static routes to be applied to the router.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"destination": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"nexthop": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
-						},
-					},
-				},
+				Description: "Set of static routes to be applied to the router.",
+				Elem:        hostRouteSchema(false),
 			},
 		},
 	}

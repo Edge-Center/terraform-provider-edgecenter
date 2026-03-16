@@ -107,24 +107,10 @@ func resourceSubnet() *schema.Resource {
 				},
 			},
 			HostRoutesField: {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of additional routes to be added to instances that are part of this subnet.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						DestinationField: {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "The CIDR of the destination IPv4 subnet",
-						},
-						NexthopField: {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.IsIPAddress,
-							Description:  "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
-						},
-					},
-				},
+				Description: "Set of additional routes to be added to instances that are part of this subnet.",
+				Elem:        hostRouteSchema(true),
 			},
 			GatewayIPField: {
 				Type:         schema.TypeString,
@@ -233,7 +219,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		createOpts.DNSNameservers = dns
 	}
 
-	hostRoutes := d.Get(HostRoutesField).([]interface{})
+	hostRoutes := d.Get(HostRoutesField).(*schema.Set).List()
 	createOpts.HostRoutes = make([]edgecloudV2.HostRoute, 0)
 	if len(hostRoutes) > 0 {
 		createOpts.HostRoutes, err = extractHostRoutesMapV2(hostRoutes)
@@ -376,7 +362,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		updateOpts.DNSNameservers = dns
 	}
 
-	hostRoutes := d.Get(HostRoutesField).([]interface{})
+	hostRoutes := d.Get(HostRoutesField).(*schema.Set).List()
 	updateOpts.HostRoutes = make([]edgecloudV2.HostRoute, 0)
 	if len(hostRoutes) > 0 {
 		updateOpts.HostRoutes, err = extractHostRoutesMapV2(hostRoutes)

@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
@@ -17,6 +20,34 @@ type fetchNetworksWithSubnetsOptions struct {
 	clientV2    *edgecloudV2.Client
 	fetchOpts   *edgecloudV2.NetworksWithSubnetsOptions
 	networkName string
+}
+
+func hostRouteSchema(required bool) *schema.Resource {
+	destination := &schema.Schema{
+		Type:        schema.TypeString,
+		Description: "The CIDR of the destination IPv4 subnet.",
+	}
+
+	nexthop := &schema.Schema{
+		Type:        schema.TypeString,
+		Description: "IPv4 address to forward traffic to if its destination IP matches the destination CIDR.",
+	}
+
+	if required {
+		destination.Required = true
+		nexthop.Required = true
+		nexthop.ValidateFunc = validation.IsIPAddress
+	} else {
+		destination.Computed = true
+		nexthop.Computed = true
+	}
+
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			DestinationField: destination,
+			NexthopField:     nexthop,
+		},
+	}
 }
 
 // findNetworkByName searches for a network with the given name among the given networks.

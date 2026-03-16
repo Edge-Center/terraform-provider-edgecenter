@@ -5,10 +5,11 @@ package edgecenter_test
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )

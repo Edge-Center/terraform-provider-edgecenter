@@ -201,11 +201,15 @@ func checkSubnetAttrs(resourceName string, opts testSubnetParams) resource.TestC
 			resource.TestCheckResourceAttr(resourceName, "gateway_ip", opts.GatewayIP),
 		}
 
-		for i, hr := range opts.HostRoutes {
-			checksStore = append(checksStore,
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`host_routes.%d.destination`, i), hr["destination"]),
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`host_routes.%d.nexthop`, i), hr["nexthop"]),
-			)
+		for _, hr := range opts.HostRoutes {
+			checksStore = append(checksStore, resource.TestCheckTypeSetElemNestedAttrs(
+				resourceName,
+				"host_routes.*",
+				map[string]string{
+					"destination": hr["destination"],
+					"nexthop":     hr["nexthop"],
+				},
+			))
 		}
 
 		return resource.ComposeTestCheckFunc(checksStore...)(s)

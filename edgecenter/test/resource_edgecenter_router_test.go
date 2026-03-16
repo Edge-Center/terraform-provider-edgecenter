@@ -219,11 +219,15 @@ func checkRouterAttrs(resourceName string, opts *routers.CreateOpts) resource.Te
 			}
 		}
 
-		for i, r := range opts.Routes {
-			checksStore = append(checksStore,
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`routes.%d.destination`, i), r.Destination.String()),
-				resource.TestCheckResourceAttr(resourceName, fmt.Sprintf(`routes.%d.nexthop`, i), r.NextHop.String()),
-			)
+		for _, r := range opts.Routes {
+			checksStore = append(checksStore, resource.TestCheckTypeSetElemNestedAttrs(
+				resourceName,
+				"routes.*",
+				map[string]string{
+					"destination": r.Destination.String(),
+					"nexthop":     r.NextHop.String(),
+				},
+			))
 		}
 
 		return resource.ComposeTestCheckFunc(checksStore...)(s)

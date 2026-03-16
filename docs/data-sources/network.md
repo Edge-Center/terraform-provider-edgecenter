@@ -81,7 +81,7 @@ Read-Only:
 - `enable_dhcp` (Boolean) Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.
 - `gateway_ip` (String) The IP address of the gateway for this subnet.
 - `has_router` (Boolean) Indicates whether the subnet has a router attached to it.
-- `host_routes` (List of Object) List of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedatt--subnets--host_routes))
+- `host_routes` (Set of Object) Set of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedatt--subnets--host_routes))
 - `id` (String) The ID of the subnet.
 - `name` (String) The name of the subnet.
 - `total_ips` (Number) The total number of IPs in the subnet.

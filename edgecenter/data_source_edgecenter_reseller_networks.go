@@ -168,22 +168,10 @@ func dataSourceResellerNetworksList() *schema.Resource {
 										},
 									},
 									HostRoutesField: {
-										Type:        schema.TypeList,
+										Type:        schema.TypeSet,
 										Computed:    true,
-										Description: "List of additional routes to be added to instances that are part of this subnet.",
-										Elem: &schema.Resource{
-											Schema: map[string]*schema.Schema{
-												DestinationField: {
-													Type:     schema.TypeString,
-													Computed: true,
-												},
-												NexthopField: {
-													Type:        schema.TypeString,
-													Computed:    true,
-													Description: "IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR",
-												},
-											},
-										},
+										Description: "Set of additional routes to be added to instances that are part of this subnet.",
+										Elem:        hostRouteSchema(false),
 									},
 									GatewayIPField: {
 										Type:        schema.TypeString,
