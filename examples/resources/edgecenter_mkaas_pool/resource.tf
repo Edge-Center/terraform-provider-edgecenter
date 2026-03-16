@@ -7,13 +7,16 @@ resource "edgecenter_mkaas_pool" "apps" {
 
   # Основные параметры пула
   name        = "apps-pool"
-  flavor      = "g3-standard-2-4"
+  flavor      = "mkaas-worker-g3-cpu-2-2"
   node_count  = 3
   volume_size = 20
   volume_type = "standard"
 
   # Необязательные поля
   # security_group_ids = ["b4a1b1d3-xxxx-xxxx-xxxx-1b2c3d4e5f6a"]
+  # labels = {
+  #   key = "val"
+  # }
 
   project_id = 1234
   region_id  = "1234"

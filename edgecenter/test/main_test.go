@@ -328,10 +328,6 @@ func createTestConfig() (*edgecenter.Config, error) {
 	permanentToken := os.Getenv("EC_PERMANENT_TOKEN")
 	ecAPI := os.Getenv("EC_API")
 
-	if err != nil {
-		return nil, err
-	}
-
 	cdnProvider := eccdnProvider.NewClient(EC_CDN_URL, eccdnProvider.WithSignerFunc(func(req *http.Request) error {
 		req.Header.Set("Authorization", "Bearer "+provider.AccessToken())
 		return nil

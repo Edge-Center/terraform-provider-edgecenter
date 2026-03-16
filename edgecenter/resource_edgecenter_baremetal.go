@@ -372,9 +372,6 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 
 	instanceID := taskResult.Instances[0]
 	log.Printf("[DEBUG] Baremetal Instance id (%s)", instanceID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	d.SetId(instanceID)
 	resourceBmInstanceRead(ctx, d, m)
@@ -432,9 +429,6 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	ifs := d.Get("interface").([]interface{})
 	orderedInterfacesMap := extractInstanceInterfaceToListRead(ifs)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	var interfacesList []interface{}
 	for _, iFace := range interfacesListAPI {

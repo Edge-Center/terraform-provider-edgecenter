@@ -158,7 +158,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		RegionID:         cluster.Data.RegionID,
 		ClusterID:        cluster.ID,
 		Name:             poolNameV1,
-		Flavor:           masterFlavor,
+		Flavor:           workerFlavor,
 		NodeCount:        1,
 		VolumeSize:       30,
 		VolumeType:       workerVolumeType,
@@ -191,7 +191,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, projectID, tt.Output(t, poolOpts, "out_project_id"), "%s mismatch", "project_id")
 	require.Equalf(t, regionID, tt.Output(t, poolOpts, "out_region_id"), "%s mismatch", "region_id")
 	require.Equalf(t, cluster.ID, tt.Output(t, poolOpts, "out_cluster_id"), "%s mismatch", "cluster_id")
-	require.Equalf(t, masterFlavor, tt.Output(t, poolOpts, "out_flavor"), "%s mismatch", "flavor")
+	require.Equalf(t, workerFlavor, tt.Output(t, poolOpts, "out_flavor"), "%s mismatch", "flavor")
 	require.Equalf(t, "1", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count")
 	require.Equalf(t, "30", tt.Output(t, poolOpts, "out_volume_size"), "%s mismatch", "volume_size")
 	require.Equalf(t, workerVolumeType, tt.Output(t, poolOpts, "out_volume_type"), "%s mismatch", "volume_type")
@@ -205,6 +205,9 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	poolData.Name = poolNameV2
 	poolData.NodeCount = 2
 	poolData.SecurityGroupIDs = []string{sg2.ID}
+	poolData.Labels = map[string]string{
+		"env": "prod",
+	}
 	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
 	if err != nil {
 		t.Fatalf("write pool main.tf (update): %v", err)
@@ -215,6 +218,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, poolNameV2, tt.Output(t, poolOpts, "pool_name"), "%s mismatch", "pool_name (after update)")
 	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count (after update)")
 	require.Equalf(t, "["+sg2.ID+"]", tt.Output(t, poolOpts, "out_security_group_ids"), "%s mismatch", "security_group_ids (after update)")
+	require.Equalf(t, "prod", tt.Output(t, poolOpts, "out_label_env"), "%s mismatch", "labels.env (after update)")
 
 	// --- UNSUPPORTED UPDATE
 	poolData.VolumeType = edgecloudV2.VolumeTypeStandard.String()

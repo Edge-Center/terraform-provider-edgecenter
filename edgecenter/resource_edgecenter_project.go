@@ -96,9 +96,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	log.Printf("[DEBUG] Project id (%d)", p.ID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	d.SetId(strconv.Itoa(p.ID))
 
