@@ -118,7 +118,7 @@ const (
 	masterVolumeType          = "ssd_hiiops"
 	workerVolumeType          = "ssd_hiiops"
 	masterFlavor              = "g3-standard-2-4"
-	workerFlavor              = "g3-standard-2-4"
+	workerFlavor              = "mkaas-worker-g3-cpu-2-2"
 	clusterWorkCompletedStage = "WORK_COMPLETED"
 )
 
