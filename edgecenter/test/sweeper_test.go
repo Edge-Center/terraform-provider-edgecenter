@@ -49,6 +49,16 @@ func registerSweepers() {
 		F:            sweepNetworks,
 		Dependencies: []string{"edgecenter_subnet"},
 	})
+	resource.AddTestSweepers("edgecenter_floatingip", &resource.Sweeper{
+		Name:         "edgecenter_floatingip",
+		F:            sweepFloatingIPs,
+		Dependencies: []string{"edgecenter_instance", "edgecenter_loadbalancer"},
+	})
+	resource.AddTestSweepers("edgecenter_reservedfixedip", &resource.Sweeper{
+		Name:         "edgecenter_reservedfixedip",
+		F:            sweepReservedFixedIPs,
+		Dependencies: []string{"edgecenter_instance", "edgecenter_loadbalancer"},
+	})
 	resource.AddTestSweepers("edgecenter_router", &resource.Sweeper{
 		Name:         "edgecenter_router",
 		F:            sweepRouters,
@@ -418,6 +428,62 @@ func sweepLifeCyclePolicies(_ string) error {
 		if err != nil {
 			log.Printf("[ERROR] Error deleting lifecycle policy %d: %s", p.ID, err)
 		}
+	}
+
+	return nil
+}
+
+func sweepFloatingIPs(_ string) error {
+	client, err := createTestCloudClient()
+	if err != nil {
+		return fmt.Errorf("error getting client: %w", err)
+	}
+	ctx := context.Background()
+
+	fips, _, err := client.Floatingips.List(ctx)
+	if err != nil {
+		return fmt.Errorf("error listing floating IPs: %w", err)
+	}
+
+	for _, fip := range fips {
+		if fip.PortID != "" {
+			continue
+		}
+		log.Printf("[INFO] Sweeping floating IP: %s (%s)", fip.FloatingIPAddress, fip.ID)
+		taskResp, _, err := client.Floatingips.Delete(ctx, fip.ID)
+		if err != nil {
+			log.Printf("[ERROR] Error deleting floating IP %s: %s", fip.ID, err)
+			continue
+		}
+		waitForTask(ctx, client, taskResp)
+	}
+
+	return nil
+}
+
+func sweepReservedFixedIPs(_ string) error {
+	client, err := createTestCloudClient()
+	if err != nil {
+		return fmt.Errorf("error getting client: %w", err)
+	}
+	ctx := context.Background()
+
+	ips, _, err := client.ReservedFixedIP.List(ctx, &edgecloudV2.ReservedFixedIPListOptions{})
+	if err != nil {
+		return fmt.Errorf("error listing reserved fixed IPs: %w", err)
+	}
+
+	for _, ip := range ips {
+		if ip.Reservation.Status != "" {
+			continue
+		}
+		log.Printf("[INFO] Sweeping reserved fixed IP: %s (%s)", ip.FixedIPAddress, ip.PortID)
+		taskResp, _, err := client.ReservedFixedIP.Delete(ctx, ip.PortID)
+		if err != nil {
+			log.Printf("[ERROR] Error deleting reserved fixed IP %s: %s", ip.PortID, err)
+			continue
+		}
+		waitForTask(ctx, client, taskResp)
 	}
 
 	return nil
