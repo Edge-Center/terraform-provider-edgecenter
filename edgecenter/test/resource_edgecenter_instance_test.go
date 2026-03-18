@@ -73,7 +73,7 @@ func TestAccInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer networks.Delete(clientNet, networkID)
+	t.Cleanup(func() { networks.Delete(clientNet, networkID) })
 
 	optsSubnet := subnets.CreateOpts{
 		Name:      subnetTestName,
@@ -135,8 +135,9 @@ func TestAccInstance(t *testing.T) {
 		},
 	}
 
+	instName := testName("inst")
 	createFixt := instances.CreateOpts{
-		Names:          []string{"create_instance"},
+		Names:          []string{instName},
 		NameTemplates:  []string{},
 		Flavor:         "g1-standard-2-4",
 		Password:       "password",
@@ -174,7 +175,7 @@ func TestAccInstance(t *testing.T) {
 	}
 
 	create := Params{
-		Name:      []string{"create_instance"},
+		Name:      []string{instName},
 		Flavor:    "g1-standard-2-4",
 		Password:  "password",
 		Username:  "user",
@@ -242,7 +243,7 @@ func TestAccInstance(t *testing.T) {
         }
 
         resource "edgecenter_volume" "first_volume" {
-  			name = "boot volume"
+  			name = "`+testName("boot-vol")+`"
   			type_name = "ssd_hiiops"
   			size = 5
   			image_id = "%[1]s"
@@ -251,7 +252,7 @@ func TestAccInstance(t *testing.T) {
 		}
 
 		resource "edgecenter_volume" "second_volume" {
-  			name = "second volume"
+  			name = "`+testName("sec-vol")+`"
   			type_name = "ssd_hiiops"
   			size = 5
   			%[7]s

@@ -48,7 +48,7 @@ func TestAccLBPool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer loadbalancers.Delete(client, lbID)
+	t.Cleanup(func() { loadbalancers.Delete(client, lbID) })
 
 	ls, err := listeners.ListAll(clientListener, listeners.ListOpts{LoadBalancerID: &lbID})
 	if err != nil {
@@ -61,9 +61,9 @@ func TestAccLBPool(t *testing.T) {
 		LBAlgorithm string
 	}
 
-	create := Params{"test", "ROUND_ROBIN"}
+	create := Params{testName("pool"), "ROUND_ROBIN"}
 
-	update := Params{"test1", "LEAST_CONNECTIONS"}
+	update := Params{testName("pool-upd"), "LEAST_CONNECTIONS"}
 
 	resourceName := "edgecenter_lbpool.acctest"
 

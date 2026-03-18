@@ -22,9 +22,9 @@ func TestAccLoadBalancer(t *testing.T) {
 		Name string
 	}
 
-	create := Params{"test"}
+	create := Params{testName("lb")}
 
-	update := Params{"test1"}
+	update := Params{testName("lb-upd")}
 
 	resourceName := "edgecenter_loadbalancerv2.acctest"
 

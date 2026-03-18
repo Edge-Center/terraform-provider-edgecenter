@@ -41,7 +41,7 @@ func TestAccLoadBalancerDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer loadbalancers.Delete(client, lbID)
+	t.Cleanup(func() { loadbalancers.Delete(client, lbID) })
 
 	resourceName := "data.edgecenter_loadbalancer.acctest"
 	tpl := func(name string) string {

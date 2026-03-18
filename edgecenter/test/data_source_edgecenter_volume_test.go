@@ -35,8 +35,7 @@ func TestAccVolumeDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	defer volumes.Delete(client, volumeID, volumes.DeleteOpts{})
+	t.Cleanup(func() { volumes.Delete(client, volumeID, volumes.DeleteOpts{}) })
 
 	resourceName := "data.edgecenter_volume.acctest"
 	tpl := func(name string) string {

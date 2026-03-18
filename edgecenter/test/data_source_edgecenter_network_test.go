@@ -24,8 +24,9 @@ func TestAccNetworkDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	net1Name := testName("net1")
 	opts1 := networks.CreateOpts{
-		Name:     "test-network1",
+		Name:     net1Name,
 		Metadata: map[string]string{"key1": "val1", "key2": "val2"},
 	}
 
@@ -33,8 +34,11 @@ func TestAccNetworkDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { deleteTestNetwork(client, network1ID) })
+
+	net2Name := testName("net2")
 	opts2 := networks.CreateOpts{
-		Name:     "test-network2",
+		Name:     net2Name,
 		Metadata: map[string]string{"key1": "val1", "key3": "val3"},
 	}
 
@@ -42,9 +46,7 @@ func TestAccNetworkDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	defer deleteTestNetwork(client, network1ID)
-	defer deleteTestNetwork(client, network2ID)
+	t.Cleanup(func() { deleteTestNetwork(client, network2ID) })
 
 	resourceName := "data.edgecenter_network.acctest"
 	tpl1 := func(name string) string {

@@ -45,7 +45,9 @@ func TestAccResellerImagesV2DataSource(t *testing.T) {
 		t.Error(err)
 	}
 
-	defer client.ResellerImageV2.Delete(ctx, checkResellerImagesEntityType, checkResellerImagesEntityID, nil)
+	t.Cleanup(func() {
+		client.ResellerImageV2.Delete(ctx, checkResellerImagesEntityType, checkResellerImagesEntityID, nil)
+	})
 
 	datasourceName := "data.edgecenter_reseller_imagesV2.rimgs"
 	resellerImagesTemplate := fmt.Sprintf(`
@@ -98,7 +100,9 @@ func TestAccResellerImagesV2DataSource_AllPublicImagesAreAvailable(t *testing.T)
 		t.Error(err)
 	}
 
-	defer client.ResellerImageV2.Delete(ctx, checkResellerImagesEntityType, checkResellerImagesEntityID, nil)
+	t.Cleanup(func() {
+		client.ResellerImageV2.Delete(ctx, checkResellerImagesEntityType, checkResellerImagesEntityID, nil)
+	})
 
 	datasourceName := "data.edgecenter_reseller_imagesV2.rimgs"
 	resellerImagesTemplate := fmt.Sprintf(`
@@ -151,7 +155,9 @@ func TestAccResellerImagesV2DataSource_PublicImagesAreNotAvailable(t *testing.T)
 		t.Error(err)
 	}
 
-	defer client.ResellerImageV2.Delete(ctx, checkResellerImagesEntityType, checkResellerImagesEntityID, nil)
+	t.Cleanup(func() {
+		client.ResellerImageV2.Delete(ctx, checkResellerImagesEntityType, checkResellerImagesEntityID, nil)
+	})
 
 	datasourceName := "data.edgecenter_reseller_imagesV2.rimgs"
 	resellerImagesTemplate := fmt.Sprintf(`

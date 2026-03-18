@@ -48,7 +48,7 @@ func TestAccFloatingIPDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer floatingips.Delete(client, floatingIPID.(string))
+	t.Cleanup(func() { floatingips.Delete(client, floatingIPID.(string)) })
 
 	fip, err := floatingips.Get(client, floatingIPID.(string)).Extract()
 	if err != nil {

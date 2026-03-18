@@ -39,10 +39,10 @@ func TestAccSubnetDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer deleteTestNetwork(clientNet, networkID)
+	t.Cleanup(func() { deleteTestNetwork(clientNet, networkID) })
 
 	optsSubnet1 := subnets.CreateOpts{
-		Name:      "test-subnet1",
+		Name:      testName("sub1"),
 		NetworkID: networkID,
 		Metadata:  map[string]string{"key1": "val1", "key2": "val2"},
 	}
@@ -53,7 +53,7 @@ func TestAccSubnetDataSource(t *testing.T) {
 	}
 
 	optsSubnet2 := subnets.CreateOpts{
-		Name:      "test-subnet2",
+		Name:      testName("sub2"),
 		NetworkID: networkID,
 		Metadata:  map[string]string{"key1": "val1", "key3": "val3"},
 	}

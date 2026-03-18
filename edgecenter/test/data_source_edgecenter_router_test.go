@@ -39,7 +39,7 @@ func TestAccRouterDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer networks.Delete(clientNet, networkID)
+	t.Cleanup(func() { networks.Delete(clientNet, networkID) })
 
 	rs, err := routers.ListAll(clientRouter, routers.ListOpts{})
 	if err != nil {

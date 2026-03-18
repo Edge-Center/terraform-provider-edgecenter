@@ -20,15 +20,16 @@ func TestAccBaremetal(t *testing.T) {
 
 	resourceName := "edgecenter_baremetal.acctest"
 
+	bmName := testName("bm-sg")
 	ipTemplate := fmt.Sprintf(`
 			resource "edgecenter_baremetal" "acctest" {
 			  %s
               %s
-			  name = "test sg"
+			  name = "%s"
 			  flavor_id = "bm1-infrastructure-small"
 			  image_id = "1ee7ccee-5003-48c9-8ae0-d96063af75b2"
 			}
-		`, projectInfo(), regionInfo())
+		`, projectInfo(), regionInfo(), bmName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -39,7 +40,7 @@ func TestAccBaremetal(t *testing.T) {
 				Config: ipTemplate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "name", "test_sg"),
+					resource.TestCheckResourceAttr(resourceName, "name", bmName),
 					resource.TestCheckResourceAttr(resourceName, "flavor_id", "bm1-infrastructure-small"),
 				),
 			},

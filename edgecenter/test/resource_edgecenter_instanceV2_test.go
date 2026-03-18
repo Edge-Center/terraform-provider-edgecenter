@@ -64,7 +64,7 @@ func TestAccInstanceV2(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer networks.Delete(clientNet, networkID)
+	t.Cleanup(func() { networks.Delete(clientNet, networkID) })
 
 	optsSubnet := subnets.CreateOpts{
 		Name:      subnetTestName,
@@ -126,7 +126,7 @@ func TestAccInstanceV2(t *testing.T) {
 	}
 
 	createFixt := instances.CreateOpts{
-		Names:         []string{"create_instanceV2"},
+		Names:         []string{instanceV2TestName},
 		NameTemplates: []string{},
 		Flavor:        "g1-standard-2-4",
 		Password:      "password",
@@ -160,7 +160,7 @@ func TestAccInstanceV2(t *testing.T) {
 	}
 
 	create := Params{
-		Name:      []string{"create_instanceV2"},
+		Name:      []string{instanceV2TestName},
 		Flavor:    "g1-standard-2-4",
 		Password:  "password",
 		Username:  "user",
@@ -215,7 +215,7 @@ configuration = [`)
         }
 
         resource "edgecenter_volume" "first_volume" {
-  			name = "boot volume"
+  			name = "%[9]s"
   			type_name = "ssd_hiiops"
   			size = 5
   			image_id = "%[1]s"
@@ -224,7 +224,7 @@ configuration = [`)
 		}
 
 		resource "edgecenter_volume" "second_volume" {
-  			name = "second volume"
+  			name = "%[10]s"
   			type_name = "ssd_hiiops"
   			size = 5
   			%[7]s
@@ -285,7 +285,7 @@ configuration = [`)
             %[7]s
 			%[8]s
 
-		`, params.Image, params.Keypair, params.Publickey, params.Flavor, params.Password, params.Username, regionInfo(), projectInfo())
+		`, params.Image, params.Keypair, params.Publickey, params.Flavor, params.Password, params.Username, regionInfo(), projectInfo(), testName("boot-vol-v2"), testName("sec-vol-v2"))
 		return template + "\n}"
 	}
 

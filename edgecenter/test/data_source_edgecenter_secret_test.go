@@ -59,7 +59,7 @@ func TestAccSecretDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer secrets.Delete(client, secretID.(string))
+	t.Cleanup(func() { secrets.Delete(client, secretID.(string)) })
 
 	resourceName := "data.edgecenter_secret.acctest"
 	kpTemplate := fmt.Sprintf(`

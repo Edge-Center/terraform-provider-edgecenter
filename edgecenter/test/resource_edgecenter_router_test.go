@@ -47,7 +47,7 @@ func TestAccRouter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer deleteTestNetwork(clientNet, networkID)
+	t.Cleanup(func() { deleteTestNetwork(clientNet, networkID) })
 
 	gw := net.ParseIP("")
 	optsSubnet := subnets.CreateOpts{
@@ -69,8 +69,9 @@ func TestAccRouter(t *testing.T) {
 	dst1.IP = netIPNet.IP
 	dst1.Mask = netIPNet.Mask
 
+	routerName := testName("router")
 	createFixt := routers.CreateOpts{
-		Name: "create_router",
+		Name: routerName,
 		ExternalGatewayInfo: routers.GatewayInfo{
 			Type:       "default",
 			EnableSNat: &snat1,
@@ -97,7 +98,7 @@ func TestAccRouter(t *testing.T) {
 	}
 
 	create := Params{
-		Name:           "create_router",
+		Name:           routerName,
 		ExtGatewayInfo: []map[string]string{{"type": "default", "network_id": ""}},
 		Interfaces:     []map[string]string{{"type": "subnet", "subnet_id": subnetID}},
 		Routes:         []map[string]string{{"destination": "192.168.42.0/24", "nexthop": "192.168.42.2"}},

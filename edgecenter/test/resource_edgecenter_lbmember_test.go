@@ -55,7 +55,7 @@ func TestAccLBMember(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer loadbalancers.Delete(client, lbID)
+	t.Cleanup(func() { loadbalancers.Delete(client, lbID) })
 
 	ls, err := listeners.ListAll(clientListener, listeners.ListOpts{LoadBalancerID: &lbID})
 	if err != nil {

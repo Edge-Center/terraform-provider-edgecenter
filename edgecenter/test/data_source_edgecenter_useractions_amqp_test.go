@@ -40,7 +40,7 @@ func TestAccEdgecenterUserActionsListAMQPSubscriptionsDataSource(t *testing.T) {
 		t.Error(err)
 	}
 
-	defer client.UserActions.UnsubscribeAMQP(ctx)
+	t.Cleanup(func() { client.UserActions.UnsubscribeAMQP(ctx) })
 
 	datasourceName := "data.edgecenter_useractions_subscription_amqp.subs"
 
@@ -102,7 +102,7 @@ func TestAccEdgecenterUserActions_ListAMQPSubscriptionsDataSource_WithClientID(t
 		t.Error(err)
 	}
 
-	defer client.UserActions.UnsubscribeAMQPWithOpts(ctx, &opts)
+	t.Cleanup(func() { client.UserActions.UnsubscribeAMQPWithOpts(ctx, &opts) })
 
 	datasourceName := "data.edgecenter_useractions_subscription_amqp.subs"
 	amqpSubTemplate := fmt.Sprintf(`

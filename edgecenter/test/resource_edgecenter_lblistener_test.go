@@ -39,15 +39,15 @@ func TestAccLBListener(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer loadbalancers.Delete(client, lbID)
+	t.Cleanup(func() { loadbalancers.Delete(client, lbID) })
 
 	type Params struct {
 		Name string
 	}
 
-	create := Params{"test"}
+	create := Params{testName("lstnr")}
 
-	update := Params{"test_new_name"}
+	update := Params{testName("lstnr-upd")}
 
 	resourceName := "edgecenter_lblistener.acctest"
 

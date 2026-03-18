@@ -71,8 +71,8 @@ func TestAccSubnet(t *testing.T) {
 	checkMetadataKey := "test_subnet"
 
 	create := testSubnetParams{
-		NetworkName:    "network_for_test_subnetwork",
-		Name:           "create_subnet",
+		NetworkName:    testName("sub-net"),
+		Name:           testName("sub"),
 		CIDR:           "192.168.10.0/24",
 		DNSNameservers: []string{"8.8.4.4", "1.1.1.1"},
 		HostRoutes: []map[string]string{
@@ -90,8 +90,8 @@ func TestAccSubnet(t *testing.T) {
 	}
 
 	update := testSubnetParams{
-		NetworkName:            "network_for_test_subnetwork",
-		Name:                   "update_subnet",
+		NetworkName:            testName("sub-net"),
+		Name:                   testName("sub-upd"),
 		CIDR:                   "192.168.10.0/24",
 		DNSNameservers:         []string{},
 		HostRoutes:             []map[string]string{},

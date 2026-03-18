@@ -58,7 +58,7 @@ func TestAccK8sPool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer deleteTestNetwork(netClient, networkID)
+	t.Cleanup(func() { deleteTestNetwork(netClient, networkID) })
 
 	gw := net.ParseIP("")
 	subnetOpts := subnets.CreateOpts{
@@ -94,7 +94,7 @@ func TestAccK8sPool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer keypairs.Delete(kpClient, keyPair.ID)
+	t.Cleanup(func() { keypairs.Delete(kpClient, keyPair.ID) })
 
 	nodeCountTestPtr := nodeCountTest
 	dockerVolumeSizeTestPtr := dockerVolumeSizeTest
@@ -120,7 +120,7 @@ func TestAccK8sPool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer deleteTestCluster(k8sClient, clusterID)
+	t.Cleanup(func() { deleteTestCluster(k8sClient, clusterID) })
 	// we need to wait until upgrade will e finished
 	time.Sleep(time.Second * 30)
 
@@ -135,7 +135,7 @@ func TestAccK8sPool(t *testing.T) {
 	}
 
 	create := Params{
-		Name:             "tf-pool1",
+		Name:             testName("k8s-pool"),
 		Flavor:           "g1-standard-1-2",
 		MinNodeCount:     1,
 		MaxNodeCount:     1,
@@ -144,7 +144,7 @@ func TestAccK8sPool(t *testing.T) {
 	}
 
 	update := Params{
-		Name:             "tf-pool2",
+		Name:             testName("k8s-pool-upd"),
 		Flavor:           "g1-standard-1-2",
 		MinNodeCount:     1,
 		MaxNodeCount:     2,

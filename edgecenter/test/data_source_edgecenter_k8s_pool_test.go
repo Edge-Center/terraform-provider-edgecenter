@@ -55,7 +55,7 @@ func TestAccK8sPoolDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer deleteTestNetwork(netClient, networkID)
+	t.Cleanup(func() { deleteTestNetwork(netClient, networkID) })
 
 	gw := net.ParseIP("")
 	subnetOpts := subnets.CreateOpts{
@@ -91,7 +91,7 @@ func TestAccK8sPoolDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer keypairs.Delete(kpClient, keyPair.ID)
+	t.Cleanup(func() { keypairs.Delete(kpClient, keyPair.ID) })
 
 	nodeCountTestPtr := nodeCountTest
 	dockerVolumeSizeTestPtr := dockerVolumeSizeTest
@@ -117,7 +117,7 @@ func TestAccK8sPoolDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer deleteTestCluster(k8sClient, clusterID)
+	t.Cleanup(func() { deleteTestCluster(k8sClient, clusterID) })
 
 	cluster, err := clusters.Get(k8sClient, clusterID).Extract()
 	if err != nil {

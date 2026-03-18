@@ -61,7 +61,7 @@ func TestAccLifecyclePolicy(t *testing.T) {
 resource "edgecenter_volume" "%s" {
 	%s
 	%s
-	name = "test-volume"
+	name = "`+testName("lc-vol")+`"
 	type_name = "standard"
 	size = 1
 }`, resName, projectInfo(), regionInfo())
@@ -86,17 +86,17 @@ resource "%s" "%s" {
 
 	// Options
 	create := lifecyclepolicy.CreateOpts{
-		Name:      "policy0",
+		Name:      testName("lcpol0"),
 		Status:    lifecyclepolicy.PolicyStatusPaused,
 		VolumeIds: []string{},
 	}
 	update1 := lifecyclepolicy.CreateOpts{
-		Name:      "policy1",
+		Name:      testName("lcpol1"),
 		Status:    lifecyclepolicy.PolicyStatusActive,
 		VolumeIds: []string{volumeId},
 	}
 	update2 := lifecyclepolicy.CreateOpts{
-		Name:      "policy2",
+		Name:      testName("lcpol2"),
 		Status:    lifecyclepolicy.PolicyStatusActive,
 		VolumeIds: []string{},
 	}

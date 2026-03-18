@@ -24,7 +24,7 @@ func TestAccServerGroupDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	opts := servergroups.CreateOpts{Name: "name", Policy: servergroups.AntiAffinityPolicy}
+	opts := servergroups.CreateOpts{Name: testName("srvg"), Policy: servergroups.AntiAffinityPolicy}
 	serverGroup, err := servergroups.Create(client, opts).Extract()
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +41,7 @@ func TestAccServerGroupDataSource(t *testing.T) {
 		`, projectInfo(), regionInfo(), name)
 	}
 
-	defer servergroups.Delete(client, serverGroup.ServerGroupID)
+	t.Cleanup(func() { servergroups.Delete(client, serverGroup.ServerGroupID) })
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
