@@ -101,7 +101,7 @@ Read-Only:
 - `enable_dhcp` (Boolean)
 - `gateway_ip` (String)
 - `has_router` (Boolean)
-- `host_routes` (List of Object) (see [below for nested schema](#nestedobjatt--networks--subnets--host_routes))
+- `host_routes` (Set of Object) (see [below for nested schema](#nestedobjatt--networks--subnets--host_routes))
 - `id` (String)
 - `name` (String)
 - `total_ips` (Number)

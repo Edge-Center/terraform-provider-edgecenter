@@ -59,7 +59,7 @@ output "view" {
 - `dns_nameservers` (List of String) List of DNS name servers for the subnet.
 - `enable_dhcp` (Boolean) Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.
 - `gateway_ip` (String) The IP address of the gateway for this subnet.
-- `host_routes` (List of Object) List of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedatt--host_routes))
+- `host_routes` (Set of Object) Set of additional routes to be added to instances that are part of this subnet. (see [below for nested schema](#nestedatt--host_routes))
 - `metadata_read_only` (List of Object) A list of read-only metadata items, e.g. tags. (see [below for nested schema](#nestedatt--metadata_read_only))
 
 <a id="nestedatt--allocation_pools"></a>

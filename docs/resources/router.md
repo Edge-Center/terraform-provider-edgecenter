@@ -68,7 +68,7 @@ resource "edgecenter_router" "router" {
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
-- `routes` (Block List) List of static routes to be applied to the router. (see [below for nested schema](#nestedblock--routes))
+- `routes` (Block Set) Set of static routes to be applied to the router. (see [below for nested schema](#nestedblock--routes))
 
 ### Read-Only
 
@@ -118,8 +118,8 @@ Read-Only:
 
 Required:
 
-- `destination` (String)
-- `nexthop` (String) IPv4 address to forward traffic to if it's destination IP matches 'destination' CIDR
+- `destination` (String) The CIDR of the destination IPv4 subnet.
+- `nexthop` (String) IPv4 address to forward traffic to if its destination IP matches the destination CIDR.
 
 ## Import
 

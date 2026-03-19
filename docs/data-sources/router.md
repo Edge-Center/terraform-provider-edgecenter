@@ -52,7 +52,7 @@ output "view" {
 
 - `external_gateway_info` (List of Object) Information related to the external gateway. (see [below for nested schema](#nestedatt--external_gateway_info))
 - `interfaces` (List of Object) Set of interfaces associated with the router. (see [below for nested schema](#nestedatt--interfaces))
-- `routes` (List of Object) List of static routes to be applied to the router. (see [below for nested schema](#nestedatt--routes))
+- `routes` (Set of Object) Set of static routes to be applied to the router. (see [below for nested schema](#nestedatt--routes))
 - `status` (String) The current status of the router resource.
 
 <a id="nestedatt--external_gateway_info"></a>
