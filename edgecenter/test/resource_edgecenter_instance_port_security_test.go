@@ -85,8 +85,9 @@ func TestAccInstancePortSecurity(t *testing.T) {
 	t.Cleanup(func() { networks.Delete(clientNet, networkID) })
 
 	optsSubnet := subnets.CreateOpts{
-		Name:      testName("ips-sub"),
-		NetworkID: networkID,
+		Name:                   testName("ips-sub"),
+		NetworkID:              networkID,
+		ConnectToNetworkRouter: true,
 	}
 
 	subnetID, err := createTestSubnet(clientSubnet, optsSubnet)
