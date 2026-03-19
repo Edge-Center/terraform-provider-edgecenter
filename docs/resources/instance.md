@@ -205,7 +205,7 @@ Optional:
 - `order` (Number) Order of attaching interface
 - `port_id` (String) required if type is  'reserved_fixed_ip'
 - `port_security_disabled` (Boolean)
-- `security_groups` (List of String) list of security group IDs
+- `security_groups` (Set of String) set of security group IDs
 - `subnet_id` (String) Required if type is 'subnet'.
 - `type` (String) Available value is 'subnet', 'any_subnet', 'external', 'reserved_fixed_ip'
 
