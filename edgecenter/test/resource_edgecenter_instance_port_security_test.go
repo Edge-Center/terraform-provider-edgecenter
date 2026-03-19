@@ -5,6 +5,7 @@ package edgecenter_test
 import (
 	"context"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"testing"
@@ -84,10 +85,12 @@ func TestAccInstancePortSecurity(t *testing.T) {
 
 	t.Cleanup(func() { networks.Delete(clientNet, networkID) })
 
+	gw := net.ParseIP("")
 	optsSubnet := subnets.CreateOpts{
 		Name:                   testName("ips-sub"),
 		NetworkID:              networkID,
 		ConnectToNetworkRouter: true,
+		GatewayIP:              &gw,
 	}
 
 	subnetID, err := createTestSubnet(clientSubnet, optsSubnet)

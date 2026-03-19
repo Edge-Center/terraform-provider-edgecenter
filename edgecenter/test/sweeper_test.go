@@ -93,7 +93,7 @@ func registerSweepers() {
 }
 
 func isTestResource(name string) bool {
-	return strings.HasPrefix(name, testResourcePrefix+"-")
+	return strings.HasPrefix(name, testResourcePrefix+"-") || strings.HasPrefix(name, "test-")
 }
 
 func waitForTask(ctx context.Context, client *edgecloudV2.Client, taskResp *edgecloudV2.TaskResponse) {
