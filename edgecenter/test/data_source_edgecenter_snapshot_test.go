@@ -18,9 +18,12 @@ func TestAccSnapshotDataSource(t *testing.T) {
 	ctx := context.Background()
 
 	client, err := createTestCloudClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	volumeOpts := edgecloudV2.VolumeCreateRequest{
-		Name:     "test-snapshot-volume",
+		Name:     testName("snap-vol"),
 		Size:     volumeSizeTest,
 		Source:   edgecloudV2.VolumeSourceNewVolume,
 		TypeName: edgecloudV2.VolumeTypeStandard,
@@ -32,7 +35,7 @@ func TestAccSnapshotDataSource(t *testing.T) {
 	}
 
 	snapshotOpts := edgecloudV2.SnapshotCreateRequest{
-		Name:     "snapshot-" + volumeTestName,
+		Name:     testName("snap"),
 		VolumeID: volumeID,
 	}
 
@@ -42,6 +45,14 @@ func TestAccSnapshotDataSource(t *testing.T) {
 	}
 
 	snapshotID := taskResultCreate.Snapshots[0]
+	t.Cleanup(func() {
+		if taskSnapshotsDelete, _, err := client.Snapshots.Delete(ctx, snapshotID); err == nil {
+			utilV2.WaitForTaskComplete(ctx, client, taskSnapshotsDelete.Tasks[0])
+		}
+		if taskVolumesDelete, _, err := client.Volumes.Delete(ctx, volumeID); err == nil {
+			utilV2.WaitForTaskComplete(ctx, client, taskVolumesDelete.Tasks[0])
+		}
+	})
 
 	resourceName := "data.edgecenter_snapshot.acctest"
 	tpl := func(name string) string {
@@ -68,30 +79,4 @@ func TestAccSnapshotDataSource(t *testing.T) {
 			},
 		},
 	})
-
-	taskSnapshotsDelete, _, err := client.Snapshots.Delete(ctx, snapshotID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = utilV2.WaitForTaskComplete(ctx, client, taskSnapshotsDelete.Tasks[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := utilV2.ResourceIsDeleted(ctx, client.Snapshots.Get, snapshotID); err != nil {
-		t.Fatal(err)
-	}
-
-	taskVolumesDelete, _, err := client.Volumes.Delete(ctx, volumeID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = utilV2.WaitForTaskComplete(ctx, client, taskVolumesDelete.Tasks[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := utilV2.ResourceIsDeleted(ctx, client.Volumes.Get, volumeID); err != nil {
-		t.Fatal(err)
-	}
 }

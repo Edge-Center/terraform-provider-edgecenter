@@ -26,7 +26,7 @@ func TestAccLBL7PolicyResource(t *testing.T) {
 
 	lbFlavor := "lb1-1-2"
 	opts := edgecloudV2.LoadbalancerCreateRequest{
-		Name:   "test-lb-l7policy",
+		Name:   testName("lb-l7pol"),
 		Flavor: lbFlavor,
 		Listeners: []edgecloudV2.LoadbalancerListenerCreateRequest{{
 			Name:         lbListenerTestName,
@@ -37,7 +37,7 @@ func TestAccLBL7PolicyResource(t *testing.T) {
 	ctx := context.Background()
 
 	lbID, err := createTestLoadBalancerWithListenerV2(ctx, client, opts)
-	defer client.Loadbalancers.Delete(ctx, lbID)
+	t.Cleanup(func() { client.Loadbalancers.Delete(ctx, lbID) })
 
 	lb, _, err := client.Loadbalancers.Get(ctx, lbID)
 	if err != nil {
@@ -53,14 +53,14 @@ func TestAccLBL7PolicyResource(t *testing.T) {
 	}
 
 	create := Params{
-		Name:             "testL7policy",
+		Name:             testName("l7pol"),
 		Action:           "REDIRECT_PREFIX",
 		RedirectPrefix:   "https://accounts.edgecenter.online/",
 		RedirectHTTPCode: 301,
 	}
 
 	update := Params{
-		Name:             "testL7policy_updated",
+		Name:             testName("l7pol-upd"),
 		Action:           "REDIRECT_PREFIX",
 		RedirectPrefix:   "https://accounts.edgecenter.ru/",
 		RedirectHTTPCode: 302,

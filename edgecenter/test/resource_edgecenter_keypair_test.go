@@ -21,7 +21,7 @@ func TestAccKeyPair(t *testing.T) {
 	}
 
 	create := Params{
-		Name: "test",
+		Name: testName("kp"),
 		PK:   pkTest,
 	}
 

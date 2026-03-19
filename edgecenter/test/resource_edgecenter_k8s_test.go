@@ -52,7 +52,7 @@ func TestAccK8s(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer deleteTestNetwork(netClient, networkID)
+	t.Cleanup(func() { deleteTestNetwork(netClient, networkID) })
 
 	gw := net.ParseIP("")
 	subnetOpts := subnets.CreateOpts{
@@ -88,20 +88,22 @@ func TestAccK8s(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer keypairs.Delete(kpClient, keyPair.ID)
+	t.Cleanup(func() { keypairs.Delete(kpClient, keyPair.ID) })
 
 	resourceName := "edgecenter_k8s.acctest"
+	k8sName := testName("k8s")
+	k8sPoolName := testName("k8s-pool")
 
 	ipTemplate := fmt.Sprintf(`
 			resource "edgecenter_k8s" "acctest" {
 			  %s
               %s
-              name = "tf-k8s"
+              name = "%s"
 			  fixed_network = "%s"
 			  fixed_subnet = "%s"
               keypair = "%s"
 			  pool {
-				name = "tf-pool1"
+				name = "%s"
 				flavor_id = "g1-standard-1-2"
 				min_node_count = 1
 				max_node_count = 1
@@ -110,7 +112,7 @@ func TestAccK8s(t *testing.T) {
 			  }
 
 			}
-		`, projectInfo(), regionInfo(), networkID, subnetID, keyPair.ID)
+		`, projectInfo(), regionInfo(), k8sName, networkID, subnetID, keyPair.ID, k8sPoolName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -121,7 +123,7 @@ func TestAccK8s(t *testing.T) {
 				Config: ipTemplate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "name", "tf-k8s"),
+					resource.TestCheckResourceAttr(resourceName, "name", k8sName),
 				),
 			},
 		},

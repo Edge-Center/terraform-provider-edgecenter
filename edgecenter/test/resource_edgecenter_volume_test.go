@@ -27,13 +27,13 @@ func TestAccVolume(t *testing.T) {
 	}
 
 	create := Params{
-		Name: "test",
+		Name: testName("vol"),
 		Size: 1,
 		Type: "standard",
 	}
 
 	update := Params{
-		Name: "test2",
+		Name: testName("vol-upd"),
 		Size: 2,
 		Type: "ssd_hiiops",
 	}

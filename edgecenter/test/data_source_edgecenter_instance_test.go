@@ -80,6 +80,14 @@ func TestAccInstanceDataSource(t *testing.T) {
 	}
 
 	instanceID := taskResultCreate.Instances[0]
+	t.Cleanup(func() {
+		optsInstDel := edgecloudV2.InstanceDeleteOptions{Volumes: []string{volumeID}}
+		taskResultDelete, _, err := client.Instances.Delete(ctx, instanceID, &optsInstDel)
+		if err != nil {
+			return
+		}
+		utilV2.WaitAndGetTaskInfo(ctx, client, taskResultDelete.Tasks[0])
+	})
 
 	resourceName := "data.edgecenter_instance.acctest"
 	tpl := func(name string) string {
@@ -106,21 +114,4 @@ func TestAccInstanceDataSource(t *testing.T) {
 			},
 		},
 	})
-	optsInstDel := edgecloudV2.InstanceDeleteOptions{
-		Volumes: []string{volumeID},
-	}
-
-	taskResultDelete, _, err := client.Instances.Delete(ctx, instanceID, &optsInstDel)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = utilV2.WaitAndGetTaskInfo(ctx, client, taskResultDelete.Tasks[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := utilV2.ResourceIsDeleted(ctx, client.Instances.Get, instanceID); err != nil {
-		t.Fatal(err)
-	}
-
 }

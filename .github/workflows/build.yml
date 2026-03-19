@@ -76,5 +76,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: 1.26.0
+      - name: Sweep stale test resources
+        run: go test -v ./edgecenter/test -tags sweeper -sweep=all -timeout=10m
+        continue-on-error: true
       - name: Run tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=20m

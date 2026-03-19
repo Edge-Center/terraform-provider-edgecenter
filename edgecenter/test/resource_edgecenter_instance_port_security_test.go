@@ -18,9 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-const InstancePortSecurityResourceName = "instance_port_security"
-
-var InstancePortSecurityInstanceName = fmt.Sprintf("%s-%s", InstancePortSecurityResourceName, instanceTestName)
+var InstancePortSecurityInstanceName = testName("ips-vm")
 
 func TestAccInstancePortSecurity(t *testing.T) {
 	cfg, err := createTestConfig()
@@ -64,7 +62,7 @@ func TestAccInstancePortSecurity(t *testing.T) {
 	volumeOpts := edgecloudV2.VolumeCreateRequest{
 		ImageID:  img.ID,
 		Source:   "image",
-		Name:     InstancePortSecurityResourceName + volumeTestName,
+		Name:     testName("ips-vol"),
 		Size:     5,
 		TypeName: "standard",
 	}
@@ -73,10 +71,10 @@ func TestAccInstancePortSecurity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer client.Volumes.Delete(ctx, volumeID)
+	t.Cleanup(func() { client.Volumes.Delete(ctx, volumeID) })
 
 	opts := networks.CreateOpts{
-		Name: InstancePortSecurityResourceName + networkTestName,
+		Name: testName("ips-net"),
 	}
 
 	networkID, err := createTestNetwork(clientNet, opts)
@@ -84,10 +82,10 @@ func TestAccInstancePortSecurity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer networks.Delete(clientNet, networkID)
+	t.Cleanup(func() { networks.Delete(clientNet, networkID) })
 
 	optsSubnet := subnets.CreateOpts{
-		Name:      InstancePortSecurityResourceName + subnetTestName,
+		Name:      testName("ips-sub"),
 		NetworkID: networkID,
 	}
 
@@ -114,10 +112,10 @@ func TestAccInstancePortSecurity(t *testing.T) {
 
 	newSG1, _, err := client.SecurityGroups.Create(ctx, &edgecloudV2.SecurityGroupCreateRequest{
 		SecurityGroup: edgecloudV2.SecurityGroupCreateRequestInner{
-			Name: InstancePortSecurityResourceName,
+			Name: testName("ips-sg"),
 		},
 	})
-	defer client.SecurityGroups.Delete(ctx, newSG1.ID)
+	t.Cleanup(func() { client.SecurityGroups.Delete(ctx, newSG1.ID) })
 
 	sgsUpdate := []string{fmt.Sprintf("\"%s\"", newSG1.ID)}
 
@@ -148,7 +146,7 @@ func TestAccInstancePortSecurity(t *testing.T) {
 		t.Fatal(err)
 	}
 	instanceID := taskInstanceResult.Instances[0]
-	defer client.Instances.Delete(ctx, instanceID, nil)
+	t.Cleanup(func() { client.Instances.Delete(ctx, instanceID, nil) })
 
 	instancePortInterfaces, _, err := client.Instances.InterfaceList(ctx, instanceID)
 	if err != nil {

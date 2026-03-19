@@ -27,7 +27,7 @@ func TestAccLBL7RuleDataSource(t *testing.T) {
 
 	lbFlavor := "lb1-1-2"
 	opts := edgecloudV2.LoadbalancerCreateRequest{
-		Name:   "test-lb-l7rule-data-source",
+		Name:   testName("lb-l7rule-ds"),
 		Flavor: lbFlavor,
 		Listeners: []edgecloudV2.LoadbalancerListenerCreateRequest{{
 			Name:         lbListenerTestName,
@@ -39,7 +39,7 @@ func TestAccLBL7RuleDataSource(t *testing.T) {
 
 	t.Log("trying to create loadbalancer with listener...")
 	lbID, err := createTestLoadBalancerWithListenerV2(ctx, client, opts)
-	defer client.Loadbalancers.Delete(ctx, lbID)
+	t.Cleanup(func() { client.Loadbalancers.Delete(ctx, lbID) })
 
 	lb, _, err := client.Loadbalancers.Get(ctx, lbID)
 	if err != nil {
@@ -50,7 +50,7 @@ func TestAccLBL7RuleDataSource(t *testing.T) {
 
 	l7CreateOpts := edgecloudV2.L7PolicyCreateRequest{
 		ListenerID:     listener.ID,
-		Name:           "test-l7rule",
+		Name:           testName("l7rule"),
 		Action:         "REDIRECT_PREFIX",
 		RedirectPrefix: "https://testsite.ru/",
 	}

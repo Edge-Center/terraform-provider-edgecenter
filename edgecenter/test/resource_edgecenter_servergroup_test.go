@@ -21,7 +21,7 @@ func TestAccServerGroupResource(t *testing.T) {
 	}
 
 	create := Params{
-		Name:   "test",
+		Name:   testName("srvg"),
 		Policy: servergroups.AntiAffinityPolicy.String(),
 	}
 

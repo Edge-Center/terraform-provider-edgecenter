@@ -26,7 +26,7 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 
 	opts1 := securitygroups.CreateOpts{
 		SecurityGroup: securitygroups.CreateSecurityGroupOpts{
-			Name:               "test-sg1",
+			Name:               testName("sg1"),
 			SecurityGroupRules: []securitygroups.CreateSecurityGroupRuleOpts{},
 			Metadata:           map[string]interface{}{"key1": "val1", "key2": "val2"},
 		},
@@ -39,7 +39,7 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 
 	opts2 := securitygroups.CreateOpts{
 		SecurityGroup: securitygroups.CreateSecurityGroupOpts{
-			Name:               "test-sg2",
+			Name:               testName("sg2"),
 			SecurityGroupRules: []securitygroups.CreateSecurityGroupRuleOpts{},
 			Metadata:           map[string]interface{}{"key1": "val1", "key3": "val3"},
 		},
@@ -49,8 +49,8 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer securitygroups.Delete(client, sg1.ID)
-	defer securitygroups.Delete(client, sg2.ID)
+	t.Cleanup(func() { securitygroups.Delete(client, sg1.ID) })
+	t.Cleanup(func() { securitygroups.Delete(client, sg2.ID) })
 
 	resourceName := "data.edgecenter_securitygroup.acctest"
 

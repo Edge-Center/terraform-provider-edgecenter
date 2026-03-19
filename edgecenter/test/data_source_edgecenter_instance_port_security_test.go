@@ -17,9 +17,7 @@ import (
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 )
 
-const InstancePortSecurityDatasourceName = "instance_port_security_datasource"
-
-var InstancePortSecurityDatasourceInstanceName = fmt.Sprintf("%s-%s-datasource", InstancePortSecurityDatasourceName, instanceTestName)
+var InstancePortSecurityDatasourceInstanceName = testName("ips-ds-vm")
 
 func TestAccInstancePortSecurityDataSource(t *testing.T) {
 	cfg, err := createTestConfig()
@@ -63,7 +61,7 @@ func TestAccInstancePortSecurityDataSource(t *testing.T) {
 	volumeOpts := edgecloudV2.VolumeCreateRequest{
 		ImageID:  img.ID,
 		Source:   "image",
-		Name:     InstancePortSecurityDatasourceName + volumeTestName,
+		Name:     testName("ips-ds-vol"),
 		Size:     5,
 		TypeName: "standard",
 	}
@@ -72,10 +70,10 @@ func TestAccInstancePortSecurityDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer client.Volumes.Delete(ctx, volumeID)
+	t.Cleanup(func() { client.Volumes.Delete(ctx, volumeID) })
 
 	opts := networks.CreateOpts{
-		Name: InstancePortSecurityDatasourceName + networkTestName,
+		Name: testName("ips-ds-net"),
 	}
 
 	networkID, err := createTestNetwork(clientNet, opts)
@@ -83,10 +81,10 @@ func TestAccInstancePortSecurityDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer networks.Delete(clientNet, networkID)
+	t.Cleanup(func() { networks.Delete(clientNet, networkID) })
 
 	optsSubnet := subnets.CreateOpts{
-		Name:      InstancePortSecurityDatasourceName + subnetTestName,
+		Name:      testName("ips-ds-sub"),
 		NetworkID: networkID,
 	}
 
@@ -134,7 +132,7 @@ func TestAccInstancePortSecurityDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	instanceID := taskInstanceResult.Instances[0]
-	defer client.Instances.Delete(ctx, instanceID, nil)
+	t.Cleanup(func() { client.Instances.Delete(ctx, instanceID, nil) })
 
 	instancePortInterfaces, _, err := client.Instances.InterfaceList(ctx, instanceID)
 	if err != nil {

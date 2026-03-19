@@ -19,11 +19,13 @@ func TestAccSecurityGroup(t *testing.T) {
 	// TODO: https://tracker.yandex.ru/CLOUDDEV-473
 	resourceName := "edgecenter_securitygroup.acctest"
 
+	sgName := testName("secg")
+
 	ipTemplate1 := fmt.Sprintf(`
 			resource "edgecenter_securitygroup" "acctest" {
 			  %s
               %s
-			  name = "test"
+			  name = "%s"
 			  metadata_map = {
 				key1 = "val1"
 				key2 = "val2"
@@ -34,13 +36,13 @@ func TestAccSecurityGroup(t *testing.T) {
 				protocol = "vrrp"
 			  }
 			}
-		`, projectInfo(), regionInfo())
+		`, projectInfo(), regionInfo(), sgName)
 
 	ipTemplate2 := fmt.Sprintf(`
 			resource "edgecenter_securitygroup" "acctest" {
 			  %s
               %s
-			  name = "test"
+			  name = "%s"
 			  metadata_map = {
 				key3 = "val3"
 			  }
@@ -50,7 +52,7 @@ func TestAccSecurityGroup(t *testing.T) {
 				protocol = "vrrp"
 			  }
 			}
-		`, projectInfo(), regionInfo())
+		`, projectInfo(), regionInfo(), sgName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },

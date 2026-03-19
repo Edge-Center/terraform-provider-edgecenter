@@ -1,16 +1,18 @@
 package edgecenter_test
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
@@ -27,21 +29,51 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
+//nolint:unused // used in build-tagged test files
+const testResourcePrefix = "acctest"
+
+//nolint:unused // used in build-tagged test files
+var (
+	randomSuffix     string
+	randomSuffixOnce sync.Once
+)
+
+//nolint:unused // used in build-tagged test files
+func getTestSuffix() string {
+	randomSuffixOnce.Do(func() {
+		b := make([]byte, 4)
+		if _, err := rand.Read(b); err != nil {
+			panic(fmt.Sprintf("cannot generate random suffix: %v", err))
+		}
+		randomSuffix = hex.EncodeToString(b)
+	})
+
+	return randomSuffix
+}
+
+//nolint:unused // used in build-tagged test files
+func testName(base string) string {
+	return fmt.Sprintf("%s-%s-%s", testResourcePrefix, base, getTestSuffix())
+}
+
+//nolint:unused
+var (
+	instanceTestName      = testName("vm")
+	instanceV2TestName    = testName("vmV2")
+	clusterTestName       = testName("cluster")
+	poolTestName          = testName("pool")
+	lbTestName            = testName("lb")
+	lbListenerTestName    = testName("listener")
+	networkTestName       = testName("network")
+	subnetTestName        = testName("subnet")
+	subnetTestNameUpdated = testName("subnet-updated")
+	volumeTestName        = testName("volume")
+	secretTestName        = testName("secret")
+	kpTestName            = testName("kp")
+)
+
 //nolint:unused
 const (
-	instanceTestName      = "test-vm"
-	instanceV2TestName    = "test-vmV2"
-	clusterTestName       = "test-cluster"
-	poolTestName          = "test-pool"
-	lbTestName            = "test-lb"
-	lbListenerTestName    = "test-listener"
-	networkTestName       = "test-network"
-	subnetTestName        = "test-subnet"
-	subnetTestNameUpdated = "test-subnet-updated"
-	volumeTestName        = "test-volume"
-	secretTestName        = "test-secret"
-	kpTestName            = "test-kp"
-
 	flavorTest           = "g1-standard-1-2"
 	osDistroTest         = "debian"
 	clusterVersionTest   = "1.20.15"
@@ -392,20 +424,4 @@ func testAccCheckResourceExists(resourceName string) resource.TestCheckFunc {
 		}
 		return nil
 	}
-}
-
-var (
-	testAccProvider  *schema.Provider
-	testAccProviders map[string]func() (*schema.Provider, error)
-)
-
-func TestMain(m *testing.M) {
-	testAccProvider = edgecenter.Provider()
-	testAccProviders = map[string]func() (*schema.Provider, error){
-		"edgecenter": func() (*schema.Provider, error) {
-			return testAccProvider, nil
-		},
-	}
-	exitCode := m.Run()
-	os.Exit(exitCode)
 }

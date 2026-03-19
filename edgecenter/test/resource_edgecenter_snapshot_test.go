@@ -39,7 +39,7 @@ func TestAccSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer volumes.Delete(client, volumeID, volumes.DeleteOpts{})
+	t.Cleanup(func() { volumes.Delete(client, volumeID, volumes.DeleteOpts{}) })
 
 	type Params struct {
 		Name        string
@@ -50,12 +50,12 @@ func TestAccSnapshot(t *testing.T) {
 	}
 
 	create := Params{
-		Name:     "test",
+		Name:     testName("snap"),
 		VolumeID: volumeID,
 	}
 
 	update := Params{
-		Name:     "test",
+		Name:     testName("snap"),
 		VolumeID: volumeID,
 	}
 

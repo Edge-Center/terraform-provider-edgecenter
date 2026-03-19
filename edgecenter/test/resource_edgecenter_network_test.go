@@ -23,7 +23,7 @@ func TestAccNetwork(t *testing.T) {
 	}
 
 	paramsCreate := Params{
-		Name: "create_test",
+		Name: testName("net"),
 		Type: "vxlan",
 		MetadataMap: `{
 				key1 = "val1"
@@ -32,7 +32,7 @@ func TestAccNetwork(t *testing.T) {
 	}
 
 	paramsUpdate := Params{
-		Name: "update_test",
+		Name: testName("net-upd"),
 		MetadataMap: `{
 				key3 = "val3"
 			  }`,

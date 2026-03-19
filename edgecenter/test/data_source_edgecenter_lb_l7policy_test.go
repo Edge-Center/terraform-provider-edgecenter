@@ -27,7 +27,7 @@ func TestAccLBL7PolicyDataSource(t *testing.T) {
 
 	lbFlavor := "lb1-1-2"
 	opts := edgecloudV2.LoadbalancerCreateRequest{
-		Name:   "test-lb-l7policy-date-source",
+		Name:   testName("lb-l7pol-ds"),
 		Flavor: lbFlavor,
 		Listeners: []edgecloudV2.LoadbalancerListenerCreateRequest{{
 			Name:         lbListenerTestName,
@@ -38,7 +38,7 @@ func TestAccLBL7PolicyDataSource(t *testing.T) {
 	ctx := context.Background()
 
 	lbID, err := createTestLoadBalancerWithListenerV2(ctx, client, opts)
-	defer client.Loadbalancers.Delete(ctx, lbID)
+	t.Cleanup(func() { client.Loadbalancers.Delete(ctx, lbID) })
 
 	lb, _, err := client.Loadbalancers.Get(ctx, lbID)
 	if err != nil {
@@ -48,7 +48,7 @@ func TestAccLBL7PolicyDataSource(t *testing.T) {
 
 	l7CreateOpts := edgecloudV2.L7PolicyCreateRequest{
 		ListenerID:     listener.ID,
-		Name:           "test-l7policy",
+		Name:           testName("l7pol"),
 		Action:         "REDIRECT_PREFIX",
 		RedirectPrefix: "https://test-prfix.ru/",
 	}

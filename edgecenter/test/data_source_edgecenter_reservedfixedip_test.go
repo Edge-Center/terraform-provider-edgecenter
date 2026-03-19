@@ -50,7 +50,7 @@ func TestAccReservedFixedIPDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer reservedfixedips.Delete(client, reservedFixedIPID.(string))
+	t.Cleanup(func() { reservedfixedips.Delete(client, reservedFixedIPID.(string)) })
 
 	fip, err := reservedfixedips.Get(client, reservedFixedIPID.(string)).Extract()
 	if err != nil {

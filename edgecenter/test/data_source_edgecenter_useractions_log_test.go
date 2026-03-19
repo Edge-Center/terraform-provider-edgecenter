@@ -37,7 +37,7 @@ func TestAccEdgecenterUserActionsListLogSubscriptionsDatasource(t *testing.T) {
 		t.Error(err)
 	}
 
-	defer client.UserActions.UnsubscribeLog(ctx)
+	t.Cleanup(func() { client.UserActions.UnsubscribeLog(ctx) })
 
 	datasourceName := "data.edgecenter_useractions_subscription_log.subs"
 
