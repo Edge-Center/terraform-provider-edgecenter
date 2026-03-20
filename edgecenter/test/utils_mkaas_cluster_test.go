@@ -2,7 +2,9 @@ package edgecenter_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -57,7 +59,7 @@ const mainTmpl = `
 terraform {
   required_providers {
     edgecenter = {
-      source = "local.edgecenter.ru/repo/edgecenter"
+      source = "Edge-Center/edgecenter"
     }
   }
 }
@@ -117,8 +119,8 @@ const (
 	kubernetesVersion         = "v1.31.0"
 	masterVolumeType          = "ssd_hiiops"
 	workerVolumeType          = "ssd_hiiops"
-	masterFlavor              = "g3-standard-2-4"
-	workerFlavor              = "mkaas-worker-g3-cpu-2-2"
+	masterFlavor              = "mkaas-master-g3-standard-2-4"
+	workerFlavor              = "mkaas-worker-g3-cpu-4-4"
 	clusterWorkCompletedStage = "WORK_COMPLETED"
 )
 
@@ -143,8 +145,13 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 	}
 
 	opts := &tt.Options{
-		TerraformDir: tmp,
-		NoColor:      true,
+		TerraformDir:    tmp,
+		NoColor:         true,
+		TerraformBinary: "terraform",
+	}
+
+	if _, err := terraformInitE(t, opts); err != nil {
+		return nil, fmt.Errorf("terraform init: %w", err)
 	}
 
 	if _, err := tt.ApplyAndIdempotentE(t, opts); err != nil {
@@ -180,6 +187,10 @@ func (c *Cluster) Destroy(t *testing.T) error {
 	t.Helper()
 	var destroyErr error
 	c.once.Do(func() {
+		if _, err := terraformInitE(t, c.Opts); err != nil {
+			destroyErr = fmt.Errorf("terraform init before destroy: %w", err)
+			return
+		}
 		_, destroyErr = tt.DestroyE(t, c.Opts)
 	})
 	return destroyErr
@@ -195,6 +206,10 @@ func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) error {
 		return fmt.Errorf("write main.tf (update): %w", err)
 	}
 
+	if _, err := terraformInitE(t, c.Opts); err != nil {
+		return fmt.Errorf("terraform init (update): %w", err)
+	}
+
 	if _, err := tt.ApplyE(t, c.Opts); err != nil {
 		return fmt.Errorf("terraform apply (update): %w", err)
 	}
@@ -207,39 +222,44 @@ func ImportClusterPlanApply(t *testing.T, token, projectID, regionID, clusterID,
 	t.Helper()
 
 	importDir := filepath.Join(workDir, "import")
-	if err := os.MkdirAll(importDir, 0o755); err != nil {
+	if err := os.MkdirAll(importDir, 0o750); err != nil {
 		return nil, fmt.Errorf("mkdir import: %w", err)
 	}
 
 	importMain := `
-terraform {
-  required_providers {
-    edgecenter = {
-      source = "local.edgecenter.ru/repo/edgecenter"
-    }
-  }
-}
+	terraform {
+	  required_providers {
+	    edgecenter = {
+	      source = "Edge-Center/edgecenter"
+	    }
+	  }
+	}
 
-provider "edgecenter" {
-  permanent_api_token  = "` + token + `"
-}
+	provider "edgecenter" {
+	  permanent_api_token  = "` + token + `"
+	}
 
-import {
-  to = edgecenter_mkaas_cluster.test
-  id = "` + strings.Join([]string{projectID, regionID, clusterID}, ":") + `"
-}
-`
+	import {
+	  to = edgecenter_mkaas_cluster.test
+	  id = "` + strings.Join([]string{projectID, regionID, clusterID}, ":") + `"
+	}
+	`
 	if err := os.WriteFile(filepath.Join(importDir, "main.tf"), []byte(importMain), 0o600); err != nil {
 		return nil, fmt.Errorf("write import/main.tf: %w", err)
 	}
 
-	opts := &tt.Options{
-		TerraformDir: importDir,
-		NoColor:      true,
+	importOpts := &tt.Options{
+		TerraformDir:    importDir,
+		NoColor:         true,
+		TerraformBinary: "terraform",
+	}
+
+	if _, err := terraformInitE(t, importOpts); err != nil {
+		return nil, fmt.Errorf("terraform init (import dir): %w", err)
 	}
 
 	if _, err := tt.RunTerraformCommandE(
-		t, opts,
+		t, importOpts,
 		"plan",
 		"-generate-config-out=generated.tf",
 		"-input=false",
@@ -251,12 +271,12 @@ import {
 		return nil, fmt.Errorf("generated.tf not found after plan -generate-config-out: %w", err)
 	}
 
-	if _, err := tt.ApplyAndIdempotentE(t, opts); err != nil {
+	if _, err := tt.ApplyAndIdempotentE(t, importOpts); err != nil {
 		return nil, fmt.Errorf("terraform apply (import dir): %w", err)
 	}
 
 	if out, err := tt.RunTerraformCommandE(
-		t, opts,
+		t, importOpts,
 		"plan",
 		"-detailed-exitcode",
 		"-input=false",
@@ -265,13 +285,15 @@ import {
 		return nil, fmt.Errorf("terraform plan after import/apply is not empty (err=%w)\n%s", err, out)
 	}
 
-	return opts, nil
+	return importOpts, nil
 }
 
 // --- common utils
 
 func renderTemplateTo(path string, data tfData) error {
+	// #nosec G304 - This is a test helper function, path is controlled by tests
 	tpl := template.Must(template.New("main").Parse(mainTmpl))
+	// #nosec G304
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -385,13 +407,26 @@ func CreateTestKeypair(t *testing.T, clientV2 *edgecloudV2.Client, keypairName s
 		ProjectID:  clientV2.Project,
 	}
 
-	ctx := context.Background()
-	kp, _, err := clientV2.KeyPairs.CreateV2(ctx, opts)
-	if err != nil {
-		return "", fmt.Errorf("failed to create keypair: %w", err)
+	var lastErr error
+	for attempt := 1; attempt <= 3; attempt++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+		kp, _, err := clientV2.KeyPairs.CreateV2(ctx, opts)
+		cancel()
+		if err == nil {
+			return kp.SSHKeyID, nil
+		}
+
+		lastErr = err
+		// Retry only transient transport errors to reduce test flakiness in CI.
+		var netErr net.Error
+		if !errors.As(err, &netErr) || attempt == 3 {
+			break
+		}
+
+		time.Sleep(time.Duration(attempt*3) * time.Second)
 	}
 
-	return kp.SSHKeyID, nil
+	return "", fmt.Errorf("failed to create keypair: %w", lastErr)
 }
 
 // DeleteTestKeypair deletes an SSH keypair using the V2 API client.
@@ -504,7 +539,9 @@ func WaitForMKaaSClusterStage(
 }
 
 func renderTemplateToWith(path, tmpl string, data any) error { //nolint:unused
+	// #nosec G304 - This is a test helper function, path is controlled by tests
 	tpl := template.Must(template.New("pool").Parse(tmpl))
+	// #nosec G304
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -515,6 +552,17 @@ func renderTemplateToWith(path, tmpl string, data any) error { //nolint:unused
 	return tpl.Execute(f, data)
 }
 
+func terraformInitE(t *testing.T, opts *tt.Options) (string, error) {
+	t.Helper()
+	return tt.RunTerraformCommandE(
+		t, opts,
+		"init",
+		"-input=false",
+		"-no-color",
+		"-lock=false",
+	)
+}
+
 // HCL для пула + полезные outputs.
 //
 //nolint:unused
@@ -522,7 +570,7 @@ const poolMainTmpl = `
 terraform {
   required_providers {
     edgecenter = {
-      source = "local.edgecenter.ru/repo/edgecenter"
+      source = "Edge-Center/edgecenter"
     }
   }
 }

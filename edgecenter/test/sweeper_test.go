@@ -6,8 +6,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
@@ -63,6 +66,15 @@ func registerSweepers() {
 		Name:         "edgecenter_router",
 		F:            sweepRouters,
 		Dependencies: []string{"edgecenter_subnet"},
+	})
+	resource.AddTestSweepers("edgecenter_mkaas_cluster", &resource.Sweeper{
+		Name: "edgecenter_mkaas_cluster",
+		F:    sweepMKaaSClusters,
+	})
+	resource.AddTestSweepers("edgecenter_mkaas_pool", &resource.Sweeper{
+		Name:         "edgecenter_mkaas_pool",
+		F:            sweepMKaaSPools,
+		Dependencies: []string{"edgecenter_mkaas_cluster"},
 	})
 	resource.AddTestSweepers("edgecenter_securitygroup", &resource.Sweeper{
 		Name: "edgecenter_securitygroup",
@@ -484,6 +496,123 @@ func sweepReservedFixedIPs(_ string) error {
 			continue
 		}
 		waitForTask(ctx, client, taskResp)
+	}
+
+	return nil
+}
+
+// createTestCloudClientForMKAAS creates a cloud client using MKAAS-specific region
+func createTestCloudClientForMKAAS() (*edgecloudV2.Client, error) {
+	config, err := createTestConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := edgecloudV2.NewWithRetries(nil,
+		edgecloudV2.SetUserAgent(config.UserAgent),
+		edgecloudV2.SetAPIKey(config.PermanentToken),
+		edgecloudV2.SetBaseURL(config.CloudBaseURL),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error from creating cloud client: %w", err)
+	}
+	// MKAAS uses a separate region variable (TEST_MKAAS_REGION_ID)
+	regionID := 0
+	projectID := 0
+	if strRegionID, exists := os.LookupEnv("TEST_MKAAS_REGION_ID"); exists {
+		regionID, err = strconv.Atoi(strRegionID)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing TEST_MKAAS_REGION_ID: %w", err)
+		}
+	}
+	if strProjectID, exists := os.LookupEnv("TEST_PROJECT_ID"); exists {
+		projectID, err = strconv.Atoi(strProjectID)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing TEST_PROJECT_ID: %w", err)
+		}
+	}
+	client.Region = regionID
+	client.Project = projectID
+
+	return client, nil
+}
+
+func sweepMKaaSClusters(_ string) error {
+	client, err := createTestCloudClientForMKAAS()
+	if err != nil {
+		return fmt.Errorf("error getting MKAAS client: %w", err)
+	}
+	ctx := context.Background()
+
+	clusters, _, err := client.MkaaS.ClustersList(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error listing MKAAS clusters: %w", err)
+	}
+
+	for _, cluster := range clusters {
+		if !isTestResource(cluster.Name) {
+			continue
+		}
+		log.Printf("[INFO] Sweeping MKAAS cluster: %s (%d)", cluster.Name, cluster.ID)
+		results, _, err := client.MkaaS.ClusterDelete(ctx, cluster.ID)
+		if err != nil {
+			log.Printf("[ERROR] Error deleting MKAAS cluster %d: %s", cluster.ID, err)
+			continue
+		}
+		taskID := results.Tasks[0]
+		task, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, 20*time.Minute)
+		if err != nil {
+			log.Printf("[ERROR] Error waiting for MKAAS cluster %d deletion: %s", cluster.ID, err)
+			continue
+		}
+		if task.State == edgecloudV2.TaskStateError {
+			log.Printf("[ERROR] MKAAS cluster %d deletion failed", cluster.ID)
+		}
+	}
+
+	return nil
+}
+
+func sweepMKaaSPools(_ string) error {
+	client, err := createTestCloudClientForMKAAS()
+	if err != nil {
+		return fmt.Errorf("error getting MKAAS client: %w", err)
+	}
+	ctx := context.Background()
+
+	clusters, _, err := client.MkaaS.ClustersList(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error listing MKAAS clusters: %w", err)
+	}
+
+	for _, cluster := range clusters {
+		if !isTestResource(cluster.Name) {
+			continue
+		}
+		log.Printf("[INFO] Getting pools for MKAAS cluster: %s (%d)", cluster.Name, cluster.ID)
+
+		pools, _, err := client.MkaaS.PoolsList(ctx, cluster.ID, nil)
+		if err != nil {
+			log.Printf("[ERROR] Error listing pools for cluster %d: %s", cluster.ID, err)
+			continue
+		}
+
+		for _, pool := range pools {
+			log.Printf("[INFO] Sweeping MKAAS pool: %s (%d) for cluster %d", pool.Name, pool.ID, cluster.ID)
+			results, _, err := client.MkaaS.PoolDelete(ctx, cluster.ID, pool.ID)
+			if err != nil {
+				log.Printf("[ERROR] Error deleting MKAAS pool %d: %s", pool.ID, err)
+				continue
+			}
+			taskID := results.Tasks[0]
+			task, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, 20*time.Minute)
+			if err != nil {
+				log.Printf("[ERROR] Error waiting for MKAAS pool %d deletion: %s", pool.ID, err)
+				continue
+			}
+			if task.State == edgecloudV2.TaskStateError {
+				log.Printf("[ERROR] MKAAS pool %d deletion failed", pool.ID)
+			}
+		}
 	}
 
 	return nil

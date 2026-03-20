@@ -2,7 +2,7 @@ name: build
 
 on:
   pull_request:
-    branches: [ master, main, release-cloud, instanceV2]
+    branches: [master, main, release-cloud, instanceV2]
 
 env:
   EC_USERNAME: ${{ secrets.EC_USERNAME }}
@@ -14,6 +14,7 @@ env:
   EC_STORAGE_API: ${{ secrets.EC_STORAGE_API }}
   TEST_PROJECT_ID: ${{ secrets.TEST_PROJECT_ID }}
   TEST_REGION_ID: ${{ secrets.TEST_REGION_ID }}
+  TEST_MKAAS_REGION_ID: ${{ secrets.TEST_MKAAS_REGION_ID }}
   TF_ACC: ${{ secrets.TF_ACC }}
 
 jobs:
@@ -54,8 +55,12 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: 1.26.0
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ~1.9.0
       - name: Run tests (${{ matrix.kind.tag }})
-        run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=5m
+        run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=10m
 
   tests:
     needs: reseller-tests
@@ -76,8 +81,80 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: 1.26.0
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ~1.9.0
       - name: Sweep stale test resources
         run: go test -v ./edgecenter/test -tags sweeper -sweep=all -timeout=10m
         continue-on-error: true
       - name: Run tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=20m
+
+  mkaas-tests:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      EC_CLIENT_ID: ${{ secrets.EC_CLIENT_ID }}
+      EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
+      TEST_MKAAS_REGION_ID: ${{ secrets.TEST_MKAAS_REGION_ID }}
+      TF_CLI_CONFIG_FILE: ${{ github.workspace }}/.terraformrc-ci
+    strategy:
+      matrix:
+        kind:
+          - tag: cloud_data_source_mkaas
+            timeout: 20m
+          - tag: cloud_resource_mkaas
+            timeout: 30m
+      fail-fast: true
+      max-parallel: 1
+    name: tests-${{ matrix.kind.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.0
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ~1.9.0
+      - name: Build local provider
+        run: |
+          mkdir -p "$RUNNER_TEMP/provider-dev"
+          go build -o "$RUNNER_TEMP/provider-dev/terraform-provider-edgecenter" main.go
+          chmod +x "$RUNNER_TEMP/provider-dev/terraform-provider-edgecenter"
+          ls -la "$RUNNER_TEMP/provider-dev"
+      - name: Configure Terraform for local provider
+        run: |
+          cat > "$TF_CLI_CONFIG_FILE" <<EOF
+          provider_installation {
+            dev_overrides {
+              "Edge-Center/edgecenter" = "$RUNNER_TEMP/provider-dev"
+            }
+            direct {}
+          }
+          EOF
+      - name: Verify Terraform configuration
+        run: |
+          cat "$TF_CLI_CONFIG_FILE"
+          terraform version
+      - name: Verify dev override is active
+        run: |
+          tmp_dir="$(mktemp -d)"
+          cat > "$tmp_dir/main.tf" <<'EOF'
+          terraform {
+            required_providers {
+              edgecenter = {
+                source = "Edge-Center/edgecenter"
+              }
+            }
+          }
+          provider "edgecenter" {}
+          EOF
+          terraform -chdir="$tmp_dir" init -input=false -no-color
+          terraform -chdir="$tmp_dir" providers
+      - name: Sweep stale MKAAS resources
+        run: go test -v ./edgecenter/test -tags sweeper -sweep=edgecenter_mkaas_cluster -timeout=10m
+        continue-on-error: true
+      - name: Run MKAAS tests (${{ matrix.kind.tag }})
+        run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=${{ matrix.kind.timeout }}

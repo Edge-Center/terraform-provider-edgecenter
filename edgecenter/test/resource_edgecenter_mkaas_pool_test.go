@@ -173,10 +173,15 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	}
 
 	poolOpts := &tt.Options{
-		TerraformDir: poolDir,
-		NoColor:      true,
+		TerraformDir:    poolDir,
+		NoColor:         true,
+		TerraformBinary: "terraform",
 	}
 	// Note: pool will be destroyed when cluster is deleted, so no cleanup needed here
+
+	if _, err := terraformInitE(t, poolOpts); err != nil {
+		t.Fatalf("terraform init (pool create): %v", err)
+	}
 
 	if _, err := tt.ApplyAndIdempotentE(t, poolOpts); err != nil {
 		t.Fatalf("terraform apply (pool create): %v", err)
@@ -246,7 +251,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 terraform {
   required_providers {
     edgecenter = {
-      source = "local.edgecenter.ru/repo/edgecenter"
+      source = "Edge-Center/edgecenter"
     }
   }
 }
@@ -264,8 +269,12 @@ import {
 		t.Fatalf("write pool import main.tf: %v", err)
 	}
 	importOpts := &tt.Options{
-		TerraformDir: importDir,
-		NoColor:      true,
+		TerraformDir:    importDir,
+		NoColor:         true,
+		TerraformBinary: "terraform",
+	}
+	if _, err := terraformInitE(t, importOpts); err != nil {
+		t.Fatalf("terraform init (pool import dir): %v", err)
 	}
 	if _, err := tt.RunTerraformCommandE(
 		t, importOpts,

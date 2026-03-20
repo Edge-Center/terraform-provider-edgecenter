@@ -23,7 +23,7 @@ const dataSourcePoolMainTmpl = `
 terraform {
   required_providers {
     edgecenter = {
-      source = "local.edgecenter.ru/repo/edgecenter"
+      source = "Edge-Center/edgecenter"
     }
   }
 }
@@ -184,7 +184,7 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 		RegionID:         cluster.Data.RegionID,
 		ClusterID:        cluster.ID,
 		Name:             poolName,
-		Flavor:           masterFlavor,
+		Flavor:           workerFlavor,
 		NodeCount:        1,
 		VolumeSize:       30,
 		VolumeType:       workerVolumeType,
@@ -199,10 +199,15 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 	}
 
 	poolOpts := &tt.Options{
-		TerraformDir: poolDir,
-		NoColor:      true,
+		TerraformDir:    poolDir,
+		NoColor:         true,
+		TerraformBinary: "terraform",
 	}
 	// Note: pool will be destroyed when cluster is deleted, so no cleanup needed here
+
+	if _, err := terraformInitE(t, poolOpts); err != nil {
+		t.Fatalf("terraform init (pool create): %v", err)
+	}
 
 	if _, err := tt.ApplyAndIdempotentE(t, poolOpts); err != nil {
 		t.Fatalf("terraform apply (pool create): %v", err)
@@ -236,8 +241,13 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 	}
 
 	dataSourceOpts := &tt.Options{
-		TerraformDir: dataSourceDir,
-		NoColor:      true,
+		TerraformDir:    dataSourceDir,
+		NoColor:         true,
+		TerraformBinary: "terraform",
+	}
+
+	if _, err := terraformInitE(t, dataSourceOpts); err != nil {
+		t.Fatalf("terraform init (data-source): %v", err)
 	}
 
 	if _, err := tt.ApplyAndIdempotentE(t, dataSourceOpts); err != nil {
@@ -248,7 +258,7 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 	require.Equalf(t, poolID, tt.Output(t, dataSourceOpts, "pool_id"), "%s mismatch", "pool_id")
 	require.Equalf(t, poolName, tt.Output(t, dataSourceOpts, "pool_name"), "%s mismatch", "pool_name")
 	require.Equalf(t, cluster.ID, tt.Output(t, dataSourceOpts, "out_cluster_id"), "%s mismatch", "cluster_id")
-	require.Equalf(t, masterFlavor, tt.Output(t, dataSourceOpts, "out_flavor"), "%s mismatch", "flavor")
+	require.Equalf(t, workerFlavor, tt.Output(t, dataSourceOpts, "out_flavor"), "%s mismatch", "flavor")
 	require.Equalf(t, "1", tt.Output(t, dataSourceOpts, "out_node_count"), "%s mismatch", "node_count")
 	require.Equalf(t, "30", tt.Output(t, dataSourceOpts, "out_volume_size"), "%s mismatch", "volume_size")
 	require.Equalf(t, workerVolumeType, tt.Output(t, dataSourceOpts, "out_volume_type"), "%s mismatch", "volume_type")

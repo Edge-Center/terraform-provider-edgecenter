@@ -8,7 +8,7 @@ require (
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.1
 	github.com/Edge-Center/edgecentercdn-go v0.2.1
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
-	github.com/Edge-Center/edgecentercloud-go/v2 v2.4.10
+	github.com/Edge-Center/edgecentercloud-go/v2 v2.4.11-0.20260320074337-bfa3d07983be
 	github.com/Edge-Center/edgecenteredgemon-go v0.0.8
 	github.com/Edge-Center/edgecenterprotection-go v0.1.7
 	github.com/connerdouglass/go-retry v1.0.1
@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.1
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.17.0
 )
 
@@ -88,7 +88,6 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
-	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect

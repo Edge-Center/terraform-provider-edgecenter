@@ -20,7 +20,7 @@ const mkaasClusterDSTmpl = `
 terraform {
   required_providers {
     edgecenter = {
-      source = "local.edgecenter.ru/repo/edgecenter"
+      source = "Edge-Center/edgecenter"
     }
   }
 }
@@ -73,7 +73,7 @@ func TestMKaaSClusterDataSource_ReadByID(t *testing.T) {
 	projectID := requireEnv(t, "TEST_PROJECT_ID")
 	regionID := requireEnv(t, "TEST_MKAAS_REGION_ID")
 
-	cpFlavor := "g3-standard-2-4"
+	cpFlavor := "mkaas-master-g3-standard-2-4"
 
 	volType := "ssd_hiiops"
 
@@ -160,8 +160,13 @@ func TestMKaaSClusterDataSource_ReadByID(t *testing.T) {
 	require.NoError(t, renderTemplateToWith(dsMain, mkaasClusterDSTmpl, dsData), "write datasource main.tf")
 
 	dsOpts := &tt.Options{
-		TerraformDir: dsDir,
-		NoColor:      true,
+		TerraformDir:    dsDir,
+		NoColor:         true,
+		TerraformBinary: "terraform",
+	}
+
+	if _, err := terraformInitE(t, dsOpts); err != nil {
+		t.Fatalf("terraform init (datasource): %v", err)
 	}
 
 	if _, err := tt.ApplyAndIdempotentE(t, dsOpts); err != nil {
