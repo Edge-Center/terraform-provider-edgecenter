@@ -91,6 +91,7 @@ func TestAccInstancePortSecurity(t *testing.T) {
 		Name:                   testName("ips-sub"),
 		NetworkID:              networkID,
 		ConnectToNetworkRouter: true,
+		EnableDHCP:             true,
 		GatewayIP:              &gw,
 	}
 
