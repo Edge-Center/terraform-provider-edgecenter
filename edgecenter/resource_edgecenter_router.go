@@ -197,6 +197,7 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	rs := d.Get("routes")
+	createOpts.Routes = make([]edgecloudV2.HostRoute, 0)
 	routesSet := rs.(*schema.Set)
 	if routesSet.Len() > 0 {
 		routes, err := extractHostRoutesMapV2(routesSet.List())
