@@ -275,6 +275,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	if err != nil {
 		if resp.StatusCode == http.StatusNotFound {
 			tflog.Warn(ctx, fmt.Sprintf("[WARN] Removing Mkaas cluster %s because resource doesn't exist anymore", d.Id()))
+			d.SetId("")
 			return nil
 		}
 

@@ -59,7 +59,7 @@ resource "edgecenter_mkaas_cluster" "cluster" {
   publish_kube_api_to_internet = true
 
   control_plane {
-    flavor      = "g3-standard-2-4"
+    flavor      = "mkaas-master-g3-standard-2-4"
     node_count  = 1
     volume_size = 30
     volume_type = "ssd_hiiops"
