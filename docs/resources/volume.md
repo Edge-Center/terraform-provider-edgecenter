@@ -50,9 +50,9 @@ resource "edgecenter_volume" "volume" {
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
 - `region_id` (Number) The uuid of the region. Either 'region_id' or 'region_name' must be specified.
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
-- `size` (Number) The size of the volume, specified in gigabytes (GB). Optional when creating from an image (will use the image's size). Mandatory if not creating from a snapshot or image. Must be greater than the current size when updating.
-- `snapshot_id` (String) (ForceNew) The ID of the snapshot to create the volume from. This field is mandatory if creating a volume from a snapshot.
-- `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', 'infra_ssd' and 'ultra'. Defaults to 'standard' if not specified.
+- `size` (Number) The size of the volume, specified in gigabytes (GB). Optional when creating from an image (will use the image's size). Mandatory if not creating from a snapshot or image. Must be greater than the current size when updating. This field conflicts with `snapshot_id`, because a volume created from a snapshot uses the snapshot size.
+- `snapshot_id` (String) (ForceNew) The ID of the snapshot to create the volume from. This field is mandatory if creating a volume from a snapshot. When `snapshot_id` is specified, the new volume is created with the snapshot parameters, so `size` and `type_name` cannot be set at the same time.
+- `type_name` (String) The type of volume to create. Valid values are 'ssd_hiiops', 'standard', 'cold', 'infra_ssd' and 'ultra'. Defaults to 'standard' if not specified. This field conflicts with `snapshot_id`, because a volume created from a snapshot uses the snapshot volume type.
 
 ### Read-Only
 
