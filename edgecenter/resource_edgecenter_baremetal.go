@@ -286,21 +286,15 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 	interfaceOptsList := make([]edgecloudV2.BareMetalInterfaceOpts, len(ifs))
 	for i, iFace := range ifs {
 		raw := iFace.(map[string]interface{})
+		if err := validateBaremetalInterface(ctx, clientV2, raw); err != nil {
+			return diag.FromErr(err)
+		}
+
 		interfaceOpts := edgecloudV2.BareMetalInterfaceOpts{
 			Type:      edgecloudV2.InterfaceType(raw["type"].(string)),
 			NetworkID: raw["network_id"].(string),
 			SubnetID:  raw["subnet_id"].(string),
 			PortID:    raw["port_id"].(string),
-		}
-
-		if interfaceOpts.NetworkID != "" {
-			network, _, err := clientV2.Networks.Get(ctx, interfaceOpts.NetworkID)
-			if err != nil {
-				return diag.Errorf("Error getting network information: %s", err)
-			}
-			if network.Type == "vxlan" {
-				return diag.Errorf("VxLAN networks are not supported for baremetal instances")
-			}
 		}
 
 		fipSource := raw["fip_source"].(string)
@@ -627,6 +621,13 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 		ifsOld := ifsOldRaw.([]interface{})
 		ifsNew := ifsNewRaw.([]interface{})
+
+		for _, i := range ifsNew {
+			iface := i.(map[string]interface{})
+			if err := validateBaremetalInterface(ctx, clientV2, iface); err != nil {
+				return diag.FromErr(err)
+			}
+		}
 
 		for _, i := range ifsOld {
 			iface := i.(map[string]interface{})
