@@ -50,5 +50,15 @@ data "edgecenter_mkaas_pool" "apps" {
 - `security_group_ids` (List of String) List of security group IDs attached to the pool.
 - `state` (String) The state of the pool.
 - `status` (String) The status of the pool.
+- `taints` (List of Object) Kubernetes taints applied to all nodes in the pool. (see [below for nested schema](#nestedatt--taints))
 - `volume_size` (Number) The size of the volumes used by nodes in the pool, specified in gigabytes (GB).
 - `volume_type` (String) The type of volume used by nodes in the pool.
+
+<a id="nestedatt--taints"></a>
+### Nested Schema for `taints`
+
+Read-Only:
+
+- `effect` (String)
+- `key` (String)
+- `value` (String)

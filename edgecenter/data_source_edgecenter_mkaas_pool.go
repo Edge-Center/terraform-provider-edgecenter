@@ -81,6 +81,27 @@ func dataSourceMKaaSPool() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			MKaaSPoolTaintsField: {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Kubernetes taints applied to all nodes in the pool.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"effect": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			MKaaSPoolSecurityGroupIDsField: {
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -129,6 +150,7 @@ func dataSourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m inte
 	_ = d.Set(MKaaSPoolStateField, pool.State)
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)
 	_ = d.Set(MKaaSPoolLabelsField, pool.Labels)
+	_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
 
 	return nil
 }

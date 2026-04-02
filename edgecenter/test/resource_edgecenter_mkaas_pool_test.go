@@ -130,9 +130,6 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		CPVolumeType:             masterVolumeType,
 		CPVersion:                kubernetesVersion,
 	})
-	if err != nil {
-		t.Fatalf("failed to create cluster: %v", err)
-	}
 	require.NoError(t, err, "failed to create cluster")
 	t.Logf("Cluster created successfully with ID: %s", cluster.ID)
 	var testSuceed bool
@@ -165,6 +162,9 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		SecurityGroupIDs: []string{sg.ID},
 		Labels: map[string]string{
 			"env": "test",
+		},
+		Taints: []struct{ Key, Value, Effect string }{
+			{Key: "dedicated", Value: "gpu", Effect: "NoSchedule"},
 		},
 	}
 	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
@@ -202,6 +202,10 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, workerVolumeType, tt.Output(t, poolOpts, "out_volume_type"), "%s mismatch", "volume_type")
 	require.Equalf(t, "["+sg.ID+"]", tt.Output(t, poolOpts, "out_security_group_ids"), "%s mismatch", "security_group_ids")
 	require.Equalf(t, "test", tt.Output(t, poolOpts, "out_label_env"), "%s mismatch", "labels.env")
+	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "dedicated", "%s mismatch", "taints key (after create)")
+	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "gpu", "%s mismatch", "taints value (after create)")
+	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "NoSchedule", "%s mismatch", "taints effect (after create)")
+	require.NotContainsf(t, tt.Output(t, poolOpts, "out_taints"), "workload", "%s unexpected", "extra taint after create")
 	_ = tt.Output(t, poolOpts, "out_state")
 	_ = tt.Output(t, poolOpts, "out_status")
 
@@ -212,6 +216,10 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	poolData.SecurityGroupIDs = []string{sg2.ID}
 	poolData.Labels = map[string]string{
 		"env": "prod",
+	}
+	poolData.Taints = []struct{ Key, Value, Effect string }{
+		{Key: "dedicated", Value: "gpu", Effect: "NoSchedule"},
+		{Key: "workload", Value: "batch", Effect: "NoExecute"},
 	}
 	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
 	if err != nil {
@@ -224,6 +232,23 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_node_count"), "%s mismatch", "node_count (after update)")
 	require.Equalf(t, "["+sg2.ID+"]", tt.Output(t, poolOpts, "out_security_group_ids"), "%s mismatch", "security_group_ids (after update)")
 	require.Equalf(t, "prod", tt.Output(t, poolOpts, "out_label_env"), "%s mismatch", "labels.env (after update)")
+	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "dedicated", "%s mismatch", "first taint key (after update)")
+	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "gpu", "%s mismatch", "first taint value (after update)")
+	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "NoSchedule", "%s mismatch", "first taint effect (after update)")
+	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "workload", "%s mismatch", "second taint key (after update)")
+	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "batch", "%s mismatch", "second taint value (after update)")
+	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "NoExecute", "%s mismatch", "second taint effect (after update)")
+
+	// CLEAR TAINTS
+	poolData.Taints = nil
+	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
+	if err != nil {
+		t.Fatalf("write pool main.tf (clear taints): %v", err)
+	}
+	if _, err := tt.ApplyAndIdempotentE(t, poolOpts); err != nil {
+		t.Fatalf("terraform apply (pool clear taints): %v", err)
+	}
+	require.Equalf(t, "[]", tt.Output(t, poolOpts, "out_taints"), "%s mismatch", "taints (after clear)")
 
 	// --- UNSUPPORTED UPDATE
 	poolData.VolumeType = edgecloudV2.VolumeTypeStandard.String()

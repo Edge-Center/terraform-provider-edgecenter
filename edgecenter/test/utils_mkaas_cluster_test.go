@@ -34,6 +34,7 @@ type poolTfData struct { //nolint:unused
 	VolumeType       string
 	SecurityGroupIDs []string
 	Labels           map[string]string
+	Taints           []struct{ Key, Value, Effect string }
 }
 
 type tfData struct {
@@ -595,6 +596,13 @@ resource "edgecenter_mkaas_pool" "np" {
     "{{ $k }}" = "{{ $v }}"
     {{- end }}
   }
+  {{- range .Taints }}
+  taints {
+    key    = "{{ .Key }}"
+    value  = "{{ .Value }}"
+    effect = "{{ .Effect }}"
+  }
+  {{- end }}
 }
 
 output "pool_id"                { value = edgecenter_mkaas_pool.np.id }
@@ -608,6 +616,7 @@ output "out_volume_size"        { value = tostring(edgecenter_mkaas_pool.np.volu
 output "out_volume_type"        { value = edgecenter_mkaas_pool.np.volume_type }
 output "out_label_env"          { value = edgecenter_mkaas_pool.np.labels["env"] }
 output "out_security_group_ids" { value = edgecenter_mkaas_pool.np.security_group_ids }
+output "out_taints"             { value = jsonencode(edgecenter_mkaas_pool.np.taints) }
 output "out_state"              { value = edgecenter_mkaas_pool.np.state }
 output "out_status"             { value = edgecenter_mkaas_pool.np.status }
 `

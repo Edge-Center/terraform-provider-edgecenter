@@ -18,9 +18,12 @@ resource "edgecenter_mkaas_pool" "apps" {
   #   key = "val"
   # }
 
+  taints {
+    key    = "dedicated"
+    value  = "gpu"
+    effect = "NoSchedule"
+  }
+
   project_id = 1234
   region_id  = "1234"
 }
-
-
-
