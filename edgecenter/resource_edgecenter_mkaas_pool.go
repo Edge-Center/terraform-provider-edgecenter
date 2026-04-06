@@ -29,6 +29,7 @@ func resourceMKaaSPool() *schema.Resource {
 		ReadContext:   resourceMKaaSPoolRead,
 		UpdateContext: resourceMKaaSPoolUpdate,
 		DeleteContext: resourceMKaaSPoolDelete,
+		CustomizeDiff: customMKaaSPoolDiff,
 		Description:   "Represent MKaaS cluster's pool.",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(MKaaSPoolCreateTimeout),

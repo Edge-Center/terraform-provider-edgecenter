@@ -82,7 +82,7 @@ func dataSourceMKaaSPool() *schema.Resource {
 				},
 			},
 			MKaaSPoolTaintsField: {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Computed:    true,
 				Description: "Kubernetes taints applied to all nodes in the pool.",
 				Elem: &schema.Resource{

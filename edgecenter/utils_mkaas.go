@@ -1,8 +1,8 @@
 package edgecenter
 
 import (
+	"context"
 	"fmt"
-	"sort"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -24,20 +24,8 @@ func expandTaints(set *schema.Set) []edgecloudV2.MKaaSTaint {
 }
 
 func flattenTaints(taints []edgecloudV2.MKaaSTaint) []interface{} {
-	sorted := make([]edgecloudV2.MKaaSTaint, len(taints))
-	copy(sorted, taints)
-	sort.Slice(sorted, func(i, j int) bool {
-		if sorted[i].Key != sorted[j].Key {
-			return sorted[i].Key < sorted[j].Key
-		}
-		if sorted[i].Value != sorted[j].Value {
-			return sorted[i].Value < sorted[j].Value
-		}
-
-		return sorted[i].Effect < sorted[j].Effect
-	})
-	result := make([]interface{}, 0, len(sorted))
-	for _, t := range sorted {
+	result := make([]interface{}, 0, len(taints))
+	for _, t := range taints {
 		result = append(result, map[string]interface{}{
 			"key":    t.Key,
 			"value":  t.Value,
@@ -90,6 +78,27 @@ func mkaasClusterUnsupportedUpdateChanges(d *schema.ResourceData) []string {
 	}
 
 	return unsupported
+}
+
+func ValidateUniqueTaintKeys(set *schema.Set) error {
+	seen := make(map[string]struct{}, set.Len())
+	for _, item := range set.List() {
+		m := item.(map[string]interface{})
+		key := m["key"].(string)
+		if _, exists := seen[key]; exists {
+			return fmt.Errorf("duplicate taint key %q: taint keys must be unique within a pool", key)
+		}
+		seen[key] = struct{}{}
+	}
+	return nil
+}
+
+func customMKaaSPoolDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	raw, ok := d.GetOk(MKaaSPoolTaintsField)
+	if !ok {
+		return nil
+	}
+	return ValidateUniqueTaintKeys(raw.(*schema.Set))
 }
 
 func mkaasPoolUnsupportedUpdateChanges(d *schema.ResourceData) []string {
