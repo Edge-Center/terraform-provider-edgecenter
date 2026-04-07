@@ -42,12 +42,12 @@ resource "edgecenter_lblistener" "listener" {
 
 - `loadbalancer_id` (String) The uuid for the load balancer.
 - `name` (String) The name of the load balancer listener.
-- `protocol` (String) Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS' and 'TERMINATED_HTTPS'.
+- `protocol` (String) Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS', 'TERMINATED_HTTPS' and 'PROMETHEUS'. When `PROMETHEUS` is used, only `protocol_port` and `allowed_cidrs` can be configured.
 - `protocol_port` (Number) The port on which the protocol is bound.
 
 ### Optional
 
-- `allowed_cidrs` (List of String) The allowed CIDRs for listener.
+- `allowed_cidrs` (Set of String) The allowed CIDRs for listener.
 - `insert_x_forwarded` (Boolean) Insert *-forwarded headers
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.

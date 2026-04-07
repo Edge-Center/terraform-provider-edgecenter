@@ -240,6 +240,18 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
+	listenerID := d.Get("listener_id").(string)
+	if listenerID != "" {
+		listener, _, err := clientV2.Loadbalancers.ListenerGet(ctx, listenerID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if listener.Protocol == edgecloudV2.ListenerProtocolPrometheus {
+			return diag.Errorf("listener_id parameter can not reference listener with %s protocol type", edgecloudV2.ListenerProtocolPrometheus)
+		}
+	}
+
 	healthOpts := extractHealthMonitorMapV2(d)
 	sessionOpts := extractSessionPersistenceMapV2(d)
 	opts := edgecloudV2.LoadbalancerPoolCreateRequest{
