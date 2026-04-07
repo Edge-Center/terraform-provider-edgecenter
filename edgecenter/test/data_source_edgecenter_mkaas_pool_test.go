@@ -50,6 +50,7 @@ output "out_state"         { value = data.edgecenter_mkaas_pool.acctest.state }
 output "out_status"        { value = data.edgecenter_mkaas_pool.acctest.status }
 output "out_security_group_ids" { value = data.edgecenter_mkaas_pool.acctest.security_group_ids }
 output "out_label_env"     { value = data.edgecenter_mkaas_pool.acctest.labels["env"] }
+output "out_taints"        { value = jsonencode(data.edgecenter_mkaas_pool.acctest.taints) }
 `
 
 type dataSourcePoolTfData struct {
@@ -156,9 +157,6 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 		CPVolumeType:             workerVolumeType,
 		CPVersion:                kubernetesVersion,
 	})
-	if err != nil {
-		t.Fatalf("failed to create cluster: %v", err)
-	}
 	require.NoError(t, err, "failed to create cluster")
 	t.Logf("Cluster created successfully with ID: %s", cluster.ID)
 	var testSucceed bool
@@ -191,6 +189,9 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 		SecurityGroupIDs: []string{sg.ID},
 		Labels: map[string]string{
 			"env": "test",
+		},
+		Taints: []struct{ Key, Value, Effect string }{
+			{Key: "dedicated", Value: "infra", Effect: "PreferNoSchedule"},
 		},
 	}
 	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
@@ -263,6 +264,9 @@ func TestAccDataSourceMKaaSPool(t *testing.T) {
 	require.Equalf(t, "30", tt.Output(t, dataSourceOpts, "out_volume_size"), "%s mismatch", "volume_size")
 	require.Equalf(t, workerVolumeType, tt.Output(t, dataSourceOpts, "out_volume_type"), "%s mismatch", "volume_type")
 	require.Equalf(t, "["+sg.ID+"]", tt.Output(t, dataSourceOpts, "out_security_group_ids"), "%s mismatch", "security_group_ids")
+	require.Containsf(t, tt.Output(t, dataSourceOpts, "out_taints"), "dedicated", "%s mismatch", "taints key (data source)")
+	require.Containsf(t, tt.Output(t, dataSourceOpts, "out_taints"), "infra", "%s mismatch", "taints value (data source)")
+	require.Containsf(t, tt.Output(t, dataSourceOpts, "out_taints"), "PreferNoSchedule", "%s mismatch", "taints effect (data source)")
 	_ = tt.Output(t, dataSourceOpts, "out_state")
 	_ = tt.Output(t, dataSourceOpts, "out_status")
 

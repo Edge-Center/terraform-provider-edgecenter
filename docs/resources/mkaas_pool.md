@@ -33,6 +33,12 @@ resource "edgecenter_mkaas_pool" "apps" {
   #   key = "val"
   # }
 
+  taints {
+    key    = "dedicated"
+    value  = "gpu"
+    effect = "NoSchedule"
+  }
+
   project_id = 1234
   region_id  = "1234"
 }
@@ -58,6 +64,7 @@ resource "edgecenter_mkaas_pool" "apps" {
 - `region_id` (Number) The uuid of the region. Either `region_id` or `region_name` must be specified.
 - `region_name` (String) The name of the region. Either `region_id` or `region_name` must be specified.
 - `security_group_ids` (List of String) The list of security group IDs associated with the pool.
+- `taints` (Block Set) Kubernetes taints applied to all nodes in the pool. (see [below for nested schema](#nestedblock--taints))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
@@ -65,6 +72,16 @@ resource "edgecenter_mkaas_pool" "apps" {
 - `id` (String) The ID of this resource.
 - `state` (String) The state of the pool.
 - `status` (String) The status of the pool.
+
+<a id="nestedblock--taints"></a>
+### Nested Schema for `taints`
+
+Required:
+
+- `effect` (String)
+- `key` (String)
+- `value` (String)
+
 
 <a id="nestedblock--timeouts"></a>
 ### Nested Schema for `timeouts`

@@ -29,6 +29,7 @@ func resourceMKaaSPool() *schema.Resource {
 		ReadContext:   resourceMKaaSPoolRead,
 		UpdateContext: resourceMKaaSPoolUpdate,
 		DeleteContext: resourceMKaaSPoolDelete,
+		CustomizeDiff: customMKaaSPoolDiff,
 		Description:   "Represent MKaaS cluster's pool.",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(MKaaSPoolCreateTimeout),
@@ -146,6 +147,32 @@ func resourceMKaaSPool() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			MKaaSPoolTaintsField: {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "Kubernetes taints applied to all nodes in the pool.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"effect": {
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								"NoSchedule",
+								"PreferNoSchedule",
+								"NoExecute",
+							}, false),
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -193,15 +220,7 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 	// expand taints from TypeSet
 	if raw, ok := d.GetOk(MKaaSPoolTaintsField); ok {
-		set := raw.(*schema.Set)
-		for _, item := range set.List() {
-			m := item.(map[string]interface{})
-			createOpts.Taints = append(createOpts.Taints, edgecloudV2.MKaaSTaint{
-				Key:    m["key"].(string),
-				Value:  m["value"].(string),
-				Effect: m["effect"].(string),
-			})
-		}
+		createOpts.Taints = expandTaints(raw.(*schema.Set))
 	}
 
 	tflog.Info(ctx, fmt.Sprintf("MKaaS Pool create request: %+v", createOpts))
@@ -225,7 +244,7 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	poolID := taskResult.MkaasPools[0]
 	tflog.Info(ctx, fmt.Sprintf("MKaaS Pool id (from taskResult): %.0f", poolID))
 	d.SetId(strconv.FormatFloat(poolID, 'f', -1, 64))
-	resourceMKaaSPoolRead(ctx, d, m)
+	diags = resourceMKaaSPoolRead(ctx, d, m)
 
 	tflog.Info(ctx, fmt.Sprintf("Finish MKaaS creating (%s)",
 		strconv.FormatFloat(poolID, 'f', -1, 64)))
@@ -262,6 +281,7 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)
 	_ = d.Set(MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)
 	_ = d.Set(MKaaSPoolLabelsField, pool.Labels)
+	_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
 
 	return diags
 }
@@ -272,13 +292,14 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	if unsupported := mkaasPoolUnsupportedUpdateChanges(d); len(unsupported) > 0 {
 		return diag.Errorf(
 			"MKaaS pool update is not supported for these fields: %v. "+
-				"Only %q, %q, %q and %q are supported. "+
+				"Only %q, %q, %q, %q and %q are supported. "+
 				"Please revert changes, or recreate the resource if applicable.",
 			unsupported,
 			NameField,
 			MKaaSNodeCountField,
 			MKaaSPoolSecurityGroupIDsField,
 			MKaaSPoolLabelsField,
+			MKaaSPoolTaintsField,
 		)
 	}
 
@@ -292,6 +313,13 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	waitForTask := func(taskResp *edgecloudV2.TaskResponse) error {
+		if taskResp == nil || len(taskResp.Tasks) == 0 {
+			return nil
+		}
+		return utilV2.WaitForTaskComplete(ctx, clientV2, taskResp.Tasks[0], MKaaSPoolUpdateTimeout)
 	}
 
 	if d.HasChange(NameField) {
@@ -310,13 +338,8 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		if taskResp != nil && len(taskResp.Tasks) > 0 {
-			taskID := taskResp.Tasks[0]
-
-			if err := utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout); err != nil {
-				return diag.FromErr(err)
-			}
+		if err := waitForTask(taskResp); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
@@ -336,13 +359,8 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		if taskResp != nil && len(taskResp.Tasks) > 0 {
-			taskID := taskResp.Tasks[0]
-
-			if err := utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout); err != nil {
-				return diag.FromErr(err)
-			}
+		if err := waitForTask(taskResp); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
@@ -367,13 +385,8 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		if taskResp != nil && len(taskResp.Tasks) > 0 {
-			taskID := taskResp.Tasks[0]
-
-			if err := utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout); err != nil {
-				return diag.FromErr(err)
-			}
+		if err := waitForTask(taskResp); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
@@ -397,13 +410,29 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		if err != nil {
 			return diag.FromErr(err)
 		}
+		if err := waitForTask(taskResp); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 
-		if taskResp != nil && len(taskResp.Tasks) > 0 {
-			taskID := taskResp.Tasks[0]
+	if d.HasChange(MKaaSPoolTaintsField) {
+		taints := expandTaints(d.Get(MKaaSPoolTaintsField).(*schema.Set))
 
-			if err := utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSPoolUpdateTimeout); err != nil {
-				return diag.FromErr(err)
-			}
+		tflog.Info(ctx, "Updating MKaaS pool taints", map[string]interface{}{
+			"pool_id": poolID,
+			"taints":  taints,
+		})
+
+		req := edgecloudV2.MKaaSPoolUpdateTaintsRequest{
+			Taints: taints,
+		}
+
+		taskResp, _, err := clientV2.MkaaS.PoolUpdateTaints(ctx, clusterID, poolID, req)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if err := waitForTask(taskResp); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
