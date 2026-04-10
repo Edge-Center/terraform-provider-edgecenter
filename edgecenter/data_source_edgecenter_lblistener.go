@@ -59,7 +59,7 @@ func dataSourceLBListener() *schema.Resource {
 			"protocol": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'",
+				Description: "Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS', 'TERMINATED_HTTPS' and 'PROMETHEUS'.",
 			},
 			"protocol_port": {
 				Type:        schema.TypeInt,
@@ -88,7 +88,7 @@ func dataSourceLBListener() *schema.Resource {
 				Description: "The current provisioning status of the load balancer.",
 			},
 			"allowed_cidrs": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Computed:    true,
 				Description: "The allowed CIDRs for listener.",

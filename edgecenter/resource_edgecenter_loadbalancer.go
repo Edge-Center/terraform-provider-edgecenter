@@ -146,7 +146,7 @@ func resourceLoadBalancer() *schema.Resource {
 							ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 								v := val.(string)
 								switch edgecloudV2.LoadbalancerListenerProtocol(v) {
-								case edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS:
+								case edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolPrometheus:
 									return diag.Diagnostics{}
 								case edgecloudV2.ListenerProtocolTerminatedHTTPS:
 								}

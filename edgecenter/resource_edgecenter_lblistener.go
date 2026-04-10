@@ -93,14 +93,14 @@ func resourceLbListener() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS' and 'TERMINATED_HTTPS'.",
+				Description: "Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS', 'TERMINATED_HTTPS' and 'PROMETHEUS'. When `PROMETHEUS` is used, only `protocol_port` and `allowed_cidrs` can be configured.",
 				ValidateDiagFunc: func(val interface{}, key cty.Path) diag.Diagnostics {
 					v := val.(string)
 					switch edgecloudV2.LoadbalancerListenerProtocol(v) {
-					case edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolTerminatedHTTPS:
+					case edgecloudV2.ListenerProtocolTCP, edgecloudV2.ListenerProtocolUDP, edgecloudV2.ListenerProtocolHTTP, edgecloudV2.ListenerProtocolHTTPS, edgecloudV2.ListenerProtocolTerminatedHTTPS, edgecloudV2.ListenerProtocolPrometheus:
 						return diag.Diagnostics{}
 					}
-					return diag.Errorf("wrong protocol %s, available values are 'TCP', 'UDP', 'HTTP', 'HTTPS' and 'TERMINATED_HTTPS'.", v)
+					return diag.Errorf("wrong protocol %s, available values are 'TCP', 'UDP', 'HTTP', 'HTTPS', 'TERMINATED_HTTPS' and 'PROMETHEUS'.", v)
 				},
 			},
 			"protocol_port": {
@@ -148,7 +148,7 @@ func resourceLbListener() *schema.Resource {
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"allowed_cidrs": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Optional:    true,
 				Description: "The allowed CIDRs for listener.",
@@ -197,18 +197,18 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 		LoadbalancerID:   d.Get("loadbalancer_id").(string),
 		InsertXForwarded: d.Get("insert_x_forwarded").(bool),
 	}
-	timeoutCD, ok := d.GetOk(TimeoutClientData)
-	if ok {
+	timeoutCD, hasTimeoutCD := d.GetOk(TimeoutClientData)
+	if hasTimeoutCD {
 		typedTimeoutCD := timeoutCD.(int)
 		opts.TimeoutClientData = &typedTimeoutCD
 	}
-	timeoutMD, ok := d.GetOk(TimeoutMemberData)
-	if ok {
+	timeoutMD, hasTimeoutMD := d.GetOk(TimeoutMemberData)
+	if hasTimeoutMD {
 		typedTimeoutMD := timeoutMD.(int)
 		opts.TimeoutMemberData = &typedTimeoutMD
 	}
-	timeoutMC, ok := d.GetOk(TimeoutMemberConnect)
-	if ok {
+	timeoutMC, hasTimeoutMC := d.GetOk(TimeoutMemberConnect)
+	if hasTimeoutMC {
 		typedTimeoutMC := timeoutMC.(int)
 		opts.TimeoutMemberConnect = &typedTimeoutMC
 	}
@@ -243,14 +243,34 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 				opts.SNISecretID[i] = s.(string)
 			}
 		}
+	case edgecloudV2.ListenerProtocolPrometheus:
+		if secretID != "" {
+			return diag.Errorf("secret_id parameter can not be used with %s listener protocol type", edgecloudV2.ListenerProtocolPrometheus)
+		}
+		if len(sniSecretIDRaw) > 0 {
+			return diag.Errorf("sni_secret_id parameter can not be used with %s listener protocol type", edgecloudV2.ListenerProtocolPrometheus)
+		}
+		if opts.InsertXForwarded {
+			return diag.Errorf("insert_x_forwarded parameter can not be used with %s listener protocol type", edgecloudV2.ListenerProtocolPrometheus)
+		}
+		if hasTimeoutCD {
+			return diag.Errorf("%s parameter can not be used with %s listener protocol type", TimeoutClientData, edgecloudV2.ListenerProtocolPrometheus)
+		}
+		if hasTimeoutMD {
+			return diag.Errorf("%s parameter can not be used with %s listener protocol type", TimeoutMemberData, edgecloudV2.ListenerProtocolPrometheus)
+		}
+		if hasTimeoutMC {
+			return diag.Errorf("%s parameter can not be used with %s listener protocol type", TimeoutMemberConnect, edgecloudV2.ListenerProtocolPrometheus)
+		}
+
 	default:
 		return diag.Errorf("wrong protocol")
 	}
 
-	allowedCIRDsRaw := d.Get("allowed_cidrs").([]interface{})
-	if len(allowedCIRDsRaw) > 0 {
-		opts.AllowedCIDRs = make([]string, len(allowedCIRDsRaw))
-		for i, s := range allowedCIRDsRaw {
+	allowedCIDRsRaw := d.Get("allowed_cidrs").(*schema.Set).List()
+	if len(allowedCIDRsRaw) > 0 {
+		opts.AllowedCIDRs = make([]string, len(allowedCIDRsRaw))
+		for i, s := range allowedCIDRsRaw {
 			opts.AllowedCIDRs[i] = s.(string)
 		}
 	}
@@ -351,7 +371,7 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if d.HasChange("allowed_cidrs") {
-		allowedCIDRsRaw := d.Get("allowed_cidrs").([]interface{})
+		allowedCIDRsRaw := d.Get("allowed_cidrs").(*schema.Set).List()
 		var allowedCIDRs []string
 		for _, s := range allowedCIDRsRaw {
 			allowedCIDRs = append(allowedCIDRs, s.(string))
@@ -360,6 +380,9 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 		changed = true
 	}
 	if d.HasChange(TimeoutClientData) {
+		if edgecloudV2.LoadbalancerListenerProtocol(d.Get("protocol").(string)) == edgecloudV2.ListenerProtocolPrometheus {
+			return diag.Errorf("%s parameter can not be used with %s listener protocol type", TimeoutClientData, edgecloudV2.ListenerProtocolPrometheus)
+		}
 		timeoutCD, ok := d.GetOk(TimeoutClientData)
 		if ok {
 			typedTimeoutCD := timeoutCD.(int)
@@ -368,6 +391,9 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 		}
 	}
 	if d.HasChange(TimeoutMemberData) {
+		if edgecloudV2.LoadbalancerListenerProtocol(d.Get("protocol").(string)) == edgecloudV2.ListenerProtocolPrometheus {
+			return diag.Errorf("%s parameter can not be used with %s listener protocol type", TimeoutMemberData, edgecloudV2.ListenerProtocolPrometheus)
+		}
 		timeoutMD, ok := d.GetOk(TimeoutMemberData)
 		if ok {
 			typedTimeoutMD := timeoutMD.(int)
@@ -376,6 +402,9 @@ func resourceLBListenerUpdate(ctx context.Context, d *schema.ResourceData, m int
 		}
 	}
 	if d.HasChange(TimeoutMemberConnect) {
+		if edgecloudV2.LoadbalancerListenerProtocol(d.Get("protocol").(string)) == edgecloudV2.ListenerProtocolPrometheus {
+			return diag.Errorf("%s parameter can not be used with %s listener protocol type", TimeoutMemberConnect, edgecloudV2.ListenerProtocolPrometheus)
+		}
 		timeoutMC, ok := d.GetOk(TimeoutMemberConnect)
 		if ok {
 			typedTimeoutMC := timeoutMC.(int)

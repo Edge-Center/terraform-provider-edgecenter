@@ -52,11 +52,11 @@ output "view" {
 
 ### Read-Only
 
-- `allowed_cidrs` (List of String) The allowed CIDRs for listener.
+- `allowed_cidrs` (Set of String) The allowed CIDRs for listener.
 - `l7policies` (Set of String) Set of l7policy uuids attached to this listener.
 - `operating_status` (String) The current operational status of the load balancer.
 - `pool_count` (Number) Number of pools associated with the load balancer.
-- `protocol` (String) Available values is 'HTTP', 'HTTPS', 'TCP', 'UDP'
+- `protocol` (String) Available values are 'TCP', 'UDP', 'HTTP', 'HTTPS', 'TERMINATED_HTTPS' and 'PROMETHEUS'.
 - `protocol_port` (Number) The port on which the protocol is bound.
 - `provisioning_status` (String) The current provisioning status of the load balancer.
 - `timeout_client_data` (Number) The timeout for the frontend client inactivity (in milliseconds).
