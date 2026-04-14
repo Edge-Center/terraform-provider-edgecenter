@@ -218,9 +218,9 @@ func resourceInstance() *schema.Resource {
 							Optional:    true,
 						},
 						"security_groups": {
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Optional:    true,
-							Description: "list of security group IDs",
+							Description: "set of security group IDs",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"ip_address": {
@@ -807,8 +807,8 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				iOld := item.(map[string]interface{})
 				iNew := ifsNewSlice[idx].(map[string]interface{})
 
-				sgsIDsOld := getSecurityGroupsIDsV2(iOld["security_groups"].([]interface{}))
-				sgsIDsNew := getSecurityGroupsIDsV2(iNew["security_groups"].([]interface{}))
+				sgsIDsOld := getSecurityGroupsIDsV2(getNestedSetList(iOld["security_groups"]))
+				sgsIDsNew := getSecurityGroupsIDsV2(getNestedSetList(iNew["security_groups"]))
 				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
 					portID := iOld["port_id"].(string)
 					removeSGs := getSecurityGroupsDifferenceV2(sgsIDsNew, sgsIDsOld)
@@ -838,8 +838,8 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				iOld := item.(map[string]interface{})
 				iNew := ifsNewSlice[idx].(map[string]interface{})
 
-				sgsIDsOld := getSecurityGroupsIDsV2(iOld["security_groups"].([]interface{}))
-				sgsIDsNew := getSecurityGroupsIDsV2(iNew["security_groups"].([]interface{}))
+				sgsIDsOld := getSecurityGroupsIDsV2(getNestedSetList(iOld["security_groups"]))
+				sgsIDsNew := getSecurityGroupsIDsV2(getNestedSetList(iNew["security_groups"]))
 				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
 					portID := iOld["port_id"].(string)
 					removeSGs := getSecurityGroupsDifferenceV2(sgsIDsNew, sgsIDsOld)
@@ -877,8 +877,8 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				iOld := item.(map[string]interface{})
 				iNew := ifsNewSlice[idx].(map[string]interface{})
 
-				sgsIDsOld := getSecurityGroupsIDsV2(iOld["security_groups"].([]interface{}))
-				sgsIDsNew := getSecurityGroupsIDsV2(iNew["security_groups"].([]interface{}))
+				sgsIDsOld := getSecurityGroupsIDsV2(getNestedSetList(iOld["security_groups"]))
+				sgsIDsNew := getSecurityGroupsIDsV2(getNestedSetList(iNew["security_groups"]))
 				if len(sgsIDsOld) > 0 || len(sgsIDsNew) > 0 {
 					portID := iOld["port_id"].(string)
 					removeSGs := getSecurityGroupsDifferenceV2(sgsIDsNew, sgsIDsOld)

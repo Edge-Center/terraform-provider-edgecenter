@@ -104,6 +104,19 @@ type OrderedInterfaceOpts struct {
 	Order int
 }
 
+func getNestedSetList(value interface{}) []interface{} {
+	switch typed := value.(type) {
+	case nil:
+		return nil
+	case []interface{}:
+		return typed
+	case *schema.Set:
+		return typed.List()
+	default:
+		return nil
+	}
+}
+
 // decodeInstanceInterfaceOpts decodes the interface and returns InstanceInterface with FloatingIP.
 func decodeInstanceInterfaceOpts(iFaceMap map[string]interface{}) edgecloudV2.InstanceInterface {
 	iFace := edgecloudV2.InstanceInterface{
@@ -128,7 +141,7 @@ func decodeInstanceInterfaceOpts(iFaceMap map[string]interface{}) edgecloudV2.In
 	if rawSgsID == nil {
 		return iFace
 	}
-	rawSgsIDList := iFaceMap["security_groups"].([]interface{})
+	rawSgsIDList := getNestedSetList(rawSgsID)
 	sgs := make([]edgecloudV2.ID, len(rawSgsIDList))
 	for i, sgID := range rawSgsIDList {
 		sgs[i] = edgecloudV2.ID{ID: sgID.(string)}
@@ -494,7 +507,7 @@ func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client
 	}
 	secGroups := iface["security_groups"]
 	if secGroups != nil {
-		opts.SecurityGroups = getSecurityGroupsIDsV2(secGroups.([]interface{}))
+		opts.SecurityGroups = getSecurityGroupsIDsV2(getNestedSetList(secGroups))
 	} else {
 		opts.SecurityGroups = []edgecloudV2.ID{}
 	}
@@ -860,7 +873,7 @@ func validateInterfaceAttrs(d *schema.ResourceData) diag.Diagnostics {
 			isPortSecDisabled = v.(bool)
 		}
 		if v, ok := iNew["security_groups"]; ok {
-			secGroups := v.([]interface{})
+			secGroups := getNestedSetList(v)
 			if len(secGroups) != 0 {
 				isSecGroupExists = true
 			}
