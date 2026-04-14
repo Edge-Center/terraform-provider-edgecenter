@@ -211,6 +211,9 @@ func GetRegionID(
 	client *edgecloudV2.Client,
 	d *schema.ResourceData,
 ) (int, error) {
+	var regionID int
+	var regionName string
+
 	rID, IDOk := d.GetOk("region_id")
 	rName, NameOk := d.GetOk("region_name")
 
@@ -218,7 +221,22 @@ func GetRegionID(
 		return 0, fmt.Errorf("both parameters and region_id and region_name are not provided")
 	}
 
-	regionID, err := GetRegionV2(ctx, client, rID.(int), rName.(string))
+	if IDOk {
+		regionID = rID.(int)
+	}
+
+	if NameOk {
+		regionName = rName.(string)
+
+		if regionID == 0 {
+			if parsedID, err := strconv.Atoi(regionName); err == nil {
+				regionID = parsedID
+				regionName = ""
+			}
+		}
+	}
+
+	regionID, err := GetRegionV2(ctx, client, regionID, regionName)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get region: %w", err)
 	}
@@ -231,6 +249,9 @@ func GetProjectID(
 	client *edgecloudV2.Client,
 	d *schema.ResourceData,
 ) (int, error) {
+	var projectID int
+	var projectName string
+
 	pID, IDOk := d.GetOk("project_id")
 	pName, NameOk := d.GetOk("project_name")
 
@@ -238,7 +259,22 @@ func GetProjectID(
 		return 0, fmt.Errorf("both parameters and project_id and project_name are not provided")
 	}
 
-	project, err := GetProjectV2(ctx, client, pID.(int), pName.(string))
+	if IDOk {
+		projectID = pID.(int)
+	}
+
+	if NameOk {
+		projectName = pName.(string)
+
+		if projectID == 0 {
+			if parsedID, err := strconv.Atoi(projectName); err == nil {
+				projectID = parsedID
+				projectName = ""
+			}
+		}
+	}
+
+	project, err := GetProjectV2(ctx, client, projectID, projectName)
 	if err != nil {
 		return 0, err
 	}
