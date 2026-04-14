@@ -449,6 +449,36 @@ func detachInterfaceFromInstanceV2(ctx context.Context, client *edgecloudV2.Clie
 	return nil
 }
 
+// validateBaremetalInterface validates that a baremetal interface uses a supported network
+// and that the subnet belongs to the specified network.
+func validateBaremetalInterface(ctx context.Context, client *edgecloudV2.Client, iface map[string]interface{}) error {
+	iType := edgecloudV2.InterfaceType(iface["type"].(string))
+	networkID := iface["network_id"].(string)
+	subnetID := iface["subnet_id"].(string)
+
+	if networkID != "" {
+		network, _, err := client.Networks.Get(ctx, networkID)
+		if err != nil {
+			return fmt.Errorf("error getting network information: %w", err)
+		}
+		if network.Type == "vxlan" {
+			return fmt.Errorf("VxLAN networks are not supported for baremetal instances")
+		}
+	}
+
+	if iType == edgecloudV2.InterfaceTypeSubnet && subnetID != "" && networkID != "" {
+		subnet, _, err := client.Subnetworks.Get(ctx, subnetID)
+		if err != nil {
+			return fmt.Errorf("error getting subnet information: %w", err)
+		}
+		if subnet.NetworkID != networkID {
+			return fmt.Errorf("subnet %s does not belong to network %s", subnetID, networkID)
+		}
+	}
+
+	return nil
+}
+
 // attachInterfaceToInstance attach interface to instance.
 func attachInterfaceToInstanceV2(ctx context.Context, client *edgecloudV2.Client, instanceID string, iface map[string]interface{}) error {
 	iType := edgecloudV2.InterfaceType(iface["type"].(string))
