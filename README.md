@@ -192,8 +192,8 @@ Debugging
 ------------------
 There are two ways to debug the provider:
 ### Goland debugging
-1. Add new go build configuration with field ```program arguments```:  
-```-debug -address=local.edgecenter.ru/repo/edgecenter```
+1. Add new go build configuration with field `program arguments`:  
+`-debug -address=local.edgecenter.ru/repo/edgecenter`
 2. Run this configuration;
 3. Export generated TF_REATTACH_PROVIDERS env from debug output:
 ```bash
