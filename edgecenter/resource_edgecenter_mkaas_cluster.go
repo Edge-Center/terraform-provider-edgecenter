@@ -128,8 +128,8 @@ func resourceMKaaSCluster() *schema.Resource {
 						MKaaSVolumeSizeField: {
 							Type:         schema.TypeInt,
 							Required:     true,
-							Description:  "The size of the control volumes in the cluster, specified in gigabytes (GB). Allowed range: `20–1024` GiB.",
-							ValidateFunc: validation.IntBetween(20, 1024),
+							Description:  "The size of the control volumes in the cluster, specified in gigabytes (GB). Allowed range: `30–1024` GiB.",
+							ValidateFunc: validation.IntBetween(30, 1024),
 						},
 						MKaaSVolumeTypeField: {
 							Type:         schema.TypeString,
