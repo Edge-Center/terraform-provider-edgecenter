@@ -303,6 +303,7 @@ func Provider() *schema.Provider {
 			"edgecenter_storage_s3_bucket":                     resourceStorageS3Bucket(),
 			DNSZoneResource:                                    resourceDNSZone(),
 			DNSZoneRecordResource:                              resourceDNSZoneRecord(),
+			DNSSecondaryZoneResource:                           resourceDNSSecondaryZone(),
 			"edgecenter_cdn_resource":                          resourceCDNResource(),
 			"edgecenter_cdn_origingroup":                       resourceCDNOriginGroup(),
 			"edgecenter_cdn_lecert":                            resourceCDNLECert(),
@@ -373,6 +374,7 @@ func Provider() *schema.Provider {
 			"edgecenter_reseller_networks":             dataSourceResellerNetworksList(),
 			"edgecenter_reseller_imagesV2":             dataSourceResellerImagesV2(),
 			"edgecenter_mkaas_cluster":                 dataSourceMKaaSCluster(),
+			"edgecenter_dns_secondary_zones":           dataSourceDNSSecondaryZones(),
 		},
 	}
 

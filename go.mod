@@ -21,6 +21,8 @@ require (
 	golang.org/x/sync v0.17.0
 )
 
+replace github.com/Edge-Center/edgecenter-dns-sdk-go v0.1.3 => ../edgecenter-dns-sdk-go
+
 require (
 	github.com/ProtonMail/go-crypto v1.1.6 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
