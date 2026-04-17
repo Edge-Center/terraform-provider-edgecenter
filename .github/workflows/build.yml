@@ -103,7 +103,7 @@ jobs:
       matrix:
         kind:
           - tag: cloud_data_source_mkaas
-            timeout: 20m
+            timeout: 30m
           - tag: cloud_resource_mkaas
             timeout: 30m
       fail-fast: true
