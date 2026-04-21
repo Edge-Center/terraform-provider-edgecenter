@@ -91,7 +91,7 @@ func resourceDNSZoneRecord() *schema.Resource {
 				ForceNew: true,
 				ValidateDiagFunc: func(i interface{}, path cty.Path) diag.Diagnostics {
 					val := strings.TrimSpace(i.(string))
-					types := []string{"A", "AAAA", "MX", "CNAME", "TXT", "CAA", "NS", "SRV"}
+					types := []string{"A", "AAAA", "MX", "CNAME", "TXT", "CAA", "NS", "SRV", "DNAME"}
 					for _, t := range types {
 						if strings.EqualFold(t, val) {
 							return nil
@@ -99,7 +99,7 @@ func resourceDNSZoneRecord() *schema.Resource {
 					}
 					return diag.Errorf("dns record type should be one of %v", types)
 				},
-				Description: "A type of DNS Zone Record resource.",
+				Description: "A type of DNS Zone Record resource. Supported values: A, AAAA, MX, CNAME, TXT, CAA, NS, SRV, DNAME.",
 			},
 			DNSZoneRecordSchemaTTL: {
 				Type:     schema.TypeInt,
@@ -239,7 +239,7 @@ func resourceDNSZoneRecord() *schema.Resource {
 						DNSZoneRecordSchemaContent: {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: `A content of DNS Zone Record resource. (TXT: 'anyString', MX: '50 mail.company.io.', CAA: '0 issue "company.org; account=12345"')`,
+							Description: `A content of DNS Zone Record resource. Examples: TXT: 'anyString', MX: '50 mail.company.io.', CAA: '0 issue "company.org; account=12345"', SRV: '10 20 443 target.example.com.', DNAME: 'target.example.com.'.`,
 						},
 						DNSZoneRecordSchemaEnabled: {
 							Type:        schema.TypeBool,

@@ -247,3 +247,61 @@ resource "%s" "%s" {
 		},
 	})
 }
+
+func TestAccDnsZoneRecordDNAME(t *testing.T) {
+	t.Parallel()
+	random := time.Now().Nanosecond()
+	domain := "terraformtest"
+	name := fmt.Sprintf("dname_%d", random)
+	zone := domain + ".com"
+	fullDomain := fmt.Sprintf("dname%d.%s", random, zone)
+
+	resourceName := fmt.Sprintf("%s.%s", edgecenter.DNSZoneRecordResource, name)
+
+	templateCreate := func() string {
+		return fmt.Sprintf(`
+resource "%s" "%s" {
+  zone = "%s"
+  domain = "%s"
+  type = "DNAME"
+  ttl = 600
+
+  meta {
+  }
+
+  resource_record {
+    content = "yandex.ru."
+    enabled = true
+  }
+}
+		`, edgecenter.DNSZoneRecordResource, name, zone, fullDomain)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheckVars(t, EC_USERNAME_VAR, EC_PASSWORD_VAR, EC_DNS_URL_VAR)
+		},
+		ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: templateCreate(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaDomain, fullDomain),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaType, "DNAME"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaTTL, "600"),
+					resource.TestCheckResourceAttr(
+						resourceName,
+						fmt.Sprintf("%s.0.%s", edgecenter.DNSZoneRecordSchemaResourceRecord, edgecenter.DNSZoneRecordSchemaContent),
+						"yandex.ru.",
+					),
+					resource.TestCheckResourceAttr(
+						resourceName,
+						fmt.Sprintf("%s.0.%s", edgecenter.DNSZoneRecordSchemaResourceRecord, edgecenter.DNSZoneRecordSchemaEnabled),
+						"true",
+					),
+				),
+			},
+		},
+	})
+}
