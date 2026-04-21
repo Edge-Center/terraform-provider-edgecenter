@@ -80,6 +80,22 @@ func registerSweepers() {
 		Name: "edgecenter_securitygroup",
 		F:    sweepSecurityGroups,
 	})
+	// MKAAS uses a separate region, so we need separate sweepers for its resources
+	resource.AddTestSweepers("edgecenter_mkaas_network", &resource.Sweeper{
+		Name:         "edgecenter_mkaas_network",
+		F:            sweepMKaaSNetworks,
+		Dependencies: []string{"edgecenter_mkaas_subnet"},
+	})
+	resource.AddTestSweepers("edgecenter_mkaas_subnet", &resource.Sweeper{
+		Name:         "edgecenter_mkaas_subnet",
+		F:            sweepMKaaSSubnets,
+		Dependencies: []string{"edgecenter_mkaas_securitygroup"},
+	})
+	resource.AddTestSweepers("edgecenter_mkaas_securitygroup", &resource.Sweeper{
+		Name:         "edgecenter_mkaas_securitygroup",
+		F:            sweepMKaaSSecurityGroups,
+		Dependencies: []string{"edgecenter_mkaas_cluster"},
+	})
 	resource.AddTestSweepers("edgecenter_servergroup", &resource.Sweeper{
 		Name: "edgecenter_servergroup",
 		F:    sweepServerGroups,
@@ -534,6 +550,88 @@ func createTestCloudClientForMKAAS() (*edgecloudV2.Client, error) {
 	client.Project = projectID
 
 	return client, nil
+}
+
+func sweepMKaaSSecurityGroups(_ string) error {
+	client, err := createTestCloudClientForMKAAS()
+	if err != nil {
+		return fmt.Errorf("error getting MKAAS client: %w", err)
+	}
+	ctx := context.Background()
+
+	sgs, _, err := client.SecurityGroups.List(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error listing MKAAS security groups: %w", err)
+	}
+
+	for _, sg := range sgs {
+		if !isTestResource(sg.Name) {
+			continue
+		}
+		log.Printf("[INFO] Sweeping MKAAS security group: %s (%s)", sg.Name, sg.ID)
+		_, err := client.SecurityGroups.Delete(ctx, sg.ID)
+		if err != nil {
+			log.Printf("[ERROR] Error deleting MKAAS security group %s: %s", sg.ID, err)
+		}
+	}
+
+	return nil
+}
+
+func sweepMKaaSNetworks(_ string) error {
+	client, err := createTestCloudClientForMKAAS()
+	if err != nil {
+		return fmt.Errorf("error getting MKAAS client: %w", err)
+	}
+	ctx := context.Background()
+
+	nets, _, err := client.Networks.List(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error listing MKAAS networks: %w", err)
+	}
+
+	for _, net := range nets {
+		if !isTestResource(net.Name) {
+			continue
+		}
+		log.Printf("[INFO] Sweeping MKAAS network: %s (%s)", net.Name, net.ID)
+		taskResp, _, err := client.Networks.Delete(ctx, net.ID)
+		if err != nil {
+			log.Printf("[ERROR] Error deleting MKAAS network %s: %s", net.ID, err)
+			continue
+		}
+		waitForTask(ctx, client, taskResp)
+	}
+
+	return nil
+}
+
+func sweepMKaaSSubnets(_ string) error {
+	client, err := createTestCloudClientForMKAAS()
+	if err != nil {
+		return fmt.Errorf("error getting MKAAS client: %w", err)
+	}
+	ctx := context.Background()
+
+	subnets, _, err := client.Subnetworks.List(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error listing MKAAS subnets: %w", err)
+	}
+
+	for _, sub := range subnets {
+		if !isTestResource(sub.Name) {
+			continue
+		}
+		log.Printf("[INFO] Sweeping MKAAS subnet: %s (%s)", sub.Name, sub.ID)
+		taskResp, _, err := client.Subnetworks.Delete(ctx, sub.ID)
+		if err != nil {
+			log.Printf("[ERROR] Error deleting MKAAS subnet %s: %s", sub.ID, err)
+			continue
+		}
+		waitForTask(ctx, client, taskResp)
+	}
+
+	return nil
 }
 
 func sweepMKaaSClusters(_ string) error {
