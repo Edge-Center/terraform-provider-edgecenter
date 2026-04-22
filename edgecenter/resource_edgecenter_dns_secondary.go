@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -114,7 +115,7 @@ func resourceDNSSecondaryZoneCreate(ctx context.Context, d *schema.ResourceData,
 
 	// 404 error is valid
 	var apiErr dnssdk.APIError
-	if errors.As(err, &apiErr) && apiErr.StatusCode == 404 {
+	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
 		log.Printf("[DEBUG] Zone %s not found, will create new one", name)
 	} else {
 		return diag.FromErr(fmt.Errorf("check existing secondary zone: %w", err))
@@ -139,6 +140,7 @@ func resourceDNSSecondaryZoneCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	d.SetId(name)
+
 	return setSecondaryZoneData(d, zone)
 }
 
@@ -162,16 +164,18 @@ func resourceDNSSecondaryZoneRead(ctx context.Context, d *schema.ResourceData, m
 		var apiErr dnssdk.APIError
 		if errors.As(err, &apiErr) {
 			log.Printf("[DEBUG] API Error - StatusCode: %d, Message: %s\n", apiErr.StatusCode, apiErr.Message)
-			if apiErr.StatusCode == 404 {
+			if apiErr.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Secondary zone %s not found, removing from state", zoneName)
 				d.SetId("")
 				return nil
 			}
 		}
+
 		return diag.FromErr(fmt.Errorf("get secondary zone: %w", err))
 	}
 
 	log.Printf("[DEBUG] Successfully found zone: %+v\n", zone)
+
 	return setSecondaryZoneData(d, zone)
 }
 
@@ -225,7 +229,7 @@ func resourceDNSSecondaryZoneDelete(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		// check for already deleted
 		var apiErr dnssdk.APIError
-		if errors.As(err, &apiErr) && apiErr.StatusCode == 404 {
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] Secondary zone %s already deleted", zoneName)
 			d.SetId("")
 			return nil
@@ -234,6 +238,7 @@ func resourceDNSSecondaryZoneDelete(ctx context.Context, d *schema.ResourceData,
 	}
 
 	d.SetId("")
+
 	return nil
 }
 
@@ -282,7 +287,7 @@ func setSecondaryZoneData(d *schema.ResourceData, zone dnssdk.SecondaryZone) dia
 	return nil
 }
 
-// dataSourceDNSSecondaryZonesRead reads all secondary zones
+// dataSourceDNSSecondaryZonesRead reads all secondary zones.
 func dataSourceDNSSecondaryZonesRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start DNS Secondary Zones Data Source reading")
 	defer log.Println("[DEBUG] Finish DNS Secondary Zones Data Source reading")
@@ -325,5 +330,6 @@ func dataSourceDNSSecondaryZonesRead(ctx context.Context, d *schema.ResourceData
 	}
 
 	d.SetId("secondary_zones")
+
 	return nil
 }
