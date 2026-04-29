@@ -303,7 +303,7 @@ func dataSourceDNSSecondaryZonesRead(ctx context.Context, d *schema.ResourceData
 	// convert to Terraform format
 	zoneList := make([]map[string]interface{}, len(zones))
 	for i, zone := range zones {
-		// convert Timestamp → string
+		// convert Timestamp to string
 		var updatedAtStr string
 		if zone.UpdatedAt != 0 {
 			t := time.Unix(0, int64(zone.UpdatedAt))
@@ -313,7 +313,7 @@ func dataSourceDNSSecondaryZonesRead(ctx context.Context, d *schema.ResourceData
 		zoneMap := map[string]interface{}{
 			DNSSecondaryZoneSchemaName:      zone.Name,
 			DNSSecondaryZoneSchemaZoneID:    zone.ID,
-			DNSSecondaryZoneSchemaUpdatedAt: updatedAtStr, // ← строка
+			DNSSecondaryZoneSchemaUpdatedAt: updatedAtStr,
 		}
 
 		if zone.TSIG != nil {
