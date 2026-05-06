@@ -122,7 +122,7 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone_caa" {
 - `domain` (String) A domain of DNS Zone Record resource.
 - `meta` (Block List, Min: 1, Max: 1) A meta of DNS Zone Record resource. (see [below for nested schema](#nestedblock--meta))
 - `resource_record` (Block Set, Min: 1) An array of contents with meta of DNS Zone Record resource. (see [below for nested schema](#nestedblock--resource_record))
-- `type` (String) A type of DNS Zone Record resource.
+- `type` (String) A type of DNS Zone Record resource. Supported values: A, AAAA, MX, CNAME, TXT, CAA, NS, SRV, DNAME.
 - `zone` (String) A zone of DNS Zone Record resource.
 
 ### Optional
@@ -168,7 +168,7 @@ Optional:
 
 Required:
 
-- `content` (String) A content of DNS Zone Record resource. (TXT: 'anyString', MX: '50 mail.company.io.', CAA: '0 issue "company.org; account=12345"')
+- `content` (String) A content of DNS Zone Record resource. Examples: TXT: 'anyString', MX: '50 mail.company.io.', CAA: '0 issue "company.org; account=12345"', SRV: '10 20 443 target.example.com.', DNAME: 'target.example.com.'.
 
 Optional:
 
