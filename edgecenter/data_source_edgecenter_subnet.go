@@ -176,18 +176,18 @@ func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interfa
 	_ = d.Set(HostRoutesField, hostRoutesToListOfMapsV2(subnet.HostRoutes))
 	_ = d.Set(RegionIDField, subnet.RegionID)
 	_ = d.Set(ProjectIDField, subnet.ProjectID)
-	_ = d.Set(GatewayIPField, subnet.GatewayIP.String())
+	_ = d.Set(ConnectToNetworkRouterField, true)
+	if subnet.GatewayIP != nil {
+		_ = d.Set(GatewayIPField, subnet.GatewayIP.String())
+	} else {
+		_ = d.Set(GatewayIPField, "disable")
+		_ = d.Set(ConnectToNetworkRouterField, false)
+	}
 
 	allocationPoolsSet := d.Get(AllocationPoolsField).(*schema.Set)
 
 	if err := d.Set(AllocationPoolsField, schema.NewSet(allocationPoolsSet.F, allocationPoolsToListOfMaps(subnet.AllocationPools))); err != nil {
 		return diag.FromErr(err)
-	}
-
-	_ = d.Set(ConnectToNetworkRouterField, true)
-	if subnet.GatewayIP == nil {
-		_ = d.Set(ConnectToNetworkRouterField, false)
-		_ = d.Set(GatewayIPField, "disable")
 	}
 
 	log.Println("[DEBUG] Finish Subnet reading")

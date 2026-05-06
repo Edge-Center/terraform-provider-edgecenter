@@ -113,10 +113,11 @@ func resourceSubnet() *schema.Resource {
 				Elem:        hostRouteSchema(true),
 			},
 			GatewayIPField: {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "The IP address of the gateway for this subnet. The subnet will be recreated if the gateway IP is changed.",
-				ValidateFunc: validateSubnetGatewayIP,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "The IP address of the gateway for this subnet. The subnet will be recreated if the gateway IP is changed.",
+				ValidateFunc:     validateSubnetGatewayIP,
+				DiffSuppressFunc: suppressSubnetGatewayIPDiff,
 			},
 			AllocationPoolsField: {
 				Type:        schema.TypeSet,
@@ -307,14 +308,13 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	d.Set(RegionIDField, subnet.RegionID)
 	d.Set(ProjectIDField, subnet.ProjectID)
-	d.Set(GatewayIPField, subnet.GatewayIP.String())
-
 	fields := []string{ConnectToNetworkRouterField}
 	revertState(d, &fields)
-
-	if subnet.GatewayIP == nil {
-		d.Set(ConnectToNetworkRouterField, false)
+	if subnet.GatewayIP != nil {
+		d.Set(GatewayIPField, subnet.GatewayIP.String())
+	} else {
 		d.Set(GatewayIPField, disable)
+		d.Set(ConnectToNetworkRouterField, false)
 	}
 
 	metadataMap, metadataReadOnly := PrepareMetadata(subnet.Metadata)
@@ -385,7 +385,7 @@ func resourceSubnetUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 			updateOpts.GatewayIP = &gatewayIP
 		}
 	default:
-		if gIP := d.Get(GatewayIPField).(string); gIP != disable {
+		if gIP := d.Get(GatewayIPField).(string); gIP != disable && gIP != "" {
 			gatewayIP := net.ParseIP(gIP)
 			updateOpts.GatewayIP = &gatewayIP
 		}
@@ -449,4 +449,19 @@ func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Printf("[DEBUG] Finish of subnet deleting")
 
 	return diags
+}
+
+func suppressSubnetGatewayIPDiff(_, oldValue, newValue string, d *schema.ResourceData) bool {
+	if newValue != "" {
+		return false
+	}
+	connectToRouter := d.Get(ConnectToNetworkRouterField).(bool)
+	if oldValue != "" && oldValue != disable && connectToRouter {
+		return true
+	}
+	if oldValue == disable && !connectToRouter {
+		return true
+	}
+
+	return false
 }
