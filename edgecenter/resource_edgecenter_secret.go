@@ -128,7 +128,7 @@ func resourceSecret() *schema.Resource {
 				Type:        schema.TypeString,
 				Description: "Datetime when the secret will expire. The format is 2025-12-28T19:14:44",
 				Optional:    true,
-				Computed:    true,
+				ForceNew:    true,
 				StateFunc: func(val interface{}) string {
 					expTime, _ := time.Parse(RFC3339NoZ, val.(string))
 					return expTime.Format(RFC3339NoZ)
@@ -208,12 +208,17 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	expTime, _ := time.Parse(RFC3339WithTimeZone, secret.Expiration)
 
+	if secret.Expiration == "" {
+		d.Set("expiration", "")
+	} else {
+		d.Set("expiration", expTime.Format(RFC3339NoZ))
+	}
+
 	d.Set("name", secret.Name)
 	d.Set("algorithm", secret.Algorithm)
 	d.Set("bit_length", secret.BitLength)
 	d.Set("mode", secret.Mode)
 	d.Set("status", secret.Status)
-	d.Set("expiration", expTime.Format(RFC3339NoZ))
 	d.Set("created", secret.Created)
 	if err := d.Set("content_types", secret.ContentTypes); err != nil {
 		return diag.FromErr(err)
