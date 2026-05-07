@@ -47,12 +47,31 @@ data "edgecenter_mkaas_pool" "apps" {
 - `labels` (Map of String) Arbitrary labels assigned to the pool.
 - `name` (String) The name of the Kubernetes pool.
 - `node_count` (Number) The current number of nodes in the pool.
+- `scale_policy` (List of Object) Scale policy of the pool. Populated only when autoscaling is enabled. (see [below for nested schema](#nestedatt--scale_policy))
 - `security_group_ids` (List of String) List of security group IDs attached to the pool.
 - `state` (String) The state of the pool.
 - `status` (String) The status of the pool.
 - `taints` (Set of Object) Kubernetes taints applied to all nodes in the pool. (see [below for nested schema](#nestedatt--taints))
 - `volume_size` (Number) The size of the volumes used by nodes in the pool, specified in gigabytes (GB).
 - `volume_type` (String) The type of volume used by nodes in the pool.
+
+<a id="nestedatt--scale_policy"></a>
+### Nested Schema for `scale_policy`
+
+Read-Only:
+
+- `auto_scale` (List of Object) (see [below for nested schema](#nestedobjatt--scale_policy--auto_scale))
+
+<a id="nestedobjatt--scale_policy--auto_scale"></a>
+### Nested Schema for `scale_policy.auto_scale`
+
+Read-Only:
+
+- `current_node_count` (Number)
+- `max` (Number)
+- `min` (Number)
+
+
 
 <a id="nestedatt--taints"></a>
 ### Nested Schema for `taints`

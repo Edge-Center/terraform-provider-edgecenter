@@ -120,6 +120,39 @@ func dataSourceMKaaSPool() *schema.Resource {
 				Computed:    true,
 				Description: "The status of the pool.",
 			},
+			MKaaSPoolScalePolicyField: {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Scale policy of the pool. Populated only when autoscaling is enabled.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						MKaaSPoolAutoScaleField: {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "Auto-scaling configuration of the pool.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									MKaaSPoolMinField: {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "Minimum number of nodes the autoscaler may scale the pool down to.",
+									},
+									MKaaSPoolMaxField: {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "Maximum number of nodes the autoscaler may scale the pool up to.",
+									},
+									MKaaSPoolCurrentNodeCountField: {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "The current number of nodes in the pool, as managed by the autoscaler.",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -138,12 +171,13 @@ func dataSourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(fmt.Errorf("failed to get MKaaS pool %d in cluster %d: %w", poolID, clusterID, err))
 	}
 
+	setPoolNodeCount(d, pool)
+
 	d.SetId(strconv.Itoa(pool.ID))
 	_ = d.Set(MKaaSClusterIDField, clusterID)
 	_ = d.Set(MKaaSPoolIDField, pool.ID)
 	_ = d.Set(NameField, pool.Name)
 	_ = d.Set(FlavorField, pool.Flavor)
-	_ = d.Set(MKaaSNodeCountField, pool.NodeCount)
 	_ = d.Set(MKaaSVolumeSizeField, pool.VolumeSize)
 	_ = d.Set(MKaaSVolumeTypeField, string(pool.VolumeType))
 	_ = d.Set(MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)
@@ -151,6 +185,7 @@ func dataSourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m inte
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)
 	_ = d.Set(MKaaSPoolLabelsField, pool.Labels)
 	_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
+	_ = d.Set(MKaaSPoolScalePolicyField, flattenScalePolicy(pool))
 
 	return nil
 }

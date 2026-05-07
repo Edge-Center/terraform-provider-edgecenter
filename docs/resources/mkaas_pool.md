@@ -23,7 +23,6 @@ resource "edgecenter_mkaas_pool" "apps" {
   # Основные параметры пула
   name        = "apps-pool"
   flavor      = "mkaas-worker-g3-cpu-2-2"
-  node_count  = 3
   volume_size = 20
   volume_type = "standard"
 
@@ -39,6 +38,18 @@ resource "edgecenter_mkaas_pool" "apps" {
     effect = "NoSchedule"
   }
 
+  # Ручное управление количеством узлов
+  node_count = 3
+
+  # Наличие блока `auto_scale` включает автоскейлер; удалите блок, чтобы отключить.
+  # scale_policy {
+  #   auto_scale {
+  #     current_node_count — read-only
+  #     min = 1
+  #     max = 5
+  #   }
+  # }
+
   project_id = 1234
   region_id  = "1234"
 }
@@ -52,17 +63,18 @@ resource "edgecenter_mkaas_pool" "apps" {
 - `cluster_id` (Number) The id of the Kubernetes cluster this pool belongs to.
 - `flavor` (String) The identifier of the flavor used for nodes in this pool, e.g. g1-standard-2-4.
 - `name` (String) The name of the Kubernetes pool.
-- `node_count` (Number) The current number of nodes in the pool.
 - `volume_size` (Number) The size of the control volumes in the cluster, specified in gigabytes (GB). Allowed range: `20–1024` GiB.
 - `volume_type` (String) The type of volume. Available values are `standard`, `ssd_hiiops`.
 
 ### Optional
 
 - `labels` (Map of String) Arbitrary labels assigned to the pool.
+- `node_count` (Number) The number of nodes in the pool.
 - `project_id` (Number) The uuid of the project. Either `project_id` or `project_name` must be specified.
 - `project_name` (String) The name of the project. Either `project_id` or `project_name` must be specified.
 - `region_id` (Number) The uuid of the region. Either `region_id` or `region_name` must be specified.
 - `region_name` (String) The name of the region. Either `region_id` or `region_name` must be specified.
+- `scale_policy` (Block List, Max: 1) Scale policy for the pool. Presence of `auto_scale` enables the Cluster Autoscaler; removing the block disables it. (see [below for nested schema](#nestedblock--scale_policy))
 - `security_group_ids` (List of String) The list of security group IDs associated with the pool.
 - `taints` (Block Set) Kubernetes taints applied to all nodes in the pool. (see [below for nested schema](#nestedblock--taints))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
@@ -72,6 +84,27 @@ resource "edgecenter_mkaas_pool" "apps" {
 - `id` (String) The ID of this resource.
 - `state` (String) The state of the pool.
 - `status` (String) The status of the pool.
+
+<a id="nestedblock--scale_policy"></a>
+### Nested Schema for `scale_policy`
+
+Required:
+
+- `auto_scale` (Block List, Min: 1, Max: 1) Auto-scaling configuration for the pool. (see [below for nested schema](#nestedblock--scale_policy--auto_scale))
+
+<a id="nestedblock--scale_policy--auto_scale"></a>
+### Nested Schema for `scale_policy.auto_scale`
+
+Required:
+
+- `max` (Number) Maximum number of nodes the autoscaler may scale the pool up to.
+- `min` (Number) Minimum number of nodes the autoscaler may scale the pool down to.
+
+Read-Only:
+
+- `current_node_count` (Number) The current number of nodes in the pool, as managed by the autoscaler.
+
+
 
 <a id="nestedblock--taints"></a>
 ### Nested Schema for `taints`

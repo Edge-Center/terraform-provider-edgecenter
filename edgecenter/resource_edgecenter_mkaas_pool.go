@@ -100,9 +100,11 @@ func resourceMKaaSPool() *schema.Resource {
 				Description: "The identifier of the flavor used for nodes in this pool, e.g. g1-standard-2-4.",
 			},
 			MKaaSNodeCountField: {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "The current number of nodes in the pool.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{MKaaSNodeCountField, MKaaSPoolScalePolicyField},
+				Description:  "The number of nodes in the pool.",
 			},
 			MKaaSVolumeSizeField: {
 				Type:     schema.TypeInt,
@@ -173,6 +175,45 @@ func resourceMKaaSPool() *schema.Resource {
 					},
 				},
 			},
+			MKaaSPoolScalePolicyField: {
+				Type:         schema.TypeList,
+				Optional:     true,
+				MaxItems:     1,
+				ExactlyOneOf: []string{MKaaSNodeCountField, MKaaSPoolScalePolicyField},
+				Description: "Scale policy for the pool. Presence of `auto_scale` enables the " +
+					"Cluster Autoscaler; removing the block disables it.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						MKaaSPoolAutoScaleField: {
+							Type:        schema.TypeList,
+							Required:    true,
+							MaxItems:    1,
+							Description: "Auto-scaling configuration for the pool.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									MKaaSPoolMinField: {
+										Type:         schema.TypeInt,
+										Required:     true,
+										Description:  "Minimum number of nodes the autoscaler may scale the pool down to.",
+										ValidateFunc: validation.IntAtLeast(1),
+									},
+									MKaaSPoolMaxField: {
+										Type:         schema.TypeInt,
+										Required:     true,
+										Description:  "Maximum number of nodes the autoscaler may scale the pool up to.",
+										ValidateFunc: validation.IntAtLeast(1),
+									},
+									MKaaSPoolCurrentNodeCountField: {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "The current number of nodes in the pool, as managed by the autoscaler.",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -187,23 +228,24 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 	clusterID := d.Get(MKaaSClusterIDField).(int)
 
+	minPtr, maxPtr, autoscale := expandScalePolicy(d)
+
 	createOpts := edgecloudV2.MKaaSPoolCreateRequest{
-		Name:       d.Get(NameField).(string),
-		Flavor:     d.Get(FlavorField).(string),
-		NodeCount:  d.Get(MKaaSNodeCountField).(int),
-		VolumeSize: d.Get(MKaaSVolumeSizeField).(int),
-		VolumeType: edgecloudV2.VolumeType(d.Get(MKaaSVolumeTypeField).(string)),
-		Labels:     map[string]string{},
-		Taints:     []edgecloudV2.MKaaSTaint{},
+		Name:               d.Get(NameField).(string),
+		Flavor:             d.Get(FlavorField).(string),
+		VolumeSize:         d.Get(MKaaSVolumeSizeField).(int),
+		VolumeType:         edgecloudV2.VolumeType(d.Get(MKaaSVolumeTypeField).(string)),
+		Labels:             map[string]string{},
+		Taints:             []edgecloudV2.MKaaSTaint{},
+		AutoscalingEnabled: autoscale,
+		MinNodeCount:       minPtr,
+		MaxNodeCount:       maxPtr,
 	}
 
-	if v, ok := d.GetOk(MKaaSPoolMinNodeCountField); ok {
-		val := v.(int)
-		createOpts.MinNodeCount = &val
-	}
-	if v, ok := d.GetOk(MKaaSPoolMaxNodeCountField); ok {
-		val := v.(int)
-		createOpts.MaxNodeCount = &val
+	if nc, ok := d.GetOk(MKaaSNodeCountField); ok {
+		createOpts.NodeCount = nc.(int)
+	} else if autoscale {
+		createOpts.NodeCount = *minPtr
 	}
 	if v, ok := d.GetOk(MKaaSPoolSecurityGroupIDsField); ok {
 		sgs := v.([]interface{})
@@ -271,10 +313,12 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	setPoolNodeCount(d, pool)
+
 	_ = d.Set(NameField, pool.Name)
 	_ = d.Set(MKaaSClusterIDField, clusterID)
 	_ = d.Set(FlavorField, pool.Flavor)
-	_ = d.Set(MKaaSNodeCountField, pool.NodeCount)
 	_ = d.Set(MKaaSVolumeSizeField, pool.VolumeSize)
 	_ = d.Set(MKaaSVolumeTypeField, string(pool.VolumeType))
 	_ = d.Set(MKaaSPoolStateField, pool.State)
@@ -282,6 +326,7 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set(MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)
 	_ = d.Set(MKaaSPoolLabelsField, pool.Labels)
 	_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
+	_ = d.Set(MKaaSPoolScalePolicyField, flattenScalePolicy(pool))
 
 	return diags
 }
@@ -292,7 +337,7 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	if unsupported := mkaasPoolUnsupportedUpdateChanges(d); len(unsupported) > 0 {
 		return diag.Errorf(
 			"MKaaS pool update is not supported for these fields: %v. "+
-				"Only %q, %q, %q, %q and %q are supported. "+
+				"Only %q, %q, %q, %q, %q and %q are supported. "+
 				"Please revert changes, or recreate the resource if applicable.",
 			unsupported,
 			NameField,
@@ -300,6 +345,7 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 			MKaaSPoolSecurityGroupIDsField,
 			MKaaSPoolLabelsField,
 			MKaaSPoolTaintsField,
+			MKaaSPoolScalePolicyField,
 		)
 	}
 
@@ -343,7 +389,34 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if d.HasChange(MKaaSNodeCountField) {
+	minPtr, maxPtr, autoscaleNow := expandScalePolicy(d)
+
+	if d.HasChange(MKaaSPoolScalePolicyField) {
+		req := edgecloudV2.MKaaSPoolUpdateAutoscalingRequest{
+			EnableAutoscaling: &autoscaleNow,
+		}
+		if autoscaleNow {
+			req.MinNodeCount = minPtr
+			req.MaxNodeCount = maxPtr
+		}
+
+		tflog.Info(ctx, "Updating MKaaS pool autoscaling", map[string]interface{}{
+			"pool_id": poolID,
+			"enabled": autoscaleNow,
+			"min":     minPtr,
+			"max":     maxPtr,
+		})
+
+		taskResp, _, err := clientV2.MkaaS.PoolUpdateAutoscaling(ctx, clusterID, poolID, req)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if err := waitForTask(taskResp); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if d.HasChange(MKaaSNodeCountField) && !autoscaleNow {
 		nodeCount := d.Get(MKaaSNodeCountField).(int)
 
 		tflog.Info(ctx, "Updating MKaaS pool node count", map[string]interface{}{

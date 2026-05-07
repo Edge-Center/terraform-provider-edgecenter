@@ -8,5 +8,3 @@ data "edgecenter_mkaas_pool" "apps" {
   cluster_id = 321
   pool_id    = 654
 }
-
-

@@ -8,7 +8,6 @@ resource "edgecenter_mkaas_pool" "apps" {
   # Основные параметры пула
   name        = "apps-pool"
   flavor      = "mkaas-worker-g3-cpu-2-2"
-  node_count  = 3
   volume_size = 20
   volume_type = "standard"
 
@@ -23,6 +22,18 @@ resource "edgecenter_mkaas_pool" "apps" {
     value  = "gpu"
     effect = "NoSchedule"
   }
+
+  # Ручное управление количеством узлов
+  node_count = 3
+
+  # Наличие блока `auto_scale` включает автоскейлер; удалите блок, чтобы отключить.
+  # scale_policy {
+  #   auto_scale {
+  #     current_node_count — read-only
+  #     min = 1
+  #     max = 5
+  #   }
+  # }
 
   project_id = 1234
   region_id  = "1234"

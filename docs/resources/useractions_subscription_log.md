@@ -41,6 +41,8 @@ resource "edgecenter_useractions_subscription_log" "subs" {
 
 Import is supported using the following syntax:
 
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
 ```shell
 # The import ID is not used for lookup - the subscription is identified by the current client token.
 # Any non-empty value is accepted; the real subscription ID will be set by the provider.

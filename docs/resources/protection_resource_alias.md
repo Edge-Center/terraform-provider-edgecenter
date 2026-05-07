@@ -49,6 +49,8 @@ resource "edgecenter_protection_resource_alias" "subdomain2" {
 
 Import is supported using the following syntax:
 
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
 ```shell
 # import using <resource_id>:<alias_id> format
 terraform import edgecenter_protection_resource_alias.subdomain1 12345:67

@@ -159,9 +159,13 @@ const (
 	MKaaSClusterStageField      = "stage"
 	MKaaSClusterIDField         = "cluster_id"
 
-	MKaaSPoolIDField           = "pool_id"
-	MKaaSPoolMaxNodeCountField = "max_node_count"
-	MKaaSPoolMinNodeCountField = "min_node_count"
+	MKaaSPoolIDField = "pool_id"
+
+	MKaaSPoolScalePolicyField      = "scale_policy"
+	MKaaSPoolAutoScaleField        = "auto_scale"
+	MKaaSPoolMinField              = "min"
+	MKaaSPoolMaxField              = "max"
+	MKaaSPoolCurrentNodeCountField = "current_node_count"
 
 	MKaaSPoolLabelsField = "labels"
 	MKaaSPoolTaintsField = "taints"
