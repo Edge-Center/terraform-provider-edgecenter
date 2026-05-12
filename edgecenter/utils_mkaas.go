@@ -103,19 +103,19 @@ func customMKaaSPoolDiff(_ context.Context, d *schema.ResourceDiff, _ interface{
 	minPtr, maxPtr, autoscale := expandScalePolicy(d)
 	if autoscale {
 		if *maxPtr < *minPtr {
-			return fmt.Errorf("scale_policy.auto_scale.max (%d) must be >= scale_policy.auto_scale.min (%d)",
-				*maxPtr, *minPtr)
+			return fmt.Errorf(
+				"scale_policy.auto_scale.max (%d) must be >= scale_policy.auto_scale.min (%d)",
+				*maxPtr, *minPtr,
+			)
 		}
 	}
 
 	return nil
 }
 
-// scalePolicyReader is the minimal surface for reading the nested
-// scale_policy block. *schema.ResourceData and *schema.ResourceDiff both
-// satisfy it.
+// scalePolicyReader is surface for reading the nested scale_policy block.
 type scalePolicyReader interface {
-	GetOk(string) (interface{}, bool)
+	GetOk(key string) (interface{}, bool)
 }
 
 // expandScalePolicy returns (min, max, enabled). enabled is true if a
@@ -141,8 +141,10 @@ func expandScalePolicy(d scalePolicyReader) (*int, *int, bool) {
 	if !ok {
 		return nil, nil, false
 	}
+
 	minVal := asMap[MKaaSPoolMinField].(int)
 	maxVal := asMap[MKaaSPoolMaxField].(int)
+
 	return &minVal, &maxVal, true
 }
 
