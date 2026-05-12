@@ -78,6 +78,41 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone" {
   }
 }
 
+resource "edgecenter_dns_zone_record" "subdomain_examplezone_weighted" {
+  zone   = "examplezone.com"
+  domain = "weighted.subdomain.examplezone.com"
+  type   = "A"
+  ttl    = 10
+
+  filter {
+    type   = "geodistance"
+    limit  = 1
+    strict = true
+  }
+
+  meta {
+  }
+
+  resource_record {
+    content = "127.0.0.10"
+    enabled = true
+
+    meta {
+      weight  = 30
+      regions = ["ru-kra", "ru-spb"]
+    }
+  }
+
+  resource_record {
+    content = "127.0.0.11"
+    enabled = true
+
+    meta {
+      backup = true
+    }
+  }
+}
+
 resource "edgecenter_dns_zone_record" "subdomain_examplezone_mx" {
   zone   = "examplezone.com"
   domain = "subdomain.examplezone.com"
@@ -181,12 +216,15 @@ Optional:
 Optional:
 
 - `asn` (List of Number) An asn meta (e.g. 12345) of DNS Zone Record resource.
+- `backup` (Boolean) Backup meta marks records which are used only when health checks detect that all non-backup records are unavailable.
 - `continents` (List of String) Continents meta (e.g. Asia) of DNS Zone Record resource.
 - `countries` (List of String) Countries meta (e.g. USA) of DNS Zone Record resource.
 - `default` (Boolean) Fallback meta equals true marks records which are used as a default answer (when nothing was selected by specified meta fields).
 - `ip` (List of String) An ip meta (e.g. 127.0.0.0) of DNS Zone Record resource.
 - `latlong` (List of Number) A latlong meta (e.g. 27.988056, 86.925278) of DNS Zone Record resource.
 - `notes` (List of String) A notes meta (e.g. Miami DC) of DNS Zone Record resource.
+- `regions` (Set of String) Regions meta (e.g. ru-spb) of DNS Zone Record resource. Region names must use lowercase letters.
+- `weight` (Number) Weight meta defines record selection frequency when weighted answer selection is enabled.
 
 
 

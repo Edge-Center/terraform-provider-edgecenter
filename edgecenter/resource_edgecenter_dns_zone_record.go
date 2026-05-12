@@ -54,7 +54,25 @@ const (
 	DNSZoneRecordSchemaMetaLatLong    = "latlong"
 	DNSZoneRecordSchemaMetaNotes      = "notes"
 	DNSZoneRecordSchemaMetaDefault    = "default"
+	DNSZoneRecordSchemaMetaBackup     = "backup"
+	DNSZoneRecordSchemaMetaWeight     = "weight"
+	DNSZoneRecordSchemaMetaRegions    = "regions"
 )
+
+var validDNSRecordRegions = map[string]struct{}{
+	"ru-zap": {}, "ru-khe": {}, "ru-lug": {}, "ru-don": {}, "ru-sev": {}, "ru-cri": {}, "ru-spb": {}, "ru-mow": {},
+	"ru-jew": {}, "ru-yan": {}, "ru-chu": {}, "ru-khm": {}, "ru-nen": {}, "ru-sta": {}, "ru-kha": {}, "ru-pri": {},
+	"ru-kya": {}, "ru-per": {}, "ru-kra": {}, "ru-zab": {}, "ru-kam": {}, "ru-alt": {}, "ru-chv": {}, "ru-cha": {},
+	"ru-khk": {}, "ru-udm": {}, "ru-tuv": {}, "ru-nor": {}, "ru-tat": {}, "ru-sah": {}, "ru-kor": {}, "ru-eve": {},
+	"ru-chi": {}, "ru-tay": {}, "ru-uob": {}, "ru-agb": {}, "ru-kim": {}, "ru-kom": {}, "ru-ali": {}, "ru-mor": {},
+	"ru-kar": {}, "ru-mar": {}, "ru-kao": {}, "ru-kai": {}, "ru-kab": {}, "ru-ing": {}, "ru-dag": {}, "ru-bur": {},
+	"ru-bas": {}, "ru-yar": {}, "ru-ady": {}, "ru-che": {}, "ru-uly": {}, "ru-tyu": {}, "ru-tom": {}, "ru-tul": {},
+	"ru-tve": {}, "ru-tam": {}, "ru-smo": {}, "ru-sak": {}, "ru-sve": {}, "ru-sar": {}, "ru-sam": {}, "ru-rya": {},
+	"ru-ros": {}, "ru-psk": {}, "ru-pnz": {}, "ru-orl": {}, "ru-ore": {}, "ru-oms": {}, "ru-nvs": {}, "ru-ngr": {},
+	"ru-niz": {}, "ru-mur": {}, "ru-mos": {}, "ru-mag": {}, "ru-lip": {}, "ru-len": {}, "ru-kur": {}, "ru-kug": {},
+	"ru-kos": {}, "ru-kir": {}, "ru-kem": {}, "ru-kag": {}, "ru-klu": {}, "ru-irk": {}, "ru-vor": {}, "ru-iva": {},
+	"ru-vlg": {}, "ru-vgg": {}, "ru-vla": {}, "ru-bry": {}, "ru-bel": {}, "ru-ast": {}, "ru-ark": {}, "ru-amu": {},
+}
 
 func resourceDNSZoneRecord() *schema.Resource {
 	return &schema.Resource{
@@ -323,6 +341,38 @@ func resourceDNSZoneRecord() *schema.Resource {
 										Default:     false,
 										Description: "Fallback meta equals true marks records which are used as a default answer (when nothing was selected by specified meta fields).",
 									},
+									DNSZoneRecordSchemaMetaBackup: {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Backup meta marks records which are used only when health checks detect that all non-backup records are unavailable.",
+									},
+									DNSZoneRecordSchemaMetaWeight: {
+										Type:     schema.TypeInt,
+										Optional: true,
+										ValidateDiagFunc: func(i interface{}, path cty.Path) diag.Diagnostics {
+											v := i.(int)
+											if v < 0 || v > 100 {
+												return diag.Errorf("weight must be between 0 and 100")
+											}
+											return nil
+										},
+										Description: "Weight meta defines record selection frequency when weighted answer selection is enabled.",
+									},
+									DNSZoneRecordSchemaMetaRegions: {
+										Type: schema.TypeSet,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+											ValidateDiagFunc: func(i interface{}, path cty.Path) diag.Diagnostics {
+												region := i.(string)
+												if _, ok := validDNSRecordRegions[region]; !ok {
+													return diag.Errorf("unsupported dns record region %q", region)
+												}
+												return nil
+											},
+										},
+										Optional:    true,
+										Description: "Regions meta (e.g. ru-spb) of DNS Zone Record resource. Region names must use lowercase letters.",
+									},
 								},
 							},
 						},
@@ -587,6 +637,25 @@ func fillRRSet(d *schema.ResourceData, rType string, rrSet *dnssdk.RRSet) error 
 				rr.AddMeta(dnssdk.NewResourceMetaNotes(notes...))
 			}
 
+			if hasExplicitResourceRecordMetaField(d, content, DNSZoneRecordSchemaMetaBackup) {
+				backup := meta[DNSZoneRecordSchemaMetaBackup].(bool)
+				rr.AddMeta(dnssdk.NewResourceMetaBackup(backup))
+			}
+
+			if hasExplicitResourceRecordMetaField(d, content, DNSZoneRecordSchemaMetaWeight) {
+				weight := meta[DNSZoneRecordSchemaMetaWeight].(int)
+				rr.AddMeta(dnssdk.NewResourceMetaWeight(weight))
+			}
+
+			val = meta[DNSZoneRecordSchemaMetaRegions].(*schema.Set).List()
+			regions := make([]string, len(val))
+			for i, v := range val {
+				regions[i] = v.(string)
+			}
+			if len(regions) > 0 {
+				rr.AddMeta(dnssdk.NewResourceMetaRegions(regions...))
+			}
+
 			latLongVal := meta[DNSZoneRecordSchemaMetaLatLong].([]interface{})
 			if len(latLongVal) == 2 {
 				rr.AddMeta(
@@ -720,4 +789,48 @@ func verifyFailoverMeta(meta dnssdk.Meta) error {
 	}
 
 	return nil
+}
+
+func hasExplicitResourceRecordMetaField(d *schema.ResourceData, content, field string) bool {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsNull() || !rawConfig.IsKnown() {
+		return false
+	}
+
+	rawRecords := rawConfig.GetAttr(DNSZoneRecordSchemaResourceRecord)
+	if rawRecords.IsNull() || !rawRecords.IsKnown() || rawRecords.LengthInt() == 0 {
+		return false
+	}
+
+	for _, rawRecord := range rawRecords.AsValueSlice() {
+		if rawRecord.IsNull() || !rawRecord.IsKnown() {
+			continue
+		}
+
+		rawContent := rawRecord.GetAttr(DNSZoneRecordSchemaContent)
+		if rawContent.IsNull() || !rawContent.IsKnown() || rawContent.AsString() != content {
+			continue
+		}
+
+		rawMeta := rawRecord.GetAttr(DNSZoneRecordSchemaMeta)
+		if rawMeta.IsNull() || !rawMeta.IsKnown() || rawMeta.LengthInt() == 0 {
+			return false
+		}
+
+		rawMetaItems := rawMeta.AsValueSlice()
+		if len(rawMetaItems) == 0 {
+			return false
+		}
+
+		rawMetaItem := rawMetaItems[0]
+		if rawMetaItem.IsNull() || !rawMetaItem.IsKnown() {
+			return false
+		}
+
+		rawField := rawMetaItem.GetAttr(field)
+
+		return !rawField.IsNull() && rawField.IsKnown()
+	}
+
+	return false
 }
