@@ -63,6 +63,41 @@ resource "edgecenter_dns_zone_record" "subdomain_examplezone" {
   }
 }
 
+resource "edgecenter_dns_zone_record" "subdomain_examplezone_weighted" {
+  zone   = "examplezone.com"
+  domain = "weighted.subdomain.examplezone.com"
+  type   = "A"
+  ttl    = 10
+
+  filter {
+    type   = "geodistance"
+    limit  = 1
+    strict = true
+  }
+
+  meta {
+  }
+
+  resource_record {
+    content = "127.0.0.10"
+    enabled = true
+
+    meta {
+      weight  = 30
+      regions = ["ru-kra", "ru-spb"]
+    }
+  }
+
+  resource_record {
+    content = "127.0.0.11"
+    enabled = true
+
+    meta {
+      backup = true
+    }
+  }
+}
+
 resource "edgecenter_dns_zone_record" "subdomain_examplezone_mx" {
   zone   = "examplezone.com"
   domain = "subdomain.examplezone.com"
