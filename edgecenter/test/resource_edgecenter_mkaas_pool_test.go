@@ -187,6 +187,9 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 		t.Fatalf("terraform apply (pool create): %v", err)
 	}
 
+	err = WaitForMKaaSClusterStage(t, client, cluster.ID, clusterWorkCompletedStage, 10*time.Minute)
+	require.NoError(t, err, "cluster did not reach WORK_COMPLETED stage after scale update")
+
 	// Check pool
 	poolID := tt.Output(t, poolOpts, "pool_id")
 	if strings.TrimSpace(poolID) == "" {
@@ -238,6 +241,20 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "workload", "%s mismatch", "second taint key (after update)")
 	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "batch", "%s mismatch", "second taint value (after update)")
 	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "NoExecute", "%s mismatch", "second taint effect (after update)")
+
+	// ENABLE AUTOSCALING
+	poolData.ScalePolicy = &poolAutoScaleData{Min: 2, Max: 3}
+	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
+	if err != nil {
+		t.Fatalf("write pool main.tf (enable autoscaling): %v", err)
+	}
+	if _, err := tt.ApplyAndIdempotentE(t, poolOpts); err != nil {
+		t.Fatalf("terraform apply (enable autoscaling): %v", err)
+	}
+
+	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_scale_policy_min"), "%s mismatch", "scale_policy.min (after autoscaling enable)")
+	require.Equalf(t, "3", tt.Output(t, poolOpts, "out_scale_policy_max"), "%s mismatch", "scale_policy.max (after autoscaling enable)")
+	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_scale_policy_current"), "%s mismatch", "scale_policy.current_node_count (after autoscaling enable)")
 
 	// CLEAR TAINTS
 	poolData.Taints = nil
