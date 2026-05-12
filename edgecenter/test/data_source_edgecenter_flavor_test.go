@@ -31,6 +31,35 @@ func testAccCheckListNotEmpty(resourceName, attr string) resource.TestCheckFunc 
 	}
 }
 
+// testAccCheckAtLeastOneFlavorHasPrice: without include_prices=true the API
+// does not return currency_code at all, so a non-empty currency on any flavor
+// proves the parameter worked. Catalog ordering changes, can't bind to flavors.0.X.
+func testAccCheckAtLeastOneFlavorHasPrice(resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", resourceName)
+		}
+
+		countStr := rs.Primary.Attributes[edgecenter.FlavorsField+".#"]
+		count, err := strconv.Atoi(countStr)
+		if err != nil {
+			return fmt.Errorf("failed to parse %s count %q: %w", edgecenter.FlavorsField, countStr, err)
+		}
+
+		for i := 0; i < count; i++ {
+			currency := rs.Primary.Attributes[fmt.Sprintf("%s.%d.%s", edgecenter.FlavorsField, i, edgecenter.CurrencyCodeField)]
+			pricePerHour, _ := strconv.ParseFloat(rs.Primary.Attributes[fmt.Sprintf("%s.%d.%s", edgecenter.FlavorsField, i, edgecenter.PricePerHourField)], 64)
+			pricePerMonth, _ := strconv.ParseFloat(rs.Primary.Attributes[fmt.Sprintf("%s.%d.%s", edgecenter.FlavorsField, i, edgecenter.PricePerMonthField)], 64)
+
+			if currency != "" && pricePerHour > 0 && pricePerMonth > 0 {
+				return nil
+			}
+		}
+		return fmt.Errorf("expected at least one flavor with non-empty currency_code and positive price fields, got none in %d flavors", count)
+	}
+}
+
 // testAccCheckAllFlavorsType ensures all returned flavors have expected type
 func testAccCheckAllFlavorsType(resourceName, expectedType string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -156,17 +185,11 @@ func TestAccFlavorDataSource_OptionsParams(t *testing.T) {
 				),
 			},
 			{
-				// Include prices in response
 				Config: tpl("include_prices = true"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
 					testAccCheckListNotEmpty(resourceName, edgecenter.FlavorsField+".#"),
-					// Verify that price fields are present in the response structure.
-					// We check for empty strings rather than specific values since actual prices
-					// may change over time or may not be present, making them unreliable for testing.
-					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf("%s.0.%s", edgecenter.FlavorsField, edgecenter.CurrencyCodeField), ""),
-					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf("%s.0.%s", edgecenter.FlavorsField, edgecenter.PricePerHourField), "0"),
-					resource.TestCheckResourceAttr(resourceName, fmt.Sprintf("%s.0.%s", edgecenter.FlavorsField, edgecenter.PricePerMonthField), "0"),
+					testAccCheckAtLeastOneFlavorHasPrice(resourceName),
 				),
 			},
 		},
