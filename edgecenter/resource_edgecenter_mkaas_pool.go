@@ -228,7 +228,7 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 	clusterID := d.Get(MKaaSClusterIDField).(int)
 
-	minPtr, maxPtr, autoscale := expandScalePolicy(d)
+	minVal, maxVal, autoscale := expandScalePolicy(d)
 
 	createOpts := edgecloudV2.MKaaSPoolCreateRequest{
 		Name:               d.Get(NameField).(string),
@@ -238,14 +238,16 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 		Labels:             map[string]string{},
 		Taints:             []edgecloudV2.MKaaSTaint{},
 		AutoscalingEnabled: autoscale,
-		MinNodeCount:       minPtr,
-		MaxNodeCount:       maxPtr,
+	}
+	if autoscale {
+		createOpts.MinNodeCount = &minVal
+		createOpts.MaxNodeCount = &maxVal
 	}
 
 	if nc, ok := d.GetOk(MKaaSNodeCountField); ok {
 		createOpts.NodeCount = nc.(int)
 	} else if autoscale {
-		createOpts.NodeCount = *minPtr
+		createOpts.NodeCount = minVal
 	}
 	if v, ok := d.GetOk(MKaaSPoolSecurityGroupIDsField); ok {
 		sgs := v.([]interface{})
@@ -389,23 +391,24 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	minPtr, maxPtr, autoscaleNow := expandScalePolicy(d)
+	minVal, maxVal, autoscaleNow := expandScalePolicy(d)
 
 	if d.HasChange(MKaaSPoolScalePolicyField) {
 		req := edgecloudV2.MKaaSPoolUpdateAutoscalingRequest{
 			EnableAutoscaling: &autoscaleNow,
 		}
-		if autoscaleNow {
-			req.MinNodeCount = minPtr
-			req.MaxNodeCount = maxPtr
-		}
-
-		tflog.Info(ctx, "Updating MKaaS pool autoscaling", map[string]interface{}{
+		fields := map[string]interface{}{
 			"pool_id": poolID,
 			"enabled": autoscaleNow,
-			"min":     minPtr,
-			"max":     maxPtr,
-		})
+		}
+		if autoscaleNow {
+			req.MinNodeCount = &minVal
+			req.MaxNodeCount = &maxVal
+			fields["min"] = minVal
+			fields["max"] = maxVal
+		}
+
+		tflog.Info(ctx, "Updating MKaaS pool autoscaling", fields)
 
 		taskResp, _, err := clientV2.MkaaS.PoolUpdateAutoscaling(ctx, clusterID, poolID, req)
 		if err != nil {

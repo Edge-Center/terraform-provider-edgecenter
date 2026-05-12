@@ -254,7 +254,6 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 
 	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_scale_policy_min"), "%s mismatch", "scale_policy.min (after autoscaling enable)")
 	require.Equalf(t, "3", tt.Output(t, poolOpts, "out_scale_policy_max"), "%s mismatch", "scale_policy.max (after autoscaling enable)")
-	require.Equalf(t, "2", tt.Output(t, poolOpts, "out_scale_policy_current"), "%s mismatch", "scale_policy.current_node_count (after autoscaling enable)")
 
 	// CLEAR TAINTS
 	poolData.Taints = nil

@@ -100,14 +100,12 @@ func customMKaaSPoolDiff(_ context.Context, d *schema.ResourceDiff, _ interface{
 		}
 	}
 
-	minPtr, maxPtr, autoscale := expandScalePolicy(d)
-	if autoscale {
-		if *maxPtr < *minPtr {
-			return fmt.Errorf(
-				"scale_policy.auto_scale.max (%d) must be >= scale_policy.auto_scale.min (%d)",
-				*maxPtr, *minPtr,
-			)
-		}
+	minVal, maxVal, autoscale := expandScalePolicy(d)
+	if autoscale && maxVal < minVal {
+		return fmt.Errorf(
+			"scale_policy.auto_scale.max (%d) must be >= scale_policy.auto_scale.min (%d)",
+			maxVal, minVal,
+		)
 	}
 
 	return nil
@@ -119,33 +117,34 @@ type scalePolicyReader interface {
 }
 
 // expandScalePolicy returns (min, max, enabled). enabled is true if a
-// scale_policy { auto_scale { ... } } block is present in config.
-func expandScalePolicy(d scalePolicyReader) (*int, *int, bool) {
+// scale_policy { auto_scale { ... } } block is present in config. When
+// enabled is false, min and max are zero and should be ignored.
+func expandScalePolicy(d scalePolicyReader) (int, int, bool) {
 	raw, ok := d.GetOk(MKaaSPoolScalePolicyField)
 	if !ok {
-		return nil, nil, false
+		return 0, 0, false
 	}
 	spList, ok := raw.([]interface{})
 	if !ok || len(spList) == 0 || spList[0] == nil {
-		return nil, nil, false
+		return 0, 0, false
 	}
 	spMap, ok := spList[0].(map[string]interface{})
 	if !ok {
-		return nil, nil, false
+		return 0, 0, false
 	}
 	asList, ok := spMap[MKaaSPoolAutoScaleField].([]interface{})
 	if !ok || len(asList) == 0 || asList[0] == nil {
-		return nil, nil, false
+		return 0, 0, false
 	}
 	asMap, ok := asList[0].(map[string]interface{})
 	if !ok {
-		return nil, nil, false
+		return 0, 0, false
 	}
 
 	minVal := asMap[MKaaSPoolMinField].(int)
 	maxVal := asMap[MKaaSPoolMaxField].(int)
 
-	return &minVal, &maxVal, true
+	return minVal, maxVal, true
 }
 
 // setPoolNodeCount writes node_count into state, leaving it empty when the autoscaler owns the value.
