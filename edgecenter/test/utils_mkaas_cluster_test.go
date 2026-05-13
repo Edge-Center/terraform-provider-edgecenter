@@ -629,6 +629,7 @@ output "out_flavor"             { value = edgecenter_mkaas_pool.np.flavor }
 output "out_node_count"         { value = tostring(edgecenter_mkaas_pool.np.node_count) }
 output "out_scale_policy_min"     { value = try(tostring(edgecenter_mkaas_pool.np.scale_policy[0].auto_scale[0].min), "") }
 output "out_scale_policy_max"     { value = try(tostring(edgecenter_mkaas_pool.np.scale_policy[0].auto_scale[0].max), "") }
+output "out_scale_policy_current" { value = tostring(edgecenter_mkaas_pool.np.current_node_count) }
 output "out_volume_size"        { value = tostring(edgecenter_mkaas_pool.np.volume_size) }
 output "out_volume_type"        { value = edgecenter_mkaas_pool.np.volume_type }
 output "out_label_env"          { value = edgecenter_mkaas_pool.np.labels["env"] }

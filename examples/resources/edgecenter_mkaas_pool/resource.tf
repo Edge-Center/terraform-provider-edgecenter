@@ -29,7 +29,6 @@ resource "edgecenter_mkaas_pool" "apps" {
   # Наличие блока `auto_scale` включает автоскейлер; удалите блок, чтобы отключить.
   # scale_policy {
   #   auto_scale {
-  #     current_node_count — read-only
   #     min = 1
   #     max = 5
   #   }

@@ -106,6 +106,11 @@ func resourceMKaaSPool() *schema.Resource {
 				ExactlyOneOf: []string{MKaaSNodeCountField, MKaaSPoolScalePolicyField},
 				Description:  "The number of nodes in the pool.",
 			},
+			MKaaSPoolCurrentNodeCountField: {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The current number of nodes in the pool, reflecting the live value from the API (managed by the autoscaler when enabled).",
+			},
 			MKaaSVolumeSizeField: {
 				Type:     schema.TypeInt,
 				Required: true,
@@ -202,11 +207,6 @@ func resourceMKaaSPool() *schema.Resource {
 										Required:     true,
 										Description:  "Maximum number of nodes the autoscaler may scale the pool up to.",
 										ValidateFunc: validation.IntAtLeast(1),
-									},
-									MKaaSPoolCurrentNodeCountField: {
-										Type:        schema.TypeInt,
-										Computed:    true,
-										Description: "The current number of nodes in the pool, as managed by the autoscaler.",
 									},
 								},
 							},
@@ -316,7 +316,10 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	setPoolNodeCount(d, pool)
+	_, _, configAutoscale := expandScalePolicy(d)
+	if !pool.AutoscalingEnabled && !configAutoscale {
+		_ = d.Set(MKaaSNodeCountField, pool.NodeCount)
+	}
 
 	_ = d.Set(NameField, pool.Name)
 	_ = d.Set(MKaaSClusterIDField, clusterID)
@@ -329,6 +332,7 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set(MKaaSPoolLabelsField, pool.Labels)
 	_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
 	_ = d.Set(MKaaSPoolScalePolicyField, flattenScalePolicy(pool))
+	_ = d.Set(MKaaSPoolCurrentNodeCountField, pool.NodeCount)
 
 	return diags
 }

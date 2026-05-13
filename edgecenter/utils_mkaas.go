@@ -108,6 +108,12 @@ func customMKaaSPoolDiff(_ context.Context, d *schema.ResourceDiff, _ interface{
 		)
 	}
 
+	if d.HasChange(MKaaSNodeCountField) || d.HasChange(MKaaSPoolScalePolicyField) {
+		if err := d.SetNewComputed(MKaaSPoolCurrentNodeCountField); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -147,15 +153,6 @@ func expandScalePolicy(d scalePolicyReader) (int, int, bool) {
 	return minVal, maxVal, true
 }
 
-// setPoolNodeCount writes node_count into state, leaving it empty when the autoscaler owns the value.
-func setPoolNodeCount(d *schema.ResourceData, pool *edgecloudV2.MKaaSPool) {
-	if pool.AutoscalingEnabled {
-		_ = d.Set(MKaaSNodeCountField, nil)
-		return
-	}
-	_ = d.Set(MKaaSNodeCountField, pool.NodeCount)
-}
-
 // flattenScalePolicy emits the nested scale_policy shape only when pool.AutoscalingEnabled is true.
 func flattenScalePolicy(pool *edgecloudV2.MKaaSPool) []interface{} {
 	if pool == nil || !pool.AutoscalingEnabled {
@@ -165,9 +162,8 @@ func flattenScalePolicy(pool *edgecloudV2.MKaaSPool) []interface{} {
 		map[string]interface{}{
 			MKaaSPoolAutoScaleField: []interface{}{
 				map[string]interface{}{
-					MKaaSPoolMinField:              pool.MinNodeCount,
-					MKaaSPoolMaxField:              pool.MaxNodeCount,
-					MKaaSPoolCurrentNodeCountField: pool.NodeCount,
+					MKaaSPoolMinField: pool.MinNodeCount,
+					MKaaSPoolMaxField: pool.MaxNodeCount,
 				},
 			},
 		},

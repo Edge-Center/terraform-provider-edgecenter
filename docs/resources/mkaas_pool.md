@@ -44,7 +44,6 @@ resource "edgecenter_mkaas_pool" "apps" {
   # Наличие блока `auto_scale` включает автоскейлер; удалите блок, чтобы отключить.
   # scale_policy {
   #   auto_scale {
-  #     current_node_count — read-only
   #     min = 1
   #     max = 5
   #   }
@@ -81,6 +80,7 @@ resource "edgecenter_mkaas_pool" "apps" {
 
 ### Read-Only
 
+- `current_node_count` (Number) The current number of nodes in the pool, reflecting the live value from the API (managed by the autoscaler when enabled).
 - `id` (String) The ID of this resource.
 - `state` (String) The state of the pool.
 - `status` (String) The status of the pool.
@@ -99,10 +99,6 @@ Required:
 
 - `max` (Number) Maximum number of nodes the autoscaler may scale the pool up to.
 - `min` (Number) Minimum number of nodes the autoscaler may scale the pool down to.
-
-Read-Only:
-
-- `current_node_count` (Number) The current number of nodes in the pool, as managed by the autoscaler.
 
 
 

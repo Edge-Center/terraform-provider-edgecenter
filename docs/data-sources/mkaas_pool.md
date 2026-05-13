@@ -42,6 +42,7 @@ data "edgecenter_mkaas_pool" "apps" {
 
 ### Read-Only
 
+- `current_node_count` (Number) The current number of nodes in the pool, reflecting the live value from the API (managed by the autoscaler when enabled).
 - `flavor` (String) The identifier of the flavor used for nodes in this pool, e.g. g1-standard-2-4.
 - `id` (String) The ID of this resource.
 - `labels` (Map of String) Arbitrary labels assigned to the pool.
@@ -67,7 +68,6 @@ Read-Only:
 
 Read-Only:
 
-- `current_node_count` (Number)
 - `max` (Number)
 - `min` (Number)
 
