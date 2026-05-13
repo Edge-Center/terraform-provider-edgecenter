@@ -673,9 +673,9 @@ func fillRRSet(d *schema.ResourceData, rType string, rrSet *dnssdk.RRSet) error 
 				rr.AddMeta(dnssdk.NewResourceMetaAsn(asn...))
 			}
 
-			valDefault := meta[DNSZoneRecordSchemaMetaDefault].(bool)
-			if valDefault {
-				rr.AddMeta(validWrap(dnssdk.NewResourceMetaDefault()))
+			if hasExplicitResourceRecordMetaField(d, content, DNSZoneRecordSchemaMetaDefault) {
+				valDefault := meta[DNSZoneRecordSchemaMetaDefault].(bool)
+				rr.AddMeta(validWrap(dnssdk.NewResourceMetaDefault(valDefault)))
 			}
 		}
 
