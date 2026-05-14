@@ -137,12 +137,12 @@ func dataSourceMKaaSPool() *schema.Resource {
 							Description: "Auto-scaling configuration of the pool.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									MKaaSPoolMinField: {
+									MKaaSPoolMinNodeCountField: {
 										Type:        schema.TypeInt,
 										Computed:    true,
 										Description: "Minimum number of nodes the autoscaler may scale the pool down to.",
 									},
-									MKaaSPoolMaxField: {
+									MKaaSPoolMaxNodeCountField: {
 										Type:        schema.TypeInt,
 										Computed:    true,
 										Description: "Maximum number of nodes the autoscaler may scale the pool up to.",

@@ -22,8 +22,8 @@ import (
 )
 
 type poolAutoScaleData struct { //nolint:unused
-	Min int
-	Max int
+	MinNodeCount int
+	MaxNodeCount int
 }
 
 type poolTfData struct { //nolint:unused
@@ -596,8 +596,8 @@ resource "edgecenter_mkaas_pool" "np" {
   {{- if .ScalePolicy }}
   scale_policy {
     auto_scale {
-      min = {{ .ScalePolicy.Min }}
-      max = {{ .ScalePolicy.Max }}
+      min_node_count = {{ .ScalePolicy.MinNodeCount }}
+      max_node_count = {{ .ScalePolicy.MaxNodeCount }}
     }
   }
   {{- else }}
@@ -627,8 +627,8 @@ output "out_region_id"          { value = tostring(edgecenter_mkaas_pool.np.regi
 output "out_cluster_id"         { value = tostring(edgecenter_mkaas_pool.np.cluster_id) }
 output "out_flavor"             { value = edgecenter_mkaas_pool.np.flavor }
 output "out_node_count"         { value = tostring(edgecenter_mkaas_pool.np.node_count) }
-output "out_scale_policy_min"     { value = try(tostring(edgecenter_mkaas_pool.np.scale_policy[0].auto_scale[0].min), "") }
-output "out_scale_policy_max"     { value = try(tostring(edgecenter_mkaas_pool.np.scale_policy[0].auto_scale[0].max), "") }
+output "out_scale_policy_min"     { value = try(tostring(edgecenter_mkaas_pool.np.scale_policy[0].auto_scale[0].min_node_count), "") }
+output "out_scale_policy_max"     { value = try(tostring(edgecenter_mkaas_pool.np.scale_policy[0].auto_scale[0].max_node_count), "") }
 output "out_scale_policy_current" { value = tostring(edgecenter_mkaas_pool.np.current_node_count) }
 output "out_volume_size"        { value = tostring(edgecenter_mkaas_pool.np.volume_size) }
 output "out_volume_type"        { value = edgecenter_mkaas_pool.np.volume_type }

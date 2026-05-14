@@ -240,7 +240,7 @@ func TestMKaaSPool_ApplyUpdateImportDestroy(t *testing.T) {
 	require.Containsf(t, tt.Output(t, poolOpts, "out_taints"), "NoExecute", "%s mismatch", "second taint effect (after update)")
 
 	// ENABLE AUTOSCALING
-	poolData.ScalePolicy = &poolAutoScaleData{Min: 2, Max: 3}
+	poolData.ScalePolicy = &poolAutoScaleData{MinNodeCount: 2, MaxNodeCount: 3}
 	err = renderTemplateToWith(poolMain, poolMainTmpl, poolData)
 	if err != nil {
 		t.Fatalf("write pool main.tf (enable autoscaling): %v", err)

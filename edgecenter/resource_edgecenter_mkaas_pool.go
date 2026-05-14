@@ -196,13 +196,13 @@ func resourceMKaaSPool() *schema.Resource {
 							Description: "Auto-scaling configuration for the pool.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									MKaaSPoolMinField: {
+									MKaaSPoolMinNodeCountField: {
 										Type:         schema.TypeInt,
 										Required:     true,
 										Description:  "Minimum number of nodes the autoscaler may scale the pool down to.",
 										ValidateFunc: validation.IntAtLeast(1),
 									},
-									MKaaSPoolMaxField: {
+									MKaaSPoolMaxNodeCountField: {
 										Type:         schema.TypeInt,
 										Required:     true,
 										Description:  "Maximum number of nodes the autoscaler may scale the pool up to.",
@@ -228,7 +228,7 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	}
 	clusterID := d.Get(MKaaSClusterIDField).(int)
 
-	minVal, maxVal, autoscale := expandScalePolicy(d)
+	minNodeCount, maxNodeCount, autoscale := expandScalePolicy(d)
 
 	createOpts := edgecloudV2.MKaaSPoolCreateRequest{
 		Name:               d.Get(NameField).(string),
@@ -240,14 +240,14 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 		AutoscalingEnabled: autoscale,
 	}
 	if autoscale {
-		createOpts.MinNodeCount = &minVal
-		createOpts.MaxNodeCount = &maxVal
+		createOpts.MinNodeCount = &minNodeCount
+		createOpts.MaxNodeCount = &maxNodeCount
 	}
 
 	if nc, ok := d.GetOk(MKaaSNodeCountField); ok {
 		createOpts.NodeCount = nc.(int)
 	} else if autoscale {
-		createOpts.NodeCount = minVal
+		createOpts.NodeCount = minNodeCount
 	}
 	if v, ok := d.GetOk(MKaaSPoolSecurityGroupIDsField); ok {
 		sgs := v.([]interface{})
@@ -395,7 +395,7 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	minVal, maxVal, autoscaleNow := expandScalePolicy(d)
+	minNodeCount, maxNodeCount, autoscaleNow := expandScalePolicy(d)
 
 	if d.HasChange(MKaaSPoolScalePolicyField) {
 		req := edgecloudV2.MKaaSPoolUpdateAutoscalingRequest{
@@ -406,10 +406,10 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 			"enabled": autoscaleNow,
 		}
 		if autoscaleNow {
-			req.MinNodeCount = &minVal
-			req.MaxNodeCount = &maxVal
-			fields["min"] = minVal
-			fields["max"] = maxVal
+			req.MinNodeCount = &minNodeCount
+			req.MaxNodeCount = &maxNodeCount
+			fields["min_node_count"] = minNodeCount
+			fields["max_node_count"] = maxNodeCount
 		}
 
 		tflog.Info(ctx, "Updating MKaaS pool autoscaling", fields)

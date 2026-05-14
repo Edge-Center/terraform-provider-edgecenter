@@ -68,8 +68,8 @@ Read-Only:
 
 Read-Only:
 
-- `max` (Number)
-- `min` (Number)
+- `max_node_count` (Number)
+- `min_node_count` (Number)
 
 
 

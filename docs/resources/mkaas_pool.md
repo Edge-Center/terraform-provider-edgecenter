@@ -44,8 +44,8 @@ resource "edgecenter_mkaas_pool" "apps" {
   # The presence of the `auto_scale` block enables the autoscaler; remove the block to disable it.
   # scale_policy {
   #   auto_scale {
-  #     min = 1
-  #     max = 5
+  #     min_node_count = 1
+  #     max_node_count = 5
   #   }
   # }
 
@@ -97,8 +97,8 @@ Required:
 
 Required:
 
-- `max` (Number) Maximum number of nodes the autoscaler may scale the pool up to.
-- `min` (Number) Minimum number of nodes the autoscaler may scale the pool down to.
+- `max_node_count` (Number) Maximum number of nodes the autoscaler may scale the pool up to.
+- `min_node_count` (Number) Minimum number of nodes the autoscaler may scale the pool down to.
 
 
 

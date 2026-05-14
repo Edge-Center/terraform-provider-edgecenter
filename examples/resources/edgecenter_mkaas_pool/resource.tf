@@ -29,8 +29,8 @@ resource "edgecenter_mkaas_pool" "apps" {
   # The presence of the `auto_scale` block enables the autoscaler; remove the block to disable it.
   # scale_policy {
   #   auto_scale {
-  #     min = 1
-  #     max = 5
+  #     min_node_count = 1
+  #     max_node_count = 5
   #   }
   # }
 

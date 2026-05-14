@@ -100,11 +100,11 @@ func customMKaaSPoolDiff(_ context.Context, d *schema.ResourceDiff, _ interface{
 		}
 	}
 
-	minVal, maxVal, autoscale := expandScalePolicy(d)
-	if autoscale && maxVal < minVal {
+	minNodeCount, maxNodeCount, autoscale := expandScalePolicy(d)
+	if autoscale && maxNodeCount < minNodeCount {
 		return fmt.Errorf(
-			"scale_policy.auto_scale.max (%d) must be >= scale_policy.auto_scale.min (%d)",
-			maxVal, minVal,
+			"scale_policy.auto_scale.max_node_count (%d) must be >= scale_policy.auto_scale.min_node_count (%d)",
+			maxNodeCount, minNodeCount,
 		)
 	}
 
@@ -122,9 +122,10 @@ type scalePolicyReader interface {
 	GetOk(key string) (interface{}, bool)
 }
 
-// expandScalePolicy returns (min, max, enabled). enabled is true if a
-// scale_policy { auto_scale { ... } } block is present in config. When
-// enabled is false, min and max are zero and should be ignored.
+// expandScalePolicy returns (minNodeCount, maxNodeCount, enabled). enabled is
+// true if a scale_policy { auto_scale { ... } } block is present in config.
+// When enabled is false, minNodeCount and maxNodeCount are zero and should be
+// ignored.
 func expandScalePolicy(d scalePolicyReader) (int, int, bool) {
 	raw, ok := d.GetOk(MKaaSPoolScalePolicyField)
 	if !ok {
@@ -147,10 +148,10 @@ func expandScalePolicy(d scalePolicyReader) (int, int, bool) {
 		return 0, 0, false
 	}
 
-	minVal := asMap[MKaaSPoolMinField].(int)
-	maxVal := asMap[MKaaSPoolMaxField].(int)
+	minNodeCount := asMap[MKaaSPoolMinNodeCountField].(int)
+	maxNodeCount := asMap[MKaaSPoolMaxNodeCountField].(int)
 
-	return minVal, maxVal, true
+	return minNodeCount, maxNodeCount, true
 }
 
 // flattenScalePolicy emits the nested scale_policy shape only when pool.AutoscalingEnabled is true.
@@ -162,8 +163,8 @@ func flattenScalePolicy(pool *edgecloudV2.MKaaSPool) []interface{} {
 		map[string]interface{}{
 			MKaaSPoolAutoScaleField: []interface{}{
 				map[string]interface{}{
-					MKaaSPoolMinField: pool.MinNodeCount,
-					MKaaSPoolMaxField: pool.MaxNodeCount,
+					MKaaSPoolMinNodeCountField: pool.MinNodeCount,
+					MKaaSPoolMaxNodeCountField: pool.MaxNodeCount,
 				},
 			},
 		},

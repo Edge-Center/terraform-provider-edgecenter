@@ -163,8 +163,8 @@ const (
 
 	MKaaSPoolScalePolicyField      = "scale_policy"
 	MKaaSPoolAutoScaleField        = "auto_scale"
-	MKaaSPoolMinField              = "min"
-	MKaaSPoolMaxField              = "max"
+	MKaaSPoolMinNodeCountField     = "min_node_count"
+	MKaaSPoolMaxNodeCountField     = "max_node_count"
 	MKaaSPoolCurrentNodeCountField = "current_node_count"
 
 	MKaaSPoolLabelsField = "labels"
