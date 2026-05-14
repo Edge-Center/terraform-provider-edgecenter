@@ -5,13 +5,13 @@ provider "edgecenter" {
 resource "edgecenter_mkaas_pool" "apps" {
   cluster_id = 53
 
-  # Основные параметры пула
+  # Core pool parameters
   name        = "apps-pool"
   flavor      = "mkaas-worker-g3-cpu-2-2"
   volume_size = 20
   volume_type = "standard"
 
-  # Необязательные поля
+  # Optional fields
   # security_group_ids = ["b4a1b1d3-xxxx-xxxx-xxxx-1b2c3d4e5f6a"]
   # labels = {
   #   key = "val"
@@ -23,10 +23,10 @@ resource "edgecenter_mkaas_pool" "apps" {
     effect = "NoSchedule"
   }
 
-  # Ручное управление количеством узлов
+  # Manual node count management
   node_count = 3
 
-  # Наличие блока `auto_scale` включает автоскейлер; удалите блок, чтобы отключить.
+  # The presence of the `auto_scale` block enables the autoscaler; remove the block to disable it.
   # scale_policy {
   #   auto_scale {
   #     min = 1
