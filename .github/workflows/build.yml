@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [master, main, release-cloud, instanceV2]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 env:
   EC_USERNAME: ${{ secrets.EC_USERNAME }}
   EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
@@ -18,8 +22,26 @@ env:
   TF_ACC: ${{ secrets.TF_ACC }}
 
 jobs:
-  build:
+  detect:
     runs-on: ubuntu-latest
+    outputs:
+      shared: ${{ steps.f.outputs.shared }}
+      cloud: ${{ steps.f.outputs.cloud }}
+      mkaas: ${{ steps.f.outputs.mkaas }}
+      cdn: ${{ steps.f.outputs.cdn }}
+      dns: ${{ steps.f.outputs.dns }}
+      storage: ${{ steps.f.outputs.storage }}
+      reseller: ${{ steps.f.outputs.reseller }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: f
+        with:
+          filters: .github/paths-filters.yml
+
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
     steps:
@@ -30,14 +52,18 @@ jobs:
         with:
           go-version: 1.26.0
 
-      - name: Linters
-        run: make linters
+      - name: go vet
+        run: go vet ./...
 
       - name: Build
         run: go build -v ./...
 
+      - name: Linters
+        run: make linters
+
   reseller-tests:
-    needs: build
+    needs: [smoke, detect]
+    if: needs.detect.outputs.reseller == 'true' || needs.detect.outputs.shared == 'true'
     runs-on: ubuntu-latest
     env:
       EC_CLIENT_ID: ${{ secrets.EC_RESELLER_CLIENT_ID }}
@@ -47,8 +73,7 @@ jobs:
         kind:
           - tag: cloud_reseller_data_source
           - tag: cloud_reseller_resource
-      fail-fast: true
-      max-parallel: 1
+      fail-fast: false
     name: tests-${{ matrix.kind.tag }}
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +88,8 @@ jobs:
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=10m
 
   tests:
-    needs: reseller-tests
+    needs: [smoke, detect]
+    if: needs.detect.outputs.cloud == 'true' || needs.detect.outputs.shared == 'true'
     runs-on: ubuntu-latest
     env:
       EC_CLIENT_ID: ${{ secrets.EC_CLIENT_ID }}
@@ -73,8 +99,7 @@ jobs:
         kind:
           - tag: cloud_data_source
           - tag: cloud_resource
-      fail-fast: true
-      max-parallel: 1
+      fail-fast: false
     name: tests-${{ matrix.kind.tag }}
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +117,8 @@ jobs:
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=20m
 
   mkaas-tests:
-    needs: build
+    needs: [smoke, detect]
+    if: needs.detect.outputs.mkaas == 'true' || needs.detect.outputs.shared == 'true'
     runs-on: ubuntu-latest
     env:
       EC_CLIENT_ID: ${{ secrets.EC_CLIENT_ID }}
@@ -106,8 +132,7 @@ jobs:
             timeout: 30m
           - tag: cloud_resource_mkaas
             timeout: 30m
-      fail-fast: true
-      max-parallel: 1
+      fail-fast: false
     name: tests-${{ matrix.kind.tag }}
     steps:
       - uses: actions/checkout@v4
@@ -158,3 +183,45 @@ jobs:
         continue-on-error: true
       - name: Run MKAAS tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=${{ matrix.kind.timeout }}
+
+  metrics:
+    needs: [smoke, reseller-tests, tests, mkaas-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: none
+    steps:
+      - name: Wall-clock summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOBS_API: repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs
+        run: |
+          set -euo pipefail
+
+          jobs_json=$(gh api "$JOBS_API")
+
+          {
+            echo "## CI wall-clock"
+            echo ""
+            echo "| Job | Status | Duration |"
+            echo "|-----|--------|----------|"
+            jq -r '
+              .jobs
+              | map(select(.name != "metrics"))
+              | sort_by(.started_at)[]
+              | "| \(.name) | \(.conclusion // "running") | \(
+                  (((.completed_at // (now | todate)) | fromdate)
+                   - (.started_at | fromdate))
+                  / 60 | floor
+                )m |"
+            ' <<<"$jobs_json"
+
+            echo ""
+            jq -r '
+              (.jobs | map(select(.name != "metrics"))) as $j
+              | ($j | map(.started_at | fromdate) | min) as $start
+              | ($j | map((.completed_at // (now | todate)) | fromdate) | max) as $end
+              | "**Total wall-clock:** \((($end - $start) / 60) | floor)m"
+            ' <<<"$jobs_json"
+          } >> "$GITHUB_STEP_SUMMARY"
