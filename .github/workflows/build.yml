@@ -74,6 +74,7 @@ jobs:
           - tag: cloud_reseller_data_source
           - tag: cloud_reseller_resource
       fail-fast: false
+      max-parallel: 1
     name: tests-${{ matrix.kind.tag }}
     steps:
       - uses: actions/checkout@v4
@@ -133,6 +134,7 @@ jobs:
           - tag: cloud_resource_mkaas
             timeout: 30m
       fail-fast: false
+      max-parallel: 1
     name: tests-${{ matrix.kind.tag }}
     steps:
       - uses: actions/checkout@v4
