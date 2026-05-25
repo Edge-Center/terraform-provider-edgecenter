@@ -193,37 +193,82 @@ jobs:
     permissions:
       actions: read
       contents: none
+    env:
+      TARGET_SECONDS: 1800
     steps:
       - name: Wall-clock summary
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          JOBS_API: repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs
         run: |
           set -euo pipefail
 
-          jobs_json=$(gh api "$JOBS_API")
+          run_started_at=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.run_started_at')
+          jobs_json=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs")
+
+          report=$(jq -r --arg run_started "$run_started_at" '
+            def fmt(s):
+              (s | floor) as $i
+              | if $i < 60 then "\($i)s"
+                else "\(($i / 60) | floor)m \($i % 60)s"
+                end;
+
+            ($run_started | fromdate) as $start
+            | .jobs
+            | map(select(.name != "metrics"))
+            | map(. + {
+                sec: (((.completed_at // (now | todate)) | fromdate) - (.started_at | fromdate)),
+                current: ((.started_at | fromdate) >= $start)
+              })
+            | sort_by(.started_at)
+            | (map(select(.current))
+                | map((.completed_at // (now | todate)) | fromdate)
+                | (max // null)) as $end
+            | (if $end == null then 0 else ($end - $start | floor) end) as $total
+            | {
+                rows_full: map("| \(.name) | \(.conclusion // "running") | \(fmt(.sec)) | \(if .current then "this attempt" else "cached" end) |") | join("\n"),
+                rows_plain: map("| \(.name) | \(.conclusion // "running") | \(fmt(.sec)) |") | join("\n"),
+                total_sec: $total,
+                total_fmt: fmt($total),
+                cached: (map(select(.current | not)) | length)
+              }
+          ' <<<"$jobs_json")
+
+          total_sec=$(jq -r '.total_sec' <<<"$report")
+          total_fmt=$(jq -r '.total_fmt' <<<"$report")
+          cached=$(jq -r '.cached' <<<"$report")
+          target_min=$((TARGET_SECONDS / 60))
+
+          if [ "$total_sec" -le "$TARGET_SECONDS" ]; then
+            status="within target"
+            indicator="ok"
+          else
+            status="exceeds target"
+            indicator="over"
+          fi
+
+          if [ "$cached" -gt 0 ]; then
+            rows=$(jq -r '.rows_full' <<<"$report")
+            header="| Job | Status | Duration | Source |"
+            sep="|-----|--------|----------|--------|"
+          else
+            rows=$(jq -r '.rows_plain' <<<"$report")
+            header="| Job | Status | Duration |"
+            sep="|-----|--------|----------|"
+          fi
 
           {
-            echo "## CI wall-clock"
+            echo "## CI wall-clock (attempt $GITHUB_RUN_ATTEMPT)"
             echo ""
-            echo "| Job | Status | Duration |"
-            echo "|-----|--------|----------|"
-            jq -r '
-              .jobs
-              | map(select(.name != "metrics"))
-              | sort_by(.started_at)[]
-              | "| \(.name) | \(.conclusion // "running") | \(
-                  (((.completed_at // (now | todate)) | fromdate)
-                   - (.started_at | fromdate))
-                  / 60 | floor
-                )m |"
-            ' <<<"$jobs_json"
-
+            echo "$header"
+            echo "$sep"
+            echo "$rows"
             echo ""
-            jq -r '
-              (.jobs | map(select(.name != "metrics"))) as $j
-              | ($j | map(.started_at | fromdate) | min) as $start
-              | ($j | map((.completed_at // (now | todate)) | fromdate) | max) as $end
-              | "**Total wall-clock:** \((($end - $start) / 60) | floor)m"
-            ' <<<"$jobs_json"
+            echo "**Total (this attempt):** $total_fmt"
+            echo "**Target:** ${target_min}m. **Result:** $status"
+            if [ "$cached" -gt 0 ]; then
+              echo ""
+              echo "_${cached} job(s) cached from prior attempts; not included in total._"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::notice title=ci-metrics::attempt=$GITHUB_RUN_ATTEMPT total_sec=$total_sec target_sec=$TARGET_SECONDS status=$indicator cached_jobs=$cached"
