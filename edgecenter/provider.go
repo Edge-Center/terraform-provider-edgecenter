@@ -21,6 +21,7 @@ import (
 	rmon "github.com/Edge-Center/edgecenteredgemon-go"
 	ermonProvider "github.com/Edge-Center/edgecenteredgemon-go/edgecenter/provider"
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/meta"
 )
 
 const (
@@ -46,7 +47,7 @@ const (
 	TypeField                        = "type"
 	TypeNameField                    = "type_name"
 	OrderField                       = "order"
-	KeyField                         = "key"
+	KeyField                         = meta.KeyField
 	NetworkField                     = "network"
 	NetworkIDField                   = "network_id"
 	NetworkNameField                 = "network_name"
@@ -64,7 +65,7 @@ const (
 	AllSecurityGroupIDsField         = "all_security_group_ids"
 	OverwriteExistingField           = "overwrite_existing"
 	MetadataField                    = "metadata"
-	ValueField                       = "value"
+	ValueField                       = meta.ValueField
 	FlavorField                      = "flavor"
 	FlavorsField                     = "flavors"
 	FlavorNameField                  = "flavor_name"
@@ -103,7 +104,7 @@ const (
 	SubnetsField                     = "subnets"
 	TaskIDField                      = "task_id"
 	SegmentationIDField              = "segmentation_id"
-	ReadOnlyField                    = "read_only"
+	ReadOnlyField                    = meta.ReadOnlyField
 	AvailableIPsField                = "available_ips"
 	TotalIPsField                    = "total_ips"
 	EnableDHCPField                  = "enable_dhcp"

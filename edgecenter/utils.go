@@ -16,6 +16,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/region/v1/regions"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/tfutil"
 )
 
 const (
@@ -26,54 +27,16 @@ const (
 	RegionPoint  = "regions"
 )
 
-// MapStructureDecoder decodes the given map into the provided structure using the specified decoder configuration.
 func MapStructureDecoder(strct interface{}, v *map[string]interface{}, config *mapstructure.DecoderConfig) error {
-	config.Result = strct
-	decoder, err := mapstructure.NewDecoder(config)
-	if err != nil {
-		return fmt.Errorf("failed to create decoder: %w", err)
-	}
-
-	return decoder.Decode(*v)
+	return tfutil.MapStructureDecoder(strct, v, config)
 }
 
-// ImportStringParser parses a string containing project ID, region ID, and another field,
-// and returns them as separate values along with any error encountered.
-func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string, err error) { //nolint:nonamedreturns
-	log.Printf("[DEBUG] Input id string: %s", infoStr)
-	infoStrings := strings.Split(infoStr, ":")
-	if len(infoStrings) != 3 {
-		err = fmt.Errorf("failed import: wrong input id: %s", infoStr)
-		return
-	}
-
-	id1, id2, id3 := infoStrings[0], infoStrings[1], infoStrings[2]
-
-	projectID, err = strconv.Atoi(id1)
-	if err != nil {
-		return
-	}
-	regionID, err = strconv.Atoi(id2)
-	if err != nil {
-		return
-	}
-
-	return
+func ImportStringParser(infoStr string) (int, int, string, error) {
+	return tfutil.ImportStringParser(infoStr)
 }
 
-// ImportStringParserSimple parses a string containing two ID fields,
-// and returns them as separate values along with any error encountered.
-func ImportStringParserSimple(infoStr string) (id1 string, id2 string, err error) { //nolint:nonamedreturns
-	log.Printf("[DEBUG] Input id string: %s", infoStr)
-	infoStrings := strings.Split(infoStr, ":")
-	if len(infoStrings) != 2 {
-		err = fmt.Errorf("failed import: wrong input id: %s", infoStr)
-		return
-	}
-
-	id1, id2 = infoStrings[0], infoStrings[1]
-
-	return
+func ImportStringParserSimple(infoStr string) (string, string, error) {
+	return tfutil.ImportStringParserSimple(infoStr)
 }
 
 // findRegionByNameLegacy to support backwards compatibility.

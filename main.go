@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 	opts := &plugin.ServeOpts{
 		Debug:        debug,
 		ProviderAddr: address,
-		ProviderFunc: edgecenter.Provider,
+		ProviderFunc: provider.Provider,
 	}
 
 	plugin.Serve(opts)

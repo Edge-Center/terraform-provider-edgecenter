@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	testAccProvider = edgecenter.Provider()
+	testAccProvider = provider.Provider()
 	testAccProviders = map[string]func() (*schema.Provider, error){
 		"edgecenter": func() (*schema.Provider, error) {
 			return testAccProvider, nil
