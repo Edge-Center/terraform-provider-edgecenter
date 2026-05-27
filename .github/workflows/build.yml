@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [master, main, release-cloud, instanceV2]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 env:
   EC_USERNAME: ${{ secrets.EC_USERNAME }}
   EC_PASSWORD: ${{ secrets.EC_PASSWORD }}
@@ -18,8 +22,26 @@ env:
   TF_ACC: ${{ secrets.TF_ACC }}
 
 jobs:
-  build:
+  detect:
     runs-on: ubuntu-latest
+    outputs:
+      shared: ${{ steps.f.outputs.shared }}
+      cloud: ${{ steps.f.outputs.cloud }}
+      mkaas: ${{ steps.f.outputs.mkaas }}
+      cdn: ${{ steps.f.outputs.cdn }}
+      dns: ${{ steps.f.outputs.dns }}
+      storage: ${{ steps.f.outputs.storage }}
+      reseller: ${{ steps.f.outputs.reseller }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: f
+        with:
+          filters: .github/paths-filters.yml
+
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
     steps:
@@ -30,14 +52,18 @@ jobs:
         with:
           go-version: 1.26.0
 
-      - name: Linters
-        run: make linters
+      - name: go vet
+        run: go vet ./...
 
       - name: Build
         run: go build -v ./...
 
+      - name: Linters
+        run: make linters
+
   reseller-tests:
-    needs: build
+    needs: [smoke, detect]
+    if: needs.detect.outputs.reseller == 'true' || needs.detect.outputs.shared == 'true'
     runs-on: ubuntu-latest
     env:
       EC_CLIENT_ID: ${{ secrets.EC_RESELLER_CLIENT_ID }}
@@ -47,7 +73,7 @@ jobs:
         kind:
           - tag: cloud_reseller_data_source
           - tag: cloud_reseller_resource
-      fail-fast: true
+      fail-fast: false
       max-parallel: 1
     name: tests-${{ matrix.kind.tag }}
     steps:
@@ -63,7 +89,8 @@ jobs:
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=10m
 
   tests:
-    needs: reseller-tests
+    needs: [smoke, detect]
+    if: needs.detect.outputs.cloud == 'true' || needs.detect.outputs.shared == 'true'
     runs-on: ubuntu-latest
     env:
       EC_CLIENT_ID: ${{ secrets.EC_CLIENT_ID }}
@@ -73,8 +100,7 @@ jobs:
         kind:
           - tag: cloud_data_source
           - tag: cloud_resource
-      fail-fast: true
-      max-parallel: 1
+      fail-fast: false
     name: tests-${{ matrix.kind.tag }}
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +118,8 @@ jobs:
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=20m
 
   mkaas-tests:
-    needs: build
+    needs: [smoke, detect]
+    if: needs.detect.outputs.mkaas == 'true' || needs.detect.outputs.shared == 'true'
     runs-on: ubuntu-latest
     env:
       EC_CLIENT_ID: ${{ secrets.EC_CLIENT_ID }}
@@ -106,7 +133,7 @@ jobs:
             timeout: 30m
           - tag: cloud_resource_mkaas
             timeout: 30m
-      fail-fast: true
+      fail-fast: false
       max-parallel: 1
     name: tests-${{ matrix.kind.tag }}
     steps:
@@ -158,3 +185,90 @@ jobs:
         continue-on-error: true
       - name: Run MKAAS tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=${{ matrix.kind.timeout }}
+
+  metrics:
+    needs: [smoke, reseller-tests, tests, mkaas-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: none
+    env:
+      TARGET_SECONDS: 1800
+    steps:
+      - name: Wall-clock summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          run_started_at=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.run_started_at')
+          jobs_json=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs")
+
+          report=$(jq -r --arg run_started "$run_started_at" '
+            def fmt(s):
+              (s | floor) as $i
+              | if $i < 60 then "\($i)s"
+                else "\(($i / 60) | floor)m \($i % 60)s"
+                end;
+
+            ($run_started | fromdate) as $start
+            | .jobs
+            | map(select(.name != "metrics"))
+            | map(. + {
+                sec: (((.completed_at // (now | todate)) | fromdate) - (.started_at | fromdate)),
+                current: ((.started_at | fromdate) >= $start)
+              })
+            | sort_by(.started_at)
+            | (map(select(.current))
+                | map((.completed_at // (now | todate)) | fromdate)
+                | (max // null)) as $end
+            | (if $end == null then 0 else ($end - $start | floor) end) as $total
+            | {
+                rows_full: map("| \(.name) | \(.conclusion // "running") | \(fmt(.sec)) | \(if .current then "this attempt" else "cached" end) |") | join("\n"),
+                rows_plain: map("| \(.name) | \(.conclusion // "running") | \(fmt(.sec)) |") | join("\n"),
+                total_sec: $total,
+                total_fmt: fmt($total),
+                cached: (map(select(.current | not)) | length)
+              }
+          ' <<<"$jobs_json")
+
+          total_sec=$(jq -r '.total_sec' <<<"$report")
+          total_fmt=$(jq -r '.total_fmt' <<<"$report")
+          cached=$(jq -r '.cached' <<<"$report")
+          target_min=$((TARGET_SECONDS / 60))
+
+          if [ "$total_sec" -le "$TARGET_SECONDS" ]; then
+            status="within target"
+            indicator="ok"
+          else
+            status="exceeds target"
+            indicator="over"
+          fi
+
+          if [ "$cached" -gt 0 ]; then
+            rows=$(jq -r '.rows_full' <<<"$report")
+            header="| Job | Status | Duration | Source |"
+            sep="|-----|--------|----------|--------|"
+          else
+            rows=$(jq -r '.rows_plain' <<<"$report")
+            header="| Job | Status | Duration |"
+            sep="|-----|--------|----------|"
+          fi
+
+          {
+            echo "## CI wall-clock (attempt $GITHUB_RUN_ATTEMPT)"
+            echo ""
+            echo "$header"
+            echo "$sep"
+            echo "$rows"
+            echo ""
+            echo "**Total (this attempt):** $total_fmt"
+            echo "**Target:** ${target_min}m. **Result:** $status"
+            if [ "$cached" -gt 0 ]; then
+              echo ""
+              echo "_${cached} job(s) cached from prior attempts; not included in total._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::notice title=ci-metrics::attempt=$GITHUB_RUN_ATTEMPT total_sec=$total_sec target_sec=$TARGET_SECONDS status=$indicator cached_jobs=$cached"
