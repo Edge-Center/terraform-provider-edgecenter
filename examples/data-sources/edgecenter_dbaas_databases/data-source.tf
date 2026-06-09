@@ -7,3 +7,7 @@ data "edgecenter_dbaas_databases" "example" {
   project_id = 1
   region_id  = 1
 }
+
+output "view" {
+  value = data.edgecenter_dbaas_databases.example
+}

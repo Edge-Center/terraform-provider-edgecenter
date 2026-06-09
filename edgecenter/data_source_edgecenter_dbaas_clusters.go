@@ -202,11 +202,13 @@ func dataSourceDBaaSClustersRead(ctx context.Context, d *schema.ResourceData, m 
 	_ = d.Set(FlavorField, cluster.Flavor)
 	_ = d.Set(StatusField, cluster.Status)
 
-	dbms := map[string]interface{}{
-		TypeField:             cluster.DBMS.Type,
-		DBaaSDbmsVersionField: cluster.DBMS.Version,
+	if cluster.DBMS != nil {
+		dbms := map[string]interface{}{
+			TypeField:             cluster.DBMS.Type,
+			DBaaSDbmsVersionField: cluster.DBMS.Version,
+		}
+		_ = d.Set("dbms", []interface{}{dbms})
 	}
-	_ = d.Set("dbms", []interface{}{dbms})
 
 	if cluster.Volume != nil {
 		vol := map[string]interface{}{

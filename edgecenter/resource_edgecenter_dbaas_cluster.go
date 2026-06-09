@@ -241,51 +241,13 @@ func resourceDBaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 
 	tflog.Debug(ctx, fmt.Sprintf("DBaaS cluster create options: %+v", createOpts))
 
-	tasks, _, err := clientV2.DBaaS.ClusterCreate(ctx, createOpts)
+	cluster, err := utilV2.CreateDBaaSClusterAndWait(ctx, clientV2, createOpts, DBaaSClusterCreateTimeout)
 	if err != nil {
 		return diag.Errorf("error from creating DBaaS cluster: %s", err)
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("DBaaS cluster create task: %v", tasks.Tasks))
-
-	var clusterID string
-	for i := 0; i < 60; i++ {
-		clusters, _, err := clientV2.DBaaS.ClustersList(ctx, nil)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		for _, c := range clusters {
-			if c.Name == createOpts.Name {
-				clusterID = c.ID
-				break
-			}
-		}
-		if clusterID != "" {
-			break
-		}
-		time.Sleep(10 * time.Second)
-	}
-
-	if clusterID == "" {
-		return diag.Errorf("DBaaS cluster was not created within the expected time")
-	}
-
-	d.SetId(clusterID)
-	tflog.Info(ctx, fmt.Sprintf("DBaaS cluster id = %s", clusterID))
-
-	tflog.Info(ctx, "Waiting for DBaaS cluster to become HEALTHY")
-	for i := 0; i < 180; i++ {
-		cluster, _, err := clientV2.DBaaS.ClusterGet(ctx, clusterID)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		if cluster.Status == "HEALTHY" {
-			tflog.Info(ctx, "DBaaS cluster is HEALTHY")
-			break
-		}
-		tflog.Info(ctx, fmt.Sprintf("DBaaS cluster status: %s, waiting...", cluster.Status))
-		time.Sleep(10 * time.Second)
-	}
+	d.SetId(cluster.ID)
+	tflog.Info(ctx, fmt.Sprintf("DBaaS cluster id = %s", cluster.ID))
 
 	return resourceDBaaSClusterRead(ctx, d, m)
 }
@@ -323,23 +285,29 @@ func resourceDBaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 		_ = d.Set(DBaaSClusterTaskIDField, cluster.TaskID)
 	}
 
-	dbms := map[string]interface{}{
-		TypeField:             cluster.DBMS.Type,
-		DBaaSDbmsVersionField: cluster.DBMS.Version,
+	if cluster.DBMS != nil {
+		dbms := map[string]interface{}{
+			TypeField:             cluster.DBMS.Type,
+			DBaaSDbmsVersionField: cluster.DBMS.Version,
+		}
+		_ = d.Set("dbms", []interface{}{dbms})
 	}
-	_ = d.Set("dbms", []interface{}{dbms})
 
-	vol := map[string]interface{}{
-		DBaaSVolumeSizeField: cluster.Volume.Size,
-		DBaaSVolumeTypeField: string(cluster.Volume.Type),
+	if cluster.Volume != nil {
+		vol := map[string]interface{}{
+			DBaaSVolumeSizeField: cluster.Volume.Size,
+			DBaaSVolumeTypeField: string(cluster.Volume.Type),
+		}
+		_ = d.Set("volume", []interface{}{vol})
 	}
-	_ = d.Set("volume", []interface{}{vol})
 
-	iface := map[string]interface{}{
-		NetworkIDField: cluster.Interface.NetworkID,
-		SubnetIDField:  cluster.Interface.SubnetID,
+	if cluster.Interface != nil {
+		iface := map[string]interface{}{
+			NetworkIDField: cluster.Interface.NetworkID,
+			SubnetIDField:  cluster.Interface.SubnetID,
+		}
+		_ = d.Set("interface", []interface{}{iface})
 	}
-	_ = d.Set("interface", []interface{}{iface})
 
 	if cluster.Connection != nil {
 		conn := map[string]interface{}{
