@@ -94,11 +94,81 @@ func ValidateUniqueTaintKeys(set *schema.Set) error {
 }
 
 func customMKaaSPoolDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
-	raw, ok := d.GetOk(MKaaSPoolTaintsField)
+	if raw, ok := d.GetOk(MKaaSPoolTaintsField); ok {
+		if err := ValidateUniqueTaintKeys(raw.(*schema.Set)); err != nil {
+			return err
+		}
+	}
+
+	minNodeCount, maxNodeCount, autoscale := expandScalePolicy(d)
+	if autoscale && maxNodeCount < minNodeCount {
+		return fmt.Errorf(
+			"scale_policy.auto_scale.max_node_count (%d) must be >= scale_policy.auto_scale.min_node_count (%d)",
+			maxNodeCount, minNodeCount,
+		)
+	}
+
+	if d.HasChange(MKaaSNodeCountField) || d.HasChange(MKaaSPoolScalePolicyField) {
+		if err := d.SetNewComputed(MKaaSPoolCurrentNodeCountField); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// scalePolicyReader is surface for reading the nested scale_policy block.
+type scalePolicyReader interface {
+	GetOk(key string) (interface{}, bool)
+}
+
+// expandScalePolicy returns (minNodeCount, maxNodeCount, enabled). enabled is
+// true if a scale_policy { auto_scale { ... } } block is present in config.
+// When enabled is false, minNodeCount and maxNodeCount are zero and should be
+// ignored.
+func expandScalePolicy(d scalePolicyReader) (int, int, bool) {
+	raw, ok := d.GetOk(MKaaSPoolScalePolicyField)
 	if !ok {
+		return 0, 0, false
+	}
+	spList, ok := raw.([]interface{})
+	if !ok || len(spList) == 0 || spList[0] == nil {
+		return 0, 0, false
+	}
+	spMap, ok := spList[0].(map[string]interface{})
+	if !ok {
+		return 0, 0, false
+	}
+	asList, ok := spMap[MKaaSPoolAutoScaleField].([]interface{})
+	if !ok || len(asList) == 0 || asList[0] == nil {
+		return 0, 0, false
+	}
+	asMap, ok := asList[0].(map[string]interface{})
+	if !ok {
+		return 0, 0, false
+	}
+
+	minNodeCount := asMap[MKaaSPoolMinNodeCountField].(int)
+	maxNodeCount := asMap[MKaaSPoolMaxNodeCountField].(int)
+
+	return minNodeCount, maxNodeCount, true
+}
+
+// flattenScalePolicy emits the nested scale_policy shape only when pool.AutoscalingEnabled is true.
+func flattenScalePolicy(pool *edgecloudV2.MKaaSPool) []interface{} {
+	if pool == nil || !pool.AutoscalingEnabled {
 		return nil
 	}
-	return ValidateUniqueTaintKeys(raw.(*schema.Set))
+	return []interface{}{
+		map[string]interface{}{
+			MKaaSPoolAutoScaleField: []interface{}{
+				map[string]interface{}{
+					MKaaSPoolMinNodeCountField: pool.MinNodeCount,
+					MKaaSPoolMaxNodeCountField: pool.MaxNodeCount,
+				},
+			},
+		},
+	}
 }
 
 func mkaasPoolUnsupportedUpdateChanges(d *schema.ResourceData) []string {

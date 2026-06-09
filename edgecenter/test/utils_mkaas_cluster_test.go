@@ -21,6 +21,11 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
+type poolAutoScaleData struct { //nolint:unused
+	MinNodeCount int
+	MaxNodeCount int
+}
+
 type poolTfData struct { //nolint:unused
 	Token            string
 	Endpoint         string
@@ -30,6 +35,7 @@ type poolTfData struct { //nolint:unused
 	Name             string
 	Flavor           string
 	NodeCount        int
+	ScalePolicy      *poolAutoScaleData
 	VolumeSize       int
 	VolumeType       string
 	SecurityGroupIDs []string
@@ -587,7 +593,16 @@ resource "edgecenter_mkaas_pool" "np" {
 
   name         = "{{ .Name }}"
   flavor       = "{{ .Flavor }}"
+  {{- if .ScalePolicy }}
+  scale_policy {
+    auto_scale {
+      min_node_count = {{ .ScalePolicy.MinNodeCount }}
+      max_node_count = {{ .ScalePolicy.MaxNodeCount }}
+    }
+  }
+  {{- else }}
   node_count   = {{ .NodeCount }}
+  {{- end }}
   volume_size  = {{ .VolumeSize }}
   volume_type  = "{{ .VolumeType }}"
   security_group_ids = [{{- if .SecurityGroupIDs }}{{ range $i, $id := .SecurityGroupIDs }}{{ if $i }}, {{ end }}"{{ $id }}"{{ end }}{{- end }}]
@@ -612,6 +627,9 @@ output "out_region_id"          { value = tostring(edgecenter_mkaas_pool.np.regi
 output "out_cluster_id"         { value = tostring(edgecenter_mkaas_pool.np.cluster_id) }
 output "out_flavor"             { value = edgecenter_mkaas_pool.np.flavor }
 output "out_node_count"         { value = tostring(edgecenter_mkaas_pool.np.node_count) }
+output "out_scale_policy_min"     { value = try(tostring(edgecenter_mkaas_pool.np.scale_policy[0].auto_scale[0].min_node_count), "") }
+output "out_scale_policy_max"     { value = try(tostring(edgecenter_mkaas_pool.np.scale_policy[0].auto_scale[0].max_node_count), "") }
+output "out_scale_policy_current" { value = tostring(edgecenter_mkaas_pool.np.current_node_count) }
 output "out_volume_size"        { value = tostring(edgecenter_mkaas_pool.np.volume_size) }
 output "out_volume_type"        { value = edgecenter_mkaas_pool.np.volume_type }
 output "out_label_env"          { value = edgecenter_mkaas_pool.np.labels["env"] }

@@ -63,6 +63,11 @@ func dataSourceMKaaSPool() *schema.Resource {
 				Computed:    true,
 				Description: "The current number of nodes in the pool.",
 			},
+			MKaaSPoolCurrentNodeCountField: {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The current number of nodes in the pool, reflecting the live value from the API (managed by the autoscaler when enabled).",
+			},
 			MKaaSVolumeSizeField: {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -120,6 +125,34 @@ func dataSourceMKaaSPool() *schema.Resource {
 				Computed:    true,
 				Description: "The status of the pool.",
 			},
+			MKaaSPoolScalePolicyField: {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Scale policy of the pool. Populated only when autoscaling is enabled.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						MKaaSPoolAutoScaleField: {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "Auto-scaling configuration of the pool.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									MKaaSPoolMinNodeCountField: {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "Minimum number of nodes the autoscaler may scale the pool down to.",
+									},
+									MKaaSPoolMaxNodeCountField: {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "Maximum number of nodes the autoscaler may scale the pool up to.",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -144,6 +177,7 @@ func dataSourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m inte
 	_ = d.Set(NameField, pool.Name)
 	_ = d.Set(FlavorField, pool.Flavor)
 	_ = d.Set(MKaaSNodeCountField, pool.NodeCount)
+	_ = d.Set(MKaaSPoolCurrentNodeCountField, pool.NodeCount)
 	_ = d.Set(MKaaSVolumeSizeField, pool.VolumeSize)
 	_ = d.Set(MKaaSVolumeTypeField, string(pool.VolumeType))
 	_ = d.Set(MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)
@@ -151,6 +185,7 @@ func dataSourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m inte
 	_ = d.Set(MKaaSPoolStatusField, pool.Status)
 	_ = d.Set(MKaaSPoolLabelsField, pool.Labels)
 	_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
+	_ = d.Set(MKaaSPoolScalePolicyField, flattenScalePolicy(pool))
 
 	return nil
 }
