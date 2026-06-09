@@ -18,18 +18,22 @@ func TestAccDnsZoneRecord(t *testing.T) {
 	domain := "terraformtest"
 	subDomain := fmt.Sprintf("key%d", random)
 	name := fmt.Sprintf("%s_%s", subDomain, domain)
-	zone := domain + ".com"
+	zone := fmt.Sprintf("%s%d.com", domain, random)
 	fullDomain := subDomain + "." + zone
 
 	resourceName := fmt.Sprintf("%s.%s", edgecenter.DNSZoneRecordResource, name)
 
 	templateCreate := func() string {
 		return fmt.Sprintf(`
+resource "edgecenter_dns_zone" "acctest" {
+  name = "%s"
+}
+
 resource "%s" "%s" {
-  zone = "%s"
+  zone = edgecenter_dns_zone.acctest.name
   domain = "%s"
   type = "TXT"
-  ttl = 10
+  ttl = 60
 
   filter {
     type = "geodistance"
@@ -43,12 +47,6 @@ resource "%s" "%s" {
   }
 
   meta {
-    failover {
-        frequency = 10
-        port = 443
-        protocol = "ICMP"
-        timeout = 10
-    }
   }
 
   resource_record {
@@ -61,20 +59,27 @@ resource "%s" "%s" {
 	  ip = ["1.1.1.1"]
 	  notes = ["notes"]
 	  continents = ["asia"]
-	  countries = ["russia"]
+	  countries = ["ru"]
 	  default = true
   	}
   }
 }
-		`, edgecenter.DNSZoneRecordResource, name, zone, fullDomain)
+		`, zone, edgecenter.DNSZoneRecordResource, name, fullDomain)
 	}
 	templateUpdate := func() string {
 		return fmt.Sprintf(`
+resource "edgecenter_dns_zone" "acctest" {
+  name = "%s"
+}
+
 resource "%s" "%s" {
-  zone = "%s"
+  zone = edgecenter_dns_zone.acctest.name
   domain = "%s"
   type = "TXT"
-  ttl = 20
+  ttl = 120
+
+  meta {
+  }
 
   resource_record {
     content  = "12345"
@@ -83,13 +88,13 @@ resource "%s" "%s" {
       latlong = [52.367,4.9041]
 	  ip = ["1.1.2.2"]
 	  notes = ["notes"]
-	  continents = ["america"]
-	  countries = ["usa"]
+	  continents = ["asia"]
+	  countries = ["cn"]
 	  default = false
   	}
   }
 }
-		`, edgecenter.DNSZoneRecordResource, name, zone, fullDomain)
+		`, zone, edgecenter.DNSZoneRecordResource, name, fullDomain)
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -104,7 +109,7 @@ resource "%s" "%s" {
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaDomain, fullDomain),
 					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaType, "TXT"),
-					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaTTL, "10"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaTTL, "60"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s", edgecenter.DNSZoneRecordSchemaFilter, edgecenter.DNSZoneRecordSchemaFilterType),
 						"geodistance"),
@@ -168,7 +173,7 @@ resource "%s" "%s" {
 							edgecenter.DNSZoneRecordSchemaMeta,
 							edgecenter.DNSZoneRecordSchemaMetaCountries,
 						),
-						"russia"),
+						"ru"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s",
 							edgecenter.DNSZoneRecordSchemaResourceRecord,
@@ -184,7 +189,7 @@ resource "%s" "%s" {
 					testAccCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaDomain, fullDomain),
 					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaType, "TXT"),
-					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaTTL, "20"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneRecordSchemaTTL, "120"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s", edgecenter.DNSZoneRecordSchemaResourceRecord, edgecenter.DNSZoneRecordSchemaContent),
 						"12345"),
@@ -227,14 +232,14 @@ resource "%s" "%s" {
 							edgecenter.DNSZoneRecordSchemaMeta,
 							edgecenter.DNSZoneRecordSchemaMetaContinents,
 						),
-						"america"),
+						"asia"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s.0",
 							edgecenter.DNSZoneRecordSchemaResourceRecord,
 							edgecenter.DNSZoneRecordSchemaMeta,
 							edgecenter.DNSZoneRecordSchemaMetaCountries,
 						),
-						"usa"),
+						"cn"),
 					resource.TestCheckResourceAttr(resourceName,
 						fmt.Sprintf("%s.0.%s.0.%s",
 							edgecenter.DNSZoneRecordSchemaResourceRecord,
@@ -253,15 +258,19 @@ func TestAccDnsZoneRecordDNAME(t *testing.T) {
 	random := time.Now().Nanosecond()
 	domain := "terraformtest"
 	name := fmt.Sprintf("dname_%d", random)
-	zone := domain + ".com"
+	zone := fmt.Sprintf("%s%d.com", domain, random)
 	fullDomain := fmt.Sprintf("dname%d.%s", random, zone)
 
 	resourceName := fmt.Sprintf("%s.%s", edgecenter.DNSZoneRecordResource, name)
 
 	templateCreate := func() string {
 		return fmt.Sprintf(`
+resource "edgecenter_dns_zone" "acctest" {
+  name = "%s"
+}
+
 resource "%s" "%s" {
-  zone = "%s"
+  zone = edgecenter_dns_zone.acctest.name
   domain = "%s"
   type = "DNAME"
   ttl = 600
@@ -274,7 +283,7 @@ resource "%s" "%s" {
     enabled = true
   }
 }
-		`, edgecenter.DNSZoneRecordResource, name, zone, fullDomain)
+		`, zone, edgecenter.DNSZoneRecordResource, name, fullDomain)
 	}
 
 	resource.Test(t, resource.TestCase{

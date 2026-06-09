@@ -24,20 +24,33 @@ func TestAccCDNResource(t *testing.T) {
 	create := Params{"HTTP"}
 	update := Params{"MATCH"}
 
+	groupName := fmt.Sprintf("terraform_acctest_group-%d", time.Now().Nanosecond())
+
 	template := func(params *Params) string {
 		return fmt.Sprintf(`
+resource "edgecenter_cdn_origingroup" "acctest" {
+  name                 = "%s"
+  use_next             = true
+  consistent_balancing = true
+
+  origin {
+    source  = "google.com"
+    enabled = true
+  }
+}
+
 resource "edgecenter_cdn_resource" "acctest" {
-  cname = "%s"
-  origin_group = %s
-  origin_protocol = "%s"
+  cname               = "%s"
+  origin_group        = tonumber(edgecenter_cdn_origingroup.acctest.id)
+  origin_protocol     = "%s"
   secondary_hostnames = ["%s"]
 }
-		`, cname, EC_CDN_ORIGINGROUP_ID, params.Proto, secondaryHostname)
+		`, groupName, cname, params.Proto, secondaryHostname)
 	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckVars(t, EC_USERNAME_VAR, EC_PASSWORD_VAR, EC_CDN_URL_VAR, EC_CDN_ORIGINGROUP_ID_VAR)
+			testAccPreCheckVars(t, EC_USERNAME_VAR, EC_PASSWORD_VAR, EC_CDN_URL_VAR)
 		},
 		ProviderFactories: testAccProviders,
 		Steps: []resource.TestStep{

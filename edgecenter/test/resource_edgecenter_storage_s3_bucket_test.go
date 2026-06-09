@@ -20,17 +20,17 @@ func TestAccStorageS3Bucket(t *testing.T) {
 	random := time.Now().Nanosecond()
 	storageResourceName := fmt.Sprintf("edgecenter_storage_s3.terraform_test_%d_s3", random)
 	bucketResourceName := fmt.Sprintf("edgecenter_storage_s3_bucket.terraform_test_%d_s3_bucket", random)
-	name := fmt.Sprintf("terraform_test_%d", random)
+	name := fmt.Sprintf("terraform-test-%d", random)
 
 	templateCreateBucket := func() string {
 		return fmt.Sprintf(`
 resource "edgecenter_storage_s3" "terraform_test_%d_s3" {
   name = "terraform_test_%d"
-  location = "s-ed1"
+  location = "s-dt4"
 }
 
 resource "edgecenter_storage_s3_bucket" "terraform_test_%d_s3_bucket" {
-  name = "terraform_test_%d"
+  name = "terraform-test-%d"
   storage_id = %s.id
 }
 		`, random, random, random, random, storageResourceName)

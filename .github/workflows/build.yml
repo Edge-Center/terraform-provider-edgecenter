@@ -186,8 +186,34 @@ jobs:
       - name: Run MKAAS tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=${{ matrix.kind.timeout }}
 
+  not-cloud-tests:
+    needs: [smoke, detect]
+    if: >-
+      needs.detect.outputs.cdn == 'true' || needs.detect.outputs.dns == 'true' ||
+      needs.detect.outputs.storage == 'true' || needs.detect.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    env:
+      EC_PERMANENT_TOKEN: ${{ matrix.tag == 'cdn' && secrets.EC_CDN_PERMANENT_TOKEN || secrets.EC_PERMANENT_TOKEN }}
+      EC_CDN_API: ${{ matrix.tag == 'cdn' && secrets.EC_CDN_API || '' }}
+    strategy:
+      matrix:
+        tag: [cdn, dns, storage]
+      fail-fast: false
+    name: tests-${{ matrix.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.0
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ~1.9.0
+      - name: Run tests (${{ matrix.tag }})
+        run: go test -v ./edgecenter/test -tags ${{ matrix.tag }} -timeout=15m
+
   metrics:
-    needs: [smoke, reseller-tests, tests, mkaas-tests]
+    needs: [smoke, reseller-tests, tests, mkaas-tests, not-cloud-tests]
     if: always()
     runs-on: ubuntu-latest
     permissions:
