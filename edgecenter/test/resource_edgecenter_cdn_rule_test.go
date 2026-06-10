@@ -10,6 +10,7 @@ import (
 )
 
 func TestAccCDNRule(t *testing.T) {
+	t.Skip("CI scaffold: needs EC_CDN_RESOURCE_ID fixture (integration-tests task)")
 	t.Parallel()
 	resourceName := "edgecenter_cdn_rule.acctest"
 

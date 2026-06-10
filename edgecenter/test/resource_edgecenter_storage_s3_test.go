@@ -24,7 +24,7 @@ func TestAccStorageS3(t *testing.T) {
 		return fmt.Sprintf(`
 resource "edgecenter_storage_s3" "terraform_test_%d_s3" {
   name = "terraform_test_%d"
-  location = "s-ed1"
+  location = "s-dt4"
 }
 		`, random, random)
 	}
@@ -66,7 +66,7 @@ resource "edgecenter_storage_s3" "terraform_test_%d_s3" {
 				Config: templateCreate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, edgecenter.StorageSchemaLocation, "s-ed1"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.StorageSchemaLocation, "s-dt4"),
 				),
 			},
 		},

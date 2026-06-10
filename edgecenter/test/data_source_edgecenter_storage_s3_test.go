@@ -29,7 +29,7 @@ func TestStorageS3DataSource(t *testing.T) {
 		return fmt.Sprintf(`
 resource "%s" "terraformtest%d_s3" {
   name = "terraformtest%d"
-  location = "s-ed1"
+  location = "s-dt4"
 }
 		`, s3Storage, random, random)
 	}
@@ -79,14 +79,14 @@ data "%s" "terraformtest%d_s3_data" {
 				Config: templateCreate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, edgecenter.StorageSchemaLocation, "s-ed1"),
+					resource.TestCheckResourceAttr(resourceName, edgecenter.StorageSchemaLocation, "s-dt4"),
 				),
 			},
 			{
 				Config: templateRead(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(dataSourceName),
-					resource.TestCheckResourceAttr(dataSourceName, edgecenter.StorageSchemaLocation, "s-ed1"),
+					resource.TestCheckResourceAttr(dataSourceName, edgecenter.StorageSchemaLocation, "s-dt4"),
 				),
 			},
 		},
