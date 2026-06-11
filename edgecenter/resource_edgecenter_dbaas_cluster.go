@@ -364,14 +364,12 @@ func resourceDBaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	if len(tasks.Tasks) == 0 {
-		return diag.Errorf("no tasks returned for cluster update")
-	}
-
-	taskID := tasks.Tasks[0]
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, DBaaSClusterUpdateTimeout)
-	if err != nil {
-		tflog.Warn(ctx, fmt.Sprintf("[WARN] task %s not found, assuming update completed: %s", taskID, err))
+	if len(tasks.Tasks) > 0 {
+		taskID := tasks.Tasks[0]
+		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, DBaaSClusterUpdateTimeout)
+		if err != nil {
+			tflog.Warn(ctx, fmt.Sprintf("[WARN] task %s not found, assuming update completed: %s", taskID, err))
+		}
 	}
 
 	tflog.Info(ctx, "Finish DBaaS cluster update")
