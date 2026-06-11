@@ -63,8 +63,6 @@ resource "edgecenter_protection_resource" "protected_example_com" {
 
 Import is supported using the following syntax:
 
-The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
-
 ```shell
 # import using <resource_id> format
 terraform import edgecenter_protection_resource.protected_example_com 12345

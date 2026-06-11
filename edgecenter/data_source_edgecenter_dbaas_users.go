@@ -95,6 +95,10 @@ func dataSourceDBaaSUsersRead(ctx context.Context, d *schema.ResourceData, m int
 		filtered = append(filtered, u)
 	}
 
+	if hasFilter && len(filtered) == 0 {
+		return diag.Errorf("DBaaS user with name %s not found in cluster %s", filterName.(string), clusterID)
+	}
+
 	items := make([]map[string]interface{}, len(filtered))
 	for i, u := range filtered {
 		databases := make([]string, len(u.Databases))

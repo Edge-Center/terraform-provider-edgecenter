@@ -88,6 +88,10 @@ func dataSourceDBaaSDatabasesRead(ctx context.Context, d *schema.ResourceData, m
 		filtered = append(filtered, db)
 	}
 
+	if hasFilter && len(filtered) == 0 {
+		return diag.Errorf("DBaaS database with name %s not found in cluster %s", filterName.(string), clusterID)
+	}
+
 	items := make([]map[string]interface{}, len(filtered))
 	for i, db := range filtered {
 		items[i] = map[string]interface{}{

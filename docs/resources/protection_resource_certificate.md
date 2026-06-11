@@ -100,8 +100,6 @@ resource "edgecenter_dns_zone_record" "protected_resource_record" {
 
 Import is supported using the following syntax:
 
-The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
-
 ```shell
 # import using <resource_id> format
 # note: for "custom" type certificate and private key are not imported
