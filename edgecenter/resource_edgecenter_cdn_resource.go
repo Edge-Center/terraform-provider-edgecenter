@@ -1735,6 +1735,7 @@ func structToMap(item interface{}) map[string]interface{} {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
+
 	for i := 0; i < v.NumField(); i++ {
 		tag := v.Field(i).Tag.Get("json")
 		field := reflectValue.Field(i).Interface()
