@@ -32,5 +32,3 @@ func MapSet(schemaSetFunc schema.SchemaSetFunc, values ...map[string]interface{}
 func List(values ...interface{}) []interface{} {
 	return values
 }
-
-

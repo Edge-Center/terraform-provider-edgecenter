@@ -106,7 +106,7 @@ func RunCaseApply[T any](
 
 	return ApplyConfig(
 		t,
-		caseContext(tc.Context),
+		context.Background(),
 		resource,
 		currentStateFromCase(t, resource, tc.CurrentState, tc.CurrentID),
 		tc.NewConfig,
@@ -124,7 +124,7 @@ func RunCaseRead[T any](
 
 	current := currentStateFromCase(t, resource, tc.CurrentState, tc.CurrentID)
 	data := NewResourceDataFromState(t, resource, current)
-	diags := resource.ReadContext(caseContext(tc.Context), data, meta)
+	diags := resource.ReadContext(context.Background(), data, meta)
 
 	return data.State(), diags
 }
@@ -139,15 +139,7 @@ func RunCaseDelete[T any](
 
 	current := currentStateFromCase(t, resource, tc.CurrentState, tc.CurrentID)
 	data := NewResourceDataFromState(t, resource, current)
-	diags := resource.DeleteContext(caseContext(tc.Context), data, meta)
+	diags := resource.DeleteContext(context.Background(), data, meta)
 
 	return data.State(), diags
-}
-
-func caseContext(ctx context.Context) context.Context {
-	if ctx != nil {
-		return ctx
-	}
-
-	return context.Background()
 }

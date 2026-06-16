@@ -14,9 +14,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/unittest/support"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/unittest/support/cloud"
-	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/unittest/support/cloud/mock"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
+	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
 )
 
 const (

@@ -3,8 +3,9 @@ package cloud
 import (
 	"testing"
 
-	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/stretchr/testify/require"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
 func CreatedResources(kind string, ids ...string) map[string]interface{} {

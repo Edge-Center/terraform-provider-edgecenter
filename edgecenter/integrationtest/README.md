@@ -1,11 +1,11 @@
-# unittest
+# integrationtest
 
-`unittest` is the only place for unit-test-related code in this repository.
+`integrationtest` is the only place for unit-test-related code in this repository.
 
 ## Structure
 
 ```
-unittest/
+integrationtest/
 ├── support/          # Generic foundation helpers (package support)
 │   ├── case.go       # ResourceCase[T], CheckFunc, Operation, Meta
 │   ├── runner.go     # RunResourceCases, DispatchCase, RunCase*
@@ -42,7 +42,7 @@ Edit `support/cloud/mock/generate.go` and add the interface name:
 Then run:
 
 ```bash
-go generate ./edgecenter/unittest/support/cloud/mock/...
+go generate ./edgecenter/integrationtest/support/cloud/mock/...
 ```
 
 ### 2. Create a test file
@@ -60,9 +60,9 @@ import (
     "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
     "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
     "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-    "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/unittest/support"
-    "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/unittest/support/cloud"
-    cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/unittest/support/cloud/mock"
+    "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
+    "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
+    cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
 )
 ```
 
@@ -102,7 +102,7 @@ Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics
 ### 4. Run
 
 ```bash
-go test -tags=unit -v -count=1 ./edgecenter/unittest/cloud/...
+go test -tags=unit -v -count=1 ./edgecenter/integrationtest/cloud/...
 ```
 
 ## Patterns & conventions
@@ -112,7 +112,7 @@ go test -tags=unit -v -count=1 ./edgecenter/unittest/cloud/...
 - **Mock `Tasks` for every async resource** — nearly all cloud resources use
   `utilV2.WaitAndGetTaskInfo` or `ExecuteAndExtractTaskResult`, which call
   `client.Tasks.Get` internally.
-- **Keep test-only code inside `unittest/`** — production packages under `edgecenter/`
+- **Keep test-only code inside `integrationtest/`** — production packages under `edgecenter/`
   must not import test infrastructure.
 - **Use `//go:build unit`** build tag to isolate unit tests from acceptance tests.
 - **One factory function per case** — creates an isolated `MockedCloud` per case,
@@ -133,4 +133,42 @@ go test -tags=unit -v -count=1 ./edgecenter/unittest/cloud/...
 The same pattern applies:
 1. Add `support/cdn/` and `support/dns/` directories with domain-specific helpers.
 2. Generate mocks from the corresponding SDK packages.
-3. Place tests in `unittest/cdn/` and `unittest/dns/`.
+3. Place tests in `integrationtest/cdn/` and `integrationtest/dns/`.
+
+
+
+Резюме: тестинговая архитектура проекта
+Три слоя тестов
+Слой	Папка	Что тестирует	Скорость	Зависимости
+Acceptance (E2E)	edgecenter/test/	Resource целиком через Terraform CLI + реальное API	Минуты	Креды, Vault, Terraform бинарник
+Resource-level (моки SDK)	edgecenter/integrationtest/	Resource целиком (CreateContext/ReadContext/DeleteContext) с замоканным SDK (testify mocks) — проверяет интеграцию resource ↔ SDK-контракт	Миллисекунды	Нет (все замокано)
+Чистые unit (если нужны)	нет пока	Отдельная функция (например, flattenNetwork) изолированно	Наносекунды	Нет
+Что в edgecenter/integrationtest/
+Это resource-level тесты. Они вызывают реальные функции ресурсов (resource.CreateContext, resource.ReadContext, resource.DeleteContext), но SDK-клиент замокан (testify mock).
+
+То, что они «ходят в SDK и гоняют моки» — это и есть их суть. Они не тестируют HTTP-сериализацию или транспорт, а проверяют, что resource:
+
+Правильно формирует запросы в SDK
+Правильно обрабатывает ответы/ошибки SDK
+Правильно управляет Terraform state
+«Свой движок»
+В edgecenter/integrationtest/support/ лежит кастомный фреймворк вместо стандартного resource.Test:
+
+case.go — своя ResourceCase структура
+runner.go — свой раннер, сам дёргает CRUD-функции напрямую
+state.go — сборка terraform.InstanceState из Go-map (без HCL)
+diag.go — свои ассерты на диагностики
+support/cloud/mock/ — сгенерированные testify mocks на SDK-интерфейсы
+Терминология (как договорились)
+То, что в папке integrationtest — можно называть как угодно:
+
+"unit tests" (по папке и тегу //go:build unit)
+"integration tests" (по факту — проверка связки resource ↔ SDK)
+"resource-level tests" (нейтрально)
+В CI они гоняются тегом unit. От acceptance отличаются отсутствием сети, Terraform CLI, и кредов.
+
+Что писать сейчас
+Для каждого нового/изменяемого ресурса:
+
+Resource-level тест в integrationtest/ — покрыть happy path (create/read/update/delete) + ключевые ошибки (API error, task error)
+Acceptance тест в test/ — один happy path на реальном API для регрессии

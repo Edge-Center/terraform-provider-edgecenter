@@ -27,12 +27,12 @@ type MockedCloud struct {
 
 	mocks []*mock.Mock
 
-	Tasks     *TasksService
-	Networks  *NetworksService
-	Projects  *ProjectsService
-	Regions   *RegionsService
-	Volumes   *VolumesService
-	KeyPairs  *KeyPairsService
+	Tasks    *TasksService
+	Networks *NetworksService
+	Projects *ProjectsService
+	Regions  *RegionsService
+	Volumes  *VolumesService
+	KeyPairs *KeyPairsService
 }
 
 // TestMeta returns the provider meta bound to this fixture.

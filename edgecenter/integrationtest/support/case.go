@@ -1,7 +1,6 @@
 package support
 
 import (
-	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -31,7 +30,6 @@ type ResourceCase[T any] struct {
 	CurrentState map[string]interface{}
 	CurrentID    string
 	NewConfig    map[string]interface{}
-	Context      context.Context
 	Prepare      func() T
 	Check        CheckFunc[T]
 	Skip         bool
