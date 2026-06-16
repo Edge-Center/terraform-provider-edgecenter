@@ -1,4 +1,4 @@
-package edgecenter
+package edgemon
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/edgecenteredgemon-go/statuspage"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceRMONStatusPage() *schema.Resource {
@@ -63,7 +64,7 @@ func resourceRMONStatusPage() *schema.Resource {
 func resourceStatusPageCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start RMON Status Page creating")
 
-	cfg := m.(*Config)
+	cfg := m.(*edgecenter.Config)
 	client := cfg.RmonClient
 
 	req := expandStatusPageRequest(d)
@@ -84,7 +85,7 @@ func resourceStatusPageRead(ctx context.Context, d *schema.ResourceData, m inter
 	idStr := d.Id()
 	log.Printf("[DEBUG] Start RMON Status Page reading (id=%s)\n", idStr)
 
-	cfg := m.(*Config)
+	cfg := m.(*edgecenter.Config)
 	client := cfg.RmonClient
 
 	id, err := strconv.Atoi(idStr)
@@ -128,7 +129,7 @@ func resourceStatusPageUpdate(ctx context.Context, d *schema.ResourceData, m int
 	idStr := d.Id()
 	log.Printf("[DEBUG] Start RMON Status Page updating (id=%s)\n", idStr)
 
-	cfg := m.(*Config)
+	cfg := m.(*edgecenter.Config)
 	client := cfg.RmonClient
 
 	id, err := strconv.Atoi(idStr)
@@ -158,7 +159,7 @@ func resourceStatusPageDelete(ctx context.Context, d *schema.ResourceData, m int
 	idStr := d.Id()
 	log.Printf("[DEBUG] Start RMON Status Page deleting (id=%s)\n", idStr)
 
-	cfg := m.(*Config)
+	cfg := m.(*edgecenter.Config)
 	client := cfg.RmonClient
 
 	id, err := strconv.Atoi(idStr)

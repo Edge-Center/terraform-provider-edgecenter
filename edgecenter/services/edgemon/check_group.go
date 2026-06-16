@@ -1,4 +1,4 @@
-package edgecenter
+package edgemon
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/edgecenteredgemon-go/checkgroup"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceRMONCheckGroup() *schema.Resource {
@@ -34,7 +35,7 @@ func resourceRMONCheckGroup() *schema.Resource {
 
 func resourceCheckGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start RMON Check Group creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	var req checkgroup.Request
@@ -56,7 +57,7 @@ func resourceCheckGroupRead(ctx context.Context, d *schema.ResourceData, m inter
 	idStr := d.Id()
 	log.Printf("[DEBUG] Start RMON Check Group reading (id=%s)\n", idStr)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(idStr)
@@ -85,7 +86,7 @@ func resourceCheckGroupUpdate(ctx context.Context, d *schema.ResourceData, m int
 	idStr := d.Id()
 	log.Printf("[DEBUG] Start RMON Check Group updating (id=%s)\n", idStr)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(idStr)
@@ -111,7 +112,7 @@ func resourceCheckGroupDelete(ctx context.Context, d *schema.ResourceData, m int
 	idStr := d.Id()
 	log.Printf("[DEBUG] Start RMON Check Group deleting (id=%s)\n", idStr)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(idStr)

@@ -7,10 +7,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/edgemon"
 )
 
 func Provider() *schema.Provider {
-	resources, dataSources := registerAll(edgecenter.LegacyService{})
+	resources, dataSources := registerAll(edgecenter.LegacyService{}, edgemon.Service{})
 
 	p := &schema.Provider{
 		Schema:         edgecenter.ProviderSchema(),

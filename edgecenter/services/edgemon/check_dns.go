@@ -1,4 +1,4 @@
-package edgecenter
+package edgemon
 
 import (
 	"context"
@@ -11,41 +11,40 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/Edge-Center/edgecenteredgemon-go/checks/checksmtp"
+	"github.com/Edge-Center/edgecenteredgemon-go/checks/checkdns"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-func resourceRMONCheckSMTP() *schema.Resource {
+func resourceRMONCheckDNS() *schema.Resource {
 	return &schema.Resource{
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Name of the Check SMTP.",
+				Description: "Name of the Check DNS.",
 			},
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Description of the Check SMTP.",
+				Description: "Description of the Check DNS.",
 			},
 			"enabled": {
 				Type:        schema.TypeBool,
 				Required:    true,
-				Description: "Enabled state of the Check SMTP.",
+				Description: "Enabled state of the Check DNS.",
 			},
 			"check_group": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Name of the check group for group SMTP checks.",
+				Description: "Name of the check group for group DNS checks.",
 			},
-
 			"place": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Place scope for Check SMTP.",
+				Description: "Place scope for Check DNS.",
 				ValidateFunc: validation.StringInSlice([]string{
 					"all",
 					"country",
@@ -101,36 +100,43 @@ func resourceRMONCheckSMTP() *schema.Resource {
 			"ip": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "IP address or domain name of SMTP server for check.",
+				Description: "IP address or domain name for check.",
 			},
 			"port": {
 				Type:         schema.TypeInt,
-				Required:     true,
-				Description:  "SMTP server port.",
+				Optional:     true,
+				Description:  "DNS server port.",
 				ValidateFunc: validation.IsPortNumber,
+				Default:      53,
 			},
-			"ignore_ssl_error": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Ignore TLS/SSL error.",
-			},
-			"username": {
+			"resolver": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "User name for authenticating to SMTP server.",
+				Description: "DNS server where resolve DNS query.",
 			},
-			"password": {
+			"record_type": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Sensitive:   true,
-				Description: "Password for authenticating to SMTP server.",
+				Description: "DNS record type.",
+				ValidateFunc: validation.StringInSlice([]string{
+					"a",
+					"aaa",
+					"caa",
+					"cname",
+					"mx",
+					"ns",
+					"ptr",
+					"sao",
+					"src",
+					"txt",
+				}, false),
 			},
 			"retries": {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Description:  "Number of retries before check is marked down.",
-				Default:      3,
 				ValidateFunc: validation.IntAtLeast(0),
+				Default:      3,
 			},
 			"runbook": {
 				Type:        schema.TypeString,
@@ -138,37 +144,37 @@ func resourceRMONCheckSMTP() *schema.Resource {
 				Description: "Runbook URL for alerts.",
 			},
 		},
-
-		CreateContext: resourceCheckSMTPCreate,
-		ReadContext:   resourceCheckSMTPRead,
-		UpdateContext: resourceCheckSMTPUpdate,
-		DeleteContext: resourceCheckSMTPDelete,
+		CreateContext: resourceCheckDNSCreate,
+		ReadContext:   resourceCheckDNSRead,
+		UpdateContext: resourceCheckDNSUpdate,
+		DeleteContext: resourceCheckDNSDelete,
 	}
 }
 
-func resourceCheckSMTPCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start RMON Check SMTP creating")
-	config := m.(*Config)
+func resourceCheckDNSCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Println("[DEBUG] Start RMON Check DNS creating")
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
-	req := buildCheckSMTPRequest(d)
+	req := buildCheckDNSRequest(d)
 
-	resp, err := client.CheckSMTP().Create(ctx, &req)
+	resp, err := client.CheckDNS().Create(ctx, &req)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%d", resp.ID))
-	log.Printf("[DEBUG] Finish RMON Check SMTP creating (id=%d)\n", resp.ID)
 
-	return resourceCheckSMTPRead(ctx, d, m)
+	log.Printf("[DEBUG] Finish RMON Check DNS creating (id=%d)\n", resp.ID)
+
+	return resourceCheckDNSRead(ctx, d, m)
 }
 
-func resourceCheckSMTPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCheckDNSRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start RMON Check SMTP reading (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start RMON Check DNS reading (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -176,15 +182,15 @@ func resourceCheckSMTPRead(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	resp, err := client.CheckSMTP().Get(ctx, id)
+	resp, err := client.CheckDNS().Get(ctx, id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	_ = d.Set("name", strings.ReplaceAll(resp.Name, "'", ""))
 	_ = d.Set("description", strings.ReplaceAll(resp.Description, "'", ""))
-	_ = d.Set("check_group", resp.CheckGroup)
 	_ = d.Set("enabled", intToBool(float64(resp.Enabled)))
+	_ = d.Set("check_group", resp.CheckGroup)
 	_ = d.Set("place", resp.Place)
 	entities := make([]interface{}, 0, len(resp.Entities))
 	for _, v := range resp.Entities {
@@ -203,26 +209,21 @@ func resourceCheckSMTPRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set("email_channel_id", resp.EmailChannelId)
 	_ = d.Set("ip", resp.IP)
 	_ = d.Set("port", resp.Port)
-	_ = d.Set("ignore_ssl_error", intToBool(float64(resp.IgnoreSSLError)))
-	_ = d.Set("username", resp.Username)
-	if strings.TrimSpace(resp.Password) != "" {
-		_ = d.Set("password", resp.Password)
-	} else {
-		_ = d.Set("password", d.Get("password").(string))
-	}
+	_ = d.Set("resolver", resp.Resolver)
+	_ = d.Set("record_type", resp.RecordType)
 	_ = d.Set("retries", resp.Retries)
 	_ = d.Set("runbook", resp.Runbook)
 
-	log.Println("[DEBUG] Finish RMON Check SMTP reading")
+	log.Println("[DEBUG] Finish RMON Check DNS reading")
 
 	return nil
 }
 
-func resourceCheckSMTPUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCheckDNSUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start RMON Check SMTP updating (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start RMON Check DNS updating (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -230,22 +231,22 @@ func resourceCheckSMTPUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	req := buildCheckSMTPRequest(d)
+	req := buildCheckDNSRequest(d)
 
-	if err := client.CheckSMTP().Update(ctx, id, &req); err != nil {
+	if err := client.CheckDNS().Update(ctx, id, &req); err != nil {
 		return diag.FromErr(err)
 	}
 
-	log.Println("[DEBUG] Finish RMON Check SMTP updating")
+	log.Println("[DEBUG] Finish RMON Check DNS updating")
 
-	return resourceCheckSMTPRead(ctx, d, m)
+	return resourceCheckDNSRead(ctx, d, m)
 }
 
-func resourceCheckSMTPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCheckDNSDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start RMON Check SMTP deleting (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start RMON Check DNS deleting (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -253,18 +254,18 @@ func resourceCheckSMTPDelete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	if err := client.CheckSMTP().Delete(ctx, id); err != nil {
+	if err := client.CheckDNS().Delete(ctx, id); err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId("")
-	log.Println("[DEBUG] Finish RMON Check SMTP deleting")
+	log.Println("[DEBUG] Finish RMON Check DNS deleting")
 
 	return nil
 }
 
-func buildCheckSMTPRequest(d *schema.ResourceData) checksmtp.Request {
-	return checksmtp.Request{
+func buildCheckDNSRequest(d *schema.ResourceData) checkdns.Request {
+	return checkdns.Request{
 		Description:       strings.ReplaceAll(d.Get("description").(string), "'", ""),
 		Enabled:           boolToInt(d.Get("enabled").(bool)),
 		Name:              strings.ReplaceAll(d.Get("name").(string), "'", ""),
@@ -280,9 +281,8 @@ func buildCheckSMTPRequest(d *schema.ResourceData) checksmtp.Request {
 		EmailChannelId:    d.Get("email_channel_id").(int),
 		IP:                d.Get("ip").(string),
 		Port:              d.Get("port").(int),
-		IgnoreSSLError:    boolToInt(d.Get("ignore_ssl_error").(bool)),
-		Username:          d.Get("username").(string),
-		Password:          d.Get("password").(string),
+		Resolver:          d.Get("resolver").(string),
+		RecordType:        d.Get("record_type").(string),
 		Retries:           d.Get("retries").(int),
 		Runbook:           d.Get("runbook").(string),
 	}

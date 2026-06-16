@@ -1,4 +1,4 @@
-package edgecenter
+package edgemon
 
 import (
 	"context"
@@ -11,39 +11,41 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/Edge-Center/edgecenteredgemon-go/checks/checkping"
+	"github.com/Edge-Center/edgecenteredgemon-go/checks/checkrabbitmq"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-func resourceRMONCheckPing() *schema.Resource {
+func resourceRMONCheckRabbitMQ() *schema.Resource {
 	return &schema.Resource{
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Name of the Check Ping.",
+				Description: "Name of the Check RabbitMQ.",
 			},
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Description of the Check Ping.",
+				Description: "Description of the Check RabbitMQ.",
 			},
 			"enabled": {
 				Type:        schema.TypeBool,
 				Required:    true,
-				Description: "Enabled state of the Check Ping.",
+				Description: "Enabled state of the Check RabbitMQ.",
 			},
 			"check_group": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Name of the check group for group Ping checks.",
+				Description: "Name of the check group for group RabbitMQ checks.",
 			},
 			"place": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Place scope for Check Ping.",
+				Description: "Place scope for Check RabbitMQ.",
 				ValidateFunc: validation.StringInSlice([]string{
 					"all",
 					"country",
@@ -55,21 +57,7 @@ func resourceRMONCheckPing() *schema.Resource {
 				Type:        schema.TypeList,
 				Required:    true,
 				Description: "List of entities where check must be created.",
-				Elem: &schema.Schema{
-					Type: schema.TypeInt,
-				},
-			},
-			"packet_size": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Packet size",
-				Default:     56,
-			},
-			"count_packets": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Number of packets to send.",
-				Default:     4,
+				Elem:        &schema.Schema{Type: schema.TypeInt},
 			},
 			"interval": {
 				Type:        schema.TypeInt,
@@ -79,8 +67,9 @@ func resourceRMONCheckPing() *schema.Resource {
 			},
 			"check_timeout": {
 				Type:        schema.TypeInt,
-				Required:    true,
+				Optional:    true,
 				Description: "Answer timeout in seconds.",
+				Default:     2,
 			},
 			"telegram_channel_id": {
 				Type:        schema.TypeInt,
@@ -110,13 +99,36 @@ func resourceRMONCheckPing() *schema.Resource {
 			"ip": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "IP address or domain name for check.",
+				Description: "IP address or domain name of RabbitMQ server for check.",
+			},
+			"port": {
+				Type:         schema.TypeInt,
+				Required:     true,
+				Description:  "RabbitMQ server port.",
+				ValidateFunc: validation.IsPortNumber,
+			},
+			"username": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "User name for authenticating to RabbitMQ server.",
+			},
+			"password": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   true,
+				Description: "Password for authenticating to RabbitMQ server.",
+			},
+			"vhost": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Virtual host to RabbitMQ server.",
 			},
 			"retries": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Number of retries before check is marked down.",
-				Default:     3,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "Number of retries before check is marked down.",
+				ValidateFunc: validation.IntAtLeast(0),
+				Default:      3,
 			},
 			"runbook": {
 				Type:        schema.TypeString,
@@ -124,37 +136,36 @@ func resourceRMONCheckPing() *schema.Resource {
 				Description: "Runbook URL for alerts.",
 			},
 		},
-		CreateContext: resourceCheckPingCreate,
-		ReadContext:   resourceCheckPingRead,
-		UpdateContext: resourceCheckPingUpdate,
-		DeleteContext: resourceCheckPingDelete,
+
+		CreateContext: resourceCheckRabbitMQCreate,
+		ReadContext:   resourceCheckRabbitMQRead,
+		UpdateContext: resourceCheckRabbitMQUpdate,
+		DeleteContext: resourceCheckRabbitMQDelete,
 	}
 }
 
-func resourceCheckPingCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start RMON Check Ping creating")
-	config := m.(*Config)
+func resourceCheckRabbitMQCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Println("[DEBUG] Start RMON Check RabbitMQ creating")
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
-	req := buildCheckPingRequest(d)
+	req := buildCheckRabbitMQRequest(d)
 
-	resp, err := client.CheckPing().Create(ctx, &req)
+	resp, err := client.CheckRabbitMQ().Create(ctx, &req)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
 	d.SetId(fmt.Sprintf("%d", resp.ID))
+	log.Printf("[DEBUG] Finish RMON Check RabbitMQ creating (id=%d)\n", resp.ID)
 
-	log.Printf("[DEBUG] Finish RMON Check Ping creating (id=%d)\n", resp.ID)
-
-	return resourceCheckPingRead(ctx, d, m)
+	return resourceCheckRabbitMQRead(ctx, d, m)
 }
 
-func resourceCheckPingRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCheckRabbitMQRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start RMON Check Ping reading (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start RMON Check RabbitMQ reading (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -162,7 +173,7 @@ func resourceCheckPingRead(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	resp, err := client.CheckPing().Get(ctx, id)
+	resp, err := client.CheckRabbitMQ().Get(ctx, id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -180,8 +191,6 @@ func resourceCheckPingRead(ctx context.Context, d *schema.ResourceData, m interf
 		entities = []interface{}{}
 	}
 	_ = d.Set("entities", entities)
-	_ = d.Set("packet_size", resp.PacketSize)
-	_ = d.Set("count_packets", resp.CountPackets)
 	_ = d.Set("interval", resp.Interval)
 	_ = d.Set("check_timeout", resp.CheckTimeout)
 	_ = d.Set("telegram_channel_id", resp.TelegramChannelID)
@@ -190,19 +199,27 @@ func resourceCheckPingRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set("pd_channel_id", resp.PDChannelID)
 	_ = d.Set("email_channel_id", resp.EmailChannelId)
 	_ = d.Set("ip", resp.IP)
+	_ = d.Set("port", resp.Port)
+	_ = d.Set("username", resp.Username)
+	if strings.TrimSpace(resp.Password) != "" {
+		_ = d.Set("password", resp.Password)
+	} else {
+		_ = d.Set("password", d.Get("password").(string))
+	}
+	_ = d.Set("vhost", resp.Vhost)
 	_ = d.Set("retries", resp.Retries)
 	_ = d.Set("runbook", resp.Runbook)
 
-	log.Println("[DEBUG] Finish RMON Check Ping reading")
+	log.Println("[DEBUG] Finish RMON Check RabbitMQ reading")
 
 	return nil
 }
 
-func resourceCheckPingUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCheckRabbitMQUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start RMON Check Ping updating (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start RMON Check RabbitMQ updating (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -210,22 +227,22 @@ func resourceCheckPingUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	req := buildCheckPingRequest(d)
+	req := buildCheckRabbitMQRequest(d)
 
-	if err := client.CheckPing().Update(ctx, id, &req); err != nil {
+	if err := client.CheckRabbitMQ().Update(ctx, id, &req); err != nil {
 		return diag.FromErr(err)
 	}
 
-	log.Println("[DEBUG] Finish RMON Check Ping updating")
+	log.Println("[DEBUG] Finish RMON Check RabbitMQ updating")
 
-	return resourceCheckPingRead(ctx, d, m)
+	return resourceCheckRabbitMQRead(ctx, d, m)
 }
 
-func resourceCheckPingDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCheckRabbitMQDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start RMON Check Ping deleting (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start RMON Check RabbitMQ deleting (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -233,18 +250,18 @@ func resourceCheckPingDelete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	if err := client.CheckPing().Delete(ctx, id); err != nil {
+	if err := client.CheckRabbitMQ().Delete(ctx, id); err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId("")
-	log.Println("[DEBUG] Finish RMON Check Ping deleting")
+	log.Println("[DEBUG] Finish RMON Check RabbitMQ deleting")
 
 	return nil
 }
 
-func buildCheckPingRequest(d *schema.ResourceData) checkping.Request {
-	return checkping.Request{
+func buildCheckRabbitMQRequest(d *schema.ResourceData) checkrabbitmq.Request {
+	return checkrabbitmq.Request{
 		Description:       strings.ReplaceAll(d.Get("description").(string), "'", ""),
 		Enabled:           boolToInt(d.Get("enabled").(bool)),
 		Name:              strings.ReplaceAll(d.Get("name").(string), "'", ""),
@@ -258,9 +275,11 @@ func buildCheckPingRequest(d *schema.ResourceData) checkping.Request {
 		MMChannelID:       d.Get("mm_channel_id").(int),
 		PDChannelID:       d.Get("pd_channel_id").(int),
 		EmailChannelId:    d.Get("email_channel_id").(int),
-		PacketSize:        d.Get("packet_size").(int),
-		CountPackets:      d.Get("count_packets").(int),
 		IP:                d.Get("ip").(string),
+		Port:              d.Get("port").(int),
+		Username:          d.Get("username").(string),
+		Password:          d.Get("password").(string),
+		Vhost:             d.Get("vhost").(string),
 		Retries:           d.Get("retries").(int),
 		Runbook:           d.Get("runbook").(string),
 	}

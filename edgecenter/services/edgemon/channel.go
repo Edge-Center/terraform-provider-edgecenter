@@ -1,4 +1,4 @@
-package edgecenter
+package edgemon
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/edgecenteredgemon-go/channel"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceRMONChannel() *schema.Resource {
@@ -45,7 +46,7 @@ func resourceRMONChannel() *schema.Resource {
 func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start RMON Channel creating")
 
-	cfg := m.(*Config)
+	cfg := m.(*edgecenter.Config)
 	client := cfg.RmonClient
 
 	receiver := d.Get("receiver").(string)
@@ -71,7 +72,7 @@ func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interfac
 	idStr := d.Id()
 	log.Printf("[DEBUG] Start RMON Channel reading (id=%s)\n", idStr)
 
-	cfg := m.(*Config)
+	cfg := m.(*edgecenter.Config)
 	client := cfg.RmonClient
 
 	id, err := strconv.Atoi(idStr)
@@ -108,7 +109,7 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	idStr := d.Id()
 	log.Printf("[DEBUG] Start RMON Channel updating (id=%s)\n", idStr)
 
-	cfg := m.(*Config)
+	cfg := m.(*edgecenter.Config)
 	client := cfg.RmonClient
 
 	id, err := strconv.Atoi(idStr)
@@ -137,7 +138,7 @@ func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interf
 	idStr := d.Id()
 	log.Printf("[DEBUG] Start RMON Channel deleting (id=%s)\n", idStr)
 
-	cfg := m.(*Config)
+	cfg := m.(*edgecenter.Config)
 	client := cfg.RmonClient
 
 	id, err := strconv.Atoi(idStr)
