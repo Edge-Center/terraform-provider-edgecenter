@@ -103,6 +103,9 @@ test_cloud_reseller_resource: install_godotenv
 test_sweep: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags sweeper -sweep=all -timeout=30m
 
+test_edgemon: install_godotenv
+	godotenv -f $(ENV_TESTS_FILE) go test -v ./edgecenter/services/edgemon/... -tags test_edgemon -timeout=10m
+
 
 # DOCS
 docs_fmt:
