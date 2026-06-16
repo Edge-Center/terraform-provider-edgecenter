@@ -67,8 +67,6 @@ resource "edgecenter_protection_resource_origin" "down" {
 
 Import is supported using the following syntax:
 
-The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
-
 ```shell
 # import using <resource_id>:<origin_id> format
 terraform import edgecenter_protection_resource_origin.primary 12345:67

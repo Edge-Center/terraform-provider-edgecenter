@@ -56,8 +56,6 @@ resource "edgecenter_useractions_subscription_amqp" "subs_for_client" {
 
 Import is supported using the following syntax:
 
-The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
-
 ```shell
 # import own subscription (pass 0 when no client_id is needed)
 terraform import edgecenter_useractions_subscription_amqp.subs 0

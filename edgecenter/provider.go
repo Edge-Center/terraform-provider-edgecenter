@@ -173,6 +173,28 @@ const (
 	MKaaSPoolStateField            = "state"
 	MKaaSPoolStatusField           = "status"
 	MKaaSPoolSecurityGroupIDsField = "security_group_ids"
+
+	DBaaSClusterIDField   = "cluster_id"
+	DBaaSClusterNameField = "name"
+
+	DBaaSDbmsTypeField    = "type"
+	DBaaSDbmsVersionField = "version"
+
+	DBaaSClusterHighAvailabilityField = "high_availability"
+	DBaaSClusterTaskIDField           = "task_id"
+
+	DBaaSVolumeSizeField = "volume_size"
+	DBaaSVolumeTypeField = "volume_type"
+
+	DBaaSClusterHostField = "host"
+	DBaaSClusterPortField = "port"
+
+	DBaaSClusterConnectionField = "connection_info"
+
+	DBaaSDatabaseEncodingField = "encoding"
+	DBaaSDatabaseLocaleField   = "locale"
+
+	DBaaSUserDatabasesField = "databases"
 )
 
 type CloudClientConf struct {
@@ -339,6 +361,9 @@ func Provider() *schema.Provider {
 			"edgecenter_protection_resource_whitelist_entry":   resourceProtectionResourceWhitelistEntry(),
 			"edgecenter_protection_resource_alias":             resourceProtectionResourceAlias(),
 			"edgecenter_protection_resource_alias_certificate": resourceProtectionResourceAliasCertificate(),
+			"edgecenter_dbaas_cluster":                         resourceDBaaSCluster(),
+			"edgecenter_dbaas_database":                        resourceDBaaSDatabase(),
+			"edgecenter_dbaas_user":                            resourceDBaaSUser(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"edgecenter_project":                       dataSourceProject(),
@@ -379,6 +404,10 @@ func Provider() *schema.Provider {
 			"edgecenter_reseller_imagesV2":             dataSourceResellerImagesV2(),
 			"edgecenter_mkaas_cluster":                 dataSourceMKaaSCluster(),
 			"edgecenter_dns_secondary_zones":           dataSourceDNSSecondaryZones(),
+			"edgecenter_dbaas_dbms":                    dataSourceDBaaSDBMS(),
+			"edgecenter_dbaas_clusters":                dataSourceDBaaSClusters(),
+			"edgecenter_dbaas_databases":               dataSourceDBaaSDatabases(),
+			"edgecenter_dbaas_users":                   dataSourceDBaaSUsers(),
 		},
 	}
 

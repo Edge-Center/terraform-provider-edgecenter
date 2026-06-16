@@ -39,8 +39,6 @@ resource "edgecenter_storage_s3_bucket" "example_s3_bucket" {
 
 Import is supported using the following syntax:
 
-The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
-
 ```shell
 # import using <storage_id>:<bucket_name> format
 terraform import edgecenter_storage_s3_bucket.example_s3_bucket 123:bucket_name

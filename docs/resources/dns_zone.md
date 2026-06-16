@@ -37,8 +37,6 @@ resource "edgecenter_dns_zone" "example_zone" {
 
 Import is supported using the following syntax:
 
-The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
-
 ```shell
 # import using zone name format
 terraform import edgecenter_dns_zone.example_zone example_zone.com
