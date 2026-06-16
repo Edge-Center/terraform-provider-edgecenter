@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
@@ -338,7 +338,7 @@ func loadbalancerDeleteNotFoundCase(lbID string) support.ResourceCase[*cloudmock
 func TestIntegrationLoadBalancerV2_TableDriven(t *testing.T) {
 	t.Parallel()
 
-	resource := edgecenter.Provider().ResourcesMap["edgecenter_loadbalancerv2"]
+	resource := provider.Provider().ResourcesMap["edgecenter_loadbalancerv2"]
 
 	cases := []support.ResourceCase[*cloudmock.MockedCloud]{
 		loadbalancerCreateCase(testLoadBalancerID),
