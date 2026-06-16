@@ -16,7 +16,7 @@ func NewProvider() *schema.Provider {
 
 func Factory(p *schema.Provider) map[string]func() (*schema.Provider, error) {
 	return map[string]func() (*schema.Provider, error){
-		"edgecenter": func() (*schema.Provider, error) {
+		"edgecenter": func() (*schema.Provider, error) { //nolint:unparam
 			return p, nil
 		},
 	}
