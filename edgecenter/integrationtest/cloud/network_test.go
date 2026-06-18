@@ -4,6 +4,7 @@ package edgecenter_test
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -216,6 +217,93 @@ func networkDeleteCase(netID string) support.ResourceCase[*cloudmock.MockedCloud
 	}
 }
 
+func networkMetadataUpdateCase(netID string) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 2)
+
+	netWithMeta := sampleNetwork(netID, "test-net")
+	netWithMeta.Metadata = []edgecloud.MetadataDetailed{
+		{Key: "env", Value: "prod", ReadOnly: false},
+	}
+
+	mc.Networks.On("MetadataUpdate", mock.Anything, netID,
+		mock.MatchedBy(func(meta *edgecloud.Metadata) bool {
+			return len(*meta) == 1 && (*meta)["env"] == "prod"
+		}),
+	).Return(nil, nil)
+
+	mc.Networks.On("Get", mock.Anything, netID).
+		Return(netWithMeta, nil, nil)
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "update metadata",
+		Op:        support.OpApply,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: netID,
+		CurrentState: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			cloud.WithName("test-net"),
+		),
+		NewConfig: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			cloud.WithName("test-net"),
+			cloud.WithMetadata(map[string]string{"env": "prod"}),
+		),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateID(t, state, netID)
+		},
+	}
+}
+
+func networkReadNotFoundCase(netID string) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
+
+	mc.Networks.On("Get", mock.Anything, netID).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "read non-existent (404)",
+		Op:        support.OpRead,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: netID,
+		CurrentState: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			cloud.WithName("test-net"),
+		),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "not found")
+		},
+	}
+}
+
+func networkDeleteNotFoundCase(netID string) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
+
+	mc.Networks.On("Delete", mock.Anything, netID).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "delete non-existent (404)",
+		Op:        support.OpDelete,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: netID,
+		CurrentState: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			cloud.WithName("test-net"),
+		),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "not found")
+			require.NotNil(t, state, "state must not be nil when delete gets 404")
+			require.Equal(t, netID, state.ID, "ID must not be cleared on failed delete")
+		},
+	}
+}
+
 func TestUnitNetwork_TableDriven(t *testing.T) {
 	t.Parallel()
 
@@ -225,9 +313,12 @@ func TestUnitNetwork_TableDriven(t *testing.T) {
 		networkCreateCase(testNetID),
 		networkCreateAPIFailureCase(),
 		networkReadCase(testNetID),
+		networkReadNotFoundCase(testNetID),
 		networkUpdateNameCase(testNetID),
+		networkMetadataUpdateCase(testNetID),
 		networkDeleteCase(testNetID),
 		networkDeleteTaskErrorCase(testNetID),
+		networkDeleteNotFoundCase(testNetID),
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*cloudmock.MockedCloud])
