@@ -27,12 +27,26 @@ type MockedCloud struct {
 
 	mocks []*mock.Mock
 
-	Tasks    *TasksService
-	Networks *NetworksService
-	Projects *ProjectsService
-	Regions  *RegionsService
-	Volumes  *VolumesService
-	KeyPairs *KeyPairsService
+	Tasks             *TasksService
+	Networks          *NetworksService
+	Projects          *ProjectsService
+	Regions           *RegionsService
+	Volumes           *VolumesService
+	KeyPairs          *KeyPairsService
+	ServerGroups      *ServerGroupsService
+	LifeCyclePolicies *LifeCyclePoliciesService
+	Subnetworks       *SubnetworksService
+	Routers           *RoutersService
+	Floatingips       *FloatingIPsService
+	SecurityGroups    *SecurityGroupsService
+	Snapshots         *SnapshotsService
+	ReservedFixedIP   *ReservedFixedIPsService
+	L7Policies        *L7PoliciesService
+	L7Rules           *L7RulesService
+	Ports             *PortsService
+	Loadbalancers     *LoadbalancersService
+	Instances         *InstancesService
+	Secrets           *SecretsService
 }
 
 // TestMeta returns the provider meta bound to this fixture.
@@ -65,13 +79,27 @@ func NewMockedCloud(projectID, regionID int) *MockedCloud {
 	client.HTTPClient = &http.Client{Transport: &errorTransport{}}
 
 	mc := &MockedCloud{
-		mocks:    make([]*mock.Mock, 0, 6),
-		Tasks:    &TasksService{},
-		Networks: &NetworksService{},
-		Projects: &ProjectsService{},
-		Regions:  &RegionsService{},
-		Volumes:  &VolumesService{},
-		KeyPairs: &KeyPairsService{},
+		mocks:             make([]*mock.Mock, 0, 20),
+		Tasks:             &TasksService{},
+		Networks:          &NetworksService{},
+		Projects:          &ProjectsService{},
+		Regions:           &RegionsService{},
+		Volumes:           &VolumesService{},
+		KeyPairs:          &KeyPairsService{},
+		ServerGroups:      &ServerGroupsService{},
+		LifeCyclePolicies: &LifeCyclePoliciesService{},
+		Subnetworks:       &SubnetworksService{},
+		Routers:           &RoutersService{},
+		Floatingips:       &FloatingIPsService{},
+		SecurityGroups:    &SecurityGroupsService{},
+		Snapshots:         &SnapshotsService{},
+		ReservedFixedIP:   &ReservedFixedIPsService{},
+		L7Policies:        &L7PoliciesService{},
+		L7Rules:           &L7RulesService{},
+		Ports:             &PortsService{},
+		Loadbalancers:     &LoadbalancersService{},
+		Instances:         &InstancesService{},
+		Secrets:           &SecretsService{},
 	}
 
 	mc.mocks = append(mc.mocks,
@@ -81,6 +109,20 @@ func NewMockedCloud(projectID, regionID int) *MockedCloud {
 		&mc.Regions.Mock,
 		&mc.Volumes.Mock,
 		&mc.KeyPairs.Mock,
+		&mc.ServerGroups.Mock,
+		&mc.LifeCyclePolicies.Mock,
+		&mc.Subnetworks.Mock,
+		&mc.Routers.Mock,
+		&mc.Floatingips.Mock,
+		&mc.SecurityGroups.Mock,
+		&mc.Snapshots.Mock,
+		&mc.ReservedFixedIP.Mock,
+		&mc.L7Policies.Mock,
+		&mc.L7Rules.Mock,
+		&mc.Ports.Mock,
+		&mc.Loadbalancers.Mock,
+		&mc.Instances.Mock,
+		&mc.Secrets.Mock,
 	)
 
 	client.Tasks = mc.Tasks
@@ -89,6 +131,20 @@ func NewMockedCloud(projectID, regionID int) *MockedCloud {
 	client.Regions = mc.Regions
 	client.Volumes = mc.Volumes
 	client.KeyPairs = mc.KeyPairs
+	client.ServerGroups = mc.ServerGroups
+	client.LifeCyclePolicies = mc.LifeCyclePolicies
+	client.Subnetworks = mc.Subnetworks
+	client.Routers = mc.Routers
+	client.Floatingips = mc.Floatingips
+	client.SecurityGroups = mc.SecurityGroups
+	client.Snapshots = mc.Snapshots
+	client.ReservedFixedIP = mc.ReservedFixedIP
+	client.L7Policies = mc.L7Policies
+	client.L7Rules = mc.L7Rules
+	client.Ports = mc.Ports
+	client.Loadbalancers = mc.Loadbalancers
+	client.Instances = mc.Instances
+	client.Secrets = mc.Secrets
 
 	mc.Client = client
 	mc.Config = &edgecenter.Config{
