@@ -22,6 +22,7 @@ func resourceLoadBalancerV2() *schema.Resource {
 		Description:   "Represent load balancer without nested listener",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Importer: &schema.ResourceImporter{
@@ -75,12 +76,12 @@ func resourceLoadBalancerV2() *schema.Resource {
 			"flavor": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
 				Description: "The flavor or specification of the load balancer to be created.",
 			},
 			"vip_port_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"vip_network_id"},
 				Description:   "Attaches the created reserved IP.",
@@ -211,6 +212,8 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 		d.Set("vip_address", lb.VipAddress.String())
 	}
 
+	d.Set("vip_port_id", lb.VipPortID)
+
 	fields := []string{"vip_network_id", "vip_subnet_id"}
 	revertState(d, &fields)
 
@@ -251,6 +254,30 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 		}
 
 		d.Set("last_updated", time.Now().Format(time.RFC850))
+	}
+
+	if d.HasChange("flavor") {
+		req := &edgecloudV2.LoadbalancerChangeFlavorRequest{Flavor: d.Get("flavor").(string)}
+		taskResult, _, err := clientV2.Loadbalancers.ChangeFlavor(ctx, d.Id(), req)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskResult.Tasks[0], LoadBalancerUpdateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		parsed, err := utilV2.ExtractTaskResultFromTask(taskInfo)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if len(parsed.Loadbalancers) > 0 {
+			d.SetId(parsed.Loadbalancers[0])
+		} else {
+			return diag.Errorf("change_flavor: API did not return new loadbalancer ID in task result")
+		}
 	}
 
 	if d.HasChange("metadata_map") {
