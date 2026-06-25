@@ -198,8 +198,13 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	lb, _, err := clientV2.Loadbalancers.Get(ctx, d.Id())
+	lb, resp, err := clientV2.Loadbalancers.Get(ctx, d.Id())
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] LoadBalancer %s not found, removing from state", d.Id())
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 
