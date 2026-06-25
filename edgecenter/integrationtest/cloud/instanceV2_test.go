@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -407,7 +407,7 @@ func instanceV2DeleteTaskErrorCase(instID string) support.ResourceCase[*cloudmoc
 	}
 }
 
-func TestUnitInstanceV2_TableDriven(t *testing.T) {
+func TestIntegrationInstanceV2_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_instanceV2"]

@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -223,7 +223,7 @@ func secretDeleteTaskErrorCase(secretID string) support.ResourceCase[*cloudmock.
 	}
 }
 
-func TestUnitSecret_TableDriven(t *testing.T) {
+func TestIntegrationSecret_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_secret"]

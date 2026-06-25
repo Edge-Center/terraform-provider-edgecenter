@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -264,7 +264,7 @@ func portSecDisableAPIFailureCase() support.ResourceCase[*cloudmock.MockedCloud]
 	}
 }
 
-func TestUnitInstancePortSecurity_TableDriven(t *testing.T) {
+func TestIntegrationInstancePortSecurity_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_instance_port_security"]

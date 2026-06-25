@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -317,7 +317,7 @@ func poolDeleteNotFoundCase(poolID string) support.ResourceCase[*cloudmock.Mocke
 	}
 }
 
-func TestUnitLBPool_TableDriven(t *testing.T) {
+func TestIntegrationLBPool_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_lbpool"]

@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -269,7 +269,7 @@ func volumeUpdateSizeCase(volID string) support.ResourceCase[*cloudmock.MockedCl
 	}
 }
 
-func TestUnitVolume_TableDriven(t *testing.T) {
+func TestIntegrationVolume_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_volume"]

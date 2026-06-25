@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -304,7 +304,7 @@ func networkDeleteNotFoundCase(netID string) support.ResourceCase[*cloudmock.Moc
 	}
 }
 
-func TestUnitNetwork_TableDriven(t *testing.T) {
+func TestIntegrationNetwork_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_network"]

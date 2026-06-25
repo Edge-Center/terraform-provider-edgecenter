@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -229,7 +229,7 @@ func projectDeleteTaskErrorCase(projID int) support.ResourceCase[*cloudmock.Mock
 	}
 }
 
-func TestUnitProject_TableDriven(t *testing.T) {
+func TestIntegrationProject_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_project"]

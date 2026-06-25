@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -357,7 +357,7 @@ func routerUpdateExternalGatewayInfoCase(routerID string) support.ResourceCase[*
 	}
 }
 
-func TestUnitRouter_TableDriven(t *testing.T) {
+func TestIntegrationRouter_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_router"]

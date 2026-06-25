@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -343,7 +343,7 @@ func l7ruleDeleteTaskErrorCase(l7policyID, l7ruleID string) support.ResourceCase
 	}
 }
 
-func TestUnitL7Rule_TableDriven(t *testing.T) {
+func TestIntegrationL7Rule_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_lb_l7rule"]

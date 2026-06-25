@@ -50,10 +50,6 @@ func ApplyConfig(
 	return resource.Apply(ctx, currentState, diff, meta)
 }
 
-func EmptyState() *terraform.InstanceState {
-	return nil
-}
-
 func currentStateFromCase(
 	t *testing.T,
 	resource *schema.Resource,

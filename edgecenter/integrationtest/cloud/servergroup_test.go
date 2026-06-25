@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -169,7 +169,7 @@ func serverGroupDeleteAPIFailureCase(sgID string) support.ResourceCase[*cloudmoc
 	}
 }
 
-func TestUnitServerGroup_TableDriven(t *testing.T) {
+func TestIntegrationServerGroup_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_servergroup"]

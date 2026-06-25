@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -213,7 +213,7 @@ func keypairReadNotFoundCase(kpID string) support.ResourceCase[*cloudmock.Mocked
 	}
 }
 
-func TestUnitKeypair_TableDriven(t *testing.T) {
+func TestIntegrationKeypair_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_keypair"]

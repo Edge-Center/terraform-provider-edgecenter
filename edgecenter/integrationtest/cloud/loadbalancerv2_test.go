@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -335,7 +335,7 @@ func loadbalancerDeleteNotFoundCase(lbID string) support.ResourceCase[*cloudmock
 	}
 }
 
-func TestUnitLoadBalancerV2_TableDriven(t *testing.T) {
+func TestIntegrationLoadBalancerV2_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_loadbalancerv2"]

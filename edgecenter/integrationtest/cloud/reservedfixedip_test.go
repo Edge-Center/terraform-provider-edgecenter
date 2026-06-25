@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -255,7 +255,7 @@ func reservedFixedIPDeleteOnDeletedCase(ipID string) support.ResourceCase[*cloud
 	}
 }
 
-func TestUnitReservedFixedIP_TableDriven(t *testing.T) {
+func TestIntegrationReservedFixedIP_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_reservedfixedip"]

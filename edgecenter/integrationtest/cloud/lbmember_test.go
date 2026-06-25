@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -317,7 +317,7 @@ func memberDeleteTaskErrorCase(poolID, memberID string) support.ResourceCase[*cl
 	}
 }
 
-func TestUnitLBMember_TableDriven(t *testing.T) {
+func TestIntegrationLBMember_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_lbmember"]

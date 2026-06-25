@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -306,7 +306,7 @@ func subnetDeleteAlreadyDeletedCase(subnetID string) support.ResourceCase[*cloud
 	}
 }
 
-func TestUnitSubnet_TableDriven(t *testing.T) {
+func TestIntegrationSubnet_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_subnet"]

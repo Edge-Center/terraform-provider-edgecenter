@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -510,7 +510,7 @@ func securityGroupMetadataUpdateCase(sgID string) support.ResourceCase[*cloudmoc
 	}
 }
 
-func TestUnitSecurityGroup_TableDriven(t *testing.T) {
+func TestIntegrationSecurityGroup_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_securitygroup"]

@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -302,7 +302,7 @@ func snapshotUpdateMetadataCase(snapID string) support.ResourceCase[*cloudmock.M
 	}
 }
 
-func TestUnitSnapshot_TableDriven(t *testing.T) {
+func TestIntegrationSnapshot_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_snapshot"]

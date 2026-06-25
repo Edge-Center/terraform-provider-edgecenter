@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -355,6 +355,14 @@ func lifecyclePolicyCreateAPIFailureCase() support.ResourceCase[*cloudmock.Mocke
 
 func lifecyclePolicyValidationEmptyScheduleCase() support.ResourceCase[*cloudmock.MockedCloud] {
 	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.AllowProjectResolution(mc, testProjectID)
+	cloudmock.AllowRegionResolution(mc, testRegionID)
+
+	mc.LifeCyclePolicies.On("Create", mock.Anything,
+		mock.MatchedBy(func(req *edgecloud.LifeCyclePolicyCreateRequest) bool {
+			return req.Name == "test-lcp"
+		}),
+	).Return(nil, nil, fmt.Errorf("at least one 'schedule' should be set"))
 
 	return support.ResourceCase[*cloudmock.MockedCloud]{
 		Name:    "validation: empty schedule",
@@ -409,7 +417,7 @@ func lifecyclePolicyDeleteAPIFailureCase(lcpID int) support.ResourceCase[*cloudm
 	}
 }
 
-func TestUnitLifecyclePolicy_TableDriven(t *testing.T) {
+func TestIntegrationLifecyclePolicy_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_lifecyclepolicy"]

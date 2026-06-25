@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -259,7 +259,7 @@ func floatingIPReadNotFoundCase(fipID string) support.ResourceCase[*cloudmock.Mo
 	}
 }
 
-func TestUnitFloatingIP_TableDriven(t *testing.T) {
+func TestIntegrationFloatingIP_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_floatingip"]

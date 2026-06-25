@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -297,7 +297,7 @@ func l7policyDeleteTaskErrorCase(policyID string) support.ResourceCase[*cloudmoc
 	}
 }
 
-func TestUnitL7Policy_TableDriven(t *testing.T) {
+func TestIntegrationL7Policy_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_lb_l7policy"]

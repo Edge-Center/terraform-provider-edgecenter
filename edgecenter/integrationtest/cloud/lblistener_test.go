@@ -1,4 +1,4 @@
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -309,7 +309,7 @@ func listenerDeleteTaskErrorCase(listenerID string) support.ResourceCase[*cloudm
 	}
 }
 
-func TestUnitLBListener_TableDriven(t *testing.T) {
+func TestIntegrationLBListener_TableDriven(t *testing.T) {
 	t.Parallel()
 
 	resource := edgecenter.Provider().ResourcesMap["edgecenter_lblistener"]

@@ -1,6 +1,6 @@
 # integrationtest
 
-`integrationtest` is the only place for unit-test-related code in this repository.
+`integrationtest` is the only place for integration-test-related code in this repository.
 
 ## Structure
 
@@ -22,14 +22,14 @@ integrationtest/
 │           ├── RegionsService.go   (generated)
 │           ├── VolumesService.go   (generated)
 │           └── generate.go         # go:generate entry point
-├── cloud/            # Cloud resource unit tests
+├── cloud/            # Cloud resource integration tests
 │   ├── network_test.go
 │   └── …
-├── cdn/              # Future: CDN resource unit tests
-└── dns/              # Future: DNS resource unit tests
+├── cdn/              # Future: CDN resource integration tests
+└── dns/              # Future: DNS resource integration tests
 ```
 
-## How to write a cloud resource unit test
+## How to write a cloud resource integration test
 
 ### 1. Generate mocks (if new SDK interfaces are needed)
 
@@ -48,7 +48,7 @@ go generate ./edgecenter/integrationtest/support/cloud/mock/...
 ### 2. Create a test file
 
 ```go
-//go:build unit
+//go:build integration
 
 package edgecenter_test
 
@@ -102,7 +102,7 @@ Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics
 ### 4. Run
 
 ```bash
-go test -tags=unit -v -count=1 ./edgecenter/integrationtest/cloud/...
+go test -tags=integration -v -count=1 ./edgecenter/integrationtest/cloud/...
 ```
 
 ## Patterns & conventions
@@ -114,7 +114,7 @@ go test -tags=unit -v -count=1 ./edgecenter/integrationtest/cloud/...
   `client.Tasks.Get` internally.
 - **Keep test-only code inside `integrationtest/`** — production packages under `edgecenter/`
   must not import test infrastructure.
-- **Use `//go:build unit`** build tag to isolate unit tests from acceptance tests.
+- **Use `//go:build integration`** build tag to isolate integration tests from acceptance tests.
 - **One factory function per case** — creates an isolated `MockedCloud` per case,
   avoiding shared mutable state between subtests.
 - **Default to `NewMockedCloud`** — then add explicit project/region resolution
@@ -162,10 +162,10 @@ support/cloud/mock/ — сгенерированные testify mocks на SDK-и
 Терминология (как договорились)
 То, что в папке integrationtest — можно называть как угодно:
 
-"unit tests" (по папке и тегу //go:build unit)
+"integration tests" (по папке и тегу //go:build integration)
 "integration tests" (по факту — проверка связки resource ↔ SDK)
 "resource-level tests" (нейтрально)
-В CI они гоняются тегом unit. От acceptance отличаются отсутствием сети, Terraform CLI, и кредов.
+В CI они гоняются тегом integration. От acceptance отличаются отсутствием сети, Terraform CLI, и кредов.
 
 Что писать сейчас
 Для каждого нового/изменяемого ресурса:

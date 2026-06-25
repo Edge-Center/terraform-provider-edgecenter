@@ -1,10 +1,6 @@
 package cloud
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/require"
-
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 )
 
@@ -31,19 +27,6 @@ func TaskWithState(state edgecloudV2.TaskState) *edgecloudV2.Task {
 	}
 }
 
-func TaskSuccessWith(kind string, ids ...string) *edgecloudV2.Task {
-	task := TaskWithCreatedResources(kind, ids...)
-	task.State = edgecloudV2.TaskStateFinished
-
-	return task
-}
-
 func TaskError() *edgecloudV2.Task {
 	return TaskWithState(edgecloudV2.TaskStateError)
-}
-
-func RequireWaitTaskCalled(t *testing.T, gotTaskIDs []string, want string) {
-	t.Helper()
-
-	require.Contains(t, gotTaskIDs, want)
 }
