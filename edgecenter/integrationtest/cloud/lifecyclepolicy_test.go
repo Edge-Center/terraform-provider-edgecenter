@@ -355,14 +355,6 @@ func lifecyclePolicyCreateAPIFailureCase() support.ResourceCase[*cloudmock.Mocke
 
 func lifecyclePolicyValidationEmptyScheduleCase() support.ResourceCase[*cloudmock.MockedCloud] {
 	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
-	cloudmock.AllowProjectResolution(mc, testProjectID)
-	cloudmock.AllowRegionResolution(mc, testRegionID)
-
-	mc.LifeCyclePolicies.On("Create", mock.Anything,
-		mock.MatchedBy(func(req *edgecloud.LifeCyclePolicyCreateRequest) bool {
-			return req.Name == "test-lcp"
-		}),
-	).Return(nil, nil, fmt.Errorf("at least one 'schedule' should be set"))
 
 	return support.ResourceCase[*cloudmock.MockedCloud]{
 		Name:    "validation: empty schedule",
