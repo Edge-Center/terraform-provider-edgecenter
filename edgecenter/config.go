@@ -13,15 +13,16 @@ import (
 )
 
 type Config struct {
-	PermanentToken   string
-	CloudBaseURL     string
-	UserAgent        string
-	Provider         *edgecloud.ProviderClient
-	CDNClient        cdn.ClientService
-	StorageClient    *storageSDK.SDK
-	DNSClient        *dnsSDK.Client
-	ProtectionClient *protection.Client
-	RmonClient       rmon.ClientService
+	PermanentToken     string
+	CloudBaseURL       string
+	UserAgent          string
+	Provider           *edgecloud.ProviderClient
+	CDNClient          cdn.ClientService
+	StorageClient      *storageSDK.SDK
+	DNSClient          *dnsSDK.Client
+	ProtectionClient   *protection.Client
+	RmonClient         rmon.ClientService
+	CloudClientFactory func() (*edgecloudV2.Client, error)
 }
 
 func NewConfig(
@@ -49,6 +50,10 @@ func NewConfig(
 }
 
 func (c *Config) NewCloudClient() (*edgecloudV2.Client, error) {
+	if c.CloudClientFactory != nil {
+		return c.CloudClientFactory()
+	}
+
 	cloudClient, err := edgecloudV2.NewWithRetries(nil,
 		edgecloudV2.SetUserAgent(c.UserAgent),
 		edgecloudV2.SetAPIKey(c.PermanentToken),
@@ -57,5 +62,6 @@ func (c *Config) NewCloudClient() (*edgecloudV2.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error from creating cloud client: %w", err)
 	}
+
 	return cloudClient, nil
 }
