@@ -283,12 +283,16 @@ func resourceLifecyclePolicy() *schema.Resource {
 }
 
 func resourceLifecyclePolicyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Printf("[DEBUG] Start of LifecyclePolicy creating")
+
+	if len(d.Get("schedule").([]interface{})) == 0 {
+		return diag.Errorf("at least one 'schedule' should be set")
+	}
+
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	log.Printf("[DEBUG] Start of LifecyclePolicy creating")
 	opts, err := buildLifecyclePolicyCreateOptsV2(d)
 	if err != nil {
 		return diag.FromErr(err)
