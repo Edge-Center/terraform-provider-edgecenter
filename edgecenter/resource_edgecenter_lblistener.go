@@ -3,6 +3,7 @@ package edgecenter
 import (
 	"context"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
@@ -299,8 +300,13 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	listener, _, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
+	listener, resp, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] Listener %s not found, removing from state", d.Id())
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 
@@ -444,8 +450,13 @@ func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	id := d.Id()
-	results, _, err := clientV2.Loadbalancers.ListenerDelete(ctx, id)
+	results, resp, err := clientV2.Loadbalancers.ListenerDelete(ctx, id)
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			log.Printf("[DEBUG] Finish of LBListener deleting")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 

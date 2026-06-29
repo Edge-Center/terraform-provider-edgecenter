@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -279,8 +280,13 @@ func resourceL7PolicyV2Read(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	l7Policy, _, err := clientV2.L7Policies.Get(ctx, d.Id())
+	l7Policy, resp, err := clientV2.L7Policies.Get(ctx, d.Id())
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] L7 Policy %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -386,8 +392,13 @@ func resourceL7PolicyV2Delete(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	id := d.Id()
-	results, _, err := clientV2.L7Policies.Delete(ctx, id)
+	results, resp, err := clientV2.L7Policies.Delete(ctx, id)
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] L7 Policy %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 

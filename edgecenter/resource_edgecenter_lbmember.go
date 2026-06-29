@@ -197,8 +197,13 @@ func resourceLBMemberRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	poolID := d.Get("pool_id").(string)
 
-	pool, _, err := clientV2.Loadbalancers.PoolGet(ctx, poolID)
+	pool, resp, err := clientV2.Loadbalancers.PoolGet(ctx, poolID)
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] Pool %s not found, removing member %s from state", poolID, d.Id())
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 

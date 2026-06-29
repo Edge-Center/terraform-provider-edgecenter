@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -206,13 +207,23 @@ func resourceL7RuleV2Read(ctx context.Context, d *schema.ResourceData, m interfa
 
 	l7policyID := d.Get(LBL7RuleL7PolicyIDField).(string)
 
-	l7Rule, _, err := clientV2.L7Rules.Get(ctx, l7policyID, d.Id())
+	l7Rule, resp, err := clientV2.L7Rules.Get(ctx, l7policyID, d.Id())
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] L7 Rule %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
-	l7Policy, _, err := clientV2.L7Policies.Get(ctx, l7policyID)
+	l7Policy, resp, err := clientV2.L7Policies.Get(ctx, l7policyID)
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] L7 Policy %s not found, removing L7 Rule %s from state", l7policyID, d.Id())
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -307,8 +318,13 @@ func resourceL7RuleV2Delete(ctx context.Context, d *schema.ResourceData, m inter
 
 	l7policyID := d.Get("l7policy_id").(string)
 
-	result, _, err := clientV2.L7Rules.Delete(ctx, l7policyID, d.Id())
+	result, resp, err := clientV2.L7Rules.Delete(ctx, l7policyID, d.Id())
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] L7 Rule %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 	taskID := result.Tasks[0]

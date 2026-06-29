@@ -73,11 +73,12 @@ func resourceLoadBalancerV2() *schema.Resource {
 				Required:    true,
 				Description: "The name of the load balancer.",
 			},
-			"flavor": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The flavor or specification of the load balancer to be created.",
-			},
+		"flavor": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "The flavor or specification of the load balancer to be created.",
+		},
 			"vip_port_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
@@ -259,30 +260,6 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 		}
 
 		d.Set("last_updated", time.Now().Format(time.RFC850))
-	}
-
-	if d.HasChange("flavor") {
-		req := &edgecloudV2.LoadbalancerChangeFlavorRequest{Flavor: d.Get("flavor").(string)}
-		taskResult, _, err := clientV2.Loadbalancers.ChangeFlavor(ctx, d.Id(), req)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskResult.Tasks[0], LoadBalancerUpdateTimeout)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		parsed, err := utilV2.ExtractTaskResultFromTask(taskInfo)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		if len(parsed.Loadbalancers) > 0 {
-			d.SetId(parsed.Loadbalancers[0])
-		} else {
-			return diag.Errorf("change_flavor: API did not return new loadbalancer ID in task result")
-		}
 	}
 
 	if d.HasChange("metadata_map") {
