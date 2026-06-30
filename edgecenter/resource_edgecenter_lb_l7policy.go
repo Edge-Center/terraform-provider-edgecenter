@@ -283,11 +283,31 @@ func resourceL7PolicyV2Read(ctx context.Context, d *schema.ResourceData, m inter
 	l7Policy, resp, err := clientV2.L7Policies.Get(ctx, d.Id())
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] L7 Policy %s not found, removing from state", d.Id())
-			d.SetId("")
-			return nil
+			position, _ := d.Get(LBL7PolicyPositionField).(int)
+			redirectPoolID := d.Get(LBL7PolicyRedirectPoolIDField).(string)
+			redirectURL := d.Get(LBL7PolicyRedirectURLField).(string)
+			redirectPrefix := d.Get(LBL7PolicyRedirectPrefixField).(string)
+			redirectHTTPCode, _ := d.Get(LBL7PolicyRedirectHTTPCodeField).(int)
+
+			matched, rebindErr := resolveL7PolicyAfterLBMigration(ctx, clientV2,
+				d.Get(LBL7PolicyNameField).(string),
+				d.Get(LBL7PolicyActionField).(string),
+				position, redirectPoolID, redirectURL, redirectPrefix, redirectHTTPCode,
+			)
+			if rebindErr != nil {
+				return diag.FromErr(rebindErr)
+			}
+			if matched != nil {
+				d.SetId(matched.ID)
+				d.Set(LBL7PolicyListenerIDField, matched.ListenerID)
+				l7Policy = matched
+			} else {
+				d.SetId("")
+				return nil
+			}
+		} else {
+			return diag.FromErr(err)
 		}
-		return diag.FromErr(err)
 	}
 
 	log.Printf("[DEBUG] Retrieved L7 Policy %s: %#v", d.Id(), l7Policy)
@@ -392,13 +412,8 @@ func resourceL7PolicyV2Delete(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	id := d.Id()
-	results, resp, err := clientV2.L7Policies.Delete(ctx, id)
+	results, _, err := clientV2.L7Policies.Delete(ctx, id)
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] L7 Policy %s not found, removing from state", d.Id())
-			d.SetId("")
-			return nil
-		}
 		return diag.FromErr(err)
 	}
 

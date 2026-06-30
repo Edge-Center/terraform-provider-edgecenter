@@ -130,8 +130,11 @@ func poolReadNotFoundCase(poolID string) support.ResourceCase[*cloudmock.MockedC
 	mc.Loadbalancers.On("PoolGet", mock.Anything, poolID).
 		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
 
+	mc.Loadbalancers.On("PoolList", mock.Anything, mock.Anything).
+		Return([]edgecloud.Pool{}, &edgecloud.Response{}, nil)
+
 	return support.ResourceCase[*cloudmock.MockedCloud]{
-		Name:      "read non-existent (404)",
+		Name:      "read non-existent (404) -> rebind clears state",
 		Op:        support.OpRead,
 		Prepare:   func() *cloudmock.MockedCloud { return mc },
 		CurrentID: poolID,
@@ -142,8 +145,8 @@ func poolReadNotFoundCase(poolID string) support.ResourceCase[*cloudmock.MockedC
 			},
 		),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
-			support.RequireHasErrorDiags(t, diags)
-			support.RequireErrorDiagContains(t, diags, "not found")
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when resource not found")
 		},
 	}
 }

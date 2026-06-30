@@ -210,20 +210,49 @@ func resourceL7RuleV2Read(ctx context.Context, d *schema.ResourceData, m interfa
 	l7Rule, resp, err := clientV2.L7Rules.Get(ctx, l7policyID, d.Id())
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] L7 Rule %s not found, removing from state", d.Id())
-			d.SetId("")
-			return nil
+			ruleType := d.Get(TypeField).(string)
+			key := d.Get(KeyField).(string)
+			value := d.Get(LBL7RuleValueField).(string)
+			compareType := d.Get(LB7RuleCompareTypeField).(string)
+			invert := d.Get(LBL7RuleInvertField).(bool)
+
+			_, policyResp, policyErr := clientV2.L7Policies.Get(ctx, l7policyID)
+			if policyErr != nil {
+				if policyResp != nil && policyResp.StatusCode == http.StatusNotFound {
+					matchedPolicy, rebindErr := resolveL7PolicyAfterLBMigration(ctx, clientV2, "", "", 0, "", "", "", 0)
+					if rebindErr != nil {
+						return diag.FromErr(rebindErr)
+					}
+					if matchedPolicy != nil {
+						l7policyID = matchedPolicy.ID
+					} else {
+						d.SetId("")
+						return nil
+					}
+				} else {
+					return diag.FromErr(policyErr)
+				}
+			}
+
+			matched, rebindErr := resolveL7RuleAfterPolicyMigration(ctx, clientV2, l7policyID, ruleType, key, value, compareType, invert)
+			if rebindErr != nil {
+				return diag.FromErr(rebindErr)
+			}
+			if matched != nil {
+				d.SetId(matched.ID)
+				d.Set(LBL7RuleL7PolicyIDField, l7policyID)
+				l7Rule = matched
+			} else {
+				d.SetId("")
+				return nil
+			}
+		} else {
+			return diag.FromErr(err)
 		}
-		return diag.FromErr(err)
 	}
 
-	l7Policy, resp, err := clientV2.L7Policies.Get(ctx, l7policyID)
+	l7Policy, _, err := clientV2.L7Policies.Get(ctx, l7policyID)
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] L7 Policy %s not found, removing L7 Rule %s from state", l7policyID, d.Id())
-			d.SetId("")
-			return nil
-		}
 		return diag.FromErr(err)
 	}
 
@@ -318,13 +347,8 @@ func resourceL7RuleV2Delete(ctx context.Context, d *schema.ResourceData, m inter
 
 	l7policyID := d.Get("l7policy_id").(string)
 
-	result, resp, err := clientV2.L7Rules.Delete(ctx, l7policyID, d.Id())
+	result, _, err := clientV2.L7Rules.Delete(ctx, l7policyID, d.Id())
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] L7 Rule %s not found, removing from state", d.Id())
-			d.SetId("")
-			return nil
-		}
 		return diag.FromErr(err)
 	}
 	taskID := result.Tasks[0]

@@ -200,10 +200,34 @@ func resourceLBMemberRead(ctx context.Context, d *schema.ResourceData, m interfa
 	pool, resp, err := clientV2.Loadbalancers.PoolGet(ctx, poolID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] Pool %s not found, removing member %s from state", poolID, d.Id())
+			addr := net.ParseIP(d.Get("address").(string))
+			port := d.Get("protocol_port").(int)
+			matched, newPoolID, rebindErr := resolveMemberAcrossPools(ctx, clientV2,
+				addr,
+				port,
+				d.Get("weight").(int),
+				d.Get("subnet_id").(string),
+				d.Get("instance_id").(string),
+			)
+			if rebindErr != nil {
+				return diag.FromErr(rebindErr)
+			}
+			if matched != nil {
+				d.SetId(matched.ID)
+				d.Set("pool_id", newPoolID)
+				d.Set("address", matched.Address.String())
+				d.Set("protocol_port", matched.ProtocolPort)
+				d.Set("weight", matched.Weight)
+				d.Set("subnet_id", matched.SubnetID)
+				d.Set("instance_id", matched.InstanceID)
+				d.Set("operating_status", matched.OperatingStatus)
+				return diags
+			}
 			d.SetId("")
+
 			return diags
 		}
+
 		return diag.FromErr(err)
 	}
 
