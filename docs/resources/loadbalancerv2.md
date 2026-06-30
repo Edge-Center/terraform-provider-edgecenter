@@ -61,8 +61,8 @@ resource "edgecenter_loadbalancerv2" "lb" {
 Optional:
 
 - `create` (String)
-- `delete` (String)
 - `update` (String)
+- `delete` (String)
 
 
 <a id="nestedatt--metadata_read_only"></a>

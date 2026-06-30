@@ -73,12 +73,12 @@ func resourceLoadBalancerV2() *schema.Resource {
 				Required:    true,
 				Description: "The name of the load balancer.",
 			},
-		"flavor": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			ForceNew:    true,
-			Description: "The flavor or specification of the load balancer to be created.",
-		},
+			"flavor": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The flavor or specification of the load balancer to be created.",
+			},
 			"vip_port_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
@@ -199,13 +199,8 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	lb, resp, err := clientV2.Loadbalancers.Get(ctx, d.Id())
+	lb, _, err := clientV2.Loadbalancers.Get(ctx, d.Id())
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] LoadBalancer %s not found, removing from state", d.Id())
-			d.SetId("")
-			return diags
-		}
 		return diag.FromErr(err)
 	}
 
