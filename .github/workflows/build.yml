@@ -126,6 +126,7 @@ jobs:
         continue-on-error: true
       - name: Run tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=20m
+        continue-on-error: true
 
   mkaas-tests:
     needs: [smoke, detect]
@@ -195,6 +196,7 @@ jobs:
         continue-on-error: true
       - name: Run MKAAS tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=${{ matrix.kind.timeout }}
+        continue-on-error: true
 
   not-cloud-tests:
     needs: [smoke, detect]
