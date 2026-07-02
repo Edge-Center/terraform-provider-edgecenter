@@ -396,6 +396,7 @@ func Provider() *schema.Provider {
 			"edgecenter_lb_l7policy":                   dataSourceL7Policy(),
 			"edgecenter_lb_l7rule":                     datasourceL7Rule(),
 			"edgecenter_instance_port_security":        dataSourceInstancePortSecurity(),
+			"edgecenter_cdn_client_info":               dataSourceCDNClientInfo(),
 			"edgecenter_cdn_shielding_location":        dataShieldingLocation(),
 			"edgecenter_useractions_subscription_amqp": dataSourceUserActionsListAMQPSubscriptions(),
 			"edgecenter_useractions_subscription_log":  dataSourceUserActionsListLogSubscriptions(),
