@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
@@ -320,7 +320,7 @@ func memberDeleteTaskErrorCase(poolID, memberID string) support.ResourceCase[*cl
 func TestIntegrationLBMember_TableDriven(t *testing.T) {
 	t.Parallel()
 
-	resource := edgecenter.Provider().ResourcesMap["edgecenter_lbmember"]
+	resource := provider.Provider().ResourcesMap["edgecenter_lbmember"]
 
 	cases := []support.ResourceCase[*cloudmock.MockedCloud]{
 		memberCreateCase(testLBPoolID2, testLBMemberID),

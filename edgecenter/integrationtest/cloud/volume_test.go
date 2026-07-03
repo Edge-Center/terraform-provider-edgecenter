@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
@@ -272,7 +272,7 @@ func volumeUpdateSizeCase(volID string) support.ResourceCase[*cloudmock.MockedCl
 func TestIntegrationVolume_TableDriven(t *testing.T) {
 	t.Parallel()
 
-	resource := edgecenter.Provider().ResourcesMap["edgecenter_volume"]
+	resource := provider.Provider().ResourcesMap["edgecenter_volume"]
 
 	cases := []support.ResourceCase[*cloudmock.MockedCloud]{
 		volumeCreateCase(testVolumeID),

@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
@@ -267,7 +267,7 @@ func portSecDisableAPIFailureCase() support.ResourceCase[*cloudmock.MockedCloud]
 func TestIntegrationInstancePortSecurity_TableDriven(t *testing.T) {
 	t.Parallel()
 
-	resource := edgecenter.Provider().ResourcesMap["edgecenter_instance_port_security"]
+	resource := provider.Provider().ResourcesMap["edgecenter_instance_port_security"]
 
 	cases := []support.ResourceCase[*cloudmock.MockedCloud]{
 		portSecDisableCase(),

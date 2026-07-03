@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
@@ -300,7 +300,7 @@ func l7policyDeleteTaskErrorCase(policyID string) support.ResourceCase[*cloudmoc
 func TestIntegrationL7Policy_TableDriven(t *testing.T) {
 	t.Parallel()
 
-	resource := edgecenter.Provider().ResourcesMap["edgecenter_lb_l7policy"]
+	resource := provider.Provider().ResourcesMap["edgecenter_lb_l7policy"]
 
 	cases := []support.ResourceCase[*cloudmock.MockedCloud]{
 		l7policyCreateCase(testL7PolicyID),

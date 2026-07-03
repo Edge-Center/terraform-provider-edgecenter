@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
 )
@@ -232,7 +232,7 @@ func projectDeleteTaskErrorCase(projID int) support.ResourceCase[*cloudmock.Mock
 func TestIntegrationProject_TableDriven(t *testing.T) {
 	t.Parallel()
 
-	resource := edgecenter.Provider().ResourcesMap["edgecenter_project"]
+	resource := provider.Provider().ResourcesMap["edgecenter_project"]
 
 	cases := []support.ResourceCase[*cloudmock.MockedCloud]{
 		projectCreateCase(testProjectResourceID),
