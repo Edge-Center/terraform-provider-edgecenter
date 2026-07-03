@@ -18,7 +18,7 @@ resource "edgecenter_mkaas_cluster" "example" {
     node_count  = 1
     volume_size = 30
     volume_type = "ssd_hiiops"
-    version     = "v1.31.0"
+    version     = "v1.32.0"
   }
 }
 
