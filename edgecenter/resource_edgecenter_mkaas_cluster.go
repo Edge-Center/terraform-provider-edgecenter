@@ -140,8 +140,8 @@ func resourceMKaaSCluster() *schema.Resource {
 						MKaaSClusterVersionField: {
 							Type:         schema.TypeString,
 							Required:     true,
-							Description:  "The version of the Kubernetes cluster (format `vx.xx`). Available versions: `v1.31`, `v1.32`, `v1.33`.",
-							ValidateFunc: validation.StringInSlice([]string{"v1.31", "v1.32", "v1.33"}, false),
+							Description:  "The version of the Kubernetes cluster (format `vx.xx`). Available versions: `v1.31`, `v1.32`, `v1.33`, `v1.34`.",
+							ValidateFunc: validation.StringInSlice([]string{"v1.31", "v1.32", "v1.33", "v1.34"}, false),
 						},
 					},
 				},
