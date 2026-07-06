@@ -179,6 +179,11 @@ func resourceCheckSMTPRead(ctx context.Context, d *schema.ResourceData, m interf
 
 	resp, err := client.CheckSMTP().Get(ctx, id)
 	if err != nil {
+		if isNotFoundErr(err) {
+			log.Printf("[WARN] RMON Check SMTP not found, removing from state (id=%s)\n", resourceID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -255,7 +260,9 @@ func resourceCheckSMTPDelete(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	if err := client.CheckSMTP().Delete(ctx, id); err != nil {
-		return diag.FromErr(err)
+		if !isNotFoundErr(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")

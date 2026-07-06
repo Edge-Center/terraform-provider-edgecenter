@@ -69,7 +69,7 @@ jobs:
         with:
           go-version: 1.26.0
       - name: Run integration tests
-        run: go test -tags=integration -v -count=1 ./edgecenter/integrationtest/cloud/...
+        run: go test -tags=integration -v -count=1 ./edgecenter/integrationtest/...
 
   reseller-tests:
     needs: [smoke, detect]

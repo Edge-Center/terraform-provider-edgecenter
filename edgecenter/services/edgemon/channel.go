@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/Edge-Center/edgecenteredgemon-go/channel"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
@@ -24,6 +26,13 @@ func resourceRMONChannel() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "Receiver type used in API path. Only 'telegram', 'slack', 'pd', 'mm', 'email' are allowed.",
+				ValidateFunc: validation.StringInSlice([]string{
+					"telegram",
+					"slack",
+					"pd",
+					"mm",
+					"email",
+				}, false),
 			},
 			"token": {
 				Type:        schema.TypeString,
@@ -96,7 +105,12 @@ func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interfac
 	if err := d.Set("channel_name", resp.Channel); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("token", resp.Token); err != nil {
+
+	token := resp.Token
+	if strings.TrimSpace(token) == "" {
+		token = d.Get("token").(string)
+	}
+	if err := d.Set("token", token); err != nil {
 		return diag.FromErr(err)
 	}
 

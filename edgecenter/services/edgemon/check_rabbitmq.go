@@ -175,6 +175,11 @@ func resourceCheckRabbitMQRead(ctx context.Context, d *schema.ResourceData, m in
 
 	resp, err := client.CheckRabbitMQ().Get(ctx, id)
 	if err != nil {
+		if isNotFoundErr(err) {
+			log.Printf("[WARN] RMON Check RabbitMQ not found, removing from state (id=%s)\n", resourceID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -251,7 +256,9 @@ func resourceCheckRabbitMQDelete(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	if err := client.CheckRabbitMQ().Delete(ctx, id); err != nil {
-		return diag.FromErr(err)
+		if !isNotFoundErr(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")

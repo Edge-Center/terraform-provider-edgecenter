@@ -120,14 +120,14 @@ func resourceRMONCheckDNS() *schema.Resource {
 				Description: "DNS record type.",
 				ValidateFunc: validation.StringInSlice([]string{
 					"a",
-					"aaa",
+					"aaaa",
 					"caa",
 					"cname",
 					"mx",
 					"ns",
 					"ptr",
-					"sao",
-					"src",
+					"soa",
+					"srv",
 					"txt",
 				}, false),
 			},
@@ -184,6 +184,11 @@ func resourceCheckDNSRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	resp, err := client.CheckDNS().Get(ctx, id)
 	if err != nil {
+		if isNotFoundErr(err) {
+			log.Printf("[WARN] RMON Check DNS not found, removing from state (id=%s)\n", resourceID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -255,7 +260,9 @@ func resourceCheckDNSDelete(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if err := client.CheckDNS().Delete(ctx, id); err != nil {
-		return diag.FromErr(err)
+		if !isNotFoundErr(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")

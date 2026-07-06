@@ -173,6 +173,11 @@ func resourceCheckTCPRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	resp, err := client.CheckTCP().Get(ctx, id)
 	if err != nil {
+		if isNotFoundErr(err) {
+			log.Printf("[WARN] RMON Check TCP not found, removing from state (id=%s)\n", resourceID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -243,7 +248,9 @@ func resourceCheckTCPDelete(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if err := client.CheckTCP().Delete(ctx, id); err != nil {
-		return diag.FromErr(err)
+		if !isNotFoundErr(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")

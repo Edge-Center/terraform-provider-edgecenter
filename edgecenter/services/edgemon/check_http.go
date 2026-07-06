@@ -207,6 +207,11 @@ func resourceCheckHTTPRead(ctx context.Context, d *schema.ResourceData, m interf
 
 	resp, err := client.CheckHTTP().Get(ctx, id)
 	if err != nil {
+		if isNotFoundErr(err) {
+			log.Printf("[WARN] RMON Check HTTP not found, removing from state (id=%s)\n", resourceID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -233,7 +238,7 @@ func resourceCheckHTTPRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set("email_channel_id", resp.EmailChannelId)
 	_ = d.Set("url", resp.URL)
 	_ = d.Set("method", resp.Method)
-	_ = d.Set("ignore_ssl_error", resp.IgnoreSSLError)
+	_ = d.Set("ignore_ssl_error", intToBool(float64(resp.IgnoreSSLError)))
 	acceptedStatusCodes := make([]interface{}, 0, len(resp.AcceptedStatusCodes))
 	for _, v := range resp.AcceptedStatusCodes {
 		acceptedStatusCodes = append(acceptedStatusCodes, v)
@@ -287,7 +292,9 @@ func resourceCheckHTTPDelete(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	if err := client.CheckHTTP().Delete(ctx, id); err != nil {
-		return diag.FromErr(err)
+		if !isNotFoundErr(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")
