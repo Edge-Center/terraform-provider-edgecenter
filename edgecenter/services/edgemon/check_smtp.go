@@ -1,4 +1,4 @@
-package edgecenter
+package edgemon
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/Edge-Center/edgecenteredgemon-go/checks/checksmtp"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceRMONCheckSMTP() *schema.Resource {
@@ -148,7 +149,7 @@ func resourceRMONCheckSMTP() *schema.Resource {
 
 func resourceCheckSMTPCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start RMON Check SMTP creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	req := buildCheckSMTPRequest(d)
@@ -168,7 +169,7 @@ func resourceCheckSMTPRead(ctx context.Context, d *schema.ResourceData, m interf
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check SMTP reading (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -178,6 +179,11 @@ func resourceCheckSMTPRead(ctx context.Context, d *schema.ResourceData, m interf
 
 	resp, err := client.CheckSMTP().Get(ctx, id)
 	if err != nil {
+		if isNotFoundErr(err) {
+			log.Printf("[WARN] RMON Check SMTP not found, removing from state (id=%s)\n", resourceID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -222,7 +228,7 @@ func resourceCheckSMTPUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check SMTP updating (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -245,7 +251,7 @@ func resourceCheckSMTPDelete(ctx context.Context, d *schema.ResourceData, m inte
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check SMTP deleting (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -254,7 +260,9 @@ func resourceCheckSMTPDelete(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	if err := client.CheckSMTP().Delete(ctx, id); err != nil {
-		return diag.FromErr(err)
+		if !isNotFoundErr(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")

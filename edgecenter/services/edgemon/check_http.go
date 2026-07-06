@@ -1,4 +1,4 @@
-package edgecenter
+package edgemon
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/Edge-Center/edgecenteredgemon-go/checks/checkhttp"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceRMONCheckHTTP() *schema.Resource {
@@ -175,7 +176,7 @@ func resourceRMONCheckHTTP() *schema.Resource {
 
 func resourceCheckHTTPCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start RMON Check HTTP creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	req := buildCheckHTTPRequest(d)
@@ -196,7 +197,7 @@ func resourceCheckHTTPRead(ctx context.Context, d *schema.ResourceData, m interf
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check HTTP reading (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -206,6 +207,11 @@ func resourceCheckHTTPRead(ctx context.Context, d *schema.ResourceData, m interf
 
 	resp, err := client.CheckHTTP().Get(ctx, id)
 	if err != nil {
+		if isNotFoundErr(err) {
+			log.Printf("[WARN] RMON Check HTTP not found, removing from state (id=%s)\n", resourceID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -232,7 +238,7 @@ func resourceCheckHTTPRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set("email_channel_id", resp.EmailChannelId)
 	_ = d.Set("url", resp.URL)
 	_ = d.Set("method", resp.Method)
-	_ = d.Set("ignore_ssl_error", resp.IgnoreSSLError)
+	_ = d.Set("ignore_ssl_error", intToBool(float64(resp.IgnoreSSLError)))
 	acceptedStatusCodes := make([]interface{}, 0, len(resp.AcceptedStatusCodes))
 	for _, v := range resp.AcceptedStatusCodes {
 		acceptedStatusCodes = append(acceptedStatusCodes, v)
@@ -254,7 +260,7 @@ func resourceCheckHTTPUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check HTTP updating (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -277,7 +283,7 @@ func resourceCheckHTTPDelete(ctx context.Context, d *schema.ResourceData, m inte
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check HTTP deleting (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -286,7 +292,9 @@ func resourceCheckHTTPDelete(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	if err := client.CheckHTTP().Delete(ctx, id); err != nil {
-		return diag.FromErr(err)
+		if !isNotFoundErr(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")

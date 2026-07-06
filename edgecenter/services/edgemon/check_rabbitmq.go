@@ -1,4 +1,4 @@
-package edgecenter
+package edgemon
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/Edge-Center/edgecenteredgemon-go/checks/checkrabbitmq"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceRMONCheckRabbitMQ() *schema.Resource {
@@ -145,7 +146,7 @@ func resourceRMONCheckRabbitMQ() *schema.Resource {
 
 func resourceCheckRabbitMQCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start RMON Check RabbitMQ creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	req := buildCheckRabbitMQRequest(d)
@@ -164,7 +165,7 @@ func resourceCheckRabbitMQRead(ctx context.Context, d *schema.ResourceData, m in
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check RabbitMQ reading (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -174,6 +175,11 @@ func resourceCheckRabbitMQRead(ctx context.Context, d *schema.ResourceData, m in
 
 	resp, err := client.CheckRabbitMQ().Get(ctx, id)
 	if err != nil {
+		if isNotFoundErr(err) {
+			log.Printf("[WARN] RMON Check RabbitMQ not found, removing from state (id=%s)\n", resourceID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -218,7 +224,7 @@ func resourceCheckRabbitMQUpdate(ctx context.Context, d *schema.ResourceData, m 
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check RabbitMQ updating (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -241,7 +247,7 @@ func resourceCheckRabbitMQDelete(ctx context.Context, d *schema.ResourceData, m 
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check RabbitMQ deleting (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -250,7 +256,9 @@ func resourceCheckRabbitMQDelete(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	if err := client.CheckRabbitMQ().Delete(ctx, id); err != nil {
-		return diag.FromErr(err)
+		if !isNotFoundErr(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")

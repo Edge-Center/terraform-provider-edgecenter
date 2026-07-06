@@ -1,4 +1,4 @@
-package edgecenter
+package edgemon
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/Edge-Center/edgecenteredgemon-go/checks/checkdns"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceRMONCheckDNS() *schema.Resource {
@@ -119,14 +120,14 @@ func resourceRMONCheckDNS() *schema.Resource {
 				Description: "DNS record type.",
 				ValidateFunc: validation.StringInSlice([]string{
 					"a",
-					"aaa",
+					"aaaa",
 					"caa",
 					"cname",
 					"mx",
 					"ns",
 					"ptr",
-					"sao",
-					"src",
+					"soa",
+					"srv",
 					"txt",
 				}, false),
 			},
@@ -152,7 +153,7 @@ func resourceRMONCheckDNS() *schema.Resource {
 
 func resourceCheckDNSCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start RMON Check DNS creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	req := buildCheckDNSRequest(d)
@@ -173,7 +174,7 @@ func resourceCheckDNSRead(ctx context.Context, d *schema.ResourceData, m interfa
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check DNS reading (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -183,6 +184,11 @@ func resourceCheckDNSRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	resp, err := client.CheckDNS().Get(ctx, id)
 	if err != nil {
+		if isNotFoundErr(err) {
+			log.Printf("[WARN] RMON Check DNS not found, removing from state (id=%s)\n", resourceID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -222,7 +228,7 @@ func resourceCheckDNSUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check DNS updating (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -245,7 +251,7 @@ func resourceCheckDNSDelete(ctx context.Context, d *schema.ResourceData, m inter
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start RMON Check DNS deleting (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -254,7 +260,9 @@ func resourceCheckDNSDelete(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if err := client.CheckDNS().Delete(ctx, id); err != nil {
-		return diag.FromErr(err)
+		if !isNotFoundErr(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")

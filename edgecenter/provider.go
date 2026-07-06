@@ -136,7 +136,6 @@ const (
 	IncludeDisabledField             = "include_disabled"
 	ExcludeWindowsField              = "exclude_windows"
 	IncludePricesField               = "include_prices"
-	RMONPlaceAll                     = "all"
 
 	MKaaSClusterPodSubnetField     = "pod_subnet"
 	MKaaSClusterServiceSubnetField = "service_subnet"
@@ -343,15 +342,6 @@ func (LegacyService) Resources() map[string]*schema.Resource {
 		"edgecenter_cdn_rule":                              resourceCDNRule(),
 		"edgecenter_cdn_shielding":                         resourceCDNShielding(),
 		"edgecenter_cdn_sslcert":                           resourceCDNCert(),
-		"edgecenter_rmon_channel":                          resourceRMONChannel(),
-		"edgecenter_rmon_check_dns":                        resourceRMONCheckDNS(),
-		"edgecenter_rmon_check_group":                      resourceRMONCheckGroup(),
-		"edgecenter_rmon_check_http":                       resourceRMONCheckHTTP(),
-		"edgecenter_rmon_check_ping":                       resourceRMONCheckPing(),
-		"edgecenter_rmon_check_rabbitmq":                   resourceRMONCheckRabbitMQ(),
-		"edgecenter_rmon_check_smtp":                       resourceRMONCheckSMTP(),
-		"edgecenter_rmon_check_tcp":                        resourceRMONCheckTCP(),
-		"edgecenter_rmon_status_page":                      resourceRMONStatusPage(),
 		LifecyclePolicyResourceField:                       resourceLifecyclePolicy(),
 		"edgecenter_lb_l7policy":                           resourceL7Policy(),
 		"edgecenter_lb_l7rule":                             resourceL7Rule(),

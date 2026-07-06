@@ -12,18 +12,26 @@ integrationtest/
 │   ├── state.go      # NewState, ApplyConfig, NewResourceDataFromState
 │   ├── diag.go       # RequireNoErrorDiags, RequireHasErrorDiags, RequireOnlyErrorDiags, RequireErrorDiagContains
 │   ├── sets.go       # StringSet, IntSet, List
-│   └── cloud/        # Cloud-specific helpers (package cloud)
-│       ├── config.go # WithProjectRegion, WithName, Merge
-│       └── mock/     # Generated testify mocks + MockedCloud (package cloudmock)
-│           ├── client.go       # MockedCloud, NewMockedCloud (strict), NewDefaultMockedCloud
-│           ├── NetworksService.go  (generated)
-│           ├── TasksService.go     (generated)
-│           ├── ProjectsService.go  (generated)
-│           ├── RegionsService.go   (generated)
-│           ├── VolumesService.go   (generated)
-│           └── generate.go         # go:generate entry point
+│   ├── cloud/        # Cloud-specific helpers (package cloud)
+│   │   ├── config.go # WithProjectRegion, WithName, Merge
+│   │   └── mock/     # Generated testify mocks + MockedCloud (package cloudmock)
+│   │       ├── client.go       # MockedCloud, NewMockedCloud (strict), NewDefaultMockedCloud
+│   │       ├── NetworksService.go  (generated)
+│   │       ├── TasksService.go     (generated)
+│   │       ├── ProjectsService.go  (generated)
+│   │       ├── RegionsService.go   (generated)
+│   │       ├── VolumesService.go   (generated)
+│   │       └── generate.go         # go:generate entry point
+│   └── edgemon/      # RMON-specific helpers (package edgemon)
+│       ├── config.go # WithName, WithReceiver, Merge
+│       └── mock/     # Hand-written testify mocks + MockedRMON (package edgemonmock)
+│           ├── client.go   # MockedRMON, NewMockedRMON, clientShim (implements rmon.ClientService)
+│           └── services.go # ChannelService, StatusPageService, CheckGroupService, generic CheckService[Req,Resp]
 ├── cloud/            # Cloud resource integration tests
 │   ├── network_test.go
+│   └── …
+├── edgemon/          # RMON (edgemon) resource integration tests
+│   ├── channel_test.go
 │   └── …
 ├── cdn/              # Future: CDN resource integration tests
 └── dns/              # Future: DNS resource integration tests
@@ -127,6 +135,17 @@ go test -tags=integration -v -count=1 ./edgecenter/integrationtest/cloud/...
 - **`RequireNoErrorDiags`** checks only that no `diag.Error` exists; warning-level
   diagnostics are ignored. For a completely clean happy-path (zero diagnostics of
   any severity) use **`RequireNoDiags`** instead.
+
+## edgemon (RMON)
+
+`support/edgemon/` follows the same layout as `support/cloud/`. The difference is
+in the mock: the RMON SDK exposes `rmon.ClientService` (an interface returning one
+service per resource), so `MockedRMON` wires hand-written testify mocks instead of
+generated ones. `MockedRMON` implements `MetaProvider` (`TestMeta` -> `*edgecenter.Config`)
+and `MockCleanuper`, exactly like `MockedCloud`. The six check kinds share one generic
+mock `CheckService[Req, Resp]` because their SDK service is the generic
+`checks.Service[Req, Resp]`. Tests live in `integrationtest/edgemon/` and set
+expectations directly on `mc.Channel`, `mc.CheckHTTP`, `mc.StatusPage`, etc.
 
 ## Extending to CDN/DNS
 

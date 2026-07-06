@@ -77,7 +77,7 @@ linters_docker: # for windows
 
 # TESTS
 test_integration:
-	go test -tags=integration -count=1 ./edgecenter/integrationtest/cloud/...
+	go test -tags=integration -count=1 ./edgecenter/integrationtest/...
 
 test_cloud_data_source: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_data_source -short -timeout=60m
@@ -102,6 +102,9 @@ test_cloud_reseller_resource: install_godotenv
 
 test_sweep: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags sweeper -sweep=all -timeout=30m
+
+test_edgemon: install_godotenv
+	godotenv -f $(ENV_TESTS_FILE) go test -v ./edgecenter/services/edgemon/... -tags test_edgemon -timeout=10m
 
 
 # DOCS

@@ -1,4 +1,4 @@
-package edgecenter
+package edgemon
 
 import (
 	"context"
@@ -11,44 +11,57 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/Edge-Center/edgecenteredgemon-go/checks/checkping"
+	"github.com/Edge-Center/edgecenteredgemon-go/checks/checktcp"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
-func resourceRMONCheckPing() *schema.Resource {
+func resourceRMONCheckTCP() *schema.Resource {
 	return &schema.Resource{
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Name of the Check Ping.",
+				Description: "Name of the Check TCP.",
 			},
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Description of the Check Ping.",
+				Description: "Description of the Check TCP.",
 			},
 			"enabled": {
 				Type:        schema.TypeBool,
 				Required:    true,
-				Description: "Enabled state of the Check Ping.",
+				Description: "Enabled state of the Check TCP.",
 			},
 			"check_group": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Name of the check group for group Ping checks.",
+				Description: "Name of the check group for group TCP checks.",
 			},
 			"place": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Place scope for Check Ping.",
+				Description: "Place scope for Check TCP.",
 				ValidateFunc: validation.StringInSlice([]string{
 					"all",
 					"country",
 					"region",
 					"agent",
+				}, false),
+			},
+			"priority": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Where checks must be deployed.",
+				ValidateFunc: validation.StringInSlice([]string{
+					"info",
+					"warning",
+					"error",
+					"critical",
 				}, false),
 			},
 			"entities": {
@@ -59,18 +72,6 @@ func resourceRMONCheckPing() *schema.Resource {
 					Type: schema.TypeInt,
 				},
 			},
-			"packet_size": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Packet size",
-				Default:     56,
-			},
-			"count_packets": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Number of packets to send.",
-				Default:     4,
-			},
 			"interval": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -79,8 +80,9 @@ func resourceRMONCheckPing() *schema.Resource {
 			},
 			"check_timeout": {
 				Type:        schema.TypeInt,
-				Required:    true,
+				Optional:    true,
 				Description: "Answer timeout in seconds.",
+				Default:     2,
 			},
 			"telegram_channel_id": {
 				Type:        schema.TypeInt,
@@ -110,13 +112,20 @@ func resourceRMONCheckPing() *schema.Resource {
 			"ip": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "IP address or domain name for check.",
+				Description: "IP address or domain name for TCP check.",
+			},
+			"port": {
+				Type:         schema.TypeInt,
+				Required:     true,
+				Description:  "Port for TCP check.",
+				ValidateFunc: validation.IsPortNumber,
 			},
 			"retries": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Number of retries before check is marked down.",
-				Default:     3,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "Number of retries before check is marked down.",
+				Default:      3,
+				ValidateFunc: validation.IntAtLeast(0),
 			},
 			"runbook": {
 				Type:        schema.TypeString,
@@ -124,37 +133,37 @@ func resourceRMONCheckPing() *schema.Resource {
 				Description: "Runbook URL for alerts.",
 			},
 		},
-		CreateContext: resourceCheckPingCreate,
-		ReadContext:   resourceCheckPingRead,
-		UpdateContext: resourceCheckPingUpdate,
-		DeleteContext: resourceCheckPingDelete,
+
+		CreateContext: resourceCheckTCPCreate,
+		ReadContext:   resourceCheckTCPRead,
+		UpdateContext: resourceCheckTCPUpdate,
+		DeleteContext: resourceCheckTCPDelete,
 	}
 }
 
-func resourceCheckPingCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start RMON Check Ping creating")
-	config := m.(*Config)
+func resourceCheckTCPCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	log.Println("[DEBUG] Start RMON Check TCP creating")
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
-	req := buildCheckPingRequest(d)
+	req := buildCheckTCPRequest(d)
 
-	resp, err := client.CheckPing().Create(ctx, &req)
+	resp, err := client.CheckTCP().Create(ctx, &req)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%d", resp.ID))
+	log.Printf("[DEBUG] Finish RMON Check TCP creating (id=%d)\n", resp.ID)
 
-	log.Printf("[DEBUG] Finish RMON Check Ping creating (id=%d)\n", resp.ID)
-
-	return resourceCheckPingRead(ctx, d, m)
+	return resourceCheckTCPRead(ctx, d, m)
 }
 
-func resourceCheckPingRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCheckTCPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start RMON Check Ping reading (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start RMON Check TCP reading (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -162,8 +171,13 @@ func resourceCheckPingRead(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	resp, err := client.CheckPing().Get(ctx, id)
+	resp, err := client.CheckTCP().Get(ctx, id)
 	if err != nil {
+		if isNotFoundErr(err) {
+			log.Printf("[WARN] RMON Check TCP not found, removing from state (id=%s)\n", resourceID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -180,8 +194,7 @@ func resourceCheckPingRead(ctx context.Context, d *schema.ResourceData, m interf
 		entities = []interface{}{}
 	}
 	_ = d.Set("entities", entities)
-	_ = d.Set("packet_size", resp.PacketSize)
-	_ = d.Set("count_packets", resp.CountPackets)
+	_ = d.Set("priority", resp.Priority)
 	_ = d.Set("interval", resp.Interval)
 	_ = d.Set("check_timeout", resp.CheckTimeout)
 	_ = d.Set("telegram_channel_id", resp.TelegramChannelID)
@@ -190,19 +203,20 @@ func resourceCheckPingRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set("pd_channel_id", resp.PDChannelID)
 	_ = d.Set("email_channel_id", resp.EmailChannelId)
 	_ = d.Set("ip", resp.IP)
+	_ = d.Set("port", resp.Port)
 	_ = d.Set("retries", resp.Retries)
 	_ = d.Set("runbook", resp.Runbook)
 
-	log.Println("[DEBUG] Finish RMON Check Ping reading")
+	log.Println("[DEBUG] Finish RMON Check TCP reading")
 
 	return nil
 }
 
-func resourceCheckPingUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCheckTCPUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start RMON Check Ping updating (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start RMON Check TCP updating (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -210,22 +224,22 @@ func resourceCheckPingUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	req := buildCheckPingRequest(d)
+	req := buildCheckTCPRequest(d)
 
-	if err := client.CheckPing().Update(ctx, id, &req); err != nil {
+	if err := client.CheckTCP().Update(ctx, id, &req); err != nil {
 		return diag.FromErr(err)
 	}
 
-	log.Println("[DEBUG] Finish RMON Check Ping updating")
+	log.Println("[DEBUG] Finish RMON Check TCP updating")
 
-	return resourceCheckPingRead(ctx, d, m)
+	return resourceCheckTCPRead(ctx, d, m)
 }
 
-func resourceCheckPingDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCheckTCPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
-	log.Printf("[DEBUG] Start RMON Check Ping deleting (id=%s)\n", resourceID)
+	log.Printf("[DEBUG] Start RMON Check TCP deleting (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.RmonClient
 
 	id, err := strconv.Atoi(resourceID)
@@ -233,23 +247,26 @@ func resourceCheckPingDelete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	if err := client.CheckPing().Delete(ctx, id); err != nil {
-		return diag.FromErr(err)
+	if err := client.CheckTCP().Delete(ctx, id); err != nil {
+		if !isNotFoundErr(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")
-	log.Println("[DEBUG] Finish RMON Check Ping deleting")
+	log.Println("[DEBUG] Finish RMON Check TCP deleting")
 
 	return nil
 }
 
-func buildCheckPingRequest(d *schema.ResourceData) checkping.Request {
-	return checkping.Request{
+func buildCheckTCPRequest(d *schema.ResourceData) checktcp.Request {
+	return checktcp.Request{
 		Description:       strings.ReplaceAll(d.Get("description").(string), "'", ""),
 		Enabled:           boolToInt(d.Get("enabled").(bool)),
 		Name:              strings.ReplaceAll(d.Get("name").(string), "'", ""),
 		CheckGroup:        d.Get("check_group").(string),
 		Place:             d.Get("place").(string),
+		Priority:          d.Get("priority").(string),
 		Entities:          expandIntList(d.Get("entities").([]interface{})),
 		Interval:          d.Get("interval").(int),
 		CheckTimeout:      d.Get("check_timeout").(int),
@@ -258,9 +275,8 @@ func buildCheckPingRequest(d *schema.ResourceData) checkping.Request {
 		MMChannelID:       d.Get("mm_channel_id").(int),
 		PDChannelID:       d.Get("pd_channel_id").(int),
 		EmailChannelId:    d.Get("email_channel_id").(int),
-		PacketSize:        d.Get("packet_size").(int),
-		CountPackets:      d.Get("count_packets").(int),
 		IP:                d.Get("ip").(string),
+		Port:              d.Get("port").(int),
 		Retries:           d.Get("retries").(int),
 		Runbook:           d.Get("runbook").(string),
 	}
