@@ -15,7 +15,6 @@ import (
 	"github.com/Edge-Center/edgecenteredgemon-go/checks/checksmtp"
 	"github.com/Edge-Center/edgecenteredgemon-go/checks/checktcp"
 	"github.com/Edge-Center/edgecenteredgemon-go/statuspage"
-
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 

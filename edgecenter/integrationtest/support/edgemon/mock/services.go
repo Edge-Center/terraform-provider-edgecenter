@@ -19,6 +19,10 @@ func ptrArg[T any](args mock.Arguments, idx int) *T {
 	return nil
 }
 
+func errArg(args mock.Arguments, idx int) error {
+	return args.Error(idx) //nolint:wrapcheck // the mock returns the error configured by the test verbatim
+}
+
 type ChannelService struct{ mock.Mock }
 
 func (m *ChannelService) Get(ctx context.Context, receiver string, channelID int) (*channel.Response, error) {
@@ -32,11 +36,11 @@ func (m *ChannelService) Create(ctx context.Context, receiver string, req *chann
 }
 
 func (m *ChannelService) Update(ctx context.Context, receiver string, channelID int, req *channel.Request) error {
-	return m.Called(ctx, receiver, channelID, req).Error(0)
+	return errArg(m.Called(ctx, receiver, channelID, req), 0)
 }
 
 func (m *ChannelService) Delete(ctx context.Context, receiver string, channelID int) error {
-	return m.Called(ctx, receiver, channelID).Error(0)
+	return errArg(m.Called(ctx, receiver, channelID), 0)
 }
 
 type StatusPageService struct{ mock.Mock }
@@ -52,11 +56,11 @@ func (m *StatusPageService) Get(ctx context.Context, pageID int) (*statuspage.Re
 }
 
 func (m *StatusPageService) Update(ctx context.Context, pageID int, req *statuspage.Request) error {
-	return m.Called(ctx, pageID, req).Error(0)
+	return errArg(m.Called(ctx, pageID, req), 0)
 }
 
 func (m *StatusPageService) Delete(ctx context.Context, pageID int) error {
-	return m.Called(ctx, pageID).Error(0)
+	return errArg(m.Called(ctx, pageID), 0)
 }
 
 type CheckGroupService struct{ mock.Mock }
@@ -77,7 +81,7 @@ func (m *CheckGroupService) Update(ctx context.Context, id int, req *checkgroup.
 }
 
 func (m *CheckGroupService) Delete(ctx context.Context, id int) error {
-	return m.Called(ctx, id).Error(0)
+	return errArg(m.Called(ctx, id), 0)
 }
 
 type CheckService[Req any, Resp any] struct{ mock.Mock }
@@ -93,9 +97,9 @@ func (m *CheckService[Req, Resp]) Get(ctx context.Context, checkID int) (*Resp, 
 }
 
 func (m *CheckService[Req, Resp]) Update(ctx context.Context, checkID int, req *Req) error {
-	return m.MethodCalled("Update", ctx, checkID, req).Error(0)
+	return errArg(m.MethodCalled("Update", ctx, checkID, req), 0)
 }
 
 func (m *CheckService[Req, Resp]) Delete(ctx context.Context, checkID int) error {
-	return m.MethodCalled("Delete", ctx, checkID).Error(0)
+	return errArg(m.MethodCalled("Delete", ctx, checkID), 0)
 }
