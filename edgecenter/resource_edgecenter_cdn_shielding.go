@@ -53,8 +53,10 @@ func resourceCDNShieldingRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	err = d.Set("shielding_pop", result.ShieldingPop)
-	if err != nil {
+	if err = d.Set("shielding_pop", result.ShieldingPop); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("resource_id", resourceID); err != nil {
 		return diag.FromErr(err)
 	}
 
