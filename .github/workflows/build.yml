@@ -128,8 +128,25 @@ jobs:
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=20m
         continue-on-error: true
 
-  mkaas-tests:
+  mkaas-sweep:
     needs: [smoke, detect]
+    if: needs.detect.outputs.mkaas == 'true' || needs.detect.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    env:
+      EC_CLIENT_ID: ${{ secrets.EC_CLIENT_ID }}
+      EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
+      TEST_MKAAS_REGION_ID: ${{ secrets.TEST_MKAAS_REGION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.0
+      - name: Sweep stale MKAAS resources
+        run: go test -v ./edgecenter/test -tags sweeper -sweep=edgecenter_mkaas_cluster -timeout=10m
+        continue-on-error: true
+
+  mkaas-tests:
+    needs: [smoke, detect, mkaas-sweep]
     if: needs.detect.outputs.mkaas == 'true' || needs.detect.outputs.shared == 'true'
     runs-on: ubuntu-latest
     env:
@@ -145,7 +162,7 @@ jobs:
           - tag: cloud_resource_mkaas
             timeout: 30m
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 2
     name: tests-${{ matrix.kind.tag }}
     steps:
       - uses: actions/checkout@v4
@@ -191,9 +208,6 @@ jobs:
           EOF
           terraform -chdir="$tmp_dir" init -input=false -no-color
           terraform -chdir="$tmp_dir" providers
-      - name: Sweep stale MKAAS resources
-        run: go test -v ./edgecenter/test -tags sweeper -sweep=edgecenter_mkaas_cluster -timeout=10m
-        continue-on-error: true
       - name: Run MKAAS tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=${{ matrix.kind.timeout }}
         continue-on-error: true
