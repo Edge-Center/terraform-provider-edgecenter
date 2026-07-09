@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -19,9 +20,11 @@ func resourceLoadBalancerV2() *schema.Resource {
 		ReadContext:   resourceLoadBalancerV2Read,
 		UpdateContext: resourceLoadBalancerV2Update,
 		DeleteContext: resourceLoadBalancerV2Delete,
+		CustomizeDiff: customLoadBalancerV2Diff,
 		Description:   "Represent load balancer without nested listener",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Importer: &schema.ResourceImporter{
@@ -75,12 +78,12 @@ func resourceLoadBalancerV2() *schema.Resource {
 			"flavor": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
 				Description: "The flavor or specification of the load balancer to be created.",
 			},
 			"vip_port_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"vip_network_id"},
 				Description:   "Attaches the created reserved IP.",
@@ -141,6 +144,26 @@ func resourceLoadBalancerV2() *schema.Resource {
 			},
 		},
 	}
+}
+
+func customLoadBalancerV2Diff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	if !d.HasChange("flavor") {
+		return nil
+	}
+	if !d.GetRawConfig().GetAttr("vip_port_id").IsNull() {
+		if err := d.ForceNew("flavor"); err != nil {
+			return fmt.Errorf("mark flavor change as force new: %w", err)
+		}
+		return nil
+	}
+	if err := d.SetNewComputed("vip_port_id"); err != nil {
+		return fmt.Errorf("mark vip_port_id as computed after flavor change: %w", err)
+	}
+	if err := d.SetNewComputed("vip_address"); err != nil {
+		return fmt.Errorf("mark vip_address as computed after flavor change: %w", err)
+	}
+
+	return nil
 }
 
 func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -211,6 +234,8 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 		d.Set("vip_address", lb.VipAddress.String())
 	}
 
+	d.Set("vip_port_id", lb.VipPortID)
+
 	fields := []string{"vip_network_id", "vip_subnet_id"}
 	revertState(d, &fields)
 
@@ -266,6 +291,30 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 		if err != nil {
 			return diag.Errorf("cannot update metadata. Error: %s", err)
 		}
+	}
+
+	if d.HasChange("flavor") {
+		req := &edgecloudV2.LoadbalancerChangeFlavorRequest{Flavor: d.Get("flavor").(string)}
+		taskResult, _, err := clientV2.Loadbalancers.ChangeFlavor(ctx, d.Id(), req)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskResult.Tasks[0], LoadBalancerUpdateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		parsed, err := utilV2.ExtractTaskResultFromTask(taskInfo)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if len(parsed.Loadbalancers) == 0 {
+			return diag.Errorf("change_flavor: API did not return new loadbalancer ID in task result")
+		}
+
+		d.SetId(parsed.Loadbalancers[0])
 	}
 
 	log.Println("[DEBUG] Finish LoadBalancer updating")

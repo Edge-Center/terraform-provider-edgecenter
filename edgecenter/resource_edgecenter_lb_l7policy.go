@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -279,9 +280,34 @@ func resourceL7PolicyV2Read(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	l7Policy, _, err := clientV2.L7Policies.Get(ctx, d.Id())
+	l7Policy, resp, err := clientV2.L7Policies.Get(ctx, d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			position, _ := d.Get(LBL7PolicyPositionField).(int)
+			redirectPoolID := d.Get(LBL7PolicyRedirectPoolIDField).(string)
+			redirectURL := d.Get(LBL7PolicyRedirectURLField).(string)
+			redirectPrefix := d.Get(LBL7PolicyRedirectPrefixField).(string)
+			redirectHTTPCode, _ := d.Get(LBL7PolicyRedirectHTTPCodeField).(int)
+
+			matched, rebindErr := resolveL7PolicyAfterLBMigration(ctx, clientV2,
+				d.Get(LBL7PolicyNameField).(string),
+				d.Get(LBL7PolicyActionField).(string),
+				position, redirectPoolID, redirectURL, redirectPrefix, redirectHTTPCode,
+			)
+			if rebindErr != nil {
+				return diag.FromErr(rebindErr)
+			}
+			if matched != nil {
+				d.SetId(matched.ID)
+				d.Set(LBL7PolicyListenerIDField, matched.ListenerID)
+				l7Policy = matched
+			} else {
+				d.SetId("")
+				return nil
+			}
+		} else {
+			return diag.FromErr(err)
+		}
 	}
 
 	log.Printf("[DEBUG] Retrieved L7 Policy %s: %#v", d.Id(), l7Policy)

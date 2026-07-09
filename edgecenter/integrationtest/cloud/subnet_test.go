@@ -24,14 +24,14 @@ const testSubnetID = "subnet-id"
 
 func sampleSubnet(id, name, cidr, networkID string) *edgecloud.Subnetwork {
 	return &edgecloud.Subnetwork{
-		ID:        id,
-		Name:      name,
-		CIDR:      cidr,
-		NetworkID: networkID,
+		ID:         id,
+		Name:       name,
+		CIDR:       cidr,
+		NetworkID:  networkID,
 		EnableDHCP: true,
-		ProjectID: testProjectID,
-		RegionID:  testRegionID,
-		Metadata:  []edgecloud.MetadataDetailed{},
+		ProjectID:  testProjectID,
+		RegionID:   testRegionID,
+		Metadata:   []edgecloud.MetadataDetailed{},
 	}
 }
 
@@ -166,6 +166,9 @@ func subnetDeleteCase(subnetID string) support.ResourceCase[*cloudmock.MockedClo
 		Return(&edgecloud.Task{
 			State: edgecloud.TaskStateFinished,
 		}, nil, nil)
+
+	mc.Subnetworks.On("Get", mock.Anything, subnetID).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
 
 	return support.ResourceCase[*cloudmock.MockedCloud]{
 		Name:      "delete subnet",

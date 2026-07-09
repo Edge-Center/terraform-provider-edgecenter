@@ -288,9 +288,59 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	lb, _, err := clientV2.Loadbalancers.PoolGet(ctx, d.Id())
+	lb, resp, err := clientV2.Loadbalancers.PoolGet(ctx, d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			hmType := ""
+			var hmDelay, hmTimeout, hmMaxRetries, hmMaxRetriesDown int
+			var hmURLPath, hmExpectedCodes string
+			hmRaw := d.Get("health_monitor").([]interface{})
+			if len(hmRaw) > 0 {
+				hm := hmRaw[0].(map[string]interface{})
+				hmType, _ = hm["type"].(string)
+				hmDelay, _ = hm["delay"].(int)
+				hmTimeout, _ = hm["timeout"].(int)
+				hmMaxRetries, _ = hm["max_retries"].(int)
+				hmMaxRetriesDown, _ = hm["max_retries_down"].(int)
+				hmURLPath, _ = hm["url_path"].(string)
+				hmExpectedCodes, _ = hm["expected_codes"].(string)
+			}
+
+			spType := ""
+			var spCookieName string
+			spRaw := d.Get("session_persistence").([]interface{})
+			if len(spRaw) > 0 {
+				sp := spRaw[0].(map[string]interface{})
+				spType, _ = sp["type"].(string)
+				spCookieName, _ = sp["cookie_name"].(string)
+			}
+
+			matched, rebindErr := resolvePoolAfterLBMigration(ctx, clientV2,
+				d.Get("name").(string),
+				d.Get("protocol").(string),
+				d.Get("lb_algorithm").(string),
+				hmType, hmDelay, hmTimeout, hmMaxRetries, hmMaxRetriesDown, hmURLPath, hmExpectedCodes,
+				spType, spCookieName,
+			)
+			if rebindErr != nil {
+				return diag.FromErr(rebindErr)
+			}
+			if matched != nil {
+				d.SetId(matched.ID)
+				if len(matched.Loadbalancers) > 0 {
+					d.Set("loadbalancer_id", matched.Loadbalancers[0].ID)
+				}
+				if len(matched.Listeners) > 0 {
+					d.Set("listener_id", matched.Listeners[0].ID)
+				}
+				lb = matched
+			} else {
+				d.SetId("")
+				return diags
+			}
+		} else {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.Set("name", lb.Name)
