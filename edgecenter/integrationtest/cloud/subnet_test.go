@@ -232,6 +232,9 @@ func subnetDeleteTaskErrorCase(subnetID string) support.ResourceCase[*cloudmock.
 			State: edgecloud.TaskStateError,
 		}, nil, nil)
 
+	mc.Subnetworks.On("Get", mock.Anything, subnetID).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusInternalServerError}}, nil)
+
 	return support.ResourceCase[*cloudmock.MockedCloud]{
 		Name:      "task error on delete",
 		Op:        support.OpDelete,
