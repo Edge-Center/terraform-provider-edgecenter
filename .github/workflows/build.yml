@@ -246,7 +246,7 @@ jobs:
     permissions:
       actions: read
       contents: none
-      issues: write
+      pull-requests: write
     env:
       METRICS_JOB_NAME: CI metrics summary
       TARGET_SECONDS: 1800
