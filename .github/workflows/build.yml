@@ -245,6 +245,7 @@ jobs:
     name: CI metrics summary
     permissions:
       actions: read
+      checks: read
       contents: none
       pull-requests: write
     env:
@@ -260,7 +261,22 @@ jobs:
           run_started_at=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.run_started_at')
           jobs_json=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs")
 
-          report=$(jq -r --arg run_started "$run_started_at" --arg metrics_job_name "$METRICS_JOB_NAME" '
+          failed_job_ids='[]'
+          while IFS=$'\t' read -r job_id check_run_url; do
+            annotations=$(gh api --paginate --slurp "${check_run_url#https://api.github.com}/annotations?per_page=100")
+            if jq -e '[.[][] | select(.annotation_level == "failure")] | length > 0' <<<"$annotations" >/dev/null; then
+              failed_job_ids=$(jq -c --argjson job_id "$job_id" '. + [$job_id]' <<<"$failed_job_ids")
+            fi
+          done < <(
+            jq -r --arg metrics_job_name "$METRICS_JOB_NAME" '
+              .jobs[]
+              | select(.name != $metrics_job_name)
+              | [.id, .check_run_url]
+              | @tsv
+            ' <<<"$jobs_json"
+          )
+
+          report=$(jq -r --arg run_started "$run_started_at" --arg metrics_job_name "$METRICS_JOB_NAME" --argjson failed_job_ids "$failed_job_ids" '
             def fmt(s):
               (s | floor) as $i
               | if $i < 60 then "\($i)s"
@@ -274,10 +290,16 @@ jobs:
                 sec: (((.completed_at // (now | todate)) | fromdate) - (.started_at | fromdate)),
                 current: ((.started_at | fromdate) >= $start),
                 display_status: (
-                  if (.conclusion == "success" and any(.steps[]?; .conclusion == "failure"))
-                  then "failed (allowed)"
-                  else (.conclusion // "running")
-                  end
+                  .id as $job_id
+                  | if (
+                      .conclusion == "success"
+                      and (
+                        ($failed_job_ids | index($job_id) != null)
+                        or any(.steps[]?; .conclusion == "failure")
+                      )
+                    ) then "failed (allowed)"
+                    else (.conclusion // "running")
+                    end
                 )
               })
             | sort_by(.started_at)
