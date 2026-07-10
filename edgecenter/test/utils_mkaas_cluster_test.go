@@ -123,7 +123,7 @@ output "created"            { value = edgecenter_mkaas_cluster.test.created }
 const (
 	podSubnet                 = "10.244.0.0/16"
 	serviceSubnet             = "10.96.0.0/12"
-	kubernetesVersion         = "v1.31.0"
+	kubernetesVersion         = "v1.31"
 	masterVolumeType          = "ssd_hiiops"
 	workerVolumeType          = "ssd_hiiops"
 	masterFlavor              = "mkaas-master-g3-standard-2-4"

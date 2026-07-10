@@ -140,8 +140,8 @@ func resourceMKaaSCluster() *schema.Resource {
 						MKaaSClusterVersionField: {
 							Type:         schema.TypeString,
 							Required:     true,
-							Description:  "The version of the Kubernetes cluster (format `vx.xx.x`).",
-							ValidateFunc: validation.StringInSlice([]string{"v1.31.0"}, false),
+							Description:  "The version of the Kubernetes cluster (format `vx.xx`). Available versions: `v1.31`, `v1.32`, `v1.33`, `v1.34`.",
+							ValidateFunc: validation.StringInSlice([]string{"v1.31", "v1.32", "v1.33", "v1.34"}, false),
 						},
 					},
 				},
@@ -232,7 +232,7 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 				Flavor:     cp[FlavorField].(string),
 				NodeCount:  cp[MKaaSNodeCountField].(int),
 				VolumeSize: cp[MKaaSVolumeSizeField].(int),
-				Version:    cp[MKaaSClusterVersionField].(string),
+				Version:    resolveK8sVersion(cp[MKaaSClusterVersionField].(string)),
 				VolumeType: edgecloudV2.VolumeType(cp[MKaaSVolumeTypeField].(string)),
 			}
 		}

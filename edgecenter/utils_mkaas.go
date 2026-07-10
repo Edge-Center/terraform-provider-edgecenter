@@ -193,3 +193,16 @@ func mkaasPoolUnsupportedUpdateChanges(d *schema.ResourceData) []string {
 
 	return unsupported
 }
+
+func resolveK8sVersion(shortVersion string) string {
+	versionMap := map[string]string{
+		"v1.31": "v1.31.0",
+		"v1.32": "v1.32.13",
+		"v1.33": "v1.33.10",
+		"v1.34": "v1.34.8",
+	}
+	if full, ok := versionMap[shortVersion]; ok {
+		return full
+	}
+	return shortVersion
+}

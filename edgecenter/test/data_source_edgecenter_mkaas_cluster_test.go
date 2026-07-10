@@ -77,7 +77,7 @@ func TestMKaaSClusterDataSource_ReadByID(t *testing.T) {
 
 	volType := "ssd_hiiops"
 
-	k8sVersion := "v1.31.0"
+	k8sVersion := "v1.31"
 
 	base := "tf-mkaas-ds-" + strings.ToLower(random.UniqueId())
 
