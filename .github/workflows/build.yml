@@ -242,11 +242,12 @@ jobs:
     needs: [smoke, integration-tests, reseller-tests, tests, mkaas-tests, not-cloud-tests]
     if: always()
     runs-on: ubuntu-latest
+    name: CI metrics summary
     permissions:
       actions: read
       contents: none
-      issues: write
     env:
+      METRICS_JOB_NAME: CI metrics summary
       TARGET_SECONDS: 1800
     steps:
       - name: Wall-clock summary
@@ -258,7 +259,7 @@ jobs:
           run_started_at=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.run_started_at')
           jobs_json=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs")
 
-          report=$(jq -r --arg run_started "$run_started_at" '
+          report=$(jq -r --arg run_started "$run_started_at" --arg metrics_job_name "$METRICS_JOB_NAME" '
             def fmt(s):
               (s | floor) as $i
               | if $i < 60 then "\($i)s"
@@ -267,7 +268,7 @@ jobs:
 
             ($run_started | fromdate) as $start
             | .jobs
-            | map(select(.name != "metrics"))
+            | map(select(.name != $metrics_job_name))
             | map(. + {
                 sec: (((.completed_at // (now | todate)) | fromdate) - (.started_at | fromdate)),
                 current: ((.started_at | fromdate) >= $start),
@@ -288,13 +289,16 @@ jobs:
                 rows_plain: map("| \(.name) | \(.display_status) | \(fmt(.sec)) |") | join("\n"),
                 total_sec: $total,
                 total_fmt: fmt($total),
-                cached: (map(select(.current | not)) | length)
+                cached: (map(select(.current | not)) | length),
+                allowed_failures: map(select(.display_status == "failed (allowed)") | .name)
               }
           ' <<<"$jobs_json")
 
           total_sec=$(jq -r '.total_sec' <<<"$report")
           total_fmt=$(jq -r '.total_fmt' <<<"$report")
           cached=$(jq -r '.cached' <<<"$report")
+          allowed_failure_count=$(jq -r '.allowed_failures | length' <<<"$report")
+          allowed_failures=$(jq -r '.allowed_failures[]?' <<<"$report")
           target_min=$((TARGET_SECONDS / 60))
 
           if [ "$total_sec" -le "$TARGET_SECONDS" ]; then
@@ -325,6 +329,9 @@ jobs:
             echo ""
             echo "**Total (this attempt):** $total_fmt"
             echo "**Target:** ${target_min}m. **Result:** $status"
+            if [ "$allowed_failure_count" -gt 0 ]; then
+              echo "**Allowed failures:** $allowed_failure_count. See Annotations below."
+            fi
             if [ "$cached" -gt 0 ]; then
               echo ""
               echo "_${cached} job(s) cached from prior attempts; not included in total._"
@@ -333,33 +340,18 @@ jobs:
 
           cat "$report_file" >> "$GITHUB_STEP_SUMMARY"
 
+          while IFS= read -r job; do
+            [ -z "$job" ] && continue
+            echo "::warning title=Allowed test failure::$job contains a failed step allowed by continue-on-error."
+          done <<<"$allowed_failures"
+
           echo "::notice title=ci-metrics::attempt=$GITHUB_RUN_ATTEMPT total_sec=$total_sec target_sec=$TARGET_SECONDS status=$indicator cached_jobs=$cached"
 
-      - name: Publish PR metrics comment
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          set -euo pipefail
-
-          marker='<!-- ci-wall-clock-summary -->'
-          report_file="$RUNNER_TEMP/ci-wall-clock.md"
-          payload=$(jq -Rs --arg marker "$marker" '{body: ($marker + "\n" + .)}' "$report_file")
-
-          comment_id=$(gh api --paginate --slurp \
-            "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" \
-            | jq -r --arg marker "$marker" '
-                [.[] | .[] | select(.user.login == "github-actions[bot]" and (.body | startswith($marker)))]
-                | last | .id // empty
-              ')
-
-          if [ -n "$comment_id" ]; then
-            gh api --method PATCH -H "Content-Type: application/json" \
-              "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" \
-              --input - <<<"$payload"
-          else
-            gh api --method POST -H "Content-Type: application/json" \
-              "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-              --input - <<<"$payload"
-          fi
+      - name: Upload CI test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-test-report-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ci-wall-clock.md
+          retention-days: 7
+          if-no-files-found: warn
