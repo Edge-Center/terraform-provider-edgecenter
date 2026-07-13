@@ -155,7 +155,7 @@ func dataSourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m i
 		"node_count":  cluster.ControlPlane.NodeCount,
 		"volume_size": cluster.ControlPlane.VolumeSize,
 		"volume_type": string(cluster.ControlPlane.VolumeType),
-		"version":     cluster.ControlPlane.Version,
+		"version":     normalizeVersion(cluster.ControlPlane.Version),
 	}
 	_ = d.Set("control_plane", []interface{}{cp})
 

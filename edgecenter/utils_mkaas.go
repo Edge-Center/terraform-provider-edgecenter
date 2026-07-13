@@ -3,6 +3,7 @@ package edgecenter
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -192,6 +193,14 @@ func mkaasPoolUnsupportedUpdateChanges(d *schema.ResourceData) []string {
 	}
 
 	return unsupported
+}
+
+func normalizeVersion(fullVersion string) string {
+	parts := strings.SplitN(fullVersion, ".", 3)
+	if len(parts) >= 2 {
+		return strings.Join(parts[:2], ".")
+	}
+	return fullVersion
 }
 
 func resolveK8sVersion(shortVersion string) string {
