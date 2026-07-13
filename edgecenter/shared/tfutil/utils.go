@@ -41,6 +41,28 @@ func ImportStringParser(infoStr string) (projectID int, regionID int, id3 string
 	return
 }
 
+func GetOptByName(fields map[string]interface{}, name string) (map[string]interface{}, bool) {
+	if _, ok := fields[name]; !ok {
+		return nil, false
+	}
+
+	container, ok := fields[name].([]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	if len(container) == 0 {
+		return nil, false
+	}
+
+	opt, ok := container[0].(map[string]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	return opt, true
+}
+
 func ImportStringParserSimple(infoStr string) (id1 string, id2 string, err error) { //nolint:nonamedreturns
 	log.Printf("[DEBUG] Input id string: %s", infoStr)
 	infoStrings := strings.Split(infoStr, ":")

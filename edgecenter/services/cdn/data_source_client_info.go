@@ -1,4 +1,4 @@
-package edgecenter
+package cdn
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func dataSourceCDNClientInfo() *schema.Resource {
@@ -31,7 +33,7 @@ func dataSourceCDNClientInfo() *schema.Resource {
 func dataSourceCDNClientInfoRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start reading CDN client info.")
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	info, err := client.Tools().ClientInfo(ctx)
