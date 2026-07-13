@@ -291,6 +291,25 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 	lb, resp, err := clientV2.Loadbalancers.PoolGet(ctx, d.Id())
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			listenerID := d.Get("listener_id").(string)
+			if listenerID != "" {
+				_, listenerResp, listenerErr := clientV2.Loadbalancers.ListenerGet(ctx, listenerID)
+				if listenerErr == nil && listenerResp != nil && listenerResp.StatusCode == http.StatusOK {
+					log.Printf("[DEBUG] pool %s not found but parent listener %s is alive; removing from state",
+						d.Id(), listenerID)
+					d.SetId("")
+					return diags
+				}
+			} else if lbID := d.Get("loadbalancer_id").(string); lbID != "" {
+				_, lbResp, lbErr := clientV2.Loadbalancers.Get(ctx, lbID)
+				if lbErr == nil && lbResp != nil && lbResp.StatusCode == http.StatusOK {
+					log.Printf("[DEBUG] pool %s not found but parent LB %s is alive; removing from state",
+						d.Id(), lbID)
+					d.SetId("")
+					return diags
+				}
+			}
+
 			hmType := ""
 			var hmDelay, hmTimeout, hmMaxRetries, hmMaxRetriesDown int
 			var hmURLPath, hmExpectedCodes string

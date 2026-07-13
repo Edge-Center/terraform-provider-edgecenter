@@ -303,6 +303,16 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 	listener, resp, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			// Gate: if parent LB is alive, the listener was simply deleted — not migrated.
+			_, lbResp, lbErr := clientV2.Loadbalancers.Get(ctx, d.Get("loadbalancer_id").(string))
+			if lbErr == nil && lbResp != nil && lbResp.StatusCode == http.StatusOK {
+				log.Printf("[DEBUG] listener %s not found but parent LB %s is alive; removing from state",
+					d.Id(), d.Get("loadbalancer_id").(string))
+				d.SetId("")
+				return diags
+			}
+
+			// Parent LB also gone — this is a real migration, proceed with rebind.
 			allowedRaw := d.Get("allowed_cidrs").(*schema.Set).List()
 			allowedCIDRs := make([]string, len(allowedRaw))
 			for i, v := range allowedRaw {

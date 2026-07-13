@@ -144,8 +144,8 @@ func listenerReadNotFoundCase(listenerID string) support.ResourceCase[*cloudmock
 	mc.Loadbalancers.On("ListenerGet", mock.Anything, listenerID).
 		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
 
-	mc.Loadbalancers.On("ListenerList", mock.Anything, mock.Anything).
-		Return([]edgecloud.Listener{}, &edgecloud.Response{}, nil)
+	mc.Loadbalancers.On("Get", mock.Anything, testLoadBalancerID).
+		Return(sampleLoadBalancer(testLoadBalancerID), &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusOK}}, nil)
 
 	return support.ResourceCase[*cloudmock.MockedCloud]{
 		Name:      "read non-existent (404) -> rebind clears state",

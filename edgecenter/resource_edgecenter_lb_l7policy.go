@@ -283,6 +283,15 @@ func resourceL7PolicyV2Read(ctx context.Context, d *schema.ResourceData, m inter
 	l7Policy, resp, err := clientV2.L7Policies.Get(ctx, d.Id())
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			listenerID := d.Get(LBL7PolicyListenerIDField).(string)
+			_, listenerResp, listenerErr := clientV2.Loadbalancers.ListenerGet(ctx, listenerID)
+			if listenerErr == nil && listenerResp != nil && listenerResp.StatusCode == http.StatusOK {
+				log.Printf("[DEBUG] l7 policy %s not found but parent listener %s is alive; removing from state",
+					d.Id(), listenerID)
+				d.SetId("")
+				return nil
+			}
+
 			position, _ := d.Get(LBL7PolicyPositionField).(int)
 			redirectPoolID := d.Get(LBL7PolicyRedirectPoolIDField).(string)
 			redirectURL := d.Get(LBL7PolicyRedirectURLField).(string)

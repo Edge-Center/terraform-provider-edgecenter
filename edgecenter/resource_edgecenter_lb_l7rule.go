@@ -219,6 +219,17 @@ func resourceL7RuleV2Read(ctx context.Context, d *schema.ResourceData, m interfa
 			_, policyResp, policyErr := clientV2.L7Policies.Get(ctx, l7policyID)
 			if policyErr != nil {
 				if policyResp != nil && policyResp.StatusCode == http.StatusNotFound {
+					listenerID := d.Get(LBL7PolicyListenerIDField).(string)
+					if listenerID != "" {
+						_, listenerResp, listenerErr := clientV2.Loadbalancers.ListenerGet(ctx, listenerID)
+						if listenerErr == nil && listenerResp != nil && listenerResp.StatusCode == http.StatusOK {
+							log.Printf("[DEBUG] l7 rule %s: l7policy %s not found but listener %s is alive; removing from state",
+								d.Id(), l7policyID, listenerID)
+							d.SetId("")
+							return nil
+						}
+					}
+
 					matchedPolicy, rebindErr := resolveL7PolicyAfterLBMigration(ctx, clientV2, "", "", 0, "", "", "", 0)
 					if rebindErr != nil {
 						return diag.FromErr(rebindErr)

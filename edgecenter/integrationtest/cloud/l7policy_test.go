@@ -128,8 +128,8 @@ func l7policyReadNotFoundCase(policyID string) support.ResourceCase[*cloudmock.M
 	mc.L7Policies.On("Get", mock.Anything, policyID).
 		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
 
-	mc.L7Policies.On("List", mock.Anything).
-		Return([]edgecloud.L7Policy{}, &edgecloud.Response{}, nil)
+	mc.Loadbalancers.On("ListenerGet", mock.Anything, testListenerID).
+		Return(sampleListener(testListenerID), &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusOK}}, nil)
 
 	return support.ResourceCase[*cloudmock.MockedCloud]{
 		Name:      "read non-existent (404) -> rebind clears state",
