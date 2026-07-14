@@ -294,7 +294,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 		MKaaSNodeCountField:      cluster.ControlPlane.NodeCount,
 		MKaaSVolumeSizeField:     cluster.ControlPlane.VolumeSize,
 		MKaaSVolumeTypeField:     string(cluster.ControlPlane.VolumeType),
-		MKaaSClusterVersionField: cluster.ControlPlane.Version,
+		MKaaSClusterVersionField: normalizeVersion(cluster.ControlPlane.Version),
 	}
 	_ = d.Set(MKaaSClusterControlPlaneField, []interface{}{cp})
 	_ = d.Set(MKaaSClusterInternalIPField, cluster.InternalIP)
