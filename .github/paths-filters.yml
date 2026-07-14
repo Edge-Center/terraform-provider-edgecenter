@@ -3,6 +3,8 @@ shared:
   - 'edgecenter/config.go'
   - 'edgecenter/utils*.go'
   - 'edgecenter/metadata.go'
+  - 'edgecenter/provider/**'
+  - 'edgecenter/shared/**'
   - 'edgecenter/test/testacc_*.go'
   - 'edgecenter/test/testmain_test.go'
   - 'go.mod'
@@ -45,7 +47,6 @@ cloud:
   - 'edgecenter/data_source_edgecenter_secret*'
   - 'edgecenter/data_source_edgecenter_securitygroup*'
   - 'edgecenter/data_source_edgecenter_servergroup*'
-  - 'edgecenter/data_source_edgecenter_shielding_locations*'
   - 'edgecenter/data_source_edgecenter_snapshot*'
   - 'edgecenter/data_source_edgecenter_subnet*'
   - 'edgecenter/data_source_edgecenter_volume*'
@@ -59,8 +60,9 @@ mkaas:
   - 'edgecenter/test/*_mkaas_*'
 
 cdn:
-  - 'edgecenter/resource_edgecenter_cdn*'
-  - 'edgecenter/data_source_edgecenter_cdn*'
+  - 'edgecenter/services/cdn/**'
+  - 'edgecenter/integrationtest/cdn/**'
+  - 'edgecenter/integrationtest/support/cdn/**'
   - 'edgecenter/test/*_cdn_*'
 
 dns:

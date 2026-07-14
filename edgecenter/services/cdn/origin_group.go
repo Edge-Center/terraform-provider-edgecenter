@@ -1,4 +1,4 @@
-package edgecenter
+package cdn
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/edgecentercdn-go/origingroups"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceCDNOriginGroup() *schema.Resource {
@@ -117,7 +118,7 @@ func resourceCDNOriginGroup() *schema.Resource {
 
 func resourceCDNOriginGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start CDN OriginGroup creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	var req origingroups.GroupRequest
@@ -143,7 +144,7 @@ func resourceCDNOriginGroupCreate(ctx context.Context, d *schema.ResourceData, m
 func resourceCDNOriginGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	groupID := d.Id()
 	log.Printf("[DEBUG] Start CDN OriginGroup reading (id=%s)\n", groupID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	id, err := strconv.ParseInt(groupID, 10, 64)
@@ -174,7 +175,7 @@ func resourceCDNOriginGroupRead(ctx context.Context, d *schema.ResourceData, m i
 func resourceCDNOriginGroupUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	groupID := d.Id()
 	log.Printf("[DEBUG] Start CDN OriginGroup updating (id=%s)\n", groupID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	id, err := strconv.ParseInt(groupID, 10, 64)
@@ -202,7 +203,7 @@ func resourceCDNOriginGroupDelete(ctx context.Context, d *schema.ResourceData, m
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start CDN OriginGroup deleting (id=%s)\n", resourceID)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	id, err := strconv.ParseInt(resourceID, 10, 64)

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/tfutil"
 )
 
 const (
@@ -698,7 +699,7 @@ func listToFailoverMeta(m []interface{}) dnssdk.Meta {
 	}
 
 	fields := m[0].(map[string]interface{})
-	if props, ok := getOptByName(fields, "failover"); ok {
+	if props, ok := tfutil.GetOptByName(fields, "failover"); ok {
 		meta.Failover = &dnssdk.FailoverMeta{
 			Protocol:  props["protocol"].(string),
 			Port:      props["port"].(int),

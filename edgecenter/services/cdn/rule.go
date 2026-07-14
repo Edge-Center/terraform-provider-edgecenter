@@ -1,4 +1,4 @@
-package edgecenter
+package cdn
 
 import (
 	"context"
@@ -13,6 +13,8 @@ import (
 
 	cdn "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/rules"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/tfutil"
 )
 
 var locationOptionsSchema = &schema.Schema{
@@ -971,7 +973,7 @@ func resourceCDNRule() *schema.Resource {
 
 func resourceCDNRuleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start CDN Rule creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	var req rules.CreateRequest
@@ -1014,7 +1016,7 @@ func resourceCDNRuleCreate(ctx context.Context, d *schema.ResourceData, m interf
 func resourceCDNRuleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	ruleID := d.Id()
 	log.Printf("[DEBUG] Start CDN Rule reading (id=%s)\n", ruleID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	id, err := strconv.ParseInt(ruleID, 10, 64)
@@ -1047,7 +1049,7 @@ func resourceCDNRuleRead(ctx context.Context, d *schema.ResourceData, m interfac
 func resourceCDNRuleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	ruleID := d.Id()
 	log.Printf("[DEBUG] Start CDN Rule updating (id=%s)\n", ruleID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	id, err := strconv.ParseInt(ruleID, 10, 64)
@@ -1088,7 +1090,7 @@ func resourceCDNRuleUpdate(ctx context.Context, d *schema.ResourceData, m interf
 func resourceCDNRuleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	ruleID := d.Id()
 	log.Printf("[DEBUG] Start CDN Rule deleting (id=%s)\n", ruleID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	id, err := strconv.ParseInt(ruleID, 10, 64)
@@ -1113,9 +1115,14 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 		return nil
 	}
 
+	// an options block that the API returned empty deserializes to a nil element
+	fields, ok := l[0].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
 	var opts cdn.LocationOptions
-	fields := l[0].(map[string]interface{})
-	if opt, ok := getOptByName(fields, "allowed_http_methods"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "allowed_http_methods"); ok {
 		opts.AllowedHTTPMethods = &cdn.AllowedHTTPMethods{
 			Enabled: opt["enabled"].(bool),
 		}
@@ -1123,7 +1130,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.AllowedHTTPMethods.Value = append(opts.AllowedHTTPMethods.Value, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "brotli_compression"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "brotli_compression"); ok {
 		opts.BrotliCompression = &cdn.BrotliCompression{
 			Enabled: opt["enabled"].(bool),
 		}
@@ -1131,13 +1138,13 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.BrotliCompression.Value = append(opts.BrotliCompression.Value, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "browser_cache_settings"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "browser_cache_settings"); ok {
 		opts.BrowserCacheSettings = &cdn.BrowserCacheSettings{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(string),
 		}
 	}
-	if opt, ok := getOptByName(fields, "cors"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "cors"); ok {
 		opts.Cors = &cdn.Cors{
 			Enabled: opt["enabled"].(bool),
 		}
@@ -1148,13 +1155,13 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.Cors.Always = opt["always"].(bool)
 		}
 	}
-	if opt, ok := getOptByName(fields, "disable_proxy_force_ranges"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "disable_proxy_force_ranges"); ok {
 		opts.DisableProxyForceRanges = &cdn.DisableProxyForceRanges{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "edge_cache_settings"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "edge_cache_settings"); ok {
 		rawCustomVals := opt["custom_values"].(map[string]interface{})
 		customVals := make(map[string]string, len(rawCustomVals))
 		for key, value := range rawCustomVals {
@@ -1168,13 +1175,13 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			Default:      opt["default"].(string),
 		}
 	}
-	if opt, ok := getOptByName(fields, "fetch_compressed"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "fetch_compressed"); ok {
 		opts.FetchCompressed = &cdn.FetchCompressed{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "follow_origin_redirect"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "follow_origin_redirect"); ok {
 		opts.FollowOriginRedirect = &cdn.FollowOriginRedirect{
 			Enabled: opt["enabled"].(bool),
 			UseHost: opt["use_host"].(bool),
@@ -1183,20 +1190,20 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.FollowOriginRedirect.Codes = append(opts.FollowOriginRedirect.Codes, v.(int))
 		}
 	}
-	if opt, ok := getOptByName(fields, "force_return"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "force_return"); ok {
 		opts.ForceReturn = &cdn.ForceReturn{
 			Enabled: opt["enabled"].(bool),
 			Code:    opt["code"].(int),
 			Body:    opt["body"].(string),
 		}
 	}
-	if opt, ok := getOptByName(fields, "forward_host_header"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "forward_host_header"); ok {
 		opts.ForwardHostHeader = &cdn.ForwardHostHeader{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "geo_acl"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "geo_acl"); ok {
 		opts.GeoAcl = &cdn.GeoAccessPolicy{
 			Enabled:  opt["enabled"].(bool),
 			Default:  opt["policy_type"].(string),
@@ -1215,7 +1222,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			}
 		}
 	}
-	if opt, ok := getOptByName(fields, "gzip_compression"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "gzip_compression"); ok {
 		opts.GzipCompression = &cdn.GzipCompression{
 			Enabled: opt["enabled"].(bool),
 		}
@@ -1223,25 +1230,25 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.GzipCompression.Value = append(opts.GzipCompression.Value, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "host_header"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "host_header"); ok {
 		opts.HostHeader = &cdn.HostHeader{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(string),
 		}
 	}
-	if opt, ok := getOptByName(fields, "ignore_cookie"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "ignore_cookie"); ok {
 		opts.IgnoreCookie = &cdn.IgnoreCookie{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "ignore_query_string"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "ignore_query_string"); ok {
 		opts.IgnoreQueryString = &cdn.IgnoreQueryString{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "image_stack"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "image_stack"); ok {
 		opts.ImageStack = &cdn.ImageStack{
 			Enabled: opt["enabled"].(bool),
 			Quality: opt["quality"].(int),
@@ -1256,7 +1263,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.ImageStack.PngLossless = opt["png_lossless"].(bool)
 		}
 	}
-	if opt, ok := getOptByName(fields, "ip_address_acl"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "ip_address_acl"); ok {
 		opts.IPAddressACL = &cdn.IPAddressACL{
 			Enabled:    opt["enabled"].(bool),
 			PolicyType: opt["policy_type"].(string),
@@ -1265,7 +1272,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.IPAddressACL.ExceptedValues = append(opts.IPAddressACL.ExceptedValues, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "limit_bandwidth"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "limit_bandwidth"); ok {
 		opts.LimitBandwidth = &cdn.LimitBandwidth{
 			Enabled:   opt["enabled"].(bool),
 			LimitType: opt["limit_type"].(string),
@@ -1277,13 +1284,13 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.LimitBandwidth.Buffer = opt["buffer"].(int)
 		}
 	}
-	if opt, ok := getOptByName(fields, "proxy_cache_methods_set"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "proxy_cache_methods_set"); ok {
 		opts.ProxyCacheMethodsSet = &cdn.ProxyCacheMethodsSet{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "query_params_blacklist"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "query_params_blacklist"); ok {
 		opts.QueryParamsBlacklist = &cdn.QueryParamsBlacklist{
 			Enabled: opt["enabled"].(bool),
 		}
@@ -1291,7 +1298,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.QueryParamsBlacklist.Value = append(opts.QueryParamsBlacklist.Value, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "query_params_whitelist"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "query_params_whitelist"); ok {
 		opts.QueryParamsWhitelist = &cdn.QueryParamsWhitelist{
 			Enabled: opt["enabled"].(bool),
 		}
@@ -1299,19 +1306,19 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.QueryParamsWhitelist.Value = append(opts.QueryParamsWhitelist.Value, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "redirect_http_to_https"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "redirect_http_to_https"); ok {
 		opts.RedirectHttpToHttps = &cdn.RedirectHttpToHttps{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "redirect_https_to_http"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "redirect_https_to_http"); ok {
 		opts.RedirectHttpsToHttp = &cdn.RedirectHttpsToHttp{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "referer_acl"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "referer_acl"); ok {
 		opts.RefererACL = &cdn.RefererACL{
 			Enabled:    opt["enabled"].(bool),
 			PolicyType: opt["policy_type"].(string),
@@ -1320,7 +1327,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.RefererACL.ExceptedValues = append(opts.RefererACL.ExceptedValues, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "response_headers_hiding_policy"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "response_headers_hiding_policy"); ok {
 		opts.ResponseHeadersHidingPolicy = &cdn.ResponseHeadersHidingPolicy{
 			Enabled: opt["enabled"].(bool),
 			Mode:    opt["mode"].(string),
@@ -1329,34 +1336,34 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.ResponseHeadersHidingPolicy.Excepted = append(opts.ResponseHeadersHidingPolicy.Excepted, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "rewrite"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "rewrite"); ok {
 		opts.Rewrite = &cdn.Rewrite{
 			Enabled: opt["enabled"].(bool),
 			Body:    opt["body"].(string),
 			Flag:    opt["flag"].(string),
 		}
 	}
-	if opt, ok := getOptByName(fields, "secure_key"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "secure_key"); ok {
 		opts.SecureKey = &cdn.SecureKey{
 			Enabled: opt["enabled"].(bool),
 			Key:     opt["key"].(string),
 			Type:    opt["type"].(int),
 		}
 	}
-	if opt, ok := getOptByName(fields, "slice"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "slice"); ok {
 		opts.Slice = &cdn.Slice{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
 		}
 	}
-	if opt, ok := getOptByName(fields, "sni"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "sni"); ok {
 		opts.SNI = &cdn.SNIOption{
 			Enabled:        opt["enabled"].(bool),
 			SNIType:        opt["sni_type"].(string),
 			CustomHostname: opt["custom_hostname"].(string),
 		}
 	}
-	if opt, ok := getOptByName(fields, "stale"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "stale"); ok {
 		opts.Stale = &cdn.Stale{
 			Enabled: opt["enabled"].(bool),
 		}
@@ -1364,7 +1371,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.Stale.Value = append(opts.Stale.Value, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "static_request_headers"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "static_request_headers"); ok {
 		opts.StaticRequestHeaders = &cdn.StaticRequestHeaders{
 			Enabled: opt["enabled"].(bool),
 			Value:   map[string]string{},
@@ -1373,7 +1380,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.StaticRequestHeaders.Value[k] = v.(string)
 		}
 	}
-	if opt, ok := getOptByName(fields, "static_response_headers"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "static_response_headers"); ok {
 		opts.StaticResponseHeaders = &cdn.StaticResponseHeaders{
 			Enabled: opt["enabled"].(bool),
 		}
@@ -1391,7 +1398,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.StaticResponseHeaders.Value = append(opts.StaticResponseHeaders.Value, *item)
 		}
 	}
-	if opt, ok := getOptByName(fields, "user_agent_acl"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "user_agent_acl"); ok {
 		opts.UserAgentACL = &cdn.UserAgentACL{
 			Enabled:    opt["enabled"].(bool),
 			PolicyType: opt["policy_type"].(string),
@@ -1400,7 +1407,7 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 			opts.UserAgentACL.ExceptedValues = append(opts.UserAgentACL.ExceptedValues, v.(string))
 		}
 	}
-	if opt, ok := getOptByName(fields, "websockets"); ok {
+	if opt, ok := tfutil.GetOptByName(fields, "websockets"); ok {
 		opts.WebSockets = &cdn.WebSockets{
 			Enabled: opt["enabled"].(bool),
 			Value:   opt["value"].(bool),
@@ -1411,6 +1418,10 @@ func listToLocationOptions(l []interface{}) *cdn.LocationOptions {
 }
 
 func locationOptionsToList(options *cdn.LocationOptions) []interface{} {
+	if options == nil {
+		return nil
+	}
+
 	result := make(map[string][]interface{})
 
 	if options.AllowedHTTPMethods != nil {

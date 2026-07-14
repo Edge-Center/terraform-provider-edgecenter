@@ -22,18 +22,27 @@ integrationtest/
 │   │       ├── RegionsService.go   (generated)
 │   │       ├── VolumesService.go   (generated)
 │   │       └── generate.go         # go:generate entry point
-│   └── edgemon/      # RMON-specific helpers (package edgemon)
-│       ├── config.go # WithName, WithReceiver, Merge
-│       └── mock/     # Hand-written testify mocks + MockedRMON (package edgemonmock)
-│           ├── client.go   # MockedRMON, NewMockedRMON, clientShim (implements rmon.ClientService)
-│           └── services.go # ChannelService, StatusPageService, CheckGroupService, generic CheckService[Req,Resp]
+│   ├── edgemon/      # RMON-specific helpers (package edgemon)
+│   │   ├── config.go # WithName, WithReceiver, Merge
+│   │   └── mock/     # Hand-written testify mocks + MockedRMON (package edgemonmock)
+│   │       ├── client.go   # MockedRMON, NewMockedRMON, clientShim (implements rmon.ClientService)
+│   │       └── services.go # ChannelService, StatusPageService, CheckGroupService, generic CheckService[Req,Resp]
+│   └── cdn/          # CDN-specific helpers
+│       └── mock/     # Generated testify mocks + MockedCDN (package cdnmock)
+│           ├── client.go        # MockedCDN, NewMockedCDN, clientShim (implements cdn.ClientService)
+│           ├── generate.go      # go:generate entry point (mockery, one line per SDK interface)
+│           ├── ResourceService.go, RulesService.go, OriginGroupService.go, LECertService.go,
+│           ├── ShieldingService.go, SSLCertService.go        (generated)
+│           └── ResourceStatisticsService.go, ResourceToolsService.go  (generated)
 ├── cloud/            # Cloud resource integration tests
 │   ├── network_test.go
 │   └── …
 ├── edgemon/          # RMON (edgemon) resource integration tests
 │   ├── channel_test.go
 │   └── …
-├── cdn/              # Future: CDN resource integration tests
+├── cdn/              # CDN resource and data source integration tests
+│   ├── resource_test.go
+│   └── …
 └── dns/              # Future: DNS resource integration tests
 ```
 
@@ -147,12 +156,40 @@ mock `CheckService[Req, Resp]` because their SDK service is the generic
 `checks.Service[Req, Resp]`. Tests live in `integrationtest/edgemon/` and set
 expectations directly on `mc.Channel`, `mc.CheckHTTP`, `mc.StatusPage`, etc.
 
-## Extending to CDN/DNS
+## CDN
+
+`support/cdn/` follows `support/cloud/`: the eight SDK interfaces are mocked with
+mockery (`support/cdn/mock/generate.go`), and `client.go` wires them into a
+`MockedCDN` plus a `clientShim` that implements `cdn.ClientService`. Regenerate with:
+
+```bash
+go generate ./edgecenter/integrationtest/support/cdn/mock/...
+```
+
+`MockedCDN` implements `MetaProvider` (`TestMeta` -> `*edgecenter.Config`) and
+`MockCleanuper`, so `RunResourceCases` binds meta and verifies expectations
+automatically. Tests live in `integrationtest/cdn/` and set expectations on
+`mc.Resources`, `mc.Rules`, `mc.OriginGroups`, `mc.LECerts`, `mc.Shielding`,
+`mc.SSLCerts`, `mc.Tools`.
+
+The nested `options` blocks (37 on the CDN resource, 34 on the rule) are not covered
+one by one here. They are covered wholesale by a co-located white-box test,
+`services/cdn/options_test.go`: it fills **every** option and **every** field of every
+option via reflection, pushes the struct through `d.Set` -> `d.Get`, converts it back,
+and compares. Any mapper that drops or mangles a field fails there, by option name.
+
+Data sources are covered too: they are plain `*schema.Resource` values fetched from
+`provider.Provider().DataSourcesMap` and driven with `support.OpRead`. Because
+`ResourceData.State()` returns nil for an empty ID, a data source case must set a
+non-empty placeholder `CurrentID` so the config materializes into state; the read
+then assigns the real ID.
+
+## Extending to DNS
 
 The same pattern applies:
-1. Add `support/cdn/` and `support/dns/` directories with domain-specific helpers.
-2. Generate mocks from the corresponding SDK packages.
-3. Place tests in `integrationtest/cdn/` and `integrationtest/dns/`.
+1. Add a `support/dns/` directory with domain-specific helpers.
+2. Generate or hand-write mocks from the corresponding SDK packages.
+3. Place tests in `integrationtest/dns/`.
 
 
 

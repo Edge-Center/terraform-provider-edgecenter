@@ -1,4 +1,4 @@
-package edgecenter
+package cdn
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/edgecentercdn-go/sslcerts"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceCDNCert() *schema.Resource {
@@ -57,7 +58,7 @@ func resourceCDNCert() *schema.Resource {
 
 func resourceCDNCertCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start CDN Cert creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	var req sslcerts.CreateRequest
@@ -81,7 +82,7 @@ func resourceCDNCertCreate(ctx context.Context, d *schema.ResourceData, m interf
 func resourceCDNCertRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	certID := d.Id()
 	log.Printf("[DEBUG] Start CDN Cert reading (id=%s)\n", certID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	id, err := strconv.ParseInt(certID, 10, 64)
@@ -105,7 +106,7 @@ func resourceCDNCertRead(ctx context.Context, d *schema.ResourceData, m interfac
 func resourceCDNCertDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	certID := d.Id()
 	log.Printf("[DEBUG] Start CDN Cert deleting (id=%s)\n", certID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	id, err := strconv.ParseInt(certID, 10, 64)

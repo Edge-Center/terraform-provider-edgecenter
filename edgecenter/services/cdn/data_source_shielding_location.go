@@ -1,4 +1,4 @@
-package edgecenter
+package cdn
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/edgecentercdn-go/shielding"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func dataShieldingLocation() *schema.Resource {
@@ -39,7 +40,7 @@ func dataShieldingLocationRead(ctx context.Context, d *schema.ResourceData, m in
 	log.Println("[DEBUG] Start reading shielding locations.")
 
 	datacenter := d.Get("datacenter").(string)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	result, err := client.Shielding().GetShieldingLocations(ctx)

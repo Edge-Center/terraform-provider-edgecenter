@@ -1,4 +1,4 @@
-package edgecenter
+package cdn
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/edgecentercdn-go/shielding"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceCDNShielding() *schema.Resource {
@@ -45,7 +46,7 @@ func resourceCDNShieldingRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	log.Printf("[DEBUG] Start CDN Shielding reading (resource_id=%d)\n", resourceID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	result, err := client.Shielding().Get(ctx, int64(resourceID))
@@ -68,7 +69,7 @@ func resourceCDNShieldingRead(ctx context.Context, d *schema.ResourceData, m int
 func resourceCDNShieldingUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Get("resource_id").(int)
 	log.Printf("[DEBUG] Start CDN Shielding updating for (resource_id=%d)\n", resourceID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	var req shielding.UpdateShieldingData
@@ -89,7 +90,7 @@ func resourceCDNShieldingUpdate(ctx context.Context, d *schema.ResourceData, m i
 func resourceCDNShieldingDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Get("resource_id").(int)
 	log.Printf("[DEBUG] Start CDN Shielding deleting (resource_id=%d)\n", resourceID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 
 	var req shielding.UpdateShieldingData

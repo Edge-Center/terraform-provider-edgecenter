@@ -1,4 +1,4 @@
-package edgecenter
+package cdn
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func resourceCDNLECert() *schema.Resource {
@@ -48,7 +50,7 @@ func resourceCDNLECert() *schema.Resource {
 }
 
 func resourceCDNLECertCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 	resourceID := int64(d.Get("resource_id").(int))
 
@@ -62,7 +64,7 @@ func resourceCDNLECertCreate(ctx context.Context, d *schema.ResourceData, m inte
 }
 
 func resourceCDNLECertRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 	resourceID := int64(d.Get("resource_id").(int))
 
@@ -87,7 +89,7 @@ func resourceCDNLECertRead(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func resourceCDNLECertUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 	resourceID := int64(d.Get("resource_id").(int))
 	flagUpdate := d.Get("update").(bool)
@@ -125,7 +127,7 @@ func resourceCDNLECertUpdate(ctx context.Context, d *schema.ResourceData, m inte
 }
 
 func resourceCDNLECertDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.CDNClient
 	resourceID := int64(d.Get("resource_id").(int))
 
