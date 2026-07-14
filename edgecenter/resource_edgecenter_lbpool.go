@@ -300,7 +300,8 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 					d.SetId("")
 					return diags
 				}
-			} else if lbID := d.Get("loadbalancer_id").(string); lbID != "" {
+			}
+			if lbID := d.Get("loadbalancer_id").(string); lbID != "" {
 				_, lbResp, lbErr := clientV2.Loadbalancers.Get(ctx, lbID)
 				if lbErr == nil && lbResp != nil && lbResp.StatusCode == http.StatusOK {
 					log.Printf("[DEBUG] pool %s not found but parent LB %s is alive; removing from state",
@@ -346,13 +347,11 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 			}
 			if matched != nil {
 				d.SetId(matched.ID)
-				if len(matched.Loadbalancers) > 0 {
-					d.Set("loadbalancer_id", matched.Loadbalancers[0].ID)
+				full, _, getErr := clientV2.Loadbalancers.PoolGet(ctx, matched.ID)
+				if getErr != nil {
+					return diag.FromErr(getErr)
 				}
-				if len(matched.Listeners) > 0 {
-					d.Set("listener_id", matched.Listeners[0].ID)
-				}
-				lb = matched
+				lb = full
 			} else {
 				d.SetId("")
 				return diags

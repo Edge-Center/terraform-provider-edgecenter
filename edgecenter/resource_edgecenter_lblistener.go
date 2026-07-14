@@ -344,7 +344,11 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 			}
 			if matched != nil {
 				d.SetId(matched.ID)
-				d.Set("loadbalancer_id", matched.LoadbalancerID)
+				ownerLBID, ownerErr := findListenerOwnerLB(ctx, clientV2, matched.ID)
+				if ownerErr != nil {
+					return diag.FromErr(ownerErr)
+				}
+				d.Set("loadbalancer_id", ownerLBID)
 				listener = matched
 			} else {
 				d.SetId("")

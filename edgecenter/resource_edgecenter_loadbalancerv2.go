@@ -23,9 +23,9 @@ func resourceLoadBalancerV2() *schema.Resource {
 		CustomizeDiff: customLoadBalancerV2Diff,
 		Description:   "Represent load balancer without nested listener",
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(5 * time.Minute),
-			Delete: schema.DefaultTimeout(5 * time.Minute),
+			Create: schema.DefaultTimeout(LoadBalancerCreateTimeout),
+			Update: schema.DefaultTimeout(LoadBalancerUpdateTimeout),
+			Delete: schema.DefaultTimeout(LoadBalancerDeleteTimeout),
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
@@ -78,13 +78,13 @@ func resourceLoadBalancerV2() *schema.Resource {
 			"flavor": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "The flavor or specification of the load balancer to be created.",
 			},
 			"vip_port_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
-				ForceNew:      true,
 				ConflictsWith: []string{"vip_network_id"},
 				Description:   "Attaches the created reserved IP.",
 			},
@@ -147,6 +147,11 @@ func resourceLoadBalancerV2() *schema.Resource {
 }
 
 func customLoadBalancerV2Diff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	if d.Id() != "" && d.HasChange("vip_port_id") && !d.GetRawConfig().GetAttr("vip_port_id").IsNull() {
+		if err := d.ForceNew("vip_port_id"); err != nil {
+			return fmt.Errorf("mark vip_port_id change as force new: %w", err)
+		}
+	}
 	if !d.HasChange("flavor") {
 		return nil
 	}
@@ -220,8 +225,13 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	lb, _, err := clientV2.Loadbalancers.Get(ctx, d.Id())
+	lb, resp, err := clientV2.Loadbalancers.Get(ctx, d.Id())
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[DEBUG] load balancer %s not found; removing from state", d.Id())
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 
@@ -293,8 +303,8 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 		}
 	}
 
-	if d.HasChange("flavor") {
-		req := &edgecloudV2.LoadbalancerChangeFlavorRequest{Flavor: d.Get("flavor").(string)}
+	if newFlavor := d.Get("flavor").(string); d.HasChange("flavor") && newFlavor != "" {
+		req := &edgecloudV2.LoadbalancerChangeFlavorRequest{Flavor: newFlavor}
 		taskResult, _, err := clientV2.Loadbalancers.ChangeFlavor(ctx, d.Id(), req)
 		if err != nil {
 			return diag.FromErr(err)

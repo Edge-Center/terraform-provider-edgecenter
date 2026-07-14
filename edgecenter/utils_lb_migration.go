@@ -11,7 +11,8 @@ import (
 
 // resolveListenerAfterLBMigration searches for a listener across all project listeners
 // by primary fields (name, protocol, protocol_port) and narrows with secondary fields
-// when multiple candidates exist. Always confirms with secondary fields on single match.
+// when multiple candidates exist. A single primary match is accepted even when
+// secondary fields differ (with a warning).
 func resolveListenerAfterLBMigration(
 	ctx context.Context, clientV2 *edgecloudV2.Client,
 	name string, protocol string, protocolPort int,
@@ -62,13 +63,8 @@ func listenerSecondaryMatch(l edgecloudV2.Listener,
 	timeoutClientData, timeoutMemberData, timeoutMemberConnect *int,
 	secretID string, sniSecretIDs []string,
 ) bool {
-	if len(l.AllowedCIDRs) != len(allowedCIDRs) {
+	if !unorderedEqual(l.AllowedCIDRs, allowedCIDRs) {
 		return false
-	}
-	for i := range l.AllowedCIDRs {
-		if l.AllowedCIDRs[i] != allowedCIDRs[i] {
-			return false
-		}
 	}
 	if ptrOrZero(l.TimeoutClientData) != ptrOrZero(timeoutClientData) {
 		return false
@@ -82,11 +78,24 @@ func listenerSecondaryMatch(l edgecloudV2.Listener,
 	if l.SecretID != secretID {
 		return false
 	}
-	if len(l.SNISecretID) != len(sniSecretIDs) {
+	if !unorderedEqual(l.SNISecretID, sniSecretIDs) {
 		return false
 	}
-	for i := range l.SNISecretID {
-		if l.SNISecretID[i] != sniSecretIDs[i] {
+
+	return true
+}
+
+func unorderedEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	counts := make(map[string]int, len(a))
+	for _, s := range a {
+		counts[s]++
+	}
+	for _, s := range b {
+		counts[s]--
+		if counts[s] < 0 {
 			return false
 		}
 	}
@@ -101,6 +110,22 @@ func ptrOrZero(p *int) int {
 	return *p
 }
 
+func findListenerOwnerLB(ctx context.Context, clientV2 *edgecloudV2.Client, listenerID string) (string, error) {
+	lbs, _, err := clientV2.Loadbalancers.List(ctx, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to list load balancers to resolve owner of listener %s: %w", listenerID, err)
+	}
+	for i := range lbs {
+		for _, l := range lbs[i].Listeners {
+			if l.ID == listenerID {
+				return lbs[i].ID, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("owner load balancer of listener %s not found", listenerID)
+}
+
 // resolvePoolAfterLBMigration searches for a pool across all project pools
 // by primary fields (name, protocol, lb_algorithm) and narrows with secondary fields.
 func resolvePoolAfterLBMigration(
@@ -110,7 +135,7 @@ func resolvePoolAfterLBMigration(
 	healthMonitorMaxRetriesDown int, healthMonitorURLPath, healthMonitorExpectedCodes string,
 	sessionPersistenceType, sessionPersistenceCookieName string,
 ) (*edgecloudV2.Pool, error) {
-	allPools, _, err := clientV2.Loadbalancers.PoolList(ctx, nil)
+	allPools, _, err := clientV2.Loadbalancers.PoolList(ctx, &edgecloudV2.PoolListOptions{Details: true})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pools for migration rebind: %w", err)
 	}
@@ -201,7 +226,7 @@ func resolveMemberAcrossPools(
 	address net.IP, protocolPort int,
 	weight int, subnetID string, instanceID string,
 ) (*edgecloudV2.PoolMember, string, error) {
-	allPools, _, err := clientV2.Loadbalancers.PoolList(ctx, nil)
+	allPools, _, err := clientV2.Loadbalancers.PoolList(ctx, &edgecloudV2.PoolListOptions{Details: true})
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to list pools for member migration rebind: %w", err)
 	}
@@ -373,4 +398,41 @@ func resolveL7RuleAfterPolicyMigration(ctx context.Context, clientV2 *edgecloudV
 	}
 
 	return &matches[0], nil
+}
+
+func resolveL7RuleAcrossPolicies(ctx context.Context, clientV2 *edgecloudV2.Client,
+	ruleType string, key string, value string, compareType string, invert bool,
+) (*edgecloudV2.L7Rule, string, error) {
+	policies, _, err := clientV2.L7Policies.List(ctx)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to list l7 policies for rule migration rebind: %w", err)
+	}
+
+	var matchedRule *edgecloudV2.L7Rule
+	var matchedPolicyID string
+	matches := 0
+	for _, p := range policies {
+		rules, _, err := clientV2.L7Rules.List(ctx, p.ID)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to list l7 rules of policy %s for migration rebind: %w", p.ID, err)
+		}
+		for i := range rules {
+			r := rules[i]
+			if string(r.Type) == ruleType && r.Key == key && r.Value == value && string(r.CompareType) == compareType && r.Invert == invert {
+				matchedRule = &r
+				matchedPolicyID = p.ID
+				matches++
+			}
+		}
+	}
+
+	switch {
+	case matches == 0:
+		return nil, "", nil
+	case matches > 1:
+		return nil, "", fmt.Errorf("ambiguous l7 rule rebind: %d rules match type=%s key=%s value=%s compareType=%s invert=%v across policies",
+			matches, ruleType, key, value, compareType, invert)
+	default:
+		return matchedRule, matchedPolicyID, nil
+	}
 }

@@ -229,45 +229,44 @@ func resourceL7RuleV2Read(ctx context.Context, d *schema.ResourceData, m interfa
 			invert := d.Get(LBL7RuleInvertField).(bool)
 
 			_, policyResp, policyErr := clientV2.L7Policies.Get(ctx, l7policyID)
-			if policyErr != nil {
-				if isL7RuleMigrationNotFound(policyResp, policyErr) {
-					listenerID := d.Get(LBL7PolicyListenerIDField).(string)
-					if listenerID != "" {
-						_, listenerResp, listenerErr := clientV2.Loadbalancers.ListenerGet(ctx, listenerID)
-						if listenerErr == nil && listenerResp != nil && listenerResp.StatusCode == http.StatusOK {
-							log.Printf("[DEBUG] l7 rule %s: l7policy %s not found but listener %s is alive; removing from state",
-								d.Id(), l7policyID, listenerID)
-							d.SetId("")
-							return nil
-						}
-					}
-
-					matchedPolicy, rebindErr := resolveL7PolicyAfterLBMigration(ctx, clientV2, "", "", 0, "", "", "", 0)
-					if rebindErr != nil {
-						return diag.FromErr(rebindErr)
-					}
-					if matchedPolicy != nil {
-						l7policyID = matchedPolicy.ID
-					} else {
+			switch {
+			case policyErr == nil:
+				matched, rebindErr := resolveL7RuleAfterPolicyMigration(ctx, clientV2, l7policyID, ruleType, key, value, compareType, invert)
+				if rebindErr != nil {
+					return diag.FromErr(rebindErr)
+				}
+				if matched == nil {
+					d.SetId("")
+					return nil
+				}
+				d.SetId(matched.ID)
+				l7Rule = matched
+			case isL7RuleMigrationNotFound(policyResp, policyErr):
+				listenerID := d.Get(LBL7PolicyListenerIDField).(string)
+				if listenerID != "" {
+					_, listenerResp, listenerErr := clientV2.Loadbalancers.ListenerGet(ctx, listenerID)
+					if listenerErr == nil && listenerResp != nil && listenerResp.StatusCode == http.StatusOK {
+						log.Printf("[DEBUG] l7 rule %s: l7policy %s not found but listener %s is alive; removing from state",
+							d.Id(), l7policyID, listenerID)
 						d.SetId("")
 						return nil
 					}
-				} else {
-					return diag.FromErr(policyErr)
 				}
-			}
 
-			matched, rebindErr := resolveL7RuleAfterPolicyMigration(ctx, clientV2, l7policyID, ruleType, key, value, compareType, invert)
-			if rebindErr != nil {
-				return diag.FromErr(rebindErr)
-			}
-			if matched != nil {
+				matched, foundPolicyID, rebindErr := resolveL7RuleAcrossPolicies(ctx, clientV2, ruleType, key, value, compareType, invert)
+				if rebindErr != nil {
+					return diag.FromErr(rebindErr)
+				}
+				if matched == nil {
+					d.SetId("")
+					return nil
+				}
 				d.SetId(matched.ID)
+				l7policyID = foundPolicyID
 				d.Set(LBL7RuleL7PolicyIDField, l7policyID)
 				l7Rule = matched
-			} else {
-				d.SetId("")
-				return nil
+			default:
+				return diag.FromErr(policyErr)
 			}
 		} else {
 			return diag.FromErr(err)
