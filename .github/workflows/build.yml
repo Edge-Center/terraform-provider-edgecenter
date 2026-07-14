@@ -128,8 +128,25 @@ jobs:
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=20m
         continue-on-error: true
 
-  mkaas-tests:
+  mkaas-sweep:
     needs: [smoke, detect]
+    if: needs.detect.outputs.mkaas == 'true' || needs.detect.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    env:
+      EC_CLIENT_ID: ${{ secrets.EC_CLIENT_ID }}
+      EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
+      TEST_MKAAS_REGION_ID: ${{ secrets.TEST_MKAAS_REGION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.0
+      - name: Sweep stale MKAAS resources
+        run: go test -v ./edgecenter/test -tags sweeper -sweep=edgecenter_mkaas_cluster -timeout=10m
+        continue-on-error: true
+
+  mkaas-tests:
+    needs: [smoke, detect, mkaas-sweep]
     if: needs.detect.outputs.mkaas == 'true' || needs.detect.outputs.shared == 'true'
     runs-on: ubuntu-latest
     env:
@@ -145,7 +162,7 @@ jobs:
           - tag: cloud_resource_mkaas
             timeout: 30m
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 2
     name: tests-${{ matrix.kind.tag }}
     steps:
       - uses: actions/checkout@v4
@@ -191,9 +208,6 @@ jobs:
           EOF
           terraform -chdir="$tmp_dir" init -input=false -no-color
           terraform -chdir="$tmp_dir" providers
-      - name: Sweep stale MKAAS resources
-        run: go test -v ./edgecenter/test -tags sweeper -sweep=edgecenter_mkaas_cluster -timeout=10m
-        continue-on-error: true
       - name: Run MKAAS tests (${{ matrix.kind.tag }})
         run: go test -v ./edgecenter/test -tags ${{ matrix.kind.tag }} -short -timeout=${{ matrix.kind.timeout }}
         continue-on-error: true
@@ -228,10 +242,14 @@ jobs:
     needs: [smoke, integration-tests, reseller-tests, tests, mkaas-tests, not-cloud-tests]
     if: always()
     runs-on: ubuntu-latest
+    name: CI metrics summary
     permissions:
       actions: read
+      checks: read
       contents: none
+      pull-requests: write
     env:
+      METRICS_JOB_NAME: CI metrics summary
       TARGET_SECONDS: 1800
     steps:
       - name: Wall-clock summary
@@ -243,7 +261,22 @@ jobs:
           run_started_at=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.run_started_at')
           jobs_json=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs")
 
-          report=$(jq -r --arg run_started "$run_started_at" '
+          failed_job_ids='[]'
+          while IFS=$'\t' read -r job_id check_run_url; do
+            annotations=$(gh api --paginate --slurp "${check_run_url#https://api.github.com}/annotations?per_page=100")
+            if jq -e '[.[][] | select(.annotation_level == "failure")] | length > 0' <<<"$annotations" >/dev/null; then
+              failed_job_ids=$(jq -c --argjson job_id "$job_id" '. + [$job_id]' <<<"$failed_job_ids")
+            fi
+          done < <(
+            jq -r --arg metrics_job_name "$METRICS_JOB_NAME" '
+              .jobs[]
+              | select(.name != $metrics_job_name)
+              | [.id, .check_run_url]
+              | @tsv
+            ' <<<"$jobs_json"
+          )
+
+          report=$(jq -r --arg run_started "$run_started_at" --arg metrics_job_name "$METRICS_JOB_NAME" --argjson failed_job_ids "$failed_job_ids" '
             def fmt(s):
               (s | floor) as $i
               | if $i < 60 then "\($i)s"
@@ -252,10 +285,22 @@ jobs:
 
             ($run_started | fromdate) as $start
             | .jobs
-            | map(select(.name != "metrics"))
+            | map(select(.name != $metrics_job_name))
             | map(. + {
                 sec: (((.completed_at // (now | todate)) | fromdate) - (.started_at | fromdate)),
-                current: ((.started_at | fromdate) >= $start)
+                current: ((.started_at | fromdate) >= $start),
+                display_status: (
+                  .id as $job_id
+                  | if (
+                      .conclusion == "success"
+                      and (
+                        ($failed_job_ids | index($job_id) != null)
+                        or any(.steps[]?; .conclusion == "failure")
+                      )
+                    ) then "failed (allowed)"
+                    else (.conclusion // "running")
+                    end
+                )
               })
             | sort_by(.started_at)
             | (map(select(.current))
@@ -263,17 +308,20 @@ jobs:
                 | (max // null)) as $end
             | (if $end == null then 0 else ($end - $start | floor) end) as $total
             | {
-                rows_full: map("| \(.name) | \(.conclusion // "running") | \(fmt(.sec)) | \(if .current then "this attempt" else "cached" end) |") | join("\n"),
-                rows_plain: map("| \(.name) | \(.conclusion // "running") | \(fmt(.sec)) |") | join("\n"),
+                rows_full: map("| \(.name) | \(.display_status) | \(fmt(.sec)) | \(if .current then "this attempt" else "cached" end) |") | join("\n"),
+                rows_plain: map("| \(.name) | \(.display_status) | \(fmt(.sec)) |") | join("\n"),
                 total_sec: $total,
                 total_fmt: fmt($total),
-                cached: (map(select(.current | not)) | length)
+                cached: (map(select(.current | not)) | length),
+                allowed_failures: map(select(.display_status == "failed (allowed)") | .name)
               }
           ' <<<"$jobs_json")
 
           total_sec=$(jq -r '.total_sec' <<<"$report")
           total_fmt=$(jq -r '.total_fmt' <<<"$report")
           cached=$(jq -r '.cached' <<<"$report")
+          allowed_failure_count=$(jq -r '.allowed_failures | length' <<<"$report")
+          allowed_failures=$(jq -r '.allowed_failures[]?' <<<"$report")
           target_min=$((TARGET_SECONDS / 60))
 
           if [ "$total_sec" -le "$TARGET_SECONDS" ]; then
@@ -294,6 +342,7 @@ jobs:
             sep="|-----|--------|----------|"
           fi
 
+          report_file="$RUNNER_TEMP/ci-wall-clock.md"
           {
             echo "## CI wall-clock (attempt $GITHUB_RUN_ATTEMPT)"
             echo ""
@@ -303,10 +352,51 @@ jobs:
             echo ""
             echo "**Total (this attempt):** $total_fmt"
             echo "**Target:** ${target_min}m. **Result:** $status"
+            if [ "$allowed_failure_count" -gt 0 ]; then
+              echo "**Allowed failures:** $allowed_failure_count"
+            fi
             if [ "$cached" -gt 0 ]; then
               echo ""
               echo "_${cached} job(s) cached from prior attempts; not included in total._"
             fi
-          } >> "$GITHUB_STEP_SUMMARY"
+            echo ""
+            echo "[Open workflow run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)"
+          } > "$report_file"
+
+          cat "$report_file" >> "$GITHUB_STEP_SUMMARY"
+
+          while IFS= read -r job; do
+            [ -z "$job" ] && continue
+            echo "::warning title=Allowed test failure::$job contains a failed step allowed by continue-on-error."
+          done <<<"$allowed_failures"
 
           echo "::notice title=ci-metrics::attempt=$GITHUB_RUN_ATTEMPT total_sec=$total_sec target_sec=$TARGET_SECONDS status=$indicator cached_jobs=$cached"
+
+      - name: Publish PR metrics comment
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          marker='<!-- ci-wall-clock-summary -->'
+          report_file="$RUNNER_TEMP/ci-wall-clock.md"
+          payload=$(jq -Rs --arg marker "$marker" '{body: ($marker + "\n" + .)}' "$report_file")
+
+          comment_id=$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" \
+            | jq -r --arg marker "$marker" '
+                [.[] | .[] | select(.user.login == "github-actions[bot]" and (.body | startswith($marker)))]
+                | last | .id // empty
+              ')
+
+          if [ -n "$comment_id" ]; then
+            gh api --method PATCH -H "Content-Type: application/json" \
+              "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" \
+              --input - <<<"$payload"
+          else
+            gh api --method POST -H "Content-Type: application/json" \
+              "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+              --input - <<<"$payload"
+          fi
