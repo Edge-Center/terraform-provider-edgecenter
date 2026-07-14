@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -24,6 +25,17 @@ const (
 	LBL7RuleUpdateTimeout   = 10 * time.Minute
 	LBL7RuleDeleteTimeout   = 10 * time.Minute
 )
+
+func isL7RuleMigrationNotFound(resp *edgecloudV2.Response, err error) bool {
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return true
+	}
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(strings.ToLower(err.Error()), "not found (http 404)")
+}
 
 func resourceL7Rule() *schema.Resource {
 	return &schema.Resource{
@@ -209,7 +221,7 @@ func resourceL7RuleV2Read(ctx context.Context, d *schema.ResourceData, m interfa
 
 	l7Rule, resp, err := clientV2.L7Rules.Get(ctx, l7policyID, d.Id())
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
+		if isL7RuleMigrationNotFound(resp, err) {
 			ruleType := d.Get(TypeField).(string)
 			key := d.Get(KeyField).(string)
 			value := d.Get(LBL7RuleValueField).(string)
@@ -218,7 +230,7 @@ func resourceL7RuleV2Read(ctx context.Context, d *schema.ResourceData, m interfa
 
 			_, policyResp, policyErr := clientV2.L7Policies.Get(ctx, l7policyID)
 			if policyErr != nil {
-				if policyResp != nil && policyResp.StatusCode == http.StatusNotFound {
+				if isL7RuleMigrationNotFound(policyResp, policyErr) {
 					listenerID := d.Get(LBL7PolicyListenerIDField).(string)
 					if listenerID != "" {
 						_, listenerResp, listenerErr := clientV2.Loadbalancers.ListenerGet(ctx, listenerID)
