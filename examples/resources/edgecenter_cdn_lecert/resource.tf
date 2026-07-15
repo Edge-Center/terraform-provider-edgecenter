@@ -6,3 +6,8 @@ resource "edgecenter_cdn_lecert" "lecert" {
   resource_id = 12345
   update      = false
 }
+
+resource "edgecenter_cdn_lecert" "mddc" {
+  resource_id = 12346
+  cert_type   = "MDDC"
+}

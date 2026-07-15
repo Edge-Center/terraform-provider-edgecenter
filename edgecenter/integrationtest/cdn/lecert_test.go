@@ -24,6 +24,17 @@ const (
 	testLECertID         = 4242
 )
 
+func testLECertStatus(status string) []lecerts.LEStatusDetail {
+	return []lecerts.LEStatusDetail{
+		{
+			Status:  status,
+			Error:   "",
+			Details: "validation completed",
+			Created: "2024-01-01T00:00:00Z",
+		},
+	}
+}
+
 func leCertConfig(update, active bool) map[string]interface{} {
 	return map[string]interface{}{
 		"resource_id": testLECertResourceID,
@@ -35,10 +46,16 @@ func leCertConfig(update, active bool) map[string]interface{} {
 func leCertCreateCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
-	mc.LECerts.On("CreateLECert", mock.Anything, int64(testLECertResourceID)).Return(nil)
+	mc.LECerts.On("IssueLECert", mock.Anything, int64(testLECertResourceID), (*lecerts.IssueRequest)(nil)).Return(nil)
 
 	mc.LECerts.On("GetLECert", mock.Anything, int64(testLECertResourceID)).
-		Return(&lecerts.LECertStatus{ID: testLECertID, Active: true, Resource: testLECertResourceID}, nil)
+		Return(&lecerts.LECertStatus{
+			ID:       testLECertID,
+			Active:   true,
+			Resource: testLECertResourceID,
+			Started:  "2024-01-01T00:00:00Z",
+			Statuses: testLECertStatus("done"),
+		}, nil)
 
 	return support.ResourceCase[*cdnmock.MockedCDN]{
 		Name:      "successful create",
@@ -60,7 +77,7 @@ func leCertCreateCase() support.ResourceCase[*cdnmock.MockedCDN] {
 func leCertCreateInactiveCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
-	mc.LECerts.On("CreateLECert", mock.Anything, int64(testLECertResourceID)).Return(nil)
+	mc.LECerts.On("IssueLECert", mock.Anything, int64(testLECertResourceID), (*lecerts.IssueRequest)(nil)).Return(nil)
 
 	mc.LECerts.On("GetLECert", mock.Anything, int64(testLECertResourceID)).
 		Return(&lecerts.LECertStatus{ID: 0, Active: false}, nil)
@@ -81,7 +98,13 @@ func leCertReadCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
 	mc.LECerts.On("GetLECert", mock.Anything, int64(testLECertResourceID)).
-		Return(&lecerts.LECertStatus{ID: testLECertID, Active: true, Resource: testLECertResourceID}, nil)
+		Return(&lecerts.LECertStatus{
+			ID:       testLECertID,
+			Active:   true,
+			Resource: testLECertResourceID,
+			Started:  "2024-01-01T00:00:00Z",
+			Statuses: testLECertStatus("issued"),
+		}, nil)
 
 	return support.ResourceCase[*cdnmock.MockedCDN]{
 		Name:         "read takes the id from the API",
@@ -123,7 +146,12 @@ func leCertUpdateReissueCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
 	mc.LECerts.On("GetLECert", mock.Anything, int64(testLECertResourceID)).
-		Return(&lecerts.LECertStatus{ID: testLECertID, Active: true, Resource: testLECertResourceID}, nil)
+		Return(&lecerts.LECertStatus{
+			ID:       testLECertID,
+			Active:   true,
+			Resource: testLECertResourceID,
+			Statuses: testLECertStatus("renewing"),
+		}, nil)
 
 	mc.Resources.On("Get", mock.Anything, int64(testLECertResourceID)).
 		Return(&resources.Resource{ID: testLECertResourceID, SSLData: testLECertID}, nil)
@@ -151,7 +179,12 @@ func leCertUpdateCancelCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
 	mc.LECerts.On("GetLECert", mock.Anything, int64(testLECertResourceID)).
-		Return(&lecerts.LECertStatus{ID: testLECertID, Active: true, Resource: testLECertResourceID}, nil)
+		Return(&lecerts.LECertStatus{
+			ID:       testLECertID,
+			Active:   true,
+			Resource: testLECertResourceID,
+			Statuses: testLECertStatus("cancelled"),
+		}, nil)
 
 	mc.Resources.On("Get", mock.Anything, int64(testLECertResourceID)).
 		Return(&resources.Resource{ID: testLECertResourceID, SSLData: testLECertID}, nil)
@@ -169,6 +202,7 @@ func leCertUpdateCancelCase() support.ResourceCase[*cdnmock.MockedCDN] {
 			support.RequireNoDiags(t, diags)
 			support.RequireStateAttrs(t, state, map[string]string{
 				"active": "true",
+				"update": "false",
 			})
 		},
 	}
@@ -195,7 +229,7 @@ func leCertDeleteCase() support.ResourceCase[*cdnmock.MockedCDN] {
 func leCertCreateAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
-	mc.LECerts.On("CreateLECert", mock.Anything, int64(testLECertResourceID)).
+	mc.LECerts.On("IssueLECert", mock.Anything, int64(testLECertResourceID), (*lecerts.IssueRequest)(nil)).
 		Return(fmt.Errorf("api error: domain validation failed"))
 
 	return support.ResourceCase[*cdnmock.MockedCDN]{
