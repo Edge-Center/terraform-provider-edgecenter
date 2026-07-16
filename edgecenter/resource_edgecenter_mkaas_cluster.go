@@ -138,10 +138,9 @@ func resourceMKaaSCluster() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.VolumeTypeSsdHiIops)}, false),
 						},
 						MKaaSClusterVersionField: {
-							Type:         schema.TypeString,
-							Required:     true,
-							Description:  "The version of the Kubernetes cluster (format `vx.xx`). Available versions: `v1.31`, `v1.32`, `v1.33`, `v1.34`.",
-							ValidateFunc: validation.StringInSlice([]string{"v1.31", "v1.32", "v1.33", "v1.34"}, false),
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The version of the Kubernetes cluster (format `vx.xx`). Validated against available versions in the region via API.",
 						},
 					},
 				},
@@ -228,11 +227,17 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 		cpList := v.([]interface{})
 		if len(cpList) > 0 {
 			cp := cpList[0].(map[string]interface{})
+			shortVersion := cp[MKaaSClusterVersionField].(string)
+			fullVersion, err := resolveK8sVersionFromAPI(ctx, clientV2, clientV2.Region, shortVersion)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
 			createOpts.ControlPlane = edgecloudV2.ControlPlaneCreateRequest{
 				Flavor:     cp[FlavorField].(string),
 				NodeCount:  cp[MKaaSNodeCountField].(int),
 				VolumeSize: cp[MKaaSVolumeSizeField].(int),
-				Version:    resolveK8sVersion(cp[MKaaSClusterVersionField].(string)),
+				Version:    fullVersion,
 				VolumeType: edgecloudV2.VolumeType(cp[MKaaSVolumeTypeField].(string)),
 			}
 		}
