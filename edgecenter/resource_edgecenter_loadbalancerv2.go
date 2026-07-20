@@ -79,7 +79,7 @@ func resourceLoadBalancerV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The flavor or specification of the load balancer to be created.",
+				Description: "The flavor or specification of the load balancer to be created. Changing the flavor through the Cloud API recreates the load balancer and its child resources. If Terraform manages listeners, pools, members, L7 policies, or L7 rules, run `terraform apply -refresh-only` after a successful flavor change to synchronize their new IDs in state. API-driven flavor changes require a Floating IP. If `vip_port_id` is explicitly configured, Terraform replaces the load balancer instead.",
 			},
 			"vip_port_id": {
 				Type:          schema.TypeString,
@@ -271,6 +271,7 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 
 func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer updating")
+	flavorChanged := false
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
@@ -325,11 +326,21 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 		}
 
 		d.SetId(parsed.Loadbalancers[0])
+		flavorChanged = true
 	}
 
 	log.Println("[DEBUG] Finish LoadBalancer updating")
 
-	return resourceLoadBalancerV2Read(ctx, d, m)
+	diags := resourceLoadBalancerV2Read(ctx, d, m)
+	if flavorChanged {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Load balancer flavor was changed",
+			Detail:   "The Cloud API recreated the load balancer child resources. If this configuration manages listeners, pools, members, L7 policies, or L7 rules, run `terraform apply -refresh-only` to synchronize their new IDs in Terraform state.",
+		})
+	}
+
+	return diags
 }
 
 func resourceLoadBalancerV2Delete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
