@@ -68,6 +68,9 @@ build_debug: tidy
 	go build -o $(PLUGIN_PATH)/$(BINARY_NAME)_v$(VERSION) -gcflags '-N -l'
 	go build -o bin/$(BINARY_NAME) -gcflags '-N -l'
 
+build_v2migrate:
+	go build -o bin/v2migrate ./cmd/v2migrate
+
 linters:
 	@test -f $(BIN_DIR)/golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.9.0
 	@$(BIN_DIR)/golangci-lint run
@@ -117,4 +120,4 @@ docs_fmt:
 docs: docs_fmt
 	tfplugindocs --provider-name=edgecenter
 
-.PHONY: tidy build build_debug err_check linters linters_docker envs_reader test_integration test_cloud_data_source test_cloud_resource test_not_cloud test_sweep test_mkaas_resource test_mkaas_data test_edgemon test_cdn install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs
+.PHONY: tidy build build_debug build_v2migrate err_check linters linters_docker envs_reader test_integration test_cloud_data_source test_cloud_resource test_not_cloud test_sweep test_mkaas_resource test_mkaas_data test_edgemon test_cdn install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs

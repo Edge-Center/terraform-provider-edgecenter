@@ -5,6 +5,7 @@ subcategory: ""
 description: |-
   WARNING: Resource "instance" is deprecated and unavailable.
   Use edgecenter_instanceV2 resource instead.
+  The v2migrate tool converts the project to V2 without recreating resources, see the v1 to v2 migration guide https://registry.terraform.io/providers/Edge-Center/edgecenter/latest/docs/guides/v1-to-v2-migration.
   A cloud instance is a virtual machine in a cloud environment.
 ---
 
@@ -12,6 +13,7 @@ description: |-
 
 **WARNING:** Resource "instance" is deprecated and unavailable.
  Use edgecenter_instanceV2 resource instead.
+ The v2migrate tool converts the project to V2 without recreating resources, see the [v1 to v2 migration guide](https://registry.terraform.io/providers/Edge-Center/edgecenter/latest/docs/guides/v1-to-v2-migration).
 
  A cloud instance is a virtual machine in a cloud environment.
 

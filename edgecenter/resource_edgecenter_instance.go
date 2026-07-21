@@ -38,8 +38,8 @@ func resourceInstance() *schema.Resource {
 		ReadContext:        resourceInstanceRead,
 		UpdateContext:      resourceInstanceUpdate,
 		DeleteContext:      resourceInstanceDelete,
-		Description:        "**WARNING:** Resource \"instance\" is deprecated and unavailable.\n Use edgecenter_instanceV2 resource instead.\n\n A cloud instance is a virtual machine in a cloud environment.",
-		DeprecationMessage: "!> **WARNING:** This resource is deprecated and will be removed in the next major version. Use edgecenter_instanceV2 resource instead",
+		Description:        "**WARNING:** Resource \"instance\" is deprecated and unavailable.\n Use edgecenter_instanceV2 resource instead.\n The v2migrate tool converts the project to V2 without recreating resources, see the [v1 to v2 migration guide](https://registry.terraform.io/providers/Edge-Center/edgecenter/latest/docs/guides/v1-to-v2-migration).\n\n A cloud instance is a virtual machine in a cloud environment.",
+		DeprecationMessage: "!> **WARNING:** This resource is deprecated and will be removed in the next major version. Use edgecenter_instanceV2 resource instead. The v2migrate tool converts the project without recreating resources, see the guide: https://registry.terraform.io/providers/Edge-Center/edgecenter/latest/docs/guides/v1-to-v2-migration",
 
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {

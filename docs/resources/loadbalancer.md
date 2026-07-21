@@ -3,12 +3,16 @@
 page_title: "edgecenter_loadbalancer Resource - edgecenter"
 subcategory: ""
 description: |-
-  Represent load balancer
+  Represent load balancer. WARNING: Resource "loadbalancer" is deprecated.
+  Use edgecenter_loadbalancerv2 resource instead.
+  The v2migrate tool converts the project to V2 without recreating resources, see the v1 to v2 migration guide https://registry.terraform.io/providers/Edge-Center/edgecenter/latest/docs/guides/v1-to-v2-migration.
 ---
 
 # edgecenter_loadbalancer (Resource)
 
-Represent load balancer
+Represent load balancer. **WARNING:** Resource "loadbalancer" is deprecated.
+ Use edgecenter_loadbalancerv2 resource instead.
+ The v2migrate tool converts the project to V2 without recreating resources, see the [v1 to v2 migration guide](https://registry.terraform.io/providers/Edge-Center/edgecenter/latest/docs/guides/v1-to-v2-migration).
 
 ## Example Usage
 

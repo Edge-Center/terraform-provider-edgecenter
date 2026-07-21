@@ -72,3 +72,12 @@ Read-Only:
 
 - `created_at` (String) Date when list images was created.
 - `updated_at` (String) Date when list images was last updated.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# import using <entity_type>:<entity_id> format
+terraform import edgecenter_reseller_imagesV2.rimgs reseller:123456
+```

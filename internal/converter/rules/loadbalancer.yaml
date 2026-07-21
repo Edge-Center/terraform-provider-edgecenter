@@ -1,0 +1,32 @@
+resource:
+  from: edgecenter_loadbalancer
+  to: edgecenter_loadbalancerv2
+data:
+  from: edgecenter_loadbalancer
+  to: edgecenter_loadbalancerv2
+import_id: "{project_id}:{region_id}:{id}"
+ops:
+  - op: extract
+    path: listener
+    new_type: edgecenter_lblistener
+    parent_ref_attr: loadbalancer_id
+    copy_parent_attrs: [project_id, project_name, region_id, region_name]
+    import_id: "{project_id}:{region_id}:{$.id}:{id}"
+    note: the nested listener moved to a standalone edgecenter_lblistener resource
+    attr_todos:
+      certificate: inline certificates are not supported by edgecenter_lblistener, use secret_id with the secrets service
+      certificate_chain: inline certificates are not supported by edgecenter_lblistener, use secret_id with the secrets service
+      private_key: inline certificates are not supported by edgecenter_lblistener, use secret_id with the secrets service
+      insert_x_forwarded: insert_x_forwarded is create time only and is not read back on import, re-adding it right after import would plan a listener replacement
+  - op: todo
+    path: vip_network_id
+    note: vip_network_id is create time only and ForceNew, V2 does not read it back after import, keep it commented or the plan would replace the load balancer
+  - op: todo
+    path: vip_subnet_id
+    note: vip_subnet_id is create time only and ForceNew, V2 does not read it back after import, keep it commented or the plan would replace the load balancer
+refs:
+  warn:
+    listener: the nested listener moved to the extracted edgecenter_lblistener resource, reference it instead
+data_refs:
+  warn:
+    listener: the listener output was removed from the V2 data source, use the edgecenter_lblistener resource or lblistener data source
