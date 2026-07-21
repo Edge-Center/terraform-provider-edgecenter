@@ -3,6 +3,7 @@ package edgecenter
 import (
 	"context"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
@@ -299,9 +300,63 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	listener, _, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
+	listener, resp, err := clientV2.Loadbalancers.ListenerGet(ctx, d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			// Gate: if parent LB is alive, the listener was simply deleted — not migrated.
+			_, lbResp, lbErr := clientV2.Loadbalancers.Get(ctx, d.Get("loadbalancer_id").(string))
+			if lbErr == nil && lbResp != nil && lbResp.StatusCode == http.StatusOK {
+				log.Printf("[DEBUG] listener %s not found but parent LB %s is alive; removing from state",
+					d.Id(), d.Get("loadbalancer_id").(string))
+				d.SetId("")
+				return diags
+			}
+
+			// Parent LB also gone — this is a real migration, proceed with rebind.
+			allowedRaw := d.Get("allowed_cidrs").(*schema.Set).List()
+			allowedCIDRs := make([]string, len(allowedRaw))
+			for i, v := range allowedRaw {
+				allowedCIDRs[i] = v.(string)
+			}
+
+			tcd, _ := d.GetOk(TimeoutClientData)
+			tmd, _ := d.GetOk(TimeoutMemberData)
+			tmc, _ := d.GetOk(TimeoutMemberConnect)
+			toCD := tcd.(int)
+			toMD := tmd.(int)
+			toMC := tmc.(int)
+
+			sniRaw := d.Get("sni_secret_id").([]interface{})
+			sni := make([]string, len(sniRaw))
+			for i, v := range sniRaw {
+				sni[i] = v.(string)
+			}
+
+			matched, rebindErr := resolveListenerAfterLBMigration(ctx, clientV2,
+				d.Get("name").(string),
+				d.Get("protocol").(string),
+				d.Get("protocol_port").(int),
+				allowedCIDRs, &toCD, &toMD, &toMC,
+				d.Get("secret_id").(string), sni,
+			)
+			if rebindErr != nil {
+				return diag.FromErr(rebindErr)
+			}
+			if matched != nil {
+				d.SetId(matched.ID)
+				ownerLBID, ownerErr := findListenerOwnerLB(ctx, clientV2, matched.ID)
+				if ownerErr != nil {
+					return diag.FromErr(ownerErr)
+				}
+				d.Set("loadbalancer_id", ownerLBID)
+				listener = matched
+			} else {
+				d.SetId("")
+				return diags
+			}
+		} else {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.Set("name", listener.Name)
@@ -324,7 +379,7 @@ func resourceLBListenerRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.Set("l7policies", l7Policies)
 
-	fields := []string{"project_id", "region_id", "loadbalancer_id", "insert_x_forwarded"}
+	fields := []string{"project_id", "region_id", "insert_x_forwarded"}
 	revertState(d, &fields)
 
 	log.Println("[DEBUG] Finish LBListener reading")

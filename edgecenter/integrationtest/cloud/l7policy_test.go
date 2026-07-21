@@ -128,8 +128,11 @@ func l7policyReadNotFoundCase(policyID string) support.ResourceCase[*cloudmock.M
 	mc.L7Policies.On("Get", mock.Anything, policyID).
 		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
 
+	mc.Loadbalancers.On("ListenerGet", mock.Anything, testListenerID).
+		Return(sampleListener(testListenerID), &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusOK}}, nil)
+
 	return support.ResourceCase[*cloudmock.MockedCloud]{
-		Name:      "read non-existent (404)",
+		Name:      "read non-existent (404) -> rebind clears state",
 		Op:        support.OpRead,
 		Prepare:   func() *cloudmock.MockedCloud { return mc },
 		CurrentID: policyID,
@@ -141,8 +144,8 @@ func l7policyReadNotFoundCase(policyID string) support.ResourceCase[*cloudmock.M
 			},
 		),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
-			support.RequireHasErrorDiags(t, diags)
-			support.RequireErrorDiagContains(t, diags, "not found")
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when resource not found")
 		},
 	}
 }

@@ -111,11 +111,15 @@ func resourceLBPool() *schema.Resource {
 			"loadbalancer_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
 				Description: "The uuid for the load balancer.",
 			},
 			"listener_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
 				Description: "The uuid for the load balancer listener.",
 			},
 			"health_monitor": {
@@ -288,9 +292,77 @@ func resourceLBPoolRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	lb, _, err := clientV2.Loadbalancers.PoolGet(ctx, d.Id())
+	lb, resp, err := clientV2.Loadbalancers.PoolGet(ctx, d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			listenerID := d.Get("listener_id").(string)
+			if listenerID != "" {
+				_, listenerResp, listenerErr := clientV2.Loadbalancers.ListenerGet(ctx, listenerID)
+				if listenerErr == nil && listenerResp != nil && listenerResp.StatusCode == http.StatusOK {
+					log.Printf("[DEBUG] pool %s not found but parent listener %s is alive; removing from state",
+						d.Id(), listenerID)
+					d.SetId("")
+					return diags
+				}
+			}
+			if lbID := d.Get("loadbalancer_id").(string); lbID != "" {
+				_, lbResp, lbErr := clientV2.Loadbalancers.Get(ctx, lbID)
+				if lbErr == nil && lbResp != nil && lbResp.StatusCode == http.StatusOK {
+					log.Printf("[DEBUG] pool %s not found but parent LB %s is alive; removing from state",
+						d.Id(), lbID)
+					d.SetId("")
+					return diags
+				}
+			}
+
+			hmType := ""
+			var hmDelay, hmTimeout, hmMaxRetries, hmMaxRetriesDown int
+			var hmURLPath, hmExpectedCodes string
+			hmRaw := d.Get("health_monitor").([]interface{})
+			if len(hmRaw) > 0 {
+				hm := hmRaw[0].(map[string]interface{})
+				hmType, _ = hm["type"].(string)
+				hmDelay, _ = hm["delay"].(int)
+				hmTimeout, _ = hm["timeout"].(int)
+				hmMaxRetries, _ = hm["max_retries"].(int)
+				hmMaxRetriesDown, _ = hm["max_retries_down"].(int)
+				hmURLPath, _ = hm["url_path"].(string)
+				hmExpectedCodes, _ = hm["expected_codes"].(string)
+			}
+
+			spType := ""
+			var spCookieName string
+			spRaw := d.Get("session_persistence").([]interface{})
+			if len(spRaw) > 0 {
+				sp := spRaw[0].(map[string]interface{})
+				spType, _ = sp["type"].(string)
+				spCookieName, _ = sp["cookie_name"].(string)
+			}
+
+			matched, rebindErr := resolvePoolAfterLBMigration(ctx, clientV2,
+				d.Get("name").(string),
+				d.Get("protocol").(string),
+				d.Get("lb_algorithm").(string),
+				hmType, hmDelay, hmTimeout, hmMaxRetries, hmMaxRetriesDown, hmURLPath, hmExpectedCodes,
+				spType, spCookieName,
+			)
+			if rebindErr != nil {
+				return diag.FromErr(rebindErr)
+			}
+			if matched != nil {
+				d.SetId(matched.ID)
+				full, _, getErr := clientV2.Loadbalancers.PoolGet(ctx, matched.ID)
+				if getErr != nil {
+					return diag.FromErr(getErr)
+				}
+				lb = full
+			} else {
+				d.SetId("")
+				return diags
+			}
+		} else {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.Set("name", lb.Name)

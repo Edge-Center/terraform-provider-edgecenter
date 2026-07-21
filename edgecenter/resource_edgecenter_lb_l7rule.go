@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -23,6 +25,17 @@ const (
 	LBL7RuleUpdateTimeout   = 10 * time.Minute
 	LBL7RuleDeleteTimeout   = 10 * time.Minute
 )
+
+func isL7RuleMigrationNotFound(resp *edgecloudV2.Response, err error) bool {
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return true
+	}
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(strings.ToLower(err.Error()), "not found (http 404)")
+}
 
 func resourceL7Rule() *schema.Resource {
 	return &schema.Resource{
@@ -206,9 +219,58 @@ func resourceL7RuleV2Read(ctx context.Context, d *schema.ResourceData, m interfa
 
 	l7policyID := d.Get(LBL7RuleL7PolicyIDField).(string)
 
-	l7Rule, _, err := clientV2.L7Rules.Get(ctx, l7policyID, d.Id())
+	l7Rule, resp, err := clientV2.L7Rules.Get(ctx, l7policyID, d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		if isL7RuleMigrationNotFound(resp, err) {
+			ruleType := d.Get(TypeField).(string)
+			key := d.Get(KeyField).(string)
+			value := d.Get(LBL7RuleValueField).(string)
+			compareType := d.Get(LB7RuleCompareTypeField).(string)
+			invert := d.Get(LBL7RuleInvertField).(bool)
+
+			_, policyResp, policyErr := clientV2.L7Policies.Get(ctx, l7policyID)
+			switch {
+			case policyErr == nil:
+				matched, rebindErr := resolveL7RuleAfterPolicyMigration(ctx, clientV2, l7policyID, ruleType, key, value, compareType, invert)
+				if rebindErr != nil {
+					return diag.FromErr(rebindErr)
+				}
+				if matched == nil {
+					d.SetId("")
+					return nil
+				}
+				d.SetId(matched.ID)
+				l7Rule = matched
+			case isL7RuleMigrationNotFound(policyResp, policyErr):
+				listenerID := d.Get(LBL7PolicyListenerIDField).(string)
+				if listenerID != "" {
+					_, listenerResp, listenerErr := clientV2.Loadbalancers.ListenerGet(ctx, listenerID)
+					if listenerErr == nil && listenerResp != nil && listenerResp.StatusCode == http.StatusOK {
+						log.Printf("[DEBUG] l7 rule %s: l7policy %s not found but listener %s is alive; removing from state",
+							d.Id(), l7policyID, listenerID)
+						d.SetId("")
+						return nil
+					}
+				}
+
+				matched, foundPolicyID, rebindErr := resolveL7RuleAcrossPolicies(ctx, clientV2, ruleType, key, value, compareType, invert)
+				if rebindErr != nil {
+					return diag.FromErr(rebindErr)
+				}
+				if matched == nil {
+					d.SetId("")
+					return nil
+				}
+				d.SetId(matched.ID)
+				l7policyID = foundPolicyID
+				d.Set(LBL7RuleL7PolicyIDField, l7policyID)
+				l7Rule = matched
+			default:
+				return diag.FromErr(policyErr)
+			}
+		} else {
+			return diag.FromErr(err)
+		}
 	}
 
 	l7Policy, _, err := clientV2.L7Policies.Get(ctx, l7policyID)

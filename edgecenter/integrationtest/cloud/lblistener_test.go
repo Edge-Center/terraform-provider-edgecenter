@@ -144,8 +144,11 @@ func listenerReadNotFoundCase(listenerID string) support.ResourceCase[*cloudmock
 	mc.Loadbalancers.On("ListenerGet", mock.Anything, listenerID).
 		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
 
+	mc.Loadbalancers.On("Get", mock.Anything, testLoadBalancerID).
+		Return(sampleLoadBalancer(testLoadBalancerID), &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusOK}}, nil)
+
 	return support.ResourceCase[*cloudmock.MockedCloud]{
-		Name:      "read non-existent (404)",
+		Name:      "read non-existent (404) -> rebind clears state",
 		Op:        support.OpRead,
 		Prepare:   func() *cloudmock.MockedCloud { return mc },
 		CurrentID: listenerID,
@@ -156,8 +159,8 @@ func listenerReadNotFoundCase(listenerID string) support.ResourceCase[*cloudmock
 			},
 		),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
-			support.RequireHasErrorDiags(t, diags)
-			support.RequireErrorDiagContains(t, diags, "not found")
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when resource not found")
 		},
 	}
 }

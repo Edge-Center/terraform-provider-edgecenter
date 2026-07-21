@@ -37,7 +37,7 @@ resource "edgecenter_loadbalancerv2" "lb" {
 
 ### Optional
 
-- `flavor` (String) The flavor or specification of the load balancer to be created.
+- `flavor` (String) The flavor or specification of the load balancer to be created. Changing the flavor through the Cloud API recreates the load balancer and its child resources. If Terraform manages listeners, pools, members, L7 policies, or L7 rules, run `terraform apply -refresh-only` after a successful flavor change to synchronize their new IDs in state. API-driven flavor changes require a Floating IP. If `vip_port_id` is explicitly configured, Terraform replaces the load balancer instead.
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata_map` (Map of String) A map containing metadata, for example tags.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
@@ -62,6 +62,7 @@ Optional:
 
 - `create` (String)
 - `delete` (String)
+- `update` (String)
 
 
 <a id="nestedatt--metadata_read_only"></a>

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
@@ -248,8 +250,8 @@ func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m inter
 		d.Set("instance_port_id", floatingIP.PortID)
 	}
 	if floatingIP.Loadbalancer.ID != "" {
-		d.Set("load_balancer_id_attached_to", floatingIP.Loadbalancer.ID)
-		d.Set("load_balancer_port_id", floatingIP.PortID)
+		d.Set("load_balancers_id_attached_to", floatingIP.Loadbalancer.ID)
+		d.Set("load_balancers_port_id", floatingIP.PortID)
 	}
 	d.Set("port_id", floatingIP.PortID)
 	d.Set("router_id", floatingIP.RouterID)
@@ -282,9 +284,13 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 		oldFixedIP, newFixedIP := d.GetChange("fixed_ip_address")
 		oldPortID, newPortID := d.GetChange("port_id")
 		if oldPortID.(string) != "" || oldFixedIP.(string) != "" {
-			_, _, err := clientV2.Floatingips.UnAssign(ctx, d.Id())
+			_, resp, err := clientV2.Floatingips.UnAssign(ctx, d.Id())
 			if err != nil {
-				return diag.FromErr(err)
+				if isIgnorableFloatingIPUnassignError(err, resp) {
+					log.Printf("[DEBUG] FloatingIP %s is already detached from its previous port, continuing with reassignment: %s", d.Id(), err)
+				} else {
+					return diag.FromErr(err)
+				}
 			}
 		}
 		opts := &edgecloudV2.AssignFloatingIPRequest{}
@@ -317,6 +323,18 @@ func resourceFloatingIPUpdate(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	return resourceFloatingIPRead(ctx, d, m)
+}
+
+func isIgnorableFloatingIPUnassignError(err error, resp *edgecloudV2.Response) bool {
+	if err == nil {
+		return false
+	}
+
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return true
+	}
+
+	return strings.Contains(strings.ToLower(err.Error()), "not found")
 }
 
 func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

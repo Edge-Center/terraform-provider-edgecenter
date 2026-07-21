@@ -14,6 +14,45 @@ type LoadbalancersService struct {
 	mock.Mock
 }
 
+// ChangeFlavor provides a mock function with given fields: _a0, _a1, _a2
+func (_m *LoadbalancersService) ChangeFlavor(_a0 context.Context, _a1 string, _a2 *edgecloud.LoadbalancerChangeFlavorRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error) {
+	ret := _m.Called(_a0, _a1, _a2)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ChangeFlavor")
+	}
+
+	var r0 *edgecloud.TaskResponse
+	var r1 *edgecloud.Response
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *edgecloud.LoadbalancerChangeFlavorRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error)); ok {
+		return rf(_a0, _a1, _a2)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, *edgecloud.LoadbalancerChangeFlavorRequest) *edgecloud.TaskResponse); ok {
+		r0 = rf(_a0, _a1, _a2)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*edgecloud.TaskResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, *edgecloud.LoadbalancerChangeFlavorRequest) *edgecloud.Response); ok {
+		r1 = rf(_a0, _a1, _a2)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*edgecloud.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, string, *edgecloud.LoadbalancerChangeFlavorRequest) error); ok {
+		r2 = rf(_a0, _a1, _a2)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
 // CheckLimits provides a mock function with given fields: _a0, _a1
 func (_m *LoadbalancersService) CheckLimits(_a0 context.Context, _a1 *edgecloud.LoadbalancerCheckLimitsRequest) (*map[string]int, *edgecloud.Response, error) {
 	ret := _m.Called(_a0, _a1)

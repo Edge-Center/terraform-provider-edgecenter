@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -19,10 +20,12 @@ func resourceLoadBalancerV2() *schema.Resource {
 		ReadContext:   resourceLoadBalancerV2Read,
 		UpdateContext: resourceLoadBalancerV2Update,
 		DeleteContext: resourceLoadBalancerV2Delete,
+		CustomizeDiff: customLoadBalancerV2Diff,
 		Description:   "Represent load balancer without nested listener",
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(5 * time.Minute),
-			Delete: schema.DefaultTimeout(5 * time.Minute),
+			Create: schema.DefaultTimeout(LoadBalancerCreateTimeout),
+			Update: schema.DefaultTimeout(LoadBalancerUpdateTimeout),
+			Delete: schema.DefaultTimeout(LoadBalancerDeleteTimeout),
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
@@ -75,13 +78,13 @@ func resourceLoadBalancerV2() *schema.Resource {
 			"flavor": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
-				Description: "The flavor or specification of the load balancer to be created.",
+				Computed:    true,
+				Description: "The flavor or specification of the load balancer to be created. Changing the flavor through the Cloud API recreates the load balancer and its child resources. If Terraform manages listeners, pools, members, L7 policies, or L7 rules, run `terraform apply -refresh-only` after a successful flavor change to synchronize their new IDs in state. API-driven flavor changes require a Floating IP. If `vip_port_id` is explicitly configured, Terraform replaces the load balancer instead.",
 			},
 			"vip_port_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ForceNew:      true,
+				Computed:      true,
 				ConflictsWith: []string{"vip_network_id"},
 				Description:   "Attaches the created reserved IP.",
 			},
@@ -143,6 +146,31 @@ func resourceLoadBalancerV2() *schema.Resource {
 	}
 }
 
+func customLoadBalancerV2Diff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	if d.Id() != "" && d.HasChange("vip_port_id") && !d.GetRawConfig().GetAttr("vip_port_id").IsNull() {
+		if err := d.ForceNew("vip_port_id"); err != nil {
+			return fmt.Errorf("mark vip_port_id change as force new: %w", err)
+		}
+	}
+	if !d.HasChange("flavor") {
+		return nil
+	}
+	if !d.GetRawConfig().GetAttr("vip_port_id").IsNull() {
+		if err := d.ForceNew("flavor"); err != nil {
+			return fmt.Errorf("mark flavor change as force new: %w", err)
+		}
+		return nil
+	}
+	if err := d.SetNewComputed("vip_port_id"); err != nil {
+		return fmt.Errorf("mark vip_port_id as computed after flavor change: %w", err)
+	}
+	if err := d.SetNewComputed("vip_address"); err != nil {
+		return fmt.Errorf("mark vip_address as computed after flavor change: %w", err)
+	}
+
+	return nil
+}
+
 func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer creating")
 	var diags diag.Diagnostics
@@ -197,8 +225,13 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	lb, _, err := clientV2.Loadbalancers.Get(ctx, d.Id())
+	lb, resp, err := clientV2.Loadbalancers.Get(ctx, d.Id())
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[DEBUG] load balancer %s not found; removing from state", d.Id())
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 
@@ -210,6 +243,8 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 	if lb.VipAddress != nil {
 		d.Set("vip_address", lb.VipAddress.String())
 	}
+
+	d.Set("vip_port_id", lb.VipPortID)
 
 	fields := []string{"vip_network_id", "vip_subnet_id"}
 	revertState(d, &fields)
@@ -236,6 +271,7 @@ func resourceLoadBalancerV2Read(ctx context.Context, d *schema.ResourceData, m i
 
 func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start LoadBalancer updating")
+	flavorChanged := false
 
 	clientV2, err := InitCloudClient(ctx, d, m, nil)
 	if err != nil {
@@ -268,9 +304,43 @@ func resourceLoadBalancerV2Update(ctx context.Context, d *schema.ResourceData, m
 		}
 	}
 
+	if newFlavor := d.Get("flavor").(string); d.HasChange("flavor") && newFlavor != "" {
+		req := &edgecloudV2.LoadbalancerChangeFlavorRequest{Flavor: newFlavor}
+		taskResult, _, err := clientV2.Loadbalancers.ChangeFlavor(ctx, d.Id(), req)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskResult.Tasks[0], LoadBalancerUpdateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		parsed, err := utilV2.ExtractTaskResultFromTask(taskInfo)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if len(parsed.Loadbalancers) == 0 {
+			return diag.Errorf("change_flavor: API did not return new loadbalancer ID in task result")
+		}
+
+		d.SetId(parsed.Loadbalancers[0])
+		flavorChanged = true
+	}
+
 	log.Println("[DEBUG] Finish LoadBalancer updating")
 
-	return resourceLoadBalancerV2Read(ctx, d, m)
+	diags := resourceLoadBalancerV2Read(ctx, d, m)
+	if flavorChanged {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Load balancer flavor was changed",
+			Detail:   "The Cloud API recreated the load balancer child resources. If this configuration manages listeners, pools, members, L7 policies, or L7 rules, run `terraform apply -refresh-only` to synchronize their new IDs in Terraform state.",
+		})
+	}
+
+	return diags
 }
 
 func resourceLoadBalancerV2Delete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
