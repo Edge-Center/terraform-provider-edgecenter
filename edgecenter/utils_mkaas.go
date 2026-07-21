@@ -3,6 +3,7 @@ package edgecenter
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -203,15 +204,41 @@ func normalizeVersion(fullVersion string) string {
 	return fullVersion
 }
 
-func resolveK8sVersion(shortVersion string) string {
-	versionMap := map[string]string{
-		"v1.31": "v1.31.0",
-		"v1.32": "v1.32.13",
-		"v1.33": "v1.33.10",
-		"v1.34": "v1.34.8",
+func resolveK8sVersionFromAPI(ctx context.Context, client *edgecloudV2.Client, regionID int, shortVersion string) (string, error) {
+	result, _, err := client.MkaaS.VersionsList(ctx, regionID)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch available k8s versions for region %d: %w", regionID, err)
 	}
-	if full, ok := versionMap[shortVersion]; ok {
-		return full
+
+	prefix := shortVersion + "."
+	candidates := make([]string, 0, len(result.Versions))
+	availableVersionsSet := make(map[string]struct{}, len(result.Versions))
+	for _, version := range result.Versions {
+		availableVersionsSet[normalizeVersion(version.Version)] = struct{}{}
+		if strings.HasPrefix(version.Version, prefix) {
+			candidates = append(candidates, version.Version)
+		}
 	}
-	return shortVersion
+	if len(candidates) == 0 {
+		availableVersions := make([]string, 0, len(availableVersionsSet))
+		for version := range availableVersionsSet {
+			availableVersions = append(availableVersions, version)
+		}
+		sort.Strings(availableVersions)
+
+		if len(availableVersions) == 0 {
+			return "", fmt.Errorf("control_plane.version %q is not available in region %d; the API returned no available versions", shortVersion, regionID)
+		}
+
+		return "", fmt.Errorf(
+			"control_plane.version %q is not available in region %d; available versions: %s",
+			shortVersion,
+			regionID,
+			strings.Join(availableVersions, ", "),
+		)
+	}
+
+	sort.Strings(candidates)
+
+	return candidates[len(candidates)-1], nil
 }
