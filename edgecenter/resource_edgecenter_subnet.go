@@ -2,9 +2,10 @@ package edgecenter
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -17,8 +18,14 @@ import (
 
 const (
 	SubnetCreatingTimeout = 1200 * time.Second
+	SubnetDeleteTimeout   = 1200 * time.Second
 	SubnetPoint           = "subnets"
 	disable               = "disable"
+)
+
+var (
+	errSubnetDeleteLocked  = errors.New("subnet delete is locked")
+	errSubnetDeletePending = errors.New("subnet delete is still in progress")
 )
 
 func resourceSubnet() *schema.Resource {
@@ -428,19 +435,8 @@ func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	subnetID := d.Id()
 	log.Printf("[DEBUG] Subnet id = %s", subnetID)
-	results, resp, err := clientV2.Subnetworks.Delete(ctx, subnetID)
-	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
-			d.SetId("")
-			log.Printf("[DEBUG] Finish of Subnet deleting")
-			return diags
-		}
-		return diag.FromErr(err)
-	}
 
-	taskID := results.Tasks[0]
-
-	err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID)
+	err = deleteSubnetWithRetry(ctx, clientV2, subnetID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -449,6 +445,81 @@ func resourceSubnetDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Printf("[DEBUG] Finish of subnet deleting")
 
 	return diags
+}
+
+func deleteSubnetWithRetry(ctx context.Context, clientV2 *edgecloudV2.Client, subnetID string) error {
+	ctx, cancel := context.WithTimeout(ctx, SubnetDeleteTimeout)
+	defer cancel()
+
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	var lastErr error
+
+	for {
+		err := deleteSubnetOnce(ctx, clientV2, subnetID)
+		if err == nil {
+			return nil
+		}
+
+		if !errors.Is(err, errSubnetDeleteLocked) && !errors.Is(err, errSubnetDeletePending) {
+			return err
+		}
+
+		lastErr = err
+		log.Printf("[DEBUG] Retrying subnet delete for %s: %v", subnetID, err)
+
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout deleting subnet %s after retryable error: %w", subnetID, lastErr)
+		case <-ticker.C:
+		}
+	}
+}
+
+func deleteSubnetOnce(ctx context.Context, clientV2 *edgecloudV2.Client, subnetID string) error {
+	results, resp, err := clientV2.Subnetworks.Delete(ctx, subnetID)
+	if err != nil {
+		switch {
+		case utilV2.IsNotFoundErr(resp):
+			return nil
+		case utilV2.IsLockedErr(resp):
+			return fmt.Errorf("%w: %w", errSubnetDeleteLocked, err)
+		default:
+			return fmt.Errorf("delete subnet %s: %w", subnetID, err)
+		}
+	}
+
+	if results == nil || len(results.Tasks) == 0 {
+		return ensureSubnetDeleted(ctx, clientV2, subnetID)
+	}
+
+	_, err = utilV2.WaitAndGetTaskInfo(ctx, clientV2, results.Tasks[0], SubnetDeleteTimeout)
+	if err != nil {
+		checkErr := ensureSubnetDeleted(ctx, clientV2, subnetID)
+		switch {
+		case checkErr == nil:
+			return nil
+		case errors.Is(checkErr, errSubnetDeletePending):
+			return fmt.Errorf("%w: subnet delete task failed but subnet still exists: %w", errSubnetDeletePending, err)
+		default:
+			return checkErr
+		}
+	}
+
+	return ensureSubnetDeleted(ctx, clientV2, subnetID)
+}
+
+func ensureSubnetDeleted(ctx context.Context, clientV2 *edgecloudV2.Client, subnetID string) error {
+	exists, err := utilV2.ResourceIsExist(ctx, clientV2.Subnetworks.Get, subnetID)
+	switch {
+	case err != nil:
+		return fmt.Errorf("check subnet %s existence after delete: %w", subnetID, err)
+	case !exists:
+		return nil
+	default:
+		return fmt.Errorf("%w: subnet %s still exists after delete attempt", errSubnetDeletePending, subnetID)
+	}
 }
 
 func suppressSubnetGatewayIPDiff(_, oldValue, newValue string, d *schema.ResourceData) bool {

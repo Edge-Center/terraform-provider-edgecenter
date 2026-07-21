@@ -15,23 +15,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
 
 const testLoadBalancerID = "test-lb-id"
 
 func sampleLoadBalancer(id string) *edgecloud.Loadbalancer {
 	return &edgecloud.Loadbalancer{
-		ID:           id,
-		Name:         "test-lb",
-		ProjectID:    testProjectID,
-		RegionID:     testRegionID,
-		Region:       "test-region",
-		VipAddress:   net.ParseIP("10.0.0.1"),
-		Flavor:       edgecloud.Flavor{FlavorName: "lb1-1-2"},
+		ID:                 id,
+		Name:               "test-lb",
+		ProjectID:          testProjectID,
+		RegionID:           testRegionID,
+		Region:             "test-region",
+		VipAddress:         net.ParseIP("10.0.0.1"),
+		Flavor:             edgecloud.Flavor{FlavorName: "lb1-1-2"},
 		ProvisioningStatus: edgecloud.ProvisioningStatusActive,
 		OperatingStatus:    edgecloud.OperatingStatusOnline,
 	}
@@ -128,7 +128,7 @@ func loadbalancerReadNotFoundCase(lbID string) support.ResourceCase[*cloudmock.M
 		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
 
 	return support.ResourceCase[*cloudmock.MockedCloud]{
-		Name:      "read non-existent (404)",
+		Name:      "read non-existent (404) -> clears state",
 		Op:        support.OpRead,
 		Prepare:   func() *cloudmock.MockedCloud { return mc },
 		CurrentID: lbID,
@@ -137,8 +137,8 @@ func loadbalancerReadNotFoundCase(lbID string) support.ResourceCase[*cloudmock.M
 			cloud.WithName("test-lb"),
 		),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
-			support.RequireHasErrorDiags(t, diags)
-			support.RequireErrorDiagContains(t, diags, "not found")
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when resource not found")
 		},
 	}
 }

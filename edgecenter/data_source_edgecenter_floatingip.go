@@ -166,7 +166,7 @@ func dataSourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m int
 		d.Set("instance_id_attached_to", foundFloatingIP.Instance.ID)
 	}
 	if foundFloatingIP.Loadbalancer.ID != "" {
-		d.Set("load_balancer_id_attached_to", foundFloatingIP.Loadbalancer.ID)
+		d.Set("load_balancers_id_attached_to", foundFloatingIP.Loadbalancer.ID)
 	}
 	d.Set("router_id", foundFloatingIP.RouterID)
 	d.Set("floating_ip_address", foundFloatingIP.FloatingIPAddress)

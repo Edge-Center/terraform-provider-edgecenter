@@ -4,6 +4,7 @@ package edgecenter_test
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -13,10 +14,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
 
 const testFloatingIPID = "fip-id"
@@ -188,6 +189,52 @@ func floatingIPUpdateMetadataCase(fipID string) support.ResourceCase[*cloudmock.
 	}
 }
 
+func floatingIPReassignAfterNotFoundUnassignCase(fipID string) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 2)
+
+	mc.Floatingips.On("UnAssign", mock.Anything, fipID).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
+
+	mc.Floatingips.On("Assign", mock.Anything, fipID,
+		mock.MatchedBy(func(req *edgecloud.AssignFloatingIPRequest) bool {
+			return req.PortID == "port-2"
+		}),
+	).Return((*edgecloud.FloatingIP)(nil), nil, nil)
+
+	reassignedIP := sampleFloatingIP(fipID, "10.0.0.1", "ACTIVE", "port-2")
+
+	mc.Floatingips.On("List", mock.Anything).
+		Return([]edgecloud.FloatingIP{reassignedIP}, nil, nil)
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "reassign floating IP after old port disappeared",
+		Op:        support.OpApply,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: fipID,
+		CurrentState: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			map[string]interface{}{
+				"port_id": "port-1",
+			},
+		),
+		NewConfig: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			map[string]interface{}{
+				"port_id": "port-2",
+			},
+		),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateID(t, state, fipID)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"port_id": "port-2",
+				"status":  "ACTIVE",
+			})
+		},
+	}
+}
+
 func floatingIPDeleteCase(fipID string) support.ResourceCase[*cloudmock.MockedCloud] {
 	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
 	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
@@ -268,6 +315,7 @@ func TestIntegrationFloatingIP_TableDriven(t *testing.T) {
 		floatingIPCreateCase(testFloatingIPID),
 		floatingIPAssignCase(testFloatingIPID),
 		floatingIPUnassignCase(testFloatingIPID),
+		floatingIPReassignAfterNotFoundUnassignCase(testFloatingIPID),
 		floatingIPUpdateMetadataCase(testFloatingIPID),
 		floatingIPDeleteCase(testFloatingIPID),
 		floatingIPCreateAPIFailureCase(),
