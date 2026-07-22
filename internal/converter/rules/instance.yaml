@@ -1,0 +1,140 @@
+resource:
+  from: edgecenter_instance
+  to: edgecenter_instanceV2
+data:
+  from: edgecenter_instance
+  to: edgecenter_instanceV2
+import_id: "{project_id}:{region_id}:{id}"
+ops:
+  - op: todo
+    path: metadata
+    note: deprecated metadata blocks are gone in V2, move the entries into the metadata map attribute
+  - op: rename
+    path: metadata_map
+    to: metadata
+  - op: rename
+    path: userdata
+    to: user_data
+  - op: todo
+    path: name_templates
+    note: name_templates was removed in V2, use name_template with a single template
+  - op: drop
+    path: addresses
+    note: addresses is computed in V2
+  - op: drop
+    path: flavor
+    note: flavor is computed in V2, flavor_id defines the flavor
+  - op: drop
+    path: last_updated
+    note: last_updated was removed in V2
+  - op: rename
+    path: interface
+    to: interfaces
+  - op: require
+    path: interfaces.type
+    note: type is required in V2, set subnet, external or reserved_fixed_ip
+  - op: todo
+    path: interfaces.type
+    when_equals: any_subnet
+    note: any_subnet is not supported in V2, use subnet with an explicit subnet_id
+  - op: rename
+    path: interfaces.port_id
+    to: reserved_fixed_ip_port_id
+  - op: ensure_one
+    path: interfaces
+    attr: is_default
+    value: "true"
+    rank_by: order
+    note: exactly one interface must have is_default = true, the converter marked the first one, if the first plan wants to replace interfaces move is_default to the interface terraform reports as default
+  - op: drop
+    path: interfaces.order
+    note: order was replaced by is_default in V2
+  - op: todo
+    path: interfaces.security_groups
+    note: interface security_groups are gone in V2, manage them with the edgecenter_instance_port_security resource
+  - op: todo
+    path: interfaces.port_security_disabled
+    note: port_security_disabled is gone in V2, manage it with the edgecenter_instance_port_security resource
+  - op: todo
+    path: interfaces.fip_source
+    note: floating ips are gone from interfaces in V2, manage them with the edgecenter_floatingip resource
+  - op: todo
+    path: interfaces.existing_fip_id
+    note: floating ips are gone from interfaces in V2, manage them with the edgecenter_floatingip resource
+  - op: todo
+    path: interfaces.ip_address
+    note: ip_address is read only in V2, pin an address with a reserved fixed ip and type reserved_fixed_ip
+  - op: split
+    path: volume
+    by: boot_index
+    note: boot_index must be a literal number to classify this volume, move the block to boot_volumes or data_volumes manually
+    cases:
+      - equals: "0"
+        to: boot_volumes
+      - absent: true
+        to: boot_volumes
+    else_to: data_volumes
+  - op: set
+    path: boot_volumes.boot_index
+    value: "0"
+    if_absent: true
+  - op: drop
+    path: data_volumes.boot_index
+    note: data_volumes have no boot_index in V2
+  - op: drop
+    path: boot_volumes.source
+  - op: drop
+    path: data_volumes.source
+  - op: drop
+    path: boot_volumes.name
+    note: computed in V2
+  - op: drop
+    path: data_volumes.name
+    note: computed in V2
+  - op: drop
+    path: boot_volumes.size
+    note: computed in V2
+  - op: drop
+    path: data_volumes.size
+    note: computed in V2
+  - op: drop
+    path: boot_volumes.type_name
+    note: computed in V2
+  - op: drop
+    path: data_volumes.type_name
+    note: computed in V2
+  - op: drop
+    path: boot_volumes.image_id
+    note: the image comes from the volume itself in V2
+  - op: drop
+    path: data_volumes.image_id
+    note: the image comes from the volume itself in V2
+  - op: drop
+    path: boot_volumes.id
+    note: computed in V2
+  - op: drop
+    path: data_volumes.id
+    note: computed in V2
+  - op: todo
+    path: boot_volumes.delete_on_termination
+    note: delete_on_termination is not supported in V2, volume deletion is controlled by the edgecenter_volume resource
+  - op: todo
+    path: data_volumes.delete_on_termination
+    note: delete_on_termination is not supported in V2, volume deletion is controlled by the edgecenter_volume resource
+refs:
+  rename:
+    metadata_map: metadata
+    userdata: user_data
+  warn:
+    volume: volume outputs moved to boot_volumes and data_volumes in V2
+    interface: interface outputs moved to the interfaces set in V2, sets are not index addressable
+    metadata: metadata is a plain map in V2
+    addresses: addresses was removed from the V2 resource
+    security_group: security_group was removed from the V2 resource
+data_refs:
+  warn:
+    volume: volume outputs moved to boot_volumes and data_volumes in the V2 data source
+    interface: interface outputs are exposed as the interfaces list in the V2 data source
+    metadata: metadata is a plain map in the V2 data source
+    addresses: addresses was removed from the V2 data source
+    security_group: security_group was removed from the V2 data source

@@ -1,0 +1,21 @@
+resource:
+  from: edgecenter_reseller_images
+  to: edgecenter_reseller_imagesV2
+data:
+  from: edgecenter_reseller_images
+  to: edgecenter_reseller_imagesV2
+import_id: "reseller:{reseller_id}"
+ops:
+  - op: rename
+    path: reseller_id
+    to: entity_id
+  - op: set
+    path: entity_type
+    value: '"reseller"'
+    if_absent: true
+refs:
+  rename:
+    reseller_id: entity_id
+data_refs:
+  rename:
+    reseller_id: entity_id

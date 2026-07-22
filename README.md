@@ -158,6 +158,22 @@ provider edgecenter {
 }
 ```
 
+Migrating v1 resources to V2
+------------------
+Some resources are deprecated in favor of a second version: `edgecenter_instance` -> `edgecenter_instanceV2`,
+`edgecenter_loadbalancer` -> `edgecenter_loadbalancerv2`, `edgecenter_reseller_images` -> `edgecenter_reseller_imagesV2`.
+The `v2migrate` tool rewrites project manifests to the V2 schema and generates `removed` + `import` blocks,
+so the existing cloud objects move under the new resource types without destroy and create:
+
+```bash
+go install github.com/Edge-Center/terraform-provider-edgecenter/cmd/v2migrate@latest
+v2migrate -dir ./my-project
+```
+
+Or build from a repository clone with `make build_v2migrate` (the binary lands in `bin/v2migrate`).
+See the full guide in [docs/guides/v1-to-v2-migration.md](docs/guides/v1-to-v2-migration.md)
+and the tool readme in [cmd/v2migrate](cmd/v2migrate/README.md).
+
 Testing
 ------------------
 ### Remote 

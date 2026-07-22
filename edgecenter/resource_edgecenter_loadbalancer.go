@@ -24,12 +24,12 @@ const (
 
 func resourceLoadBalancer() *schema.Resource {
 	return &schema.Resource{
-		DeprecationMessage: "!> **WARNING:** This resource is deprecated and will be removed in the next major version. Use edgecenter_loadbalancerv2 resource instead",
+		DeprecationMessage: "!> **WARNING:** This resource is deprecated and will be removed in the next major version. Use edgecenter_loadbalancerv2 resource instead. The v2migrate tool converts the project without recreating resources, see the guide: https://registry.terraform.io/providers/Edge-Center/edgecenter/latest/docs/guides/v1-to-v2-migration",
 		CreateContext:      resourceLoadBalancerCreate,
 		ReadContext:        resourceLoadBalancerRead,
 		UpdateContext:      resourceLoadBalancerUpdate,
 		DeleteContext:      resourceLoadBalancerDelete,
-		Description:        "Represent load balancer",
+		Description:        "Represent load balancer. **WARNING:** Resource \"loadbalancer\" is deprecated.\n Use edgecenter_loadbalancerv2 resource instead.\n The v2migrate tool converts the project to V2 without recreating resources, see the [v1 to v2 migration guide](https://registry.terraform.io/providers/Edge-Center/edgecenter/latest/docs/guides/v1-to-v2-migration).",
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
 			Delete: schema.DefaultTimeout(5 * time.Minute),

@@ -152,6 +152,15 @@ linters:
         linters:
           - wrapcheck
           - funlen
+      # converter structs mirror external formats: terraform state json and the rule yaml dsl
+      - path: 'internal/converter/'
+        linters:
+          - tagliatelle
+      # converter and its cli read files whose paths come from cli flags by design
+      - path: 'internal/converter/|cmd/v2migrate/'
+        linters:
+          - gosec
+        text: "G304"
 
 issues:
   max-issues-per-linter: 0

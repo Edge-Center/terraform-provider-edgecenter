@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -53,6 +54,34 @@ func resourceResellerImagesV2() *schema.Resource {
 		ReadContext:   resourceResellerImagesV2Read,
 		UpdateContext: resourceResellerImagesV2Update,
 		DeleteContext: resourceResellerImagesV2Delete,
+		Importer: &schema.ResourceImporter{
+			StateContext: func(_ context.Context, d *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {
+				parts := strings.Split(d.Id(), ":")
+				if len(parts) != 2 {
+					return nil, fmt.Errorf("failed import: id must have format <entity_type>:<entity_id>")
+				}
+				entityType := parts[0]
+				switch entityType {
+				case edgecloudV2.ResellerType, edgecloudV2.ClientType, edgecloudV2.ProjectType:
+				default:
+					return nil, fmt.Errorf("failed import: entity_type must be one of '%s', '%s', '%s'",
+						edgecloudV2.ResellerType, edgecloudV2.ClientType, edgecloudV2.ProjectType)
+				}
+				entityID, err := strconv.Atoi(parts[1])
+				if err != nil {
+					return nil, fmt.Errorf("failed import: entity_id must be a number: %w", err)
+				}
+				if err := d.Set(EntityTypeField, entityType); err != nil {
+					return nil, fmt.Errorf("failed import: %w", err)
+				}
+				if err := d.Set(EntityIDField, entityID); err != nil {
+					return nil, fmt.Errorf("failed import: %w", err)
+				}
+				d.SetId(parts[1])
+
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 		Description: `
 **This resource has been created for resellers and only works with the reseller API key.**
 
