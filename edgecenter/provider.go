@@ -195,6 +195,14 @@ const (
 	DBaaSDatabaseLocaleField   = "locale"
 
 	DBaaSUserDatabasesField = "databases"
+
+	DBaaSBackupTypeField          = "backup_type"
+	DBaaSBackupParentIDField      = "parent_id"
+	DBaaSBackupSizeField          = "size"
+	DBaaSBackupIsServiceField     = "is_service"
+	DBaaSBackupHasChildField      = "has_child"
+	DBaaSBackupFinishedAtField    = "finished_at"
+	DBaaSBackupCreatorTaskIDField = "creator_task_id"
 )
 
 type CloudClientConf struct {
@@ -355,6 +363,7 @@ func (LegacyService) Resources() map[string]*schema.Resource {
 		"edgecenter_dbaas_cluster":                         resourceDBaaSCluster(),
 		"edgecenter_dbaas_database":                        resourceDBaaSDatabase(),
 		"edgecenter_dbaas_user":                            resourceDBaaSUser(),
+		"edgecenter_dbaas_backup":                          resourceDBaaSBackup(),
 	}
 }
 
@@ -401,6 +410,7 @@ func (LegacyService) DataSources() map[string]*schema.Resource {
 		"edgecenter_dbaas_clusters":                dataSourceDBaaSClusters(),
 		"edgecenter_dbaas_databases":               dataSourceDBaaSDatabases(),
 		"edgecenter_dbaas_users":                   dataSourceDBaaSUsers(),
+		"edgecenter_dbaas_backup":                  dataSourceDBaaSBackup(),
 	}
 }
 
