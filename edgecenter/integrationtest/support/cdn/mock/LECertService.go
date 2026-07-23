@@ -98,6 +98,24 @@ func (_m *LECertService) GetLECert(ctx context.Context, resourceID int64) (*lece
 	return r0, r1
 }
 
+// IssueLECert provides a mock function with given fields: ctx, resourceID, req
+func (_m *LECertService) IssueLECert(ctx context.Context, resourceID int64, req *lecerts.IssueRequest) error {
+	ret := _m.Called(ctx, resourceID, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IssueLECert")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64, *lecerts.IssueRequest) error); ok {
+		r0 = rf(ctx, resourceID, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateLECert provides a mock function with given fields: ctx, resourceID
 func (_m *LECertService) UpdateLECert(ctx context.Context, resourceID int64) error {
 	ret := _m.Called(ctx, resourceID)
