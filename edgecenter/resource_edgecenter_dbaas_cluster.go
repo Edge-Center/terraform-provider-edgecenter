@@ -333,13 +333,12 @@ func resourceDBaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	updateOpts := edgecloudV2.DBaaSClusterUpdateRequest{}
 
-	if d.HasChange(NameField) {
-		name := d.Get(NameField).(string)
-		updateOpts.Name = name
-	}
+	name := d.Get(NameField).(string)
+	updateOpts.Name = &name
+
 	if d.HasChange(DescriptionField) {
 		desc := d.Get(DescriptionField).(string)
-		updateOpts.Description = desc
+		updateOpts.Description = &desc
 	}
 	if d.HasChange(FlavorField) {
 		flavor := d.Get(FlavorField).(string)
