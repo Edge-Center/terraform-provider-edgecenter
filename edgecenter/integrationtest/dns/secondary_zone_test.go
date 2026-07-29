@@ -122,8 +122,6 @@ func secondaryCreateCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	}
 }
 
-// Only the request is trimmed: the padded master survives in state because the
-// created zone carries no TSIG to overwrite it with.
 func secondaryCreateTrimsNameAndMasterCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
@@ -217,6 +215,35 @@ func secondaryCreateAdoptsExistingCase() support.ResourceCase[*dnsmock.MockedDNS
 	}
 }
 
+func secondaryCreateAdoptsRenamedZoneCase() support.ResourceCase[*dnsmock.MockedDNS] {
+	mc := dnsmock.NewMockedDNS()
+
+	mc.Client.On("GetSecondaryZone", mock.Anything, secondaryZoneName).
+		Return(secondaryAPIZoneNamed(secondaryRenamedName,
+			&dnssdk.TsigOptions{Master: secondaryOtherMaster, Name: secondaryOtherTSIG},
+			secondaryUpdatedAtNS,
+		), nil)
+
+	return support.ResourceCase[*dnsmock.MockedDNS]{
+		Name:      "create takes the id, name and master of the looked up zone",
+		Op:        support.OpApply,
+		Prepare:   func() *dnsmock.MockedDNS { return mc },
+		NewConfig: secondaryConfig(secondaryMaster),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, fake *dnsmock.MockedDNS) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateID(t, state, secondaryRenamedName)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"name":       secondaryRenamedName,
+				"master":     secondaryOtherMaster,
+				"tsig_name":  secondaryOtherTSIG,
+				"zone_id":    fmt.Sprintf("%d", secondaryZoneID),
+				"updated_at": secondaryUpdatedAt(secondaryUpdatedAtNS),
+			})
+			fake.Client.AssertNotCalled(t, "CreateSecondaryZone", mock.Anything, mock.Anything)
+		},
+	}
+}
+
 func secondaryCreateLookupFailureCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
@@ -237,8 +264,6 @@ func secondaryCreateLookupFailureCase() support.ResourceCase[*dnsmock.MockedDNS]
 	}
 }
 
-// errors.As is given a *dnssdk.APIError target, so only a value APIError matches;
-// a *dnssdk.APIError with 404 falls through to the generic failure branch.
 func secondaryCreatePointerNotFoundCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
@@ -353,7 +378,6 @@ func secondaryReadTrimsIDCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	}
 }
 
-// An empty Master fails the resource guard, so tsig_name is left alone as well.
 func secondaryReadTSIGWithoutMasterCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
@@ -553,7 +577,63 @@ func secondaryUpdateWithoutTSIGCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	}
 }
 
-// Unlike create, update sends the master as configured, so spaces reach the API.
+func secondaryUpdateClearedTSIGReturnsFromAPICase() support.ResourceCase[*dnsmock.MockedDNS] {
+	mc := dnsmock.NewMockedDNS()
+
+	mc.Client.On("UpdateSecondaryZone", mock.Anything, secondaryZoneName,
+		mock.MatchedBy(func(req dnssdk.UpdateSecondaryZoneRequest) bool {
+			return req.Master == secondaryMaster && req.Key == "" && req.Name == ""
+		}),
+	).Return(secondaryAPIZone(
+		&dnssdk.TsigOptions{Key: secondaryTSIGKey, Master: secondaryMaster, Name: secondaryTSIGName},
+		secondaryUpdatedAtNS,
+	), nil)
+
+	return support.ResourceCase[*dnsmock.MockedDNS]{
+		Name:         "clearing tsig sends an empty key and name and the API tsig_name returns to state",
+		Op:           support.OpApply,
+		Prepare:      func() *dnsmock.MockedDNS { return mc },
+		CurrentID:    secondaryZoneName,
+		CurrentState: secondaryTSIGConfig(secondaryMaster, secondaryTSIGKey, secondaryTSIGName),
+		NewConfig:    secondaryConfig(secondaryMaster),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *dnsmock.MockedDNS) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateID(t, state, secondaryZoneName)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"master":     secondaryMaster,
+				"tsig_key":   "",
+				"tsig_name":  secondaryTSIGName,
+				"updated_at": secondaryUpdatedAt(secondaryUpdatedAtNS),
+			})
+		},
+	}
+}
+
+func secondaryUpdateClearingTSIGAPIFailureCase() support.ResourceCase[*dnsmock.MockedDNS] {
+	mc := dnsmock.NewMockedDNS()
+
+	mc.Client.On("UpdateSecondaryZone", mock.Anything, secondaryZoneName,
+		mock.MatchedBy(func(req dnssdk.UpdateSecondaryZoneRequest) bool {
+			return req.Key == "" && req.Name == ""
+		}),
+	).Return(dnssdk.SecondaryZone{}, secondaryAPIError(http.StatusBadRequest, "tsig key can not be removed"))
+
+	return support.ResourceCase[*dnsmock.MockedDNS]{
+		Name:         "API error when clearing tsig",
+		Op:           support.OpApply,
+		Prepare:      func() *dnsmock.MockedDNS { return mc },
+		CurrentID:    secondaryZoneName,
+		CurrentState: secondaryTSIGConfig(secondaryMaster, secondaryTSIGKey, secondaryTSIGName),
+		NewConfig:    secondaryConfig(secondaryMaster),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *dnsmock.MockedDNS) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "update secondary zone")
+			support.RequireErrorDiagContains(t, diags, "tsig key can not be removed")
+			support.RequireStateID(t, state, secondaryZoneName)
+		},
+	}
+}
+
 func secondaryUpdateKeepsPaddedMasterCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
@@ -684,6 +764,7 @@ func TestIntegrationSecondaryZone_TableDriven(t *testing.T) {
 		secondaryCreateTrimsNameAndMasterCase(),
 		secondaryCreateWithoutTSIGCase(),
 		secondaryCreateAdoptsExistingCase(),
+		secondaryCreateAdoptsRenamedZoneCase(),
 		secondaryCreateLookupFailureCase(),
 		secondaryCreatePointerNotFoundCase(),
 		secondaryCreateAPIFailureCase(),
@@ -699,7 +780,9 @@ func TestIntegrationSecondaryZone_TableDriven(t *testing.T) {
 		secondaryUpdateOverwritesMasterCase(),
 		secondaryUpdateKeepsPaddedMasterCase(),
 		secondaryUpdateWithoutTSIGCase(),
+		secondaryUpdateClearedTSIGReturnsFromAPICase(),
 		secondaryUpdateAPIFailureCase(),
+		secondaryUpdateClearingTSIGAPIFailureCase(),
 		secondaryDeleteCase(),
 		secondaryDeleteNotFoundCase(),
 		secondaryDeleteAPIFailureCase(),
@@ -709,8 +792,6 @@ func TestIntegrationSecondaryZone_TableDriven(t *testing.T) {
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*dnsmock.MockedDNS])
 }
 
-// The case runner cannot build a state with an empty id (ResourceData.State()
-// returns nil then), so the name fallback is driven off a raw ResourceData.
 func TestIntegrationSecondaryZoneReadFallsBackToName(t *testing.T) {
 	t.Parallel()
 

@@ -18,8 +18,6 @@ import (
 const (
 	importerRecordFormatErr = "format must be as zone:domain:type"
 
-	// Colons and padding are bait: a custom StateContext that split or trimmed
-	// the id would change it, the passthrough must hand it back verbatim.
 	importerPassthroughID = "  zone:with:colons.example.com  "
 )
 
@@ -39,8 +37,6 @@ func TestIntegrationImporterZoneRecord(t *testing.T) {
 		wantType   string
 	}{
 		{
-			// The importer keeps only parts[0] as the id, so the imported id is the zone,
-			// not the zone:domain:type it was given and not the JSON id Read writes later.
 			name:       "zone:domain:type is split and the id collapses to the zone",
 			id:         "example.com:www:A",
 			wantID:     "example.com",

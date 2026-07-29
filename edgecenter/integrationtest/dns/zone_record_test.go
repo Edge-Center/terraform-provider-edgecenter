@@ -5,6 +5,7 @@ package dns_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"reflect"
 	"sort"
 	"strings"
@@ -684,6 +685,124 @@ func recordReadEmptyFailoverCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	}
 }
 
+func recordReadAssignedTTLCase() support.ResourceCase[*dnsmock.MockedDNS] {
+	mc := dnsmock.NewMockedDNS()
+
+	mc.Client.On("RRSet", mock.Anything, recordZone, recordDomain, recordTypeA).
+		Return(recordRRSet(300, recordContent), nil)
+
+	current := recordConfig(recordTTL, recordPlain(recordContent))
+	delete(current, "ttl")
+
+	return support.ResourceCase[*dnsmock.MockedDNS]{
+		Name:         "read stores the ttl the api assigned when the config declares none",
+		Op:           support.OpRead,
+		Prepare:      func() *dnsmock.MockedDNS { return mc },
+		CurrentID:    recordZone,
+		CurrentState: current,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *dnsmock.MockedDNS) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{"ttl": "300"})
+		},
+	}
+}
+
+func recordReadTrailingDotCase() support.ResourceCase[*dnsmock.MockedDNS] {
+	mc := dnsmock.NewMockedDNS()
+
+	const (
+		cnameType   = "CNAME"
+		cnameBare   = "target.example.com"
+		cnameDotted = "target.example.com."
+	)
+
+	result := dnssdk.RRSet{TTL: recordTTL}
+	result.Records = append(result.Records,
+		*(&dnssdk.ResourceRecord{Enabled: true}).SetContent(cnameType, cnameDotted))
+	mc.Client.On("RRSet", mock.Anything, recordZone, recordDomain, cnameType).Return(result, nil)
+
+	current := recordConfig(recordTTL, recordPlain(cnameBare))
+	current["type"] = cnameType
+
+	return support.ResourceCase[*dnsmock.MockedDNS]{
+		Name:         "read keeps the trailing dot the api returns for cname content",
+		Op:           support.OpRead,
+		Prepare:      func() *dnsmock.MockedDNS { return mc },
+		CurrentID:    recordZone,
+		CurrentState: current,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *dnsmock.MockedDNS) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{"resource_record.#": "1"})
+			require.Equal(t, []string{cnameDotted}, recordAttrsWithSuffix(state, ".content"))
+		},
+	}
+}
+
+func recordReadHealthFilterCase() support.ResourceCase[*dnsmock.MockedDNS] {
+	mc := dnsmock.NewMockedDNS()
+
+	result := recordRRSet(recordTTL, recordContent)
+	result.Filters = []dnssdk.RecordFilter{{Type: "is_healthy", Limit: 0, Strict: false}}
+	result.Meta = &dnssdk.Meta{Failover: &dnssdk.FailoverMeta{
+		Protocol:  "TCP",
+		Port:      53,
+		Frequency: 15,
+		Timeout:   5,
+	}}
+	mc.Client.On("RRSet", mock.Anything, recordZone, recordDomain, recordTypeA).Return(result, nil)
+
+	current := recordConfig(recordTTL, recordPlain(recordContent))
+	current["meta"] = []interface{}{
+		map[string]interface{}{
+			"failover": []interface{}{
+				map[string]interface{}{
+					"protocol":  "TCP",
+					"port":      53,
+					"frequency": 15,
+					"timeout":   5,
+				},
+			},
+		},
+	}
+
+	return support.ResourceCase[*dnsmock.MockedDNS]{
+		Name:         "read adds the health filter the api attached to a failover record",
+		Op:           support.OpRead,
+		Prepare:      func() *dnsmock.MockedDNS { return mc },
+		CurrentID:    recordZone,
+		CurrentState: current,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *dnsmock.MockedDNS) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"filter.#":        "1",
+				"filter.0.type":   "is_healthy",
+				"filter.0.limit":  "0",
+				"filter.0.strict": "false",
+			})
+		},
+	}
+}
+
+func recordReadNotFoundCase() support.ResourceCase[*dnsmock.MockedDNS] {
+	mc := dnsmock.NewMockedDNS()
+
+	mc.Client.On("RRSet", mock.Anything, recordZone, recordDomain, recordTypeA).
+		Return(dnssdk.RRSet{}, dnssdk.APIError{StatusCode: http.StatusNotFound, Message: "rrset not found"})
+
+	return support.ResourceCase[*dnsmock.MockedDNS]{
+		Name:         "read of a missing rrset reports an error and keeps the id",
+		Op:           support.OpRead,
+		Prepare:      func() *dnsmock.MockedDNS { return mc },
+		CurrentID:    recordStateID,
+		CurrentState: recordConfig(recordTTL, recordPlain(recordContent)),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *dnsmock.MockedDNS) {
+			support.RequireOnlyErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "get zone rrset: 404: rrset not found")
+			support.RequireStateID(t, state, recordStateID)
+		},
+	}
+}
+
 func recordReadFailureCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
@@ -733,11 +852,38 @@ func recordUpdateCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	}
 }
 
+func recordUpdateWithoutTTLCase() support.ResourceCase[*dnsmock.MockedDNS] {
+	mc := dnsmock.NewMockedDNS()
+
+	mc.Client.On("UpdateRRSet", mock.Anything, recordZone, recordDomain, recordTypeA, mock.Anything).
+		Return(nil)
+	mc.Client.On("RRSet", mock.Anything, recordZone, recordDomain, recordTypeA).
+		Return(recordRRSet(0, recordContent), nil)
+
+	config := recordConfig(recordTTL, recordPlain(recordContent))
+	delete(config, "ttl")
+
+	return support.ResourceCase[*dnsmock.MockedDNS]{
+		Name:         "dropping ttl from the config sends a zero ttl to the api",
+		Op:           support.OpApply,
+		Prepare:      func() *dnsmock.MockedDNS { return mc },
+		CurrentID:    recordStateID,
+		CurrentState: recordConfig(recordTTL, recordPlain(recordContent)),
+		NewConfig:    config,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, fake *dnsmock.MockedDNS) {
+			support.RequireNoDiags(t, diags)
+			fake.Client.AssertCalled(t, "UpdateRRSet", mock.Anything, recordZone, recordDomain, recordTypeA,
+				mock.MatchedBy(func(rrSet dnssdk.RRSet) bool {
+					return recordSingle(rrSet, 0, recordContent)
+				}))
+			support.RequireStateAttrs(t, state, map[string]string{"ttl": "0"})
+		},
+	}
+}
+
 func recordUpdateFailoverRejectedCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
-	// Maybe expectations so that dropping the guard fails on AssertNotCalled
-	// instead of panicking inside the mock and aborting the binary.
 	mc.Client.On("UpdateRRSet", mock.Anything, recordZone, recordDomain, recordTypeA, mock.Anything).
 		Return(nil).Maybe()
 	mc.Client.On("RRSet", mock.Anything, recordZone, recordDomain, recordTypeA).
@@ -940,8 +1086,6 @@ func recordCtyValue(value interface{}) cty.Value {
 	}
 }
 
-// Terraform hands the SDK a raw config that only a real plan can build, so the
-// gated meta fields are unreachable through support.ApplyConfig.
 func recordRawConfigRunner(
 	t *testing.T,
 	res *schema.Resource,
@@ -983,8 +1127,13 @@ func TestIntegrationZoneRecord_TableDriven(t *testing.T) {
 		recordReadRecordMetaCase(),
 		recordReadFailoverCase(),
 		recordReadEmptyFailoverCase(),
+		recordReadAssignedTTLCase(),
+		recordReadTrailingDotCase(),
+		recordReadHealthFilterCase(),
+		recordReadNotFoundCase(),
 		recordReadFailureCase(),
 		recordUpdateCase(),
+		recordUpdateWithoutTTLCase(),
 		recordUpdateFailoverRejectedCase(),
 		recordUpdateFailureCase(),
 		recordDeleteCase(),
@@ -1007,8 +1156,6 @@ func TestIntegrationZoneRecordRawConfigMeta(t *testing.T) {
 	support.RunResourceCases(t, resource, cases, recordRawConfigRunner)
 }
 
-// Maybe expectations so that losing an empty id guard fails on AssertNotCalled
-// instead of panicking inside the mock and aborting the binary.
 func recordEmptyIDMock() *dnsmock.MockedDNS {
 	mc := dnsmock.NewMockedDNS()
 

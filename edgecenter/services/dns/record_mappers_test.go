@@ -93,6 +93,66 @@ func mapperFullFailover() *dnssdk.FailoverMeta {
 	}
 }
 
+func TestRecordSetContentTokens(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name        string
+		rType       string
+		content     string
+		wantContent []interface{}
+		wantString  string
+	}{
+		{
+			name:        "a CAA value containing a space gets a trailing empty slot",
+			rType:       "CAA",
+			content:     `0 issue "company.org; account=12345"`,
+			wantContent: []interface{}{int64(0), "issue", `"company.org; account=12345"`, nil},
+			wantString:  `0 issue "company.org; account=12345" <nil>`,
+		},
+		{
+			name:        "a CAA value of three tokens round trips",
+			rType:       "CAA",
+			content:     `0 issue "company.org"`,
+			wantContent: []interface{}{int64(0), "issue", `"company.org"`},
+			wantString:  `0 issue "company.org"`,
+		},
+		{
+			name:    "MX without a priority yields empty content",
+			rType:   "MX",
+			content: "mail.example.com.",
+		},
+		{
+			name:    "MX with a double space yields empty content",
+			rType:   "MX",
+			content: "10  mail.example.com.",
+		},
+		{
+			name:    "SRV with three tokens yields empty content",
+			rType:   "SRV",
+			content: "10 20 5060",
+		},
+	}
+
+	for _, tt := range cases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := (&dnssdk.ResourceRecord{}).SetContent(tt.rType, tt.content)
+			if len(got.Content) != len(tt.wantContent) {
+				t.Fatalf("content length = %d, want %d: %#v", len(got.Content), len(tt.wantContent), got.Content)
+			}
+			if !reflect.DeepEqual(got.Content, tt.wantContent) {
+				t.Errorf("content:\n got: %#v\nwant: %#v", got.Content, tt.wantContent)
+			}
+			if got.ContentToString() != tt.wantString {
+				t.Errorf("content string:\n got: %q\nwant: %q", got.ContentToString(), tt.wantString)
+			}
+		})
+	}
+}
+
 func TestRecordFillRRSetMetaKinds(t *testing.T) {
 	t.Parallel()
 
@@ -135,6 +195,11 @@ func TestRecordFillRRSetMetaKinds(t *testing.T) {
 			name: "latlong",
 			meta: map[string]interface{}{DNSZoneRecordSchemaMetaLatLong: []interface{}{27.988056, 86.925278}},
 			want: map[string]interface{}{DNSZoneRecordSchemaMetaLatLong: []float64{27.988056, 86.925278}},
+		},
+		{
+			name: "latlong is stored with six decimal places",
+			meta: map[string]interface{}{DNSZoneRecordSchemaMetaLatLong: []interface{}{51.50735820, -0.12775820}},
+			want: map[string]interface{}{DNSZoneRecordSchemaMetaLatLong: []float64{51.507358, -0.127758}},
 		},
 		{
 			name: "default true",
@@ -271,6 +336,31 @@ func TestRecordFillRRSetRecordFields(t *testing.T) {
 			content:     "50 mail.company.io.",
 			enabled:     true,
 			wantContent: []interface{}{int64(50), "mail.company.io."},
+		},
+		{
+			name:        "MX priority that is not a number becomes zero",
+			rType:       "MX",
+			content:     "abc mail.example.com.",
+			enabled:     true,
+			wantContent: []interface{}{int64(0), "mail.example.com."},
+		},
+		{
+			name:    "MX without a priority is kept with empty content",
+			rType:   "MX",
+			content: "mail.example.com.",
+			enabled: true,
+		},
+		{
+			name:    "MX with a double space is kept with empty content",
+			rType:   "MX",
+			content: "10  mail.example.com.",
+			enabled: true,
+		},
+		{
+			name:    "SRV with three tokens is kept with empty content",
+			rType:   "SRV",
+			content: "10 20 5060",
+			enabled: true,
 		},
 		{
 			name:        "empty meta block adds no meta",
@@ -415,8 +505,6 @@ func TestRecordFillRRSetInvalidMetaErrorIsUnreachable(t *testing.T) {
 func TestRecordHasExplicitResourceRecordMetaField(t *testing.T) {
 	t.Parallel()
 
-	// TestResourceDataRaw builds a ResourceData with no raw config at all, which is the
-	// only way the null-config branch can be reached from a unit test.
 	t.Run("null raw config", func(t *testing.T) {
 		t.Parallel()
 

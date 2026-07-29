@@ -24,7 +24,6 @@ import (
 const (
 	dsZonesDataSourceName = "edgecenter_dns_secondary_zones"
 
-	// data sources have no prior id, the read is what assigns one.
 	dsZonesPlaceholderID = "-"
 	dsZonesReadID        = "secondary_zones"
 
@@ -155,7 +154,6 @@ func dsZonesReadCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	}
 }
 
-// The data source guards on TSIG != nil alone, so an empty Master still writes tsig_name.
 func dsZonesTSIGWithoutMasterCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 

@@ -5,6 +5,7 @@ package dns_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -38,8 +39,6 @@ func zoneConfig(name string) map[string]interface{} {
 	return map[string]interface{}{dnssvc.DNSZoneSchemaName: name}
 }
 
-// Create ids the resource by the requested name, then chains into Read, so the
-// name that lands in state is the one Zone() returns, not the configured one.
 func zoneCreateCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
@@ -98,9 +97,6 @@ func zoneCreateAPIFailureCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	}
 }
 
-// The trimmed name becomes the id before the read runs, so a zone created on the
-// API side stays in state even though the apply reports an error. The name
-// attribute keeps the untrimmed configured value because Read never sets it.
 func zoneCreateReadFailureCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
@@ -126,24 +122,43 @@ func zoneCreateReadFailureCase() support.ResourceCase[*dnsmock.MockedDNS] {
 func zoneReadCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
-	mc.Client.On("Zone", mock.Anything, zoneName).Return(dnssdk.Zone{Name: zoneRenamed}, nil)
+	mc.Client.On("Zone", mock.Anything, zoneMixedCase).Return(dnssdk.Zone{Name: zoneName}, nil)
 
 	return support.ResourceCase[*dnsmock.MockedDNS]{
 		Name:         "read overwrites id and name with API values",
 		Op:           support.OpRead,
 		Prepare:      func() *dnsmock.MockedDNS { return mc },
-		CurrentID:    zoneName,
+		CurrentID:    zoneMixedCase,
 		CurrentState: zoneConfig(zoneStale),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *dnsmock.MockedDNS) {
 			support.RequireNoDiags(t, diags)
-			support.RequireStateID(t, state, zoneRenamed)
-			support.RequireStateAttrs(t, state, map[string]string{dnssvc.DNSZoneSchemaName: zoneRenamed})
+			support.RequireStateID(t, state, zoneName)
+			support.RequireStateAttrs(t, state, map[string]string{dnssvc.DNSZoneSchemaName: zoneName})
 		},
 	}
 }
 
-// A zone deleted out of band is an error, not a removal from state: Read never
-// calls d.SetId("").
+func zoneReadNotFoundCase() support.ResourceCase[*dnsmock.MockedDNS] {
+	mc := dnsmock.NewMockedDNS()
+
+	mc.Client.On("Zone", mock.Anything, zoneName).
+		Return(dnssdk.Zone{}, dnssdk.APIError{StatusCode: http.StatusNotFound, Message: "zone not found"})
+
+	return support.ResourceCase[*dnsmock.MockedDNS]{
+		Name:         "404 on read keeps the id in state",
+		Op:           support.OpRead,
+		Prepare:      func() *dnsmock.MockedDNS { return mc },
+		CurrentID:    zoneName,
+		CurrentState: zoneConfig(zoneName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *dnsmock.MockedDNS) {
+			support.RequireOnlyErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "get zone")
+			support.RequireStateID(t, state, zoneName)
+			support.RequireStateAttrs(t, state, map[string]string{dnssvc.DNSZoneSchemaName: zoneName})
+		},
+	}
+}
+
 func zoneReadAPIFailureCase() support.ResourceCase[*dnsmock.MockedDNS] {
 	mc := dnsmock.NewMockedDNS()
 
@@ -268,6 +283,7 @@ func TestIntegrationZone_TableDriven(t *testing.T) {
 		zoneCreateAPIFailureCase(),
 		zoneCreateReadFailureCase(),
 		zoneReadCase(),
+		zoneReadNotFoundCase(),
 		zoneReadAPIFailureCase(),
 		zoneRenameRecreatesCase(),
 		zoneDeleteCase(),
@@ -279,8 +295,6 @@ func TestIntegrationZone_TableDriven(t *testing.T) {
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*dnsmock.MockedDNS])
 }
 
-// The case runner cannot build a state with an empty id (ResourceData.State()
-// returns nil then), so the name fallback is driven off a raw ResourceData.
 func TestIntegrationZoneReadFallsBackToName(t *testing.T) {
 	t.Parallel()
 
@@ -320,9 +334,6 @@ func TestIntegrationZoneDeleteFallsBackToName(t *testing.T) {
 	mc.Client.AssertCalled(t, "DeleteZone", mock.Anything, zoneName)
 }
 
-// The 255 limit is measured on the raw value, unlike the create path which trims
-// first. Everything else about this validator is covered by the co-located
-// TestSchemaZoneNameValidation.
 func TestIntegrationZoneNameLengthIgnoresPadding(t *testing.T) {
 	t.Parallel()
 
