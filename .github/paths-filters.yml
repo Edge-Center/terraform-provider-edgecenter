@@ -66,8 +66,9 @@ cdn:
   - 'edgecenter/test/*_cdn_*'
 
 dns:
-  - 'edgecenter/resource_edgecenter_dns*'
-  - 'edgecenter/data_source_edgecenter_dns*'
+  - 'edgecenter/services/dns/**'
+  - 'edgecenter/integrationtest/dns/**'
+  - 'edgecenter/integrationtest/support/dns/**'
   - 'edgecenter/test/*_dns_*'
 
 storage:

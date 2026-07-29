@@ -1,4 +1,4 @@
-package edgecenter
+package dns
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 const (
@@ -102,7 +103,7 @@ func resourceDNSSecondaryZoneCreate(ctx context.Context, d *schema.ResourceData,
 	log.Printf("[DEBUG] Start DNS Secondary Zone Resource creating: name=%s, master=%s\n", name, master)
 	defer log.Printf("[DEBUG] Finish DNS Secondary Zone Resource creating (id=%s)\n", name)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	existingZone, err := client.GetSecondaryZone(ctx, name)
@@ -153,7 +154,7 @@ func resourceDNSSecondaryZoneRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("empty secondary zone name")
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	zone, err := client.GetSecondaryZone(ctx, zoneName)
@@ -188,7 +189,7 @@ func resourceDNSSecondaryZoneUpdate(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("empty secondary zone name")
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	updateReq := dnssdk.UpdateSecondaryZoneRequest{
@@ -221,7 +222,7 @@ func resourceDNSSecondaryZoneDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("empty secondary zone name")
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	// delete secondary zone
@@ -283,53 +284,6 @@ func setSecondaryZoneData(d *schema.ResourceData, zone dnssdk.SecondaryZone) dia
 			}
 		}
 	}
-
-	return nil
-}
-
-// dataSourceDNSSecondaryZonesRead reads all secondary zones.
-func dataSourceDNSSecondaryZonesRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start DNS Secondary Zones Data Source reading")
-	defer log.Println("[DEBUG] Finish DNS Secondary Zones Data Source reading")
-
-	config := m.(*Config)
-	client := config.DNSClient
-
-	zones, err := client.SecondaryZones(ctx)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("get secondary zones: %w", err))
-	}
-
-	// convert to Terraform format
-	zoneList := make([]map[string]interface{}, len(zones))
-	for i, zone := range zones {
-		// convert Timestamp to string
-		var updatedAtStr string
-		if zone.UpdatedAt != 0 {
-			t := time.Unix(0, int64(zone.UpdatedAt))
-			updatedAtStr = t.Format(time.RFC3339)
-		}
-
-		zoneMap := map[string]interface{}{
-			DNSSecondaryZoneSchemaName:      zone.Name,
-			DNSSecondaryZoneSchemaZoneID:    zone.ID,
-			DNSSecondaryZoneSchemaUpdatedAt: updatedAtStr,
-		}
-
-		if zone.TSIG != nil {
-			zoneMap[DNSSecondaryZoneSchemaMaster] = zone.TSIG.Master
-			zoneMap[DNSSecondaryZoneSchemaTSIGName] = zone.TSIG.Name
-			// TSIG Key is hidden fir security reasons
-		}
-
-		zoneList[i] = zoneMap
-	}
-
-	if err := d.Set("zones", zoneList); err != nil {
-		return diag.FromErr(fmt.Errorf("set zones: %w", err))
-	}
-
-	d.SetId("secondary_zones")
 
 	return nil
 }

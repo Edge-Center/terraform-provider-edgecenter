@@ -27,13 +27,18 @@ integrationtest/
 │   │   └── mock/     # Hand-written testify mocks + MockedRMON (package edgemonmock)
 │   │       ├── client.go   # MockedRMON, NewMockedRMON, clientShim (implements rmon.ClientService)
 │   │       └── services.go # ChannelService, StatusPageService, CheckGroupService, generic CheckService[Req,Resp]
-│   └── cdn/          # CDN-specific helpers
-│       └── mock/     # Generated testify mocks + MockedCDN (package cdnmock)
-│           ├── client.go        # MockedCDN, NewMockedCDN, clientShim (implements cdn.ClientService)
-│           ├── generate.go      # go:generate entry point (mockery, one line per SDK interface)
-│           ├── ResourceService.go, RulesService.go, OriginGroupService.go, LECertService.go,
-│           ├── ShieldingService.go, SSLCertService.go        (generated)
-│           └── ResourceStatisticsService.go, ResourceToolsService.go  (generated)
+│   ├── cdn/          # CDN-specific helpers
+│   │   └── mock/     # Generated testify mocks + MockedCDN (package cdnmock)
+│   │       ├── client.go        # MockedCDN, NewMockedCDN, clientShim (implements cdn.ClientService)
+│   │       ├── generate.go      # go:generate entry point (mockery, one line per SDK interface)
+│   │       ├── ResourceService.go, RulesService.go, OriginGroupService.go, LECertService.go,
+│   │       ├── ShieldingService.go, SSLCertService.go        (generated)
+│   │       └── ResourceStatisticsService.go, ResourceToolsService.go  (generated)
+│   └── dns/          # DNS-specific helpers
+│       └── mock/     # Generated testify mock + MockedDNS (package dnsmock)
+│           ├── client.go            # MockedDNS, NewMockedDNS, NewUnconfiguredDNS
+│           ├── generate.go          # go:generate entry point
+│           └── DNSClientService.go  (generated)
 ├── cloud/            # Cloud resource integration tests
 │   ├── network_test.go
 │   └── …
@@ -43,7 +48,9 @@ integrationtest/
 ├── cdn/              # CDN resource and data source integration tests
 │   ├── resource_test.go
 │   └── …
-└── dns/              # Future: DNS resource integration tests
+└── dns/              # DNS resource and data source integration tests
+    ├── zone_test.go
+    └── …
 ```
 
 ## How to write a cloud resource integration test
@@ -184,12 +191,44 @@ Data sources are covered too: they are plain `*schema.Resource` values fetched f
 non-empty placeholder `CurrentID` so the config materializes into state; the read
 then assigns the real ID.
 
-## Extending to DNS
+## DNS
 
-The same pattern applies:
-1. Add a `support/dns/` directory with domain-specific helpers.
-2. Generate or hand-write mocks from the corresponding SDK packages.
-3. Place tests in `integrationtest/dns/`.
+DNS differs from CDN and edgemon in one way: the DNS SDK exports a concrete
+`*dnssdk.Client` and no client interface. The seam is therefore declared at the
+consumer, in `edgecenter/config.go`:
+
+```go
+type DNSClientService interface { CreateZone(...); Zone(...); RRSet(...); ... }
+```
+
+`Config.DNSClient` holds that interface, `*dnssdk.Client` satisfies it (there is a
+compile-time assertion next to the declaration), and `support/dns/mock` holds a single
+mockery-generated mock of it. Regenerate with:
+
+```bash
+go generate ./edgecenter/integrationtest/support/dns/mock/...
+```
+
+Whenever a DNS resource starts calling a new SDK method, add it to `DNSClientService`
+and re-run the generator.
+
+`MockedDNS` implements `MetaProvider` and `MockCleanuper` like the others, so
+`RunResourceCases` binds meta and verifies expectations automatically. Because there is
+one client rather than one service per resource, expectations go on `mc.Client`:
+
+```go
+mc := dnsmock.NewMockedDNS()
+mc.Client.On("Zone", mock.Anything, "example.com").Return(dnssdk.Zone{Name: "example.com"}, nil)
+```
+
+`dnsmock.NewUnconfiguredDNS()` returns a `Config` with a nil `DNSClient`. That is the
+state of a provider without `edgecenter_dns_api`, and it is what `checkDNSDependency`
+(the wrapper every DNS CRUD function goes through) must reject.
+
+The record mappers are not exercised one by one here. `services/dns/record_mappers_test.go`
+covers `fillRRSet`, `listToFailoverMeta`, `failoverMetaToList` and `verifyFailoverMeta`
+as co-located white-box tests, the same way `services/cdn/options_test.go` covers the
+CDN option blocks.
 
 
 

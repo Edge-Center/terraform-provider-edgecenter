@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/dns"
 )
 
 func TestAccDnsZone(t *testing.T) {
@@ -17,14 +17,14 @@ func TestAccDnsZone(t *testing.T) {
 	random := time.Now().Nanosecond()
 	name := fmt.Sprintf("terraformtestkey%d", random)
 	zone := name + ".com"
-	resourceName := fmt.Sprintf("%s.%s", edgecenter.DNSZoneResource, name)
+	resourceName := fmt.Sprintf("%s.%s", dns.DNSZoneResource, name)
 
 	templateCreate := func() string {
 		return fmt.Sprintf(`
 resource "%s" "%s" {
   name = "%s"
 }
-		`, edgecenter.DNSZoneResource, name, zone)
+		`, dns.DNSZoneResource, name, zone)
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -37,7 +37,7 @@ resource "%s" "%s" {
 				Config: templateCreate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, edgecenter.DNSZoneSchemaName, zone),
+					resource.TestCheckResourceAttr(resourceName, dns.DNSZoneSchemaName, zone),
 				),
 			},
 		},

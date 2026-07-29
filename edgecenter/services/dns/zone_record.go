@@ -1,4 +1,4 @@
-package edgecenter
+package dns
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	dnssdk "github.com/Edge-Center/edgecenter-dns-sdk-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/tfutil"
 )
 
@@ -423,7 +424,7 @@ func resourceDNSZoneRecordCreate(ctx context.Context, d *schema.ResourceData, m 
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	_, err = client.Zone(ctx, zone)
@@ -461,7 +462,7 @@ func resourceDNSZoneRecordUpdate(ctx context.Context, d *schema.ResourceData, m 
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	err = client.UpdateRRSet(ctx, zone, domain, rType, rrSet)
@@ -483,7 +484,7 @@ func resourceDNSZoneRecordRead(ctx context.Context, d *schema.ResourceData, m in
 	log.Println("[DEBUG] Start DNS Zone Record Resource reading")
 	defer log.Printf("[DEBUG] Finish DNS Zone Record Resource reading (id=%s %s %s)\n", zone, domain, rType)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	result, err := client.RRSet(ctx, zone, domain, rType)
@@ -554,7 +555,7 @@ func resourceDNSZoneRecordDelete(ctx context.Context, d *schema.ResourceData, m 
 	log.Println("[DEBUG] Start DNS Zone Record Resource deleting")
 	defer log.Printf("[DEBUG] Finish DNS Zone Record Resource deleting (id=%s %s %s)\n", zone, domain, rType)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	err := client.DeleteRRSet(ctx, zone, domain, rType)
