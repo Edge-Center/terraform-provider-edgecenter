@@ -1,4 +1,4 @@
-package edgecenter
+package dns
 
 import (
 	"context"
@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 const (
@@ -47,7 +49,7 @@ func checkDNSDependency(next func(context.Context, *schema.ResourceData,
 	interface{}) diag.Diagnostics,
 ) func(context.Context, *schema.ResourceData, interface{}) diag.Diagnostics {
 	return func(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-		config := i.(*Config)
+		config := i.(*edgecenter.Config)
 		client := config.DNSClient
 		if client == nil {
 			return diag.Errorf("dns api client is null. make sure that you defined edgecenter_dns_api var in edgecenter provider section.")
@@ -61,7 +63,7 @@ func resourceDNSZoneCreate(ctx context.Context, d *schema.ResourceData, m interf
 	log.Println("[DEBUG] Start DNS Zone Resource creating")
 	defer log.Printf("[DEBUG] Finish DNS Zone Resource creating (id=%s)\n", name)
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	_, err := client.CreateZone(ctx, name)
@@ -78,7 +80,7 @@ func resourceDNSZoneRead(ctx context.Context, d *schema.ResourceData, m interfac
 	log.Printf("[DEBUG] Start DNS Zone Resource reading (id=%s)\n", zoneName)
 	defer log.Println("[DEBUG] Finish DNS Zone Resource reading")
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	result, err := client.Zone(ctx, zoneName)
@@ -99,7 +101,7 @@ func resourceDNSZoneDelete(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.Errorf("empty zone name")
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.DNSClient
 
 	err := client.DeleteZone(ctx, zoneName)

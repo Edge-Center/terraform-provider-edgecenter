@@ -341,7 +341,7 @@ func createTestConfig() (*edgecenter.Config, error) {
 		storageClient = storageSDK.NewSDK(stHost, stPath, storageSDK.WithBearerAuth(provider.AccessToken))
 	}
 
-	var dnsClient *dnssdk.Client
+	var dnsClient edgecenter.DNSClientService
 	if EC_DNS_API != "" {
 		baseURL, err := url.Parse(EC_DNS_API)
 		if err == nil {

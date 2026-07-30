@@ -112,6 +112,9 @@ test_edgemon: install_godotenv
 test_cdn: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cdn -timeout=15m
 
+test_dns: install_godotenv
+	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags dns -timeout=15m
+
 
 # DOCS
 docs_fmt:
@@ -120,4 +123,4 @@ docs_fmt:
 docs: docs_fmt
 	tfplugindocs --provider-name=edgecenter
 
-.PHONY: tidy build build_debug build_v2migrate err_check linters linters_docker envs_reader test_integration test_cloud_data_source test_cloud_resource test_not_cloud test_sweep test_mkaas_resource test_mkaas_data test_edgemon test_cdn install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs
+.PHONY: tidy build build_debug build_v2migrate err_check linters linters_docker envs_reader test_integration test_cloud_data_source test_cloud_resource test_not_cloud test_sweep test_mkaas_resource test_mkaas_data test_edgemon test_cdn test_dns install_jq install_vault download_env_file test_local_data_source test_local_resource docs_fmt docs
