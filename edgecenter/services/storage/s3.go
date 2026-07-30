@@ -1,4 +1,4 @@
-package edgecenter
+package storage
 
 import (
 	"bytes"
@@ -16,9 +16,13 @@ import (
 
 	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/locations"
 	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storages"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 const (
+	StorageS3Resource   = "edgecenter_storage_s3"
+	StorageS3DataSource = "edgecenter_storage_s3"
+
 	StorageS3SchemaGenerateAccessKey  = "generated_access_key"
 	StorageS3SchemaGenerateSecretKey  = "generated_secret_key"
 	StorageSchemaGenerateHTTPEndpoint = "generated_http_endpoint"
@@ -110,7 +114,7 @@ func resourceStorageS3Create(ctx context.Context, d *schema.ResourceData, m inte
 	id := new(int)
 	log.Println("[DEBUG] Start S3 Storage Resource creating")
 	defer log.Printf("[DEBUG] Finish S3 Storage Resource creating (id=%d)\n", *id)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.StorageClient
 
 	opts := []func(opt *storages.StorageCreateHTTPParams){
@@ -164,7 +168,7 @@ func resourceStorageS3Read(ctx context.Context, d *schema.ResourceData, m interf
 	log.Printf("[DEBUG] Start S3 Storage Resource reading (id=%s)\n", resourceID)
 	defer log.Println("[DEBUG] Finish S3 Storage Resource reading")
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.StorageClient
 
 	opts := []func(opt *storages.StorageListHTTPV2Params){
@@ -235,7 +239,7 @@ func resourceStorageS3Delete(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.Errorf("empty storage id")
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.StorageClient
 
 	id, err := strconv.ParseInt(resourceID, 10, 64)

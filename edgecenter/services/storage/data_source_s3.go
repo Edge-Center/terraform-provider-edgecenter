@@ -1,4 +1,4 @@
-package edgecenter
+package storage
 
 import (
 	"regexp"

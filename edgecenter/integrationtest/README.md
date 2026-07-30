@@ -34,23 +34,33 @@ integrationtest/
 │   │       ├── ResourceService.go, RulesService.go, OriginGroupService.go, LECertService.go,
 │   │       ├── ShieldingService.go, SSLCertService.go        (generated)
 │   │       └── ResourceStatisticsService.go, ResourceToolsService.go  (generated)
-│   └── dns/          # DNS-specific helpers
-│       └── mock/     # Generated testify mock + MockedDNS (package dnsmock)
-│           ├── client.go            # MockedDNS, NewMockedDNS, NewUnconfiguredDNS
-│           ├── generate.go          # go:generate entry point
-│           └── DNSClientService.go  (generated)
+│   ├── dns/          # DNS-specific helpers
+│   │   └── mock/     # Generated testify mock + MockedDNS (package dnsmock)
+│   │       ├── client.go            # MockedDNS, NewMockedDNS, NewUnconfiguredDNS
+│   │       ├── generate.go          # go:generate entry point
+│   │       └── DNSClientService.go  (generated)
+│   └── storage/      # Storage-specific helpers
+│       └── mock/     # Generated testify mocks + MockedStorage (package storagemock)
+│           ├── client.go                 # MockedStorage, NewMockedStorage, clientShim
+│           ├── generate.go               # go:generate entry point
+│           ├── StorageLocationService.go (generated)
+│           ├── StorageS3Service.go       (generated)
+│           └── StorageBucketService.go   (generated)
 ├── cloud/            # Cloud resource integration tests
 │   ├── network_test.go
-│   └── …
+│   └── ...
 ├── edgemon/          # RMON (edgemon) resource integration tests
 │   ├── channel_test.go
-│   └── …
+│   └── ...
 ├── cdn/              # CDN resource and data source integration tests
 │   ├── resource_test.go
-│   └── …
-└── dns/              # DNS resource and data source integration tests
-    ├── zone_test.go
-    └── …
+│   └── ...
+├── dns/              # DNS resource and data source integration tests
+│   ├── zone_test.go
+│   └── ...
+└── storage/          # Storage resource and data source integration tests
+    ├── s3_test.go
+    └── ...
 ```
 
 ## How to write a cloud resource integration test
@@ -229,6 +239,54 @@ The record mappers are not exercised one by one here. `services/dns/record_mappe
 covers `fillRRSet`, `listToFailoverMeta`, `failoverMetaToList` and `verifyFailoverMeta`
 as co-located white-box tests, the same way `services/cdn/options_test.go` covers the
 CDN option blocks.
+
+## Storage
+
+The storage SDK has the same shape problem as DNS and one extra twist. It exports a
+concrete `*storageSDK.SDK` and no interface, so the seam again lives in
+`edgecenter/config.go`, split by role to mirror the SDK's own composition:
+
+```go
+type StorageClientService interface {
+    StorageLocationService
+    StorageS3Service
+    StorageBucketService
+}
+```
+
+`support/storage/mock` holds one generated mock per role and a `clientShim` that embeds
+all three, so expectations land on the role that owns the call:
+
+```go
+mc := storagemock.NewMockedStorage()
+mc.Locations.On("LocationsList", anyOpts(1)...).Return(locations, nil)
+mc.Storages.On("StoragesList", anyOpts(3)...).Return([]models.Storage{st}, nil)
+mc.Buckets.On("BucketsList", anyOpts(2)...).Return(list, nil)
+```
+
+Regenerate with:
+
+```bash
+go generate ./edgecenter/integrationtest/support/storage/mock/...
+```
+
+The twist: every storage SDK method takes variadic functional options rather than
+values, so testify matches on the option closures themselves. Two helpers in
+`storage/common_test.go` handle that. `anyOpts(n)` builds the `mock.Anything` list, and
+its `n` is a real assertion - it pins how many options the provider builds for that
+call. `appliedOpts[T]` replays the closures onto a zero `T`, which is exactly what the
+SDK does, so a test can assert on the resulting request:
+
+```go
+mc.Storages.On("CreateStorage", anyOpts(4)...).
+    Run(func(args mock.Arguments) { sent = appliedOpts[storages.StorageCreateHTTPParams](args) }).
+    Return(&created, nil)
+```
+
+Assert on `sent` inside `Check`, not inside `Run` - `Run` has no `*testing.T`.
+
+Schema flags, both name validators and the two id parsers are covered co-located in
+`services/storage/schema_test.go`.
 
 
 
