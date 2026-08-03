@@ -72,8 +72,9 @@ dns:
   - 'edgecenter/test/*_dns_*'
 
 storage:
-  - 'edgecenter/resource_edgecenter_storage*'
-  - 'edgecenter/data_source_edgecenter_storage*'
+  - 'edgecenter/services/storage/**'
+  - 'edgecenter/integrationtest/storage/**'
+  - 'edgecenter/integrationtest/support/storage/**'
   - 'edgecenter/test/*_storage_*'
 
 reseller:

@@ -1,4 +1,4 @@
-package edgecenter
+package storage
 
 import (
 	"context"
@@ -13,9 +13,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/buckets"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 const (
+	StorageS3BucketResource   = "edgecenter_storage_s3_bucket"
+	StorageS3BucketDataSource = "edgecenter_storage_s3_bucket"
+
 	StorageS3BucketSchemaName      = "name"
 	StorageS3BucketSchemaStorageID = "storage_id"
 )
@@ -59,7 +63,7 @@ func resourceStorageS3BucketCreate(ctx context.Context, d *schema.ResourceData, 
 	id := d.Get(StorageSchemaID).(int)
 	log.Println("[DEBUG] Start S3 Storage Bucket Resource creating")
 	defer log.Printf("[DEBUG] Finish S3 Storage Bucket Resource creating (id=%d)\n", id)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.StorageClient
 
 	opts := []func(opt *buckets.StorageBucketCreateHTTPParams){
@@ -87,7 +91,7 @@ func resourceStorageS3BucketRead(ctx context.Context, d *schema.ResourceData, m 
 	log.Printf("[DEBUG] Start S3 Storage Bucket Resource reading (id=%d, name=%s)\n", storageID, bucketName)
 	defer log.Println("[DEBUG] Finish S3 Storage Bucket Resource reading")
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.StorageClient
 
 	opts := []func(opt *buckets.StorageListBucketsHTTPParams){
@@ -122,7 +126,7 @@ func resourceStorageS3BucketDelete(ctx context.Context, d *schema.ResourceData, 
 		return diag.Errorf("empty bucket")
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.StorageClient
 
 	opts := []func(opt *buckets.StorageBucketRemoveHTTPParams){

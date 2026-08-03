@@ -13,6 +13,7 @@ import (
 
 	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storages"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	storagesvc "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/storage"
 )
 
 func TestAccStorageS3Bucket(t *testing.T) {
@@ -73,7 +74,7 @@ resource "edgecenter_storage_s3_bucket" "terraform_test_%d_s3_bucket" {
 				Config: templateCreateBucket(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(bucketResourceName),
-					resource.TestCheckResourceAttr(bucketResourceName, edgecenter.StorageS3BucketSchemaName, name),
+					resource.TestCheckResourceAttr(bucketResourceName, storagesvc.StorageS3BucketSchemaName, name),
 				),
 			},
 		},

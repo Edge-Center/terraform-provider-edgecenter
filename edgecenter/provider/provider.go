@@ -10,10 +10,17 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cdn"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/dns"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/edgemon"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/storage"
 )
 
 func Provider() *schema.Provider {
-	resources, dataSources := registerAll(edgecenter.LegacyService{}, edgemon.Service{}, cdn.Service{}, dns.Service{})
+	resources, dataSources := registerAll(
+		edgecenter.LegacyService{},
+		edgemon.Service{},
+		cdn.Service{},
+		dns.Service{},
+		storage.Service{},
+	)
 
 	p := &schema.Provider{
 		Schema:         edgecenter.ProviderSchema(),

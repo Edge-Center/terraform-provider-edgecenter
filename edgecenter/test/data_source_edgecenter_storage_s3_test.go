@@ -13,6 +13,7 @@ import (
 
 	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storages"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	storagesvc "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/storage"
 )
 
 const (
@@ -79,14 +80,14 @@ data "%s" "terraformtest%d_s3_data" {
 				Config: templateCreate(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, edgecenter.StorageSchemaLocation, "s-dt4"),
+					resource.TestCheckResourceAttr(resourceName, storagesvc.StorageSchemaLocation, "s-dt4"),
 				),
 			},
 			{
 				Config: templateRead(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckResourceExists(dataSourceName),
-					resource.TestCheckResourceAttr(dataSourceName, edgecenter.StorageSchemaLocation, "s-dt4"),
+					resource.TestCheckResourceAttr(dataSourceName, storagesvc.StorageSchemaLocation, "s-dt4"),
 				),
 			},
 		},

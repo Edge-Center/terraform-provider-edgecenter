@@ -336,7 +336,7 @@ func createTestConfig() (*edgecenter.Config, error) {
 
 	storageAPI := EC_STORAGE_API
 	stHost, stPath, err := edgecenter.ExtractHostAndPath(storageAPI)
-	var storageClient *storageSDK.SDK
+	var storageClient edgecenter.StorageClientService
 	if err == nil {
 		storageClient = storageSDK.NewSDK(stHost, stPath, storageSDK.WithBearerAuth(provider.AccessToken))
 	}
