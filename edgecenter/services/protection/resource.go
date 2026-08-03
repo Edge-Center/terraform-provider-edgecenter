@@ -321,7 +321,7 @@ func resourceProtectionResourceRead(ctx context.Context, d *schema.ResourceData,
 		d.Set(ProtectionResourceSchemaWWWRedirect, false)
 	}
 
-	d.Set(ProtectionResourceSchemaClient, result.ClientID)
+	d.Set(ProtectionResourceSchemaClient, strconv.Itoa(result.ClientID))
 	d.Set(ProtectionResourceSchemaEnabled, result.Enabled)
 	d.Set(ProtectionResourceSchemaIP, result.ServiceIP)
 	d.Set(ProtectionResourceSchemaStatus, result.Status)

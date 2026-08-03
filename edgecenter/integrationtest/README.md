@@ -167,8 +167,13 @@ Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics
 ### 4. Run
 
 ```bash
-go test -tags=integration -v -count=1 ./edgecenter/integrationtest/cloud/...
+make test_integration
+TF_ACC=1 go test -tags=integration -v -count=1 ./edgecenter/integrationtest/cloud/...
 ```
+
+`TF_ACC` is what makes `d.Set` panic on a type mismatch instead of returning an error
+nobody checks. CI sets it for the whole workflow, so run with it or a broken `Set` will
+pass locally and fail there.
 
 ## Patterns & conventions
 

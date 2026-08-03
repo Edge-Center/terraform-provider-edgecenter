@@ -233,21 +233,22 @@ func ddosReadCase() support.ResourceCase[*protectionmock.MockedProtection] {
 	}
 }
 
-func ddosReadLeavesClientEmptyCase() support.ResourceCase[*protectionmock.MockedProtection] {
+func ddosReadStoresClientAsStringCase() support.ResourceCase[*protectionmock.MockedProtection] {
 	mc := protectionmock.NewMockedProtection()
 
 	mc.Resources.On("Get", mock.Anything, resourceID).Return(ddosRemote(), nil, nil)
 
 	return support.ResourceCase[*protectionmock.MockedProtection]{
-		Name:         "read leaves the client attribute empty because the api sends a number into a string attribute",
+		Name:         "read stores the numeric client id the api reports in the string attribute",
 		Op:           support.OpRead,
 		Prepare:      func() *protectionmock.MockedProtection { return mc },
 		CurrentID:    resourceIDStr,
 		CurrentState: ddosConfig(),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *protectionmock.MockedProtection) {
 			support.RequireNoDiags(t, diags)
-			require.NotEqual(t, ddosClientIDStr, state.Attributes[protectionsvc.ProtectionResourceSchemaClient])
-			require.Empty(t, state.Attributes[protectionsvc.ProtectionResourceSchemaClient])
+			support.RequireStateAttrs(t, state, map[string]string{
+				protectionsvc.ProtectionResourceSchemaClient: ddosClientIDStr,
+			})
 		},
 	}
 }
@@ -428,7 +429,7 @@ func TestIntegrationProtectionResource_TableDriven(t *testing.T) {
 		ddosCreateAPIFailureCase(),
 		ddosCreateReadFailureCase(),
 		ddosReadCase(),
-		ddosReadLeavesClientEmptyCase(),
+		ddosReadStoresClientAsStringCase(),
 		ddosReadEmptyGeoIPListCase(),
 		ddosReadAPIFailureCase(),
 		ddosReadNonNumericIDCase(),
