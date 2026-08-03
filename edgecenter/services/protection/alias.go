@@ -1,4 +1,4 @@
-package edgecenter
+package protection
 
 import (
 	"context"
@@ -10,6 +10,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+)
+
+const (
+	ProtectionAliasResource = "edgecenter_protection_resource_alias"
+
+	ProtectionAliasSchemaName     = "name"
+	ProtectionAliasSchemaResource = "resource"
 )
 
 func resourceProtectionResourceAlias() *schema.Resource {
@@ -23,13 +31,13 @@ func resourceProtectionResourceAlias() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": {
+			ProtectionAliasSchemaName: {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The name of alias of DDoS protection resource. Must be a sub-domain of resource.",
 			},
-			"resource": {
+			ProtectionAliasSchemaResource: {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
@@ -40,9 +48,9 @@ func resourceProtectionResourceAlias() *schema.Resource {
 }
 
 func resourceProtectionResourceAliasCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	resourceID := d.Get("resource").(string)
+	resourceID := d.Get(ProtectionAliasSchemaResource).(string)
 	log.Printf("[DEBUG] Start creating alias for DDoS protection resource %s", resourceID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	id, err := strconv.ParseInt(resourceID, 10, 64)
@@ -52,7 +60,7 @@ func resourceProtectionResourceAliasCreate(ctx context.Context, d *schema.Resour
 
 	var req protectionSDK.AliasCreateRequest
 
-	req.Name = d.Get("name").(string)
+	req.Name = d.Get(ProtectionAliasSchemaName).(string)
 
 	result, _, err := client.Aliases.Create(ctx, id, &req)
 	if err != nil {
@@ -68,7 +76,7 @@ func resourceProtectionResourceAliasCreate(ctx context.Context, d *schema.Resour
 }
 
 func resourceProtectionResourceAliasRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, aID, err := ImportStringParserSimple(d.Id())
+	rID, aID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start reading alias for DDoS protection resource (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -84,7 +92,7 @@ func resourceProtectionResourceAliasRead(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	result, _, err := client.Aliases.Get(ctx, resourceID, aliasID)
@@ -92,8 +100,8 @@ func resourceProtectionResourceAliasRead(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	d.Set("name", result.Name)
-	d.Set("resource", fmt.Sprintf("%d", resourceID))
+	d.Set(ProtectionAliasSchemaName, result.Name)
+	d.Set(ProtectionAliasSchemaResource, fmt.Sprintf("%d", resourceID))
 
 	log.Println("[DEBUG] Finish reading alias for DDoS protection resource")
 
@@ -101,7 +109,7 @@ func resourceProtectionResourceAliasRead(ctx context.Context, d *schema.Resource
 }
 
 func resourceProtectionResourceAliasDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, aID, err := ImportStringParserSimple(d.Id())
+	rID, aID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start updating alias for DDoS protection resource (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -117,7 +125,7 @@ func resourceProtectionResourceAliasDelete(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	if _, err := client.Aliases.Delete(ctx, resourceID, aliasID); err != nil {

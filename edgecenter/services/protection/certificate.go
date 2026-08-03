@@ -1,4 +1,4 @@
-package edgecenter
+package protection
 
 import (
 	"context"
@@ -12,6 +12,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+)
+
+const (
+	ProtectionCertificateResource = "edgecenter_protection_resource_certificate"
+
+	ProtectionCertificateSchemaResource  = "resource"
+	ProtectionCertificateSchemaSSLCrt    = "ssl_crt"
+	ProtectionCertificateSchemaSSLExpire = "ssl_expire"
+	ProtectionCertificateSchemaSSLKey    = "ssl_key"
+	ProtectionCertificateSchemaSSLStatus = "ssl_status"
+	ProtectionCertificateSchemaSSLType   = "ssl_type"
 )
 
 func resourceProtectionResourceCertificate() *schema.Resource {
@@ -26,34 +38,34 @@ func resourceProtectionResourceCertificate() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"resource": {
+			ProtectionCertificateSchemaResource: {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The ID of DDoS protection resource to manage certificate for.",
 			},
-			"ssl_crt": {
+			ProtectionCertificateSchemaSSLCrt: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Public part of the SSL certificate. It is required add all chains. Each certificate chain should be separated by `\\n`.",
 			},
-			"ssl_expire": {
+			ProtectionCertificateSchemaSSLExpire: {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "UNIX timestamp of the SSL certificate expiration date.",
 			},
-			"ssl_key": {
+			ProtectionCertificateSchemaSSLKey: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Private key of the SSL certificate.",
 				Sensitive:   true,
 			},
-			"ssl_status": {
+			ProtectionCertificateSchemaSSLStatus: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Let's Encrypt SSL certificate issuance status.",
 			},
-			"ssl_type": {
+			ProtectionCertificateSchemaSSLType: {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  fmt.Sprintf("Select the SSL certificate type. Available values are `%s`, `%s`.", sslCustom, sslLE),
@@ -64,9 +76,9 @@ func resourceProtectionResourceCertificate() *schema.Resource {
 }
 
 func resourceProtectionResourceCertificateCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	resourceID := d.Get("resource").(string)
+	resourceID := d.Get(ProtectionCertificateSchemaResource).(string)
 	log.Printf("[DEBUG] Setting certificate for DDoS protection resource %s", resourceID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	id, err := strconv.ParseInt(resourceID, 10, 64)
@@ -88,18 +100,18 @@ func resourceProtectionResourceCertificateCreateOrUpdate(ctx context.Context, d 
 
 	json.Unmarshal(jreq, &req)
 
-	sslType := d.Get("ssl_type").(string)
+	sslType := d.Get(ProtectionCertificateSchemaSSLType).(string)
 	req.SSLType = &sslType
 
 	if sslType == sslCustom {
-		if sslcrt, ok := d.GetOk("ssl_crt"); ok {
+		if sslcrt, ok := d.GetOk(ProtectionCertificateSchemaSSLCrt); ok {
 			sslcrtVal := sslcrt.(string)
 			req.SSLCert = &sslcrtVal
 		} else {
 			return diag.Errorf("No certificate set for %s", resourceID)
 		}
 
-		if sslkey, ok := d.GetOk("ssl_key"); ok {
+		if sslkey, ok := d.GetOk(ProtectionCertificateSchemaSSLKey); ok {
 			sslkeyVal := sslkey.(string)
 			req.SSLKey = &sslkeyVal
 		} else {
@@ -123,7 +135,7 @@ func resourceProtectionResourceCertificateCreateOrUpdate(ctx context.Context, d 
 func resourceProtectionResourceCertificateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start reading DDoS protection resource certificate type (id=%s)\n", resourceID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	id, err := strconv.ParseInt(resourceID, 10, 64)
@@ -136,10 +148,10 @@ func resourceProtectionResourceCertificateRead(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
-	d.Set("resource", resourceID)
-	d.Set("ssl_expire", result.SSLExpire)
-	d.Set("ssl_status", result.SSLStatus)
-	d.Set("ssl_type", result.SSLType)
+	d.Set(ProtectionCertificateSchemaResource, resourceID)
+	d.Set(ProtectionCertificateSchemaSSLExpire, result.SSLExpire)
+	d.Set(ProtectionCertificateSchemaSSLStatus, result.SSLStatus)
+	d.Set(ProtectionCertificateSchemaSSLType, result.SSLType)
 
 	log.Println("[DEBUG] Finish reading DDoS protection resource certificate type")
 
@@ -149,7 +161,7 @@ func resourceProtectionResourceCertificateRead(ctx context.Context, d *schema.Re
 func resourceProtectionResourceCertificateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start deleting DDoS protection resource certificate (id=%s)\n", resourceID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	id, err := strconv.ParseInt(resourceID, 10, 64)
