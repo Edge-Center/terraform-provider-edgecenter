@@ -2,6 +2,27 @@
 
 `integrationtest` is the only place for integration-test-related code in this repository.
 
+## Where this layer sits
+
+| Layer | Directory | What it exercises | Speed | Needs |
+|-------|-----------|-------------------|-------|-------|
+| Acceptance (E2E) | `edgecenter/test/` | The whole resource through the Terraform CLI against the real API | minutes | credentials, Vault, terraform binary |
+| Resource-level | `edgecenter/integrationtest/` | The whole resource (`CreateContext`, `ReadContext`, `UpdateContext`, `DeleteContext`) against a mocked SDK | milliseconds | nothing |
+| Unit | co-located `*_test.go` | A single function in isolation | microseconds | nothing |
+
+Tests in this directory call the real resource functions but talk to a testify mock
+instead of the SDK client. They verify that a resource builds the right SDK requests,
+handles SDK responses and errors correctly, and manages Terraform state correctly. They
+do not cover HTTP serialization or transport.
+
+They are gated behind the `integration` build tag and run in CI as a separate job.
+Unlike acceptance tests they need no network, no Terraform CLI and no credentials.
+
+Instead of the stock `resource.Test` harness the directory carries its own runner in
+`support/`: `case.go` (the `ResourceCase` shape), `runner.go` (drives the CRUD functions
+directly), `state.go` (builds `terraform.InstanceState` from a Go map, no HCL),
+`diag.go` (diagnostics assertions) and one mock package per domain.
+
 ## Structure
 
 ```
@@ -39,13 +60,20 @@ integrationtest/
 │   │       ├── client.go            # MockedDNS, NewMockedDNS, NewUnconfiguredDNS
 │   │       ├── generate.go          # go:generate entry point
 │   │       └── DNSClientService.go  (generated)
-│   └── storage/      # Storage-specific helpers
-│       └── mock/     # Generated testify mocks + MockedStorage (package storagemock)
-│           ├── client.go                 # MockedStorage, NewMockedStorage, clientShim
-│           ├── generate.go               # go:generate entry point
-│           ├── StorageLocationService.go (generated)
-│           ├── StorageS3Service.go       (generated)
-│           └── StorageBucketService.go   (generated)
+│   ├── storage/      # Storage-specific helpers
+│   │   └── mock/     # Generated testify mocks + MockedStorage (package storagemock)
+│   │       ├── client.go                 # MockedStorage, NewMockedStorage, clientShim
+│   │       ├── generate.go               # go:generate entry point
+│   │       ├── StorageLocationService.go (generated)
+│   │       ├── StorageS3Service.go       (generated)
+│   │       └── StorageBucketService.go   (generated)
+│   └── protection/   # Protection-specific helpers
+│       └── mock/     # Generated testify mocks + MockedProtection (package protectionmock)
+│           ├── client.go            # MockedProtection, NewMockedProtection
+│           ├── generate.go          # go:generate entry point
+│           ├── ResourcesService.go, AliasesService.go, OriginsService.go,
+│           ├── HeadersService.go, BlacklistsService.go, WhitelistsService.go,
+│           └── ServicesService.go   (generated)
 ├── cloud/            # Cloud resource integration tests
 │   ├── network_test.go
 │   └── ...
@@ -58,8 +86,11 @@ integrationtest/
 ├── dns/              # DNS resource and data source integration tests
 │   ├── zone_test.go
 │   └── ...
-└── storage/          # Storage resource and data source integration tests
-    ├── s3_test.go
+├── storage/          # Storage resource and data source integration tests
+│   ├── s3_test.go
+│   └── ...
+└── protection/       # Protection resource integration tests
+    ├── resource_test.go
     └── ...
 ```
 
@@ -123,7 +154,7 @@ and `cloudmock.ExpectRegionResolutionTimes(...)`. Use permissive
 `Allow*Resolution(...)` helpers only when resolution is incidental to the
 behavior under test.
 
-Mock expectations are verified automatically via `t.Cleanup` — no explicit
+Mock expectations are verified automatically via `t.Cleanup` - no explicit
 `AssertExpectations` call needed:
 
 ```go
@@ -142,22 +173,22 @@ go test -tags=integration -v -count=1 ./edgecenter/integrationtest/cloud/...
 ## Patterns & conventions
 
 - **Always use `project_id` and `region_id`** in test configs (via `cloud.WithProjectRegion`).
-  Avoid `project_name`/`region_name` — they trigger additional API resolution logic.
-- **Mock `Tasks` for every async resource** — nearly all cloud resources use
+  Avoid `project_name`/`region_name` - they trigger additional API resolution logic.
+- **Mock `Tasks` for every async resource** - nearly all cloud resources use
   `utilV2.WaitAndGetTaskInfo` or `ExecuteAndExtractTaskResult`, which call
   `client.Tasks.Get` internally.
-- **Keep test-only code inside `integrationtest/`** — production packages under `edgecenter/`
+- **Keep test-only code inside `integrationtest/`** - production packages under `edgecenter/`
   must not import test infrastructure.
 - **Use `//go:build integration`** build tag to isolate integration tests from acceptance tests.
-- **One factory function per case** — creates an isolated `MockedCloud` per case,
+- **One factory function per case** - creates an isolated `MockedCloud` per case,
   avoiding shared mutable state between subtests.
-- **Default to `NewMockedCloud`** — then add explicit project/region resolution
+- **Default to `NewMockedCloud`** - then add explicit project/region resolution
   expectations with `ExpectProjectResolutionTimes` / `ExpectRegionResolutionTimes`.
   Use `AllowProjectResolution` / `AllowRegionResolution` only when exact
   resolution call counts add noise.
-- **No explicit `AssertExpectations` needed** — `MockedCloud.MockCleanup` is registered
+- **No explicit `AssertExpectations` needed** - `MockedCloud.MockCleanup` is registered
   automatically via `t.Cleanup` by `RunResourceCases` and runs even if `Check` fails.
-- **RunCaseRead only executes ReadContext** — state verification belongs in Check.
+- **RunCaseRead only executes ReadContext** - state verification belongs in Check.
 - **`RequireNoErrorDiags`** checks only that no `diag.Error` exists; warning-level
   diagnostics are ignored. For a completely clean happy-path (zero diagnostics of
   any severity) use **`RequireNoDiags`** instead.
@@ -288,40 +319,52 @@ Assert on `sent` inside `Check`, not inside `Run` - `Run` has no `*testing.T`.
 Schema flags, both name validators and the two id parsers are covered co-located in
 `services/storage/schema_test.go`.
 
+## Protection
 
+Protection is the easy case, and the only one that needed no change in
+`edgecenter/config.go`. The SDK already exports one interface per service
+(`ResourcesService`, `AliasesService`, `OriginsService`, `HeadersService`,
+`BlacklistsService`, `WhitelistsService`, `ServicesService`) **and** holds them as
+exported fields on `protectionSDK.Client`. So there is nothing to shim: the mock is a
+real client with mocks in its fields.
 
-Резюме: тестинговая архитектура проекта
-Три слоя тестов
-Слой	Папка	Что тестирует	Скорость	Зависимости
-Acceptance (E2E)	edgecenter/test/	Resource целиком через Terraform CLI + реальное API	Минуты	Креды, Vault, Terraform бинарник
-Resource-level (моки SDK)	edgecenter/integrationtest/	Resource целиком (CreateContext/ReadContext/DeleteContext) с замоканным SDK (testify mocks) — проверяет интеграцию resource ↔ SDK-контракт	Миллисекунды	Нет (все замокано)
-Чистые unit (если нужны)	нет пока	Отдельная функция (например, flattenNetwork) изолированно	Наносекунды	Нет
-Что в edgecenter/integrationtest/
-Это resource-level тесты. Они вызывают реальные функции ресурсов (resource.CreateContext, resource.ReadContext, resource.DeleteContext), но SDK-клиент замокан (testify mock).
+```go
+mc.Config = &edgecenter.Config{ProtectionClient: &protectionSDK.Client{
+    Resources:  mc.Resources,
+    Aliases:    mc.Aliases,
+    ...
+}}
+```
 
-То, что они «ходят в SDK и гоняют моки» — это и есть их суть. Они не тестируют HTTP-сериализацию или транспорт, а проверяют, что resource:
+`Config.ProtectionClient` therefore stays `*protection.Client`, unlike `DNSClient` and
+`StorageClient`. Regenerate the mocks with:
 
-Правильно формирует запросы в SDK
-Правильно обрабатывает ответы/ошибки SDK
-Правильно управляет Terraform state
-«Свой движок»
-В edgecenter/integrationtest/support/ лежит кастомный фреймворк вместо стандартного resource.Test:
+```bash
+go generate ./edgecenter/integrationtest/support/protection/mock/...
+```
 
-case.go — своя ResourceCase структура
-runner.go — свой раннер, сам дёргает CRUD-функции напрямую
-state.go — сборка terraform.InstanceState из Go-map (без HCL)
-diag.go — свои ассерты на диагностики
-support/cloud/mock/ — сгенерированные testify mocks на SDK-интерфейсы
-Терминология (как договорились)
-То, что в папке integrationtest — можно называть как угодно:
+`MockedProtection` implements `MetaProvider` and `MockCleanuper` like the others.
+Expectations go on the service that owns the call - `mc.Resources`, `mc.Origins`,
+`mc.Headers`, `mc.Blacklists`, `mc.Whitelists`, `mc.Aliases`.
 
-"integration tests" (по папке и тегу //go:build integration)
-"integration tests" (по факту — проверка связки resource ↔ SDK)
-"resource-level tests" (нейтрально)
-В CI они гоняются тегом integration. От acceptance отличаются отсутствием сети, Terraform CLI, и кредов.
+Two things worth knowing before adding cases here:
 
-Что писать сейчас
-Для каждого нового/изменяемого ресурса:
+- Seven of the eight resources use a composite id `<resource_id>:<child_id>` parsed by
+  `edgecenter.ImportStringParserSimple`; `edgecenter_protection_resource_certificate` is
+  the exception and uses the protected resource id itself.
+- The tests are **characterization tests**: several of them pin behaviour that is wrong
+  on purpose, so that a fix shows up as a failing test rather than a silent change. Each
+  such case says so in its name (for example
+  `read leaves the client attribute empty because the api sends a number into a string
+  attribute`). The matching defects are written up in
+  `tsks/terraform-provider-edgecenter/bugs/protection/`.
 
-Resource-level тест в integrationtest/ — покрыть happy path (create/read/update/delete) + ключевые ошибки (API error, task error)
-Acceptance тест в test/ — один happy path на реальном API для регрессии
+Schema flags and all four validators are covered co-located in
+`services/protection/schema_test.go`.
+
+## What to write for a new resource
+
+1. A resource-level test here: the happy path (create, read, update, delete) plus the
+   errors that matter (API failure, task failure, malformed id).
+2. An acceptance test in `edgecenter/test/`: one happy path against the real API, as a
+   regression net.

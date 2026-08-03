@@ -1,2 +1,2 @@
-// Package meta содержит хелперы для metadata-полей ресурсов Edgecenter.
+// Package meta holds helpers for the metadata fields of EdgeCenter resources.
 package meta

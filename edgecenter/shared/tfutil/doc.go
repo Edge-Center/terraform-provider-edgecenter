@@ -1,2 +1,2 @@
-// Package tfutil содержит общие утилиты для terraform-ресурсов.
+// Package tfutil holds utilities shared by terraform resources.
 package tfutil
