@@ -1,2 +1,2 @@
-// Package shared содержит инфраструктурный код, общий для нескольких сервисов.
+// Package shared holds infrastructure code shared by several services.
 package shared

@@ -80,7 +80,7 @@ linters_docker: # for windows
 
 # TESTS
 test_integration:
-	go test -tags=integration -count=1 ./edgecenter/integrationtest/...
+	TF_ACC=1 go test -tags=integration -count=1 ./edgecenter/integrationtest/...
 
 test_cloud_data_source: install_godotenv
 	godotenv -f $(ENV_TESTS_FILE) go test -v $(TEST_DIR) -tags cloud_data_source -short -timeout=60m

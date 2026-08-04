@@ -1,5 +1,9 @@
 # services/
 
-Каталог сервис-пакетов Edgecenter Terraform-провайдера.
+Service packages of the EdgeCenter Terraform provider.
 
-Каждый подпакет (`cloud/`, `cdn/`, `dns/`, `mkaas/`, …) предоставляет свои ресурсы и data sources через методы `Resources()` / `DataSources()`.
+Each subpackage (`cdn/`, `dns/`, `edgemon/`, `protection/`, `storage/`) exposes its own
+resources and data sources through the `Resources()` and `DataSources()` methods and is
+registered in `edgecenter/provider/provider.go`.
+
+Everything that has not been split out yet lives in `edgecenter.LegacyService`.

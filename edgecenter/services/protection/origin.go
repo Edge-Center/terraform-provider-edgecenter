@@ -1,4 +1,4 @@
-package edgecenter
+package protection
 
 import (
 	"context"
@@ -11,12 +11,25 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 const (
 	modePrimary = "primary"
 	modeBackup  = "backup"
 	modeDown    = "down"
+)
+
+const (
+	ProtectionOriginResource = "edgecenter_protection_resource_origin"
+
+	ProtectionOriginSchemaComment     = "comment"
+	ProtectionOriginSchemaFailTimeout = "fail_timeout"
+	ProtectionOriginSchemaIP          = "ip"
+	ProtectionOriginSchemaMaxFails    = "max_fails"
+	ProtectionOriginSchemaMode        = "mode"
+	ProtectionOriginSchemaResource    = "resource"
+	ProtectionOriginSchemaWeight      = "weight"
 )
 
 func resourceProtectionResourceOrigin() *schema.Resource {
@@ -31,44 +44,44 @@ func resourceProtectionResourceOrigin() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"comment": {
+			ProtectionOriginSchemaComment: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 				Description: "Custom comment about the origin.",
 			},
-			"fail_timeout": {
+			ProtectionOriginSchemaFailTimeout: {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
 				Description: "Time (in seconds) after which the server is considered unreachable.",
 			},
-			"ip": {
+			ProtectionOriginSchemaIP: {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "Origin IP for the website behind DDoS protection.",
 			},
-			"max_fails": {
+			ProtectionOriginSchemaMaxFails: {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
 				Description: "Max number of failed connection attempts.",
 			},
-			"mode": {
+			ProtectionOriginSchemaMode: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				Description:  fmt.Sprintf("Operation mode for this origin. Available values are `%s`, `%s`, `%s`.", modePrimary, modeBackup, modeDown),
 				ValidateFunc: validation.StringInSlice([]string{modePrimary, modeBackup, modeDown}, false),
 			},
-			"resource": {
+			ProtectionOriginSchemaResource: {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "ID of the DDoS protection resource using this origin.",
 			},
-			"weight": {
+			ProtectionOriginSchemaWeight: {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
@@ -80,35 +93,35 @@ func resourceProtectionResourceOrigin() *schema.Resource {
 
 func resourceProtectionResourceOriginCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start DDoS Protection Resource Origin creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
-	resourceID, err := strconv.ParseInt(d.Get("resource").(string), 10, 64)
+	resourceID, err := strconv.ParseInt(d.Get(ProtectionOriginSchemaResource).(string), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var req protectionSDK.OriginCreateRequest
 
-	req.IP = d.Get("ip").(string)
+	req.IP = d.Get(ProtectionOriginSchemaIP).(string)
 
-	if mode, ok := d.GetOk("mode"); ok {
+	if mode, ok := d.GetOk(ProtectionOriginSchemaMode); ok {
 		req.Mode = mode.(string)
 	}
 
-	if weight, ok := d.GetOk("weight"); ok {
+	if weight, ok := d.GetOk(ProtectionOriginSchemaWeight); ok {
 		req.Weight = weight.(int)
 	}
 
-	if max_fails, ok := d.GetOk("max_fails"); ok {
+	if max_fails, ok := d.GetOk(ProtectionOriginSchemaMaxFails); ok {
 		req.MaxFails = max_fails.(int)
 	}
 
-	if fail_timeout, ok := d.GetOk("fail_timeout"); ok {
+	if fail_timeout, ok := d.GetOk(ProtectionOriginSchemaFailTimeout); ok {
 		req.FailTimeout = fail_timeout.(int)
 	}
 
-	if comment, ok := d.GetOk("comment"); ok {
+	if comment, ok := d.GetOk(ProtectionOriginSchemaComment); ok {
 		req.Comment = comment.(string)
 	}
 
@@ -126,7 +139,7 @@ func resourceProtectionResourceOriginCreate(ctx context.Context, d *schema.Resou
 }
 
 func resourceProtectionResourceOriginRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, oID, err := ImportStringParserSimple(d.Id())
+	rID, oID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start DDoS Protection Resource Origin reading (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -142,7 +155,7 @@ func resourceProtectionResourceOriginRead(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	result, _, err := client.Origins.Get(ctx, resourceID, originID)
@@ -150,13 +163,13 @@ func resourceProtectionResourceOriginRead(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
-	d.Set("resource", fmt.Sprintf("%d", resourceID))
-	d.Set("ip", result.IP)
-	d.Set("mode", result.Mode)
-	d.Set("weight", result.Weight)
-	d.Set("max_fails", result.MaxFails)
-	d.Set("fail_timeout", result.FailTimeout)
-	d.Set("comment", result.Comment)
+	d.Set(ProtectionOriginSchemaResource, fmt.Sprintf("%d", resourceID))
+	d.Set(ProtectionOriginSchemaIP, result.IP)
+	d.Set(ProtectionOriginSchemaMode, result.Mode)
+	d.Set(ProtectionOriginSchemaWeight, result.Weight)
+	d.Set(ProtectionOriginSchemaMaxFails, result.MaxFails)
+	d.Set(ProtectionOriginSchemaFailTimeout, result.FailTimeout)
+	d.Set(ProtectionOriginSchemaComment, result.Comment)
 
 	log.Println("[DEBUG] Finish DDoS Protection Resource Origin reading")
 
@@ -164,7 +177,7 @@ func resourceProtectionResourceOriginRead(ctx context.Context, d *schema.Resourc
 }
 
 func resourceProtectionResourceOriginUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, oID, err := ImportStringParserSimple(d.Id())
+	rID, oID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start DDoS Protection Resource Origin updating (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -180,30 +193,30 @@ func resourceProtectionResourceOriginUpdate(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	var req protectionSDK.OriginCreateRequest
 
-	req.IP = d.Get("ip").(string)
+	req.IP = d.Get(ProtectionOriginSchemaIP).(string)
 
-	if mode, ok := d.GetOk("mode"); ok {
+	if mode, ok := d.GetOk(ProtectionOriginSchemaMode); ok {
 		req.Mode = mode.(string)
 	}
 
-	if weight, ok := d.GetOk("weight"); ok {
+	if weight, ok := d.GetOk(ProtectionOriginSchemaWeight); ok {
 		req.Weight = weight.(int)
 	}
 
-	if max_fails, ok := d.GetOk("max_fails"); ok {
+	if max_fails, ok := d.GetOk(ProtectionOriginSchemaMaxFails); ok {
 		req.MaxFails = max_fails.(int)
 	}
 
-	if fail_timeout, ok := d.GetOk("fail_timeout"); ok {
+	if fail_timeout, ok := d.GetOk(ProtectionOriginSchemaFailTimeout); ok {
 		req.FailTimeout = fail_timeout.(int)
 	}
 
-	if comment, ok := d.GetOk("comment"); ok {
+	if comment, ok := d.GetOk(ProtectionOriginSchemaComment); ok {
 		req.Comment = comment.(string)
 	}
 
@@ -217,7 +230,7 @@ func resourceProtectionResourceOriginUpdate(ctx context.Context, d *schema.Resou
 }
 
 func resourceProtectionResourceOriginDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, oID, err := ImportStringParserSimple(d.Id())
+	rID, oID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start DDoS Protection Resource Origin deleting (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -233,7 +246,7 @@ func resourceProtectionResourceOriginDelete(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	if _, err := client.Origins.Delete(ctx, resourceID, originID); err != nil {

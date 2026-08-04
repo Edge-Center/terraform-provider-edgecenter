@@ -1,4 +1,4 @@
-package edgecenter
+package protection
 
 import (
 	"context"
@@ -10,6 +10,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+)
+
+const (
+	ProtectionBlacklistEntryResource = "edgecenter_protection_resource_blacklist_entry"
+
+	ProtectionBlacklistEntrySchemaIP       = "ip"
+	ProtectionBlacklistEntrySchemaResource = "resource"
 )
 
 func resourceProtectionResourceBlacklistEntry() *schema.Resource {
@@ -24,12 +32,12 @@ func resourceProtectionResourceBlacklistEntry() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"ip": {
+			ProtectionBlacklistEntrySchemaIP: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Blocked IP address.",
 			},
-			"resource": {
+			ProtectionBlacklistEntrySchemaResource: {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
@@ -41,17 +49,17 @@ func resourceProtectionResourceBlacklistEntry() *schema.Resource {
 
 func resourceProtectionResourceBlacklistEntryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start Protection Resource Blacklist entry creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
-	resourceID, err := strconv.ParseInt(d.Get("resource").(string), 10, 64)
+	resourceID, err := strconv.ParseInt(d.Get(ProtectionBlacklistEntrySchemaResource).(string), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var req protectionSDK.BlacklistCreateRequest
 
-	req.IP = d.Get("ip").(string)
+	req.IP = d.Get(ProtectionBlacklistEntrySchemaIP).(string)
 
 	result, _, err := client.Blacklists.Create(ctx, resourceID, &req)
 	if err != nil {
@@ -67,7 +75,7 @@ func resourceProtectionResourceBlacklistEntryCreate(ctx context.Context, d *sche
 }
 
 func resourceProtectionResourceBlacklistEntryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, eID, err := ImportStringParserSimple(d.Id())
+	rID, eID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start Protection Resource Blacklist entry reading (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -83,7 +91,7 @@ func resourceProtectionResourceBlacklistEntryRead(ctx context.Context, d *schema
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	result, _, err := client.Blacklists.Get(ctx, resourceID, entryID)
@@ -91,8 +99,8 @@ func resourceProtectionResourceBlacklistEntryRead(ctx context.Context, d *schema
 		return diag.FromErr(err)
 	}
 
-	d.Set("resource", fmt.Sprintf("%d", resourceID))
-	d.Set("ip", result.IP)
+	d.Set(ProtectionBlacklistEntrySchemaResource, fmt.Sprintf("%d", resourceID))
+	d.Set(ProtectionBlacklistEntrySchemaIP, result.IP)
 
 	log.Println("[DEBUG] Finish Protection Resource Blacklist entry reading")
 
@@ -100,7 +108,7 @@ func resourceProtectionResourceBlacklistEntryRead(ctx context.Context, d *schema
 }
 
 func resourceProtectionResourceBlacklistEntryUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, eID, err := ImportStringParserSimple(d.Id())
+	rID, eID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start Protection Resource Blacklist entry updating (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -116,12 +124,12 @@ func resourceProtectionResourceBlacklistEntryUpdate(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	var req protectionSDK.BlacklistCreateRequest
 
-	req.IP = d.Get("ip").(string)
+	req.IP = d.Get(ProtectionBlacklistEntrySchemaIP).(string)
 
 	if _, _, err := client.Blacklists.Update(ctx, resourceID, entryID, &req); err != nil {
 		return diag.FromErr(err)
@@ -133,7 +141,7 @@ func resourceProtectionResourceBlacklistEntryUpdate(ctx context.Context, d *sche
 }
 
 func resourceProtectionResourceBlacklistEntryDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, eID, err := ImportStringParserSimple(d.Id())
+	rID, eID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start Protection Resource Blacklist entry deleting (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -149,7 +157,7 @@ func resourceProtectionResourceBlacklistEntryDelete(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	if _, err := client.Blacklists.Delete(ctx, resourceID, entryID); err != nil {

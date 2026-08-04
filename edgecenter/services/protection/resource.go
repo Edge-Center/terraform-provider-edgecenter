@@ -1,4 +1,4 @@
-package edgecenter
+package protection
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 const (
@@ -29,9 +30,31 @@ const (
 )
 
 const (
-	// These constants are used in certificate and alias resource.
 	sslCustom = "custom"
 	sslLE     = "le"
+)
+
+const (
+	ProtectionResourceResource = "edgecenter_protection_resource"
+
+	ProtectionResourceSchemaActive            = "active"
+	ProtectionResourceSchemaGeoIPList         = "geoip_list"
+	ProtectionResourceSchemaGeoIPMode         = "geoip_mode"
+	ProtectionResourceSchemaHTTPToOrigin      = "http_to_origin"
+	ProtectionResourceSchemaLoadBalancingType = "load_balancing_type"
+	ProtectionResourceSchemaMultipleOrigins   = "multiple_origins"
+	ProtectionResourceSchemaName              = "name"
+	ProtectionResourceSchemaRedirectToHTTPS   = "redirect_to_https"
+	ProtectionResourceSchemaTLS               = "tls"
+	ProtectionResourceSchemaWildcardAliases   = "wildcard_aliases"
+	ProtectionResourceSchemaWAF               = "waf"
+	ProtectionResourceSchemaWWWRedirect       = "www_redirect"
+
+	ProtectionResourceSchemaClient    = "client"
+	ProtectionResourceSchemaEnabled   = "enabled"
+	ProtectionResourceSchemaIP        = "ip"
+	ProtectionResourceSchemaStatus    = "status"
+	ProtectionResourceSchemaWaitForLE = "wait_for_le"
 )
 
 func resourceProtectionResource() *schema.Resource {
@@ -46,105 +69,104 @@ func resourceProtectionResource() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"active": {
+			ProtectionResourceSchemaActive: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
 				Description: "Enable or disable DDoS protection resource.",
 			},
-			"geoip_list": {
+			ProtectionResourceSchemaGeoIPList: {
 				Type:        schema.TypeSet,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Optional:    true,
 				Computed:    true,
 				Description: "List of countries to apply geoip_mode policy to.",
 			},
-			"geoip_mode": {
+			ProtectionResourceSchemaGeoIPMode: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				Description:  fmt.Sprintf("Manage country access policy to control access to DDoS resource from the specified countries. Available values are `%s`, `%s`, `%s`.", geoIPNo, geoIPAllowList, geoIPBlockList),
 				ValidateFunc: validation.StringInSlice([]string{geoIPNo, geoIPAllowList, geoIPBlockList}, false),
 			},
-			"http_to_origin": {
+			ProtectionResourceSchemaHTTPToOrigin: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
 				Description: "Whether to use HTTP to make requests to the origin. If set to false (default), HTTPS is used.",
 			},
-			"load_balancing_type": {
+			ProtectionResourceSchemaLoadBalancingType: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				Description:  fmt.Sprintf("Sets load balancing type. Available values are `%s`, `%s`.", lbRoundRobin, lbIPHash),
 				ValidateFunc: validation.StringInSlice([]string{lbRoundRobin, lbIPHash}, false),
 			},
-			"multiple_origins": {
+			ProtectionResourceSchemaMultipleOrigins: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
 				Description: "Enable or disable Multiple origins feature.",
 			},
-			"name": {
+			ProtectionResourceSchemaName: {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The DNS name of the DDoS protection resource.",
 			},
-			"redirect_to_https": {
+			ProtectionResourceSchemaRedirectToHTTPS: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
 				Description: "Enable or disable from HTTP to HTTPS",
 			},
-			"tls": {
+			ProtectionResourceSchemaTLS: {
 				Type:        schema.TypeSet,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				MinItems:    1,
 				Required:    true,
 				Description: fmt.Sprintf("The list of supported TLS versions. Available value: `%s`, `%s`, `%s`, `%s`.", tlsv1, tlsv1_1, tlsv1_2, tlsv1_3),
 			},
-			"wildcard_aliases": {
+			ProtectionResourceSchemaWildcardAliases: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
 				Description: "Enable or disable Wildcard aliases feature.",
 			},
-			"waf": {
+			ProtectionResourceSchemaWAF: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
 				Description: "Enable or disable WAF.",
 			},
-			"www_redirect": {
+			ProtectionResourceSchemaWWWRedirect: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
 				Description: "Enable or disable redirect from WWW to the primary domain option.",
 			},
 
-			// computed
-			"client": {
+			ProtectionResourceSchemaClient: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Client ID.",
 			},
-			"enabled": {
+			ProtectionResourceSchemaEnabled: {
 				Type:        schema.TypeBool,
 				Computed:    true,
 				Description: "Whether resource is enabled.",
 			},
-			"ip": {
+			ProtectionResourceSchemaIP: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Resources's protected IP address.",
 			},
-			"status": {
+			ProtectionResourceSchemaStatus: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Show resource status.",
 			},
-			"wait_for_le": {
+			ProtectionResourceSchemaWaitForLE: {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "Number of seconds after which LE certificate can be issued.",
@@ -155,36 +177,36 @@ func resourceProtectionResource() *schema.Resource {
 
 func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start DDoS Protection Resource creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	var req protectionSDK.ResourceCreateRequest
 
-	req.Name = d.Get("name").(string)
+	req.Name = d.Get(ProtectionResourceSchemaName).(string)
 
-	tlsEnabled := d.Get("tls").(*schema.Set).List()
+	tlsEnabled := d.Get(ProtectionResourceSchemaTLS).(*schema.Set).List()
 	req.TLSEnabled = make([]string, len(tlsEnabled))
 	for i, s := range tlsEnabled {
 		req.TLSEnabled[i] = s.(string)
 	}
 
-	if active, ok := d.GetOk("active"); ok {
+	if active, ok := d.GetOk(ProtectionResourceSchemaActive); ok {
 		req.Active = active.(bool)
 	}
 
-	if multipleOrigins, ok := d.GetOk("multiple_origins"); ok {
+	if multipleOrigins, ok := d.GetOk(ProtectionResourceSchemaMultipleOrigins); ok {
 		req.MultipleOrigins = multipleOrigins.(bool)
 	}
 
-	if wildcardAliases, ok := d.GetOk("wildcard_aliases"); ok {
+	if wildcardAliases, ok := d.GetOk(ProtectionResourceSchemaWildcardAliases); ok {
 		req.WidlcardAliases = wildcardAliases.(bool)
 	}
 
-	if redirectToHTTPS, ok := d.GetOk("redirect_to_https"); ok {
+	if redirectToHTTPS, ok := d.GetOk(ProtectionResourceSchemaRedirectToHTTPS); ok {
 		req.RedirectToHTTPS = redirectToHTTPS.(bool)
 	}
 
-	if httpToOriginValue, ok := d.GetOk("http_to_origin"); ok {
+	if httpToOriginValue, ok := d.GetOk(ProtectionResourceSchemaHTTPToOrigin); ok {
 		if httpToOriginValue.(bool) {
 			req.HTTPS2HTTP = 1
 		} else {
@@ -192,7 +214,7 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	if lbType, ok := d.GetOk("load_balancing_type"); ok {
+	if lbType, ok := d.GetOk(ProtectionResourceSchemaLoadBalancingType); ok {
 		switch lbType.(string) {
 		case lbRoundRobin:
 			req.IPHash = 0
@@ -201,7 +223,7 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	if geoIPMode, ok := d.GetOk("geoip_mode"); ok {
+	if geoIPMode, ok := d.GetOk(ProtectionResourceSchemaGeoIPMode); ok {
 		switch geoIPMode.(string) {
 		case geoIPNo:
 			req.GeoIPMode = 0
@@ -212,7 +234,7 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	if geoIPList, ok := d.GetOk("geoip_list"); ok {
+	if geoIPList, ok := d.GetOk(ProtectionResourceSchemaGeoIPList); ok {
 		iplist := geoIPList.(*schema.Set).List()
 		geoIPListSet := make([]string, len(iplist))
 		for i, s := range iplist {
@@ -221,7 +243,7 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 		req.GeoIPList = strings.Join(geoIPListSet, ",")
 	}
 
-	if redirectValue, ok := d.GetOk("www_redirect"); ok {
+	if redirectValue, ok := d.GetOk(ProtectionResourceSchemaWWWRedirect); ok {
 		if redirectValue.(bool) {
 			req.WWWRedir = 1
 		} else {
@@ -229,7 +251,7 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	if waf, ok := d.GetOk("waf"); ok {
+	if waf, ok := d.GetOk(ProtectionResourceSchemaWAF); ok {
 		req.WAF = waf.(bool)
 	}
 
@@ -249,7 +271,7 @@ func resourceProtectionResourceCreate(ctx context.Context, d *schema.ResourceDat
 func resourceProtectionResourceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start DDoS Protection Resource reading (id=%s)\n", resourceID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	id, err := strconv.ParseInt(resourceID, 10, 64)
@@ -262,48 +284,48 @@ func resourceProtectionResourceRead(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	d.Set("name", result.Name)
-	d.Set("tls", result.TLSEnabled)
-	d.Set("active", result.Active)
-	d.Set("multiple_origins", result.MultipleOrigins)
-	d.Set("wildcard_aliases", result.WidlcardAliases)
-	d.Set("redirect_to_https", result.RedirectToHTTPS)
-	d.Set("geoip_list", strings.Split(result.GeoIPList, ","))
-	d.Set("waf", result.WAF)
+	d.Set(ProtectionResourceSchemaName, result.Name)
+	d.Set(ProtectionResourceSchemaTLS, result.TLSEnabled)
+	d.Set(ProtectionResourceSchemaActive, result.Active)
+	d.Set(ProtectionResourceSchemaMultipleOrigins, result.MultipleOrigins)
+	d.Set(ProtectionResourceSchemaWildcardAliases, result.WidlcardAliases)
+	d.Set(ProtectionResourceSchemaRedirectToHTTPS, result.RedirectToHTTPS)
+	d.Set(ProtectionResourceSchemaGeoIPList, strings.Split(result.GeoIPList, ","))
+	d.Set(ProtectionResourceSchemaWAF, result.WAF)
 
 	if result.HTTPS2HTTP == 1 {
-		d.Set("http_to_origin", true)
+		d.Set(ProtectionResourceSchemaHTTPToOrigin, true)
 	} else {
-		d.Set("http_to_origin", false)
+		d.Set(ProtectionResourceSchemaHTTPToOrigin, false)
 	}
 
 	switch result.IPHash {
 	case 0:
-		d.Set("load_balancing_type", lbRoundRobin)
+		d.Set(ProtectionResourceSchemaLoadBalancingType, lbRoundRobin)
 	case 1:
-		d.Set("load_balancing_type", lbIPHash)
+		d.Set(ProtectionResourceSchemaLoadBalancingType, lbIPHash)
 	}
 
 	switch result.GeoIPMode {
 	case 0:
-		d.Set("geoip_mode", geoIPNo)
+		d.Set(ProtectionResourceSchemaGeoIPMode, geoIPNo)
 	case 1:
-		d.Set("geoip_mode", geoIPAllowList)
+		d.Set(ProtectionResourceSchemaGeoIPMode, geoIPAllowList)
 	case 2:
-		d.Set("geoip_mode", geoIPBlockList)
+		d.Set(ProtectionResourceSchemaGeoIPMode, geoIPBlockList)
 	}
 
 	if result.WWWRedir == 1 {
-		d.Set("www_redirect", true)
+		d.Set(ProtectionResourceSchemaWWWRedirect, true)
 	} else {
-		d.Set("www_redirect", false)
+		d.Set(ProtectionResourceSchemaWWWRedirect, false)
 	}
 
-	d.Set("client", result.ClientID)
-	d.Set("enabled", result.Enabled)
-	d.Set("ip", result.ServiceIP)
-	d.Set("status", result.Status)
-	d.Set("wait_for_le", result.WaitForLE)
+	d.Set(ProtectionResourceSchemaClient, strconv.Itoa(result.ClientID))
+	d.Set(ProtectionResourceSchemaEnabled, result.Enabled)
+	d.Set(ProtectionResourceSchemaIP, result.ServiceIP)
+	d.Set(ProtectionResourceSchemaStatus, result.Status)
+	d.Set(ProtectionResourceSchemaWaitForLE, result.WaitForLE)
 
 	log.Println("[DEBUG] Finish DDoS Protection Resource reading")
 
@@ -313,7 +335,7 @@ func resourceProtectionResourceRead(ctx context.Context, d *schema.ResourceData,
 func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start DDoS Protection Resource updating (id=%s)\n", resourceID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	id, err := strconv.ParseInt(resourceID, 10, 64)
@@ -330,29 +352,29 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 
 	req.SSLType = result.SSLType
 
-	tlsEnabled := d.Get("tls").(*schema.Set).List()
+	tlsEnabled := d.Get(ProtectionResourceSchemaTLS).(*schema.Set).List()
 	req.TLSEnabled = make([]string, len(tlsEnabled))
 	for i, s := range tlsEnabled {
 		req.TLSEnabled[i] = s.(string)
 	}
 
-	if active, ok := d.GetOk("active"); ok {
+	if active, ok := d.GetOk(ProtectionResourceSchemaActive); ok {
 		req.Active = active.(bool)
 	}
 
-	if multipleOrigins, ok := d.GetOk("multiple_origins"); ok {
+	if multipleOrigins, ok := d.GetOk(ProtectionResourceSchemaMultipleOrigins); ok {
 		req.MultipleOrigins = multipleOrigins.(bool)
 	}
 
-	if wildcardAliases, ok := d.GetOk("wildcard_aliases"); ok {
+	if wildcardAliases, ok := d.GetOk(ProtectionResourceSchemaWildcardAliases); ok {
 		req.WidlcardAliases = wildcardAliases.(bool)
 	}
 
-	if redirectToHTTPS, ok := d.GetOk("redirect_to_https"); ok {
+	if redirectToHTTPS, ok := d.GetOk(ProtectionResourceSchemaRedirectToHTTPS); ok {
 		req.RedirectToHTTPS = redirectToHTTPS.(bool)
 	}
 
-	if httpToOriginValue, ok := d.GetOk("http_to_origin"); ok {
+	if httpToOriginValue, ok := d.GetOk(ProtectionResourceSchemaHTTPToOrigin); ok {
 		if httpToOriginValue.(bool) {
 			req.HTTPS2HTTP = 1
 		} else {
@@ -360,7 +382,7 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	if lbType, ok := d.GetOk("load_balancing_type"); ok {
+	if lbType, ok := d.GetOk(ProtectionResourceSchemaLoadBalancingType); ok {
 		switch lbType.(string) {
 		case lbRoundRobin:
 			req.IPHash = 0
@@ -369,7 +391,7 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	if geoIPMode, ok := d.GetOk("geoip_mode"); ok {
+	if geoIPMode, ok := d.GetOk(ProtectionResourceSchemaGeoIPMode); ok {
 		switch geoIPMode.(string) {
 		case geoIPNo:
 			req.GeoIPMode = 0
@@ -380,7 +402,7 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	if geoIPList, ok := d.GetOk("geoip_list"); ok {
+	if geoIPList, ok := d.GetOk(ProtectionResourceSchemaGeoIPList); ok {
 		iplist := geoIPList.(*schema.Set).List()
 		geoIPListSet := make([]string, len(iplist))
 		for i, s := range iplist {
@@ -389,7 +411,7 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 		req.GeoIPList = strings.Join(geoIPListSet, ",")
 	}
 
-	if redirectValue, ok := d.GetOk("www_redirect"); ok {
+	if redirectValue, ok := d.GetOk(ProtectionResourceSchemaWWWRedirect); ok {
 		if redirectValue.(bool) {
 			req.WWWRedir = 1
 		} else {
@@ -397,7 +419,7 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	if waf, ok := d.GetOk("waf"); ok {
+	if waf, ok := d.GetOk(ProtectionResourceSchemaWAF); ok {
 		req.WAF = waf.(bool)
 	}
 
@@ -413,7 +435,7 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 func resourceProtectionResourceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	resourceID := d.Id()
 	log.Printf("[DEBUG] Start DDoS Protection Resource deleting (id=%s)\n", resourceID)
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	id, err := strconv.ParseInt(resourceID, 10, 64)

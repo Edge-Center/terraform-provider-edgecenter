@@ -1,4 +1,4 @@
-package edgecenter
+package protection
 
 import (
 	"context"
@@ -10,6 +10,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+)
+
+const (
+	ProtectionHeaderResource = "edgecenter_protection_resource_header"
+
+	ProtectionHeaderSchemaKey      = "key"
+	ProtectionHeaderSchemaResource = "resource"
+	ProtectionHeaderSchemaValue    = "value"
 )
 
 func resourceProtectionResourceHeader() *schema.Resource {
@@ -24,18 +33,18 @@ func resourceProtectionResourceHeader() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"key": {
+			ProtectionHeaderSchemaKey: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "HTTP header name.",
 			},
-			"resource": {
+			ProtectionHeaderSchemaResource: {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "ID of the DDoS protection resource to add header to.",
 			},
-			"value": {
+			ProtectionHeaderSchemaValue: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "HTTP header value.",
@@ -46,18 +55,18 @@ func resourceProtectionResourceHeader() *schema.Resource {
 
 func resourceProtectionResourceHeaderCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Println("[DEBUG] Start DDoS Protection Resource Header creating")
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
-	resourceID, err := strconv.ParseInt(d.Get("resource").(string), 10, 64)
+	resourceID, err := strconv.ParseInt(d.Get(ProtectionHeaderSchemaResource).(string), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	var req protectionSDK.HeaderCreateRequest
 
-	req.Key = d.Get("key").(string)
-	req.Value = d.Get("value").(string)
+	req.Key = d.Get(ProtectionHeaderSchemaKey).(string)
+	req.Value = d.Get(ProtectionHeaderSchemaValue).(string)
 
 	result, _, err := client.Headers.Create(ctx, resourceID, &req)
 	if err != nil {
@@ -73,7 +82,7 @@ func resourceProtectionResourceHeaderCreate(ctx context.Context, d *schema.Resou
 }
 
 func resourceProtectionResourceHeaderRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, hID, err := ImportStringParserSimple(d.Id())
+	rID, hID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start DDoS Protection Resource Header reading (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -89,7 +98,7 @@ func resourceProtectionResourceHeaderRead(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	result, _, err := client.Headers.Get(ctx, resourceID, headerID)
@@ -97,9 +106,9 @@ func resourceProtectionResourceHeaderRead(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
-	d.Set("resource", fmt.Sprintf("%d", resourceID))
-	d.Set("key", result.Key)
-	d.Set("value", result.Value)
+	d.Set(ProtectionHeaderSchemaResource, fmt.Sprintf("%d", resourceID))
+	d.Set(ProtectionHeaderSchemaKey, result.Key)
+	d.Set(ProtectionHeaderSchemaValue, result.Value)
 
 	log.Println("[DEBUG] Finish DDoS Protection Resource Header reading")
 
@@ -107,7 +116,7 @@ func resourceProtectionResourceHeaderRead(ctx context.Context, d *schema.Resourc
 }
 
 func resourceProtectionResourceHeaderUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, hID, err := ImportStringParserSimple(d.Id())
+	rID, hID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start DDoS Protection Resource Header updating (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -123,13 +132,13 @@ func resourceProtectionResourceHeaderUpdate(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	var req protectionSDK.HeaderCreateRequest
 
-	req.Key = d.Get("key").(string)
-	req.Value = d.Get("value").(string)
+	req.Key = d.Get(ProtectionHeaderSchemaKey).(string)
+	req.Value = d.Get(ProtectionHeaderSchemaValue).(string)
 
 	if _, _, err := client.Headers.Update(ctx, resourceID, headerID, &req); err != nil {
 		return diag.FromErr(err)
@@ -141,7 +150,7 @@ func resourceProtectionResourceHeaderUpdate(ctx context.Context, d *schema.Resou
 }
 
 func resourceProtectionResourceHeaderDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	rID, hID, err := ImportStringParserSimple(d.Id())
+	rID, hID, err := edgecenter.ImportStringParserSimple(d.Id())
 	log.Printf("[DEBUG] Start DDoS Protection Resource Header deleting (id=%s)\n", d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -157,7 +166,7 @@ func resourceProtectionResourceHeaderDelete(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 
-	config := m.(*Config)
+	config := m.(*edgecenter.Config)
 	client := config.ProtectionClient
 
 	if _, err := client.Headers.Delete(ctx, resourceID, headerID); err != nil {

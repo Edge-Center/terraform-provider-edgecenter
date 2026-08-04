@@ -77,6 +77,12 @@ storage:
   - 'edgecenter/integrationtest/support/storage/**'
   - 'edgecenter/test/*_storage_*'
 
+protection:
+  - 'edgecenter/services/protection/**'
+  - 'edgecenter/integrationtest/protection/**'
+  - 'edgecenter/integrationtest/support/protection/**'
+  - 'edgecenter/test/*_protection_*'
+
 reseller:
   - 'edgecenter/resource_edgecenter_reseller*'
   - 'edgecenter/data_source_edgecenter_reseller*'
