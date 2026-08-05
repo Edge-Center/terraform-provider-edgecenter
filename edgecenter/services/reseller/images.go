@@ -1,4 +1,4 @@
-package edgecenter
+package reseller
 
 import (
 	"context"
@@ -6,17 +6,24 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+)
+
+const (
+	ResellerImagesResource   = "edgecenter_reseller_images"
+	ResellerImagesDataSource = "edgecenter_reseller_images"
 )
 
 var errResourceResellerImages = errors.New("resource \"edgecenter_reseller_images\" is deprecated and unavailable")
 
 var ResellerImage = map[string]*schema.Schema{
-	RegionIDField: {
+	edgecenter.RegionIDField: {
 		Type:        schema.TypeInt,
 		Required:    true,
 		Description: "The ID of the region.",
 	},
-	ImageIDsField: {
+	edgecenter.ImageIDsField: {
 		Type:        schema.TypeSet,
 		Optional:    true,
 		Description: "A list of image IDs available for clients of the reseller.",
@@ -24,12 +31,12 @@ var ResellerImage = map[string]*schema.Schema{
 			Type: schema.TypeString,
 		},
 	},
-	CreatedAtField: {
+	edgecenter.CreatedAtField: {
 		Type:        schema.TypeString,
 		Computed:    true,
 		Description: "Date when list images was created.",
 	},
-	UpdatedAtField: {
+	edgecenter.UpdatedAtField: {
 		Type:        schema.TypeString,
 		Computed:    true,
 		Description: "Date when list images was last updated.",
@@ -52,12 +59,12 @@ func resourceResellerImages() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			ResellerIDField: {
+			edgecenter.ResellerIDField: {
 				Type:        schema.TypeInt,
 				Required:    true,
 				Description: "The ID of the reseller.",
 			},
-			ResellerImagesOptionsField: {
+			edgecenter.ResellerImagesOptionsField: {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "This set defines image IDs that can be attached to the instances of the reseller.",

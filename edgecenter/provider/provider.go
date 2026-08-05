@@ -11,6 +11,7 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/dns"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/edgemon"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/protection"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/reseller"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/storage"
 )
 
@@ -22,6 +23,7 @@ func Provider() *schema.Provider {
 		dns.Service{},
 		storage.Service{},
 		protection.Service{},
+		reseller.Service{},
 	)
 
 	p := &schema.Provider{

@@ -117,7 +117,7 @@ func resourceSubnet() *schema.Resource {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "Set of additional routes to be added to instances that are part of this subnet.",
-				Elem:        hostRouteSchema(true),
+				Elem:        HostRouteSchema(true),
 			},
 			GatewayIPField: {
 				Type:             schema.TypeString,

@@ -67,13 +67,19 @@ integrationtest/
 │   │       ├── StorageLocationService.go (generated)
 │   │       ├── StorageS3Service.go       (generated)
 │   │       └── StorageBucketService.go   (generated)
-│   └── protection/   # Protection-specific helpers
-│       └── mock/     # Generated testify mocks + MockedProtection (package protectionmock)
-│           ├── client.go            # MockedProtection, NewMockedProtection
-│           ├── generate.go          # go:generate entry point
-│           ├── ResourcesService.go, AliasesService.go, OriginsService.go,
-│           ├── HeadersService.go, BlacklistsService.go, WhitelistsService.go,
-│           └── ServicesService.go   (generated)
+│   ├── protection/   # Protection-specific helpers
+│   │   └── mock/     # Generated testify mocks + MockedProtection (package protectionmock)
+│   │       ├── client.go            # MockedProtection, NewMockedProtection
+│   │       ├── generate.go          # go:generate entry point
+│   │       ├── ResourcesService.go, AliasesService.go, OriginsService.go,
+│   │       ├── HeadersService.go, BlacklistsService.go, WhitelistsService.go,
+│   │       └── ServicesService.go   (generated)
+│   └── reseller/     # Reseller-specific helpers
+│       └── mock/     # Generated testify mocks + MockedReseller (package resellermock)
+│           ├── client.go                  # MockedReseller, NewMockedReseller
+│           ├── generate.go                # go:generate entry point
+│           ├── ResellerImageV2Service.go  (generated)
+│           └── ResellerNetworksService.go (generated)
 ├── cloud/            # Cloud resource integration tests
 │   ├── network_test.go
 │   └── ...
@@ -89,8 +95,11 @@ integrationtest/
 ├── storage/          # Storage resource and data source integration tests
 │   ├── s3_test.go
 │   └── ...
-└── protection/       # Protection resource integration tests
-    ├── resource_test.go
+├── protection/       # Protection resource integration tests
+│   ├── resource_test.go
+│   └── ...
+└── reseller/         # Reseller resource and data source integration tests
+    ├── images_v2_test.go
     └── ...
 ```
 
@@ -366,6 +375,57 @@ Two things worth knowing before adding cases here:
 
 Schema flags and all four validators are covered co-located in
 `services/protection/schema_test.go`.
+
+## Reseller
+
+Reseller is the first migrated service that talks to the cloud API, so its two SDK
+interfaces (`ResellerImageV2Service`, `ResellerNetworksService`) come from
+`edgecentercloud-go` rather than from a domain SDK. They still get their own
+`support/reseller/mock`, like every other service, instead of being added to
+`support/cloud/mock`:
+
+- `MockedReseller` mocks exactly the two services reseller uses. `MockedCloud` carries
+  twenty, and `MockCleanup` asserts expectations on all of them.
+- the mocks then sit under a path the `reseller` paths-filter owns rather than under a
+  shared one, which is what the per-service CI split needs. Today that changes nothing at
+  runtime: `integration-tests` is ungated and runs the whole directory on every PR, and
+  the `reseller-tests` job the filter gates runs the acceptance tests, not these.
+
+```go
+mc := resellermock.NewMockedReseller()
+mc.Images.On("List", mock.Anything, "client", 4242).Return(list, nil, nil)
+mc.Networks.On("List", mock.Anything, mock.Anything).Return(networks, nil, nil)
+```
+
+Regenerate with:
+
+```bash
+go generate ./edgecenter/integrationtest/support/reseller/mock/...
+```
+
+`NewMockedReseller` takes no project or region: the reseller resources build their client
+with `DoNotUseProjectID` and `DoNotUseRegionID`, so `InitCloudClient` never calls
+`Projects.List` or `Regions.List`. That is enforced by construction rather than asserted -
+`Projects` and `Regions` are left as real service ops behind `errorTransport`, so a
+regression that starts resolving them fails with `unexpected HTTP call`.
+
+The apply cases of `edgecenter_reseller_imagesV2` cannot use `support.DispatchCase`. Its
+`CustomizeDiff` reads `diff.GetRawConfig().GetAttr(...)` without a null guard, and
+`support.ApplyConfig` builds the prior state through `ResourceData.State()`, which never
+carries a `RawConfig`, so the validator panics instead of running. `images_v2_test.go`
+therefore supplies its own `support.CaseRunner` that stamps a `RawConfig` onto the state
+the way the SDK does and delegates read and delete back to `support.DispatchCase`. Drop it
+for `support.DispatchCase` once the validator handles a null config.
+
+Many of the cases here are **characterization tests**, the same way protection's are: they
+pin behaviour that is wrong on purpose, so a fix shows up as a failing test rather than a
+silent change. Each such case says so in its name (for example `read fills project_id with
+the region id because the mapper never reads the project field`). The matching defects are
+written up in `tsks/terraform-provider-edgecenter/bugs/reseller/`.
+
+Schema flags, the `entity_type` validator, the `image_ids` versus
+`all_public_images_are_available` conflict, the deprecation stubs of the v1 pair and the
+service registration are covered co-located in `services/reseller/schema_test.go`.
 
 ## What to write for a new resource
 

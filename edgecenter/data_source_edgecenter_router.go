@@ -121,7 +121,7 @@ func dataSourceRouter() *schema.Resource {
 				Type:        schema.TypeSet,
 				Computed:    true,
 				Description: "Set of static routes to be applied to the router.",
-				Elem:        hostRouteSchema(false),
+				Elem:        HostRouteSchema(false),
 			},
 		},
 	}
