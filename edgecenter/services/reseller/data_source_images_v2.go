@@ -1,4 +1,4 @@
-package edgecenter
+package reseller
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func dataSourceResellerImagesV2() *schema.Resource {
@@ -24,29 +25,29 @@ Returns the list of public images currently available for the given project, cli
 If image_ids = None, all public images are available. If image_ids = [], no public images are available`,
 
 		Schema: map[string]*schema.Schema{
-			EntityIDField: {
+			edgecenter.EntityIDField: {
 				Type:        schema.TypeInt,
 				Required:    true,
 				Description: "The ID of the entity.",
 			},
-			EntityTypeField: {
+			edgecenter.EntityTypeField: {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{edgecloudV2.ResellerType, edgecloudV2.ClientType, edgecloudV2.ProjectType}, false),
 				Description:  fmt.Sprintf("The entity type. Available values are '%s', '%s', '%s'.", edgecloudV2.ResellerType, edgecloudV2.ClientType, edgecloudV2.ProjectType),
 			},
-			ResellerImagesOptionsField: {
+			edgecenter.ResellerImagesOptionsField: {
 				Type:        schema.TypeSet,
 				Computed:    true,
 				Description: "This set defines image IDs that can be attached to the instances of the reseller.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						RegionIDField: {
+						edgecenter.RegionIDField: {
 							Type:        schema.TypeInt,
 							Computed:    true,
 							Description: "The ID of the region.",
 						},
-						ImageIDsField: {
+						edgecenter.ImageIDsField: {
 							Type:        schema.TypeSet,
 							Computed:    true,
 							Description: "A list of image IDs available for clients of the reseller.",
@@ -54,17 +55,17 @@ If image_ids = None, all public images are available. If image_ids = [], no publ
 								Type: schema.TypeString,
 							},
 						},
-						AllPublicImagesAreAvailableField: {
+						edgecenter.AllPublicImagesAreAvailableField: {
 							Type:        schema.TypeBool,
 							Computed:    true,
 							Description: "Flag to indicate that all public images are available.",
 						},
-						CreatedAtField: {
+						edgecenter.CreatedAtField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "Date when list images was created.",
 						},
-						UpdatedAtField: {
+						edgecenter.UpdatedAtField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "Date when list images was last updated.",
@@ -79,13 +80,13 @@ If image_ids = None, all public images are available. If image_ids = [], no publ
 func dataSourceResellerImagesV2Read(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Debug(ctx, "Start entity image reading")
 
-	clientV2, err := InitCloudClient(ctx, d, m, resellerImagesCloudClientConf())
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, resellerImagesCloudClientConf())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	entityID := d.Get(EntityIDField).(int)
-	sntityType := d.Get(EntityTypeField).(string)
+	entityID := d.Get(edgecenter.EntityIDField).(int)
+	sntityType := d.Get(edgecenter.EntityTypeField).(string)
 
 	riList, resp, err := clientV2.ResellerImageV2.List(ctx, sntityType, entityID)
 	if err != nil {
@@ -99,7 +100,7 @@ func dataSourceResellerImagesV2Read(ctx context.Context, d *schema.ResourceData,
 
 	riOptions := prepareResellerImagesV2Options(d, riList.Results)
 
-	err = d.Set(ResellerImagesOptionsField, riOptions)
+	err = d.Set(edgecenter.ResellerImagesOptionsField, riOptions)
 	if err != nil {
 		return diag.FromErr(err)
 	}

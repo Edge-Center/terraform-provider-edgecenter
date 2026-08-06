@@ -1,4 +1,4 @@
-package edgecenter
+package reseller
 
 import (
 	"context"
@@ -11,13 +11,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 const (
+	ResellerNetworksDataSource = "edgecenter_reseller_networks"
+
 	orderByRegexString = `.*\.(asc|desc)`
 )
 
-// Maybe move to utils and use for other resources.
 var orderByRegex = regexp.MustCompile(orderByRegexString)
 
 func dataSourceResellerNetworksList() *schema.Resource {
@@ -30,24 +32,24 @@ func dataSourceResellerNetworksList() *schema.Resource {
 	If the client_id and project_id parameters are not specified, the network or subnet is not owned by a reseller client or project.`,
 
 		Schema: map[string]*schema.Schema{
-			NetworkTypeField: {
+			edgecenter.NetworkTypeField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "Filter networks by the type of the network (vlan or vxlan).",
 				ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.VLAN), string(edgecloudV2.VXLAN)}, false),
 			},
-			OrderByField: {
+			edgecenter.OrderByField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "Order networks by transmitted fields and directions (name.asc).",
 				ValidateFunc: validation.StringMatch(orderByRegex, "must match <any_field_name>.asc|desc"),
 			},
-			SharedField: {
+			edgecenter.SharedField: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Can be used to only show networks with the shared state.",
 			},
-			MetadataKVField: {
+			edgecenter.MetadataKVField: {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Description: "Filtration query opts, for example, {key = \"value\", key_1 = \"value_1\"}.",
@@ -55,111 +57,111 @@ func dataSourceResellerNetworksList() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			MetadataKField: {
+			edgecenter.MetadataKField: {
 				Type:        schema.TypeSet,
 				Description: "Filter by metadata keys. Must be a valid JSON string. \"metadata_k=[\"value\", \"sense\"]\"",
 				Optional:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
-			NetworksField: {
+			edgecenter.NetworksField: {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: `A list of read-only reseller networks.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						CreatedAtField: {
+						edgecenter.CreatedAtField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The datetime when the network was created.",
 						},
-						DefaultField: {
+						edgecenter.DefaultField: {
 							Type:        schema.TypeBool,
 							Computed:    true,
 							Description: "true if the network has is_default attribute.",
 						},
-						ExternalField: {
+						edgecenter.ExternalField: {
 							Type:        schema.TypeBool,
 							Computed:    true,
 							Description: "true if the network has router:external attribute.",
 						},
-						SharedField: {
+						edgecenter.SharedField: {
 							Type:        schema.TypeBool,
 							Computed:    true,
 							Description: "true when the network is shared with your project by an external owner.",
 						},
-						IDField: {
+						edgecenter.IDField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The ID of the network.",
 						},
-						MTUField: {
+						edgecenter.MTUField: {
 							Type:        schema.TypeInt,
 							Computed:    true,
 							Description: "The MTU (maximum transmission unit) of the network. Defaults to 1450.",
 						},
-						NameField: {
+						edgecenter.NameField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The name of the network.",
 						},
-						RegionIDField: {
+						edgecenter.RegionIDField: {
 							Type:        schema.TypeInt,
 							Computed:    true,
 							Description: "The ID of the region.",
 						},
-						RegionNameField: {
+						edgecenter.RegionNameField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The name of the region.",
 						},
-						TypeField: {
+						edgecenter.TypeField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The type of the network (vlan, vxlan).",
 						},
-						SubnetsField: {
+						edgecenter.SubnetsField: {
 							Type:        schema.TypeList,
 							Optional:    true,
 							Computed:    true,
 							Description: `A list of read-only metadata items, e.g. tags.`,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									IDField: {
+									edgecenter.IDField: {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: "The ID of the subnet.",
 									},
-									NameField: {
+									edgecenter.NameField: {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: "The name of the subnet.",
 									},
-									AvailableIPsField: {
+									edgecenter.AvailableIPsField: {
 										Type:        schema.TypeInt,
 										Computed:    true,
 										Description: "The number of available IPs in the subnet.",
 									},
-									TotalIPsField: {
+									edgecenter.TotalIPsField: {
 										Type:        schema.TypeInt,
 										Computed:    true,
 										Description: "The total number of IPs in the subnet.",
 									},
-									EnableDHCPField: {
+									edgecenter.EnableDHCPField: {
 										Type:        schema.TypeBool,
 										Computed:    true,
 										Description: "Enable DHCP for this subnet. If true, DHCP will be used to assign IP addresses to instances within this subnet.",
 									},
-									HasRouterField: {
+									edgecenter.HasRouterField: {
 										Type:        schema.TypeBool,
 										Computed:    true,
 										Description: "Indicates whether the subnet has a router attached to it.",
 									},
-									CIDRField: {
+									edgecenter.CIDRField: {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: "Represents the IP address range of the subnet.",
 									},
-									DNSNameserversField: {
+									edgecenter.DNSNameserversField: {
 										Type:        schema.TypeList,
 										Computed:    true,
 										Description: "List of DNS name servers for the subnet.",
@@ -167,13 +169,13 @@ func dataSourceResellerNetworksList() *schema.Resource {
 											Type: schema.TypeString,
 										},
 									},
-									HostRoutesField: {
+									edgecenter.HostRoutesField: {
 										Type:        schema.TypeSet,
 										Computed:    true,
 										Description: "Set of additional routes to be added to instances that are part of this subnet.",
-										Elem:        hostRouteSchema(false),
+										Elem:        edgecenter.HostRouteSchema(false),
 									},
-									GatewayIPField: {
+									edgecenter.GatewayIPField: {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: "The IP address of the gateway for this subnet.",
@@ -181,54 +183,54 @@ func dataSourceResellerNetworksList() *schema.Resource {
 								},
 							},
 						},
-						CreatorTaskIDField: {
+						edgecenter.CreatorTaskIDField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The task that created this entity.",
 						},
-						TaskIDField: {
+						edgecenter.TaskIDField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The active task ID this network is locked by.",
 						},
-						SegmentationIDField: {
+						edgecenter.SegmentationIDField: {
 							Type:        schema.TypeInt,
 							Computed:    true,
 							Description: "The ID of the region.",
 						},
-						UpdatedAtField: {
+						edgecenter.UpdatedAtField: {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The datetime when the network was last updated.",
 						},
 
-						MetadataField: {
+						edgecenter.MetadataField: {
 							Type:        schema.TypeList,
 							Computed:    true,
 							Description: `The metadata of the network.`,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									KeyField: {
+									edgecenter.KeyField: {
 										Type:     schema.TypeString,
 										Computed: true,
 									},
-									ValueField: {
+									edgecenter.ValueField: {
 										Type:     schema.TypeString,
 										Computed: true,
 									},
-									ReadOnlyField: {
+									edgecenter.ReadOnlyField: {
 										Type:     schema.TypeBool,
 										Computed: true,
 									},
 								},
 							},
 						},
-						ClientIDField: {
+						edgecenter.ClientIDField: {
 							Type:        schema.TypeInt,
 							Computed:    true,
 							Description: "The ID of the client or null.",
 						},
-						ProjectIDField: {
+						edgecenter.ProjectIDField: {
 							Type:        schema.TypeInt,
 							Computed:    true,
 							Description: "The ID of the project or null.",
@@ -243,27 +245,27 @@ func dataSourceResellerNetworksList() *schema.Resource {
 func dataSourceResellerNetworksRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Debug(ctx, "Start reseller networks reading")
 
-	clientV2, err := InitCloudClient(ctx, d, m, resellerNetworksCloudClientConf())
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, resellerNetworksCloudClientConf())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	rnRequest := edgecloudV2.ResellerNetworksListRequest{}
 
-	if v, ok := d.GetOk(NetworkTypeField); ok {
+	if v, ok := d.GetOk(edgecenter.NetworkTypeField); ok {
 		rnRequest.NetworkType = v.(string)
 	}
 
-	if v, ok := d.GetOk(OrderByField); ok {
+	if v, ok := d.GetOk(edgecenter.OrderByField); ok {
 		rnRequest.OrderBy = v.(string)
 	}
 
-	if v, ok := d.GetOk(SharedField); ok {
+	if v, ok := d.GetOk(edgecenter.SharedField); ok {
 		rnRequest.Shared = v.(bool)
 	}
 
-	if v, ok := d.GetOk(MetadataKVField); ok {
-		meta, err := MapInterfaceToMapString(v)
+	if v, ok := d.GetOk(edgecenter.MetadataKVField); ok {
+		meta, err := edgecenter.MapInterfaceToMapString(v)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -276,7 +278,7 @@ func dataSourceResellerNetworksRead(ctx context.Context, d *schema.ResourceData,
 		rnRequest.MetadataKV = string(typedMetadataKVJson)
 	}
 
-	if v, ok := d.GetOk(MetadataKField); ok {
+	if v, ok := d.GetOk(edgecenter.MetadataKField); ok {
 		metaList := v.(*schema.Set).List()
 
 		typedMetadataKJson, err := json.Marshal(metaList)
@@ -292,7 +294,6 @@ func dataSourceResellerNetworksRead(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	// We don't know the ID reseller so we use a simple identifier
 	d.SetId("reseller_networks")
 
 	networks := make([]map[string]interface{}, 0, rnList.Count)
@@ -301,7 +302,7 @@ func dataSourceResellerNetworksRead(ctx context.Context, d *schema.ResourceData,
 		networks = append(networks, prepareResellerNetwork(rn))
 	}
 
-	err = d.Set(NetworksField, networks)
+	err = d.Set(edgecenter.NetworksField, networks)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -309,4 +310,36 @@ func dataSourceResellerNetworksRead(ctx context.Context, d *schema.ResourceData,
 	tflog.Debug(ctx, "Finish reseller networks reading")
 
 	return nil
+}
+
+func prepareResellerNetwork(rn edgecloudV2.ResellerNetwork) map[string]interface{} {
+	network := make(map[string]interface{})
+
+	network[edgecenter.CreatedAtField] = rn.CreatedAt
+	network[edgecenter.DefaultField] = rn.Default
+	network[edgecenter.ExternalField] = rn.External
+	network[edgecenter.SharedField] = rn.Shared
+	network[edgecenter.IDField] = rn.ID
+	network[edgecenter.MTUField] = rn.MTU
+	network[edgecenter.NameField] = rn.Name
+	network[edgecenter.RegionIDField] = rn.RegionID
+	network[edgecenter.RegionNameField] = rn.Region
+	network[edgecenter.TypeField] = rn.Type
+	network[edgecenter.SubnetsField] = edgecenter.PrepareSubnets(rn.Subnets)
+	network[edgecenter.CreatorTaskIDField] = rn.CreatorTaskID
+	network[edgecenter.TaskIDField] = rn.TaskID
+	network[edgecenter.SegmentationIDField] = rn.SegmentationID
+	network[edgecenter.UpdatedAtField] = rn.UpdatedAt
+	network[edgecenter.ClientIDField] = rn.ClientID
+	network[edgecenter.ProjectIDField] = rn.RegionID
+	network[edgecenter.MetadataField] = edgecenter.PrepareMetadataReadonly(rn.Metadata)
+
+	return network
+}
+
+func resellerNetworksCloudClientConf() *edgecenter.CloudClientConf {
+	return &edgecenter.CloudClientConf{
+		DoNotUseRegionID:  true,
+		DoNotUseProjectID: true,
+	}
 }
