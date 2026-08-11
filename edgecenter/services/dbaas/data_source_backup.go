@@ -1,4 +1,4 @@
-package edgecenter
+package dbaas
 
 import (
 	"context"
@@ -10,7 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
+
+const DBaaSBackupDataSource = "edgecenter_dbaas_backup"
 
 const dbaasBackupListPageSize = 100
 
@@ -19,56 +22,56 @@ func dataSourceDBaaSBackup() *schema.Resource {
 		ReadContext: dataSourceDBaaSBackupRead,
 		Description: "Retrieve a DBaaS backup by its ID or unique name.",
 		Schema: map[string]*schema.Schema{
-			ProjectIDField: {
+			edgecenter.ProjectIDField: {
 				Type: schema.TypeInt, Optional: true,
 				Description:  "The project ID. Either 'project_id' or 'project_name' must be specified.",
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			ProjectNameField: {
+			edgecenter.ProjectNameField: {
 				Type: schema.TypeString, Optional: true,
 				Description:  "The project name. Either 'project_id' or 'project_name' must be specified.",
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			RegionIDField: {
+			edgecenter.RegionIDField: {
 				Type: schema.TypeInt, Optional: true,
 				Description:  "The region ID. Either 'region_id' or 'region_name' must be specified.",
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			RegionNameField: {
+			edgecenter.RegionNameField: {
 				Type: schema.TypeString, Optional: true,
 				Description:  "The region name. Either 'region_id' or 'region_name' must be specified.",
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			IDField: {
+			edgecenter.IDField: {
 				Type: schema.TypeString, Optional: true,
 				Description:  "The backup UUID. Either 'id' or 'name' must be specified.",
-				ExactlyOneOf: []string{IDField, NameField},
-				AtLeastOneOf: []string{IDField, NameField},
+				ExactlyOneOf: []string{edgecenter.IDField, edgecenter.NameField},
+				AtLeastOneOf: []string{edgecenter.IDField, edgecenter.NameField},
 			},
-			NameField: {
+			edgecenter.NameField: {
 				Type: schema.TypeString, Optional: true,
 				Description:  "The unique backup name. Either 'id' or 'name' must be specified.",
-				ExactlyOneOf: []string{IDField, NameField},
-				AtLeastOneOf: []string{IDField, NameField},
+				ExactlyOneOf: []string{edgecenter.IDField, edgecenter.NameField},
+				AtLeastOneOf: []string{edgecenter.IDField, edgecenter.NameField},
 			},
-			DescriptionField:              computedStringSchema(),
-			DBaaSClusterIDField:           computedStringSchema(),
-			DBaaSBackupParentIDField:      computedStringSchema(),
-			DBaaSBackupTypeField:          computedStringSchema(),
-			StatusField:                   computedStringSchema(),
-			DBaaSBackupSizeField:          {Type: schema.TypeFloat, Computed: true},
-			DBaaSBackupIsServiceField:     {Type: schema.TypeBool, Computed: true},
-			DBaaSBackupHasChildField:      {Type: schema.TypeBool, Computed: true},
-			CreatedAtField:                computedStringSchema(),
-			UpdatedAtField:                computedStringSchema(),
-			DBaaSBackupFinishedAtField:    computedStringSchema(),
-			DBaaSClusterTaskIDField:       computedStringSchema(),
-			DBaaSBackupCreatorTaskIDField: computedStringSchema(),
+			edgecenter.DescriptionField:              computedStringSchema(),
+			edgecenter.DBaaSClusterIDField:           computedStringSchema(),
+			edgecenter.DBaaSBackupParentIDField:      computedStringSchema(),
+			edgecenter.DBaaSBackupTypeField:          computedStringSchema(),
+			edgecenter.StatusField:                   computedStringSchema(),
+			edgecenter.DBaaSBackupSizeField:          {Type: schema.TypeFloat, Computed: true},
+			edgecenter.DBaaSBackupIsServiceField:     {Type: schema.TypeBool, Computed: true},
+			edgecenter.DBaaSBackupHasChildField:      {Type: schema.TypeBool, Computed: true},
+			edgecenter.CreatedAtField:                computedStringSchema(),
+			edgecenter.UpdatedAtField:                computedStringSchema(),
+			edgecenter.DBaaSBackupFinishedAtField:    computedStringSchema(),
+			edgecenter.DBaaSClusterTaskIDField:       computedStringSchema(),
+			edgecenter.DBaaSBackupCreatorTaskIDField: computedStringSchema(),
 			"dbms": {
 				Type: schema.TypeList, Computed: true,
 				Elem: &schema.Resource{Schema: map[string]*schema.Schema{
-					TypeField:             computedStringSchema(),
-					DBaaSDbmsVersionField: computedStringSchema(),
+					edgecenter.TypeField:             computedStringSchema(),
+					edgecenter.DBaaSDbmsVersionField: computedStringSchema(),
 				}},
 			},
 		},
@@ -80,14 +83,14 @@ func computedStringSchema() *schema.Schema {
 }
 
 func dataSourceDBaaSBackupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	backupID, ok := d.GetOk(IDField)
+	backupID, ok := d.GetOk(edgecenter.IDField)
 	if !ok || backupID.(string) == "" {
-		name := d.Get(NameField).(string)
+		name := d.Get(edgecenter.NameField).(string)
 		backups, err := findDBaaSBackupsByName(ctx, clientV2, name)
 		if err != nil {
 			return diag.FromErr(err)
@@ -149,25 +152,24 @@ func findDBaaSBackupsByName(ctx context.Context, client *edgecloudV2.Client, nam
 	}
 }
 
-// setDBaaSBackupData is shared by the data source and the future resource Read.
 func setDBaaSBackupData(d *schema.ResourceData, client *edgecloudV2.Client, backup *edgecloudV2.DBaaSBackup) error {
 	values := map[string]interface{}{
-		ProjectIDField:                client.Project,
-		RegionIDField:                 client.Region,
-		NameField:                     backup.Name,
-		DescriptionField:              backup.Description,
-		DBaaSClusterIDField:           backup.ClusterID,
-		DBaaSBackupParentIDField:      backup.ParentID,
-		DBaaSBackupTypeField:          backup.BackupType,
-		StatusField:                   backup.Status,
-		DBaaSBackupSizeField:          backup.Size,
-		DBaaSBackupIsServiceField:     backup.IsService,
-		DBaaSBackupHasChildField:      backup.HasChild,
-		CreatedAtField:                backup.CreatedAt,
-		UpdatedAtField:                backup.UpdatedAt,
-		DBaaSBackupFinishedAtField:    backup.FinishedAt,
-		DBaaSClusterTaskIDField:       backup.TaskID,
-		DBaaSBackupCreatorTaskIDField: backup.CreatorTaskID,
+		edgecenter.ProjectIDField:                client.Project,
+		edgecenter.RegionIDField:                 client.Region,
+		edgecenter.NameField:                     backup.Name,
+		edgecenter.DescriptionField:              backup.Description,
+		edgecenter.DBaaSClusterIDField:           backup.ClusterID,
+		edgecenter.DBaaSBackupParentIDField:      backup.ParentID,
+		edgecenter.DBaaSBackupTypeField:          backup.BackupType,
+		edgecenter.StatusField:                   backup.Status,
+		edgecenter.DBaaSBackupSizeField:          backup.Size,
+		edgecenter.DBaaSBackupIsServiceField:     backup.IsService,
+		edgecenter.DBaaSBackupHasChildField:      backup.HasChild,
+		edgecenter.CreatedAtField:                backup.CreatedAt,
+		edgecenter.UpdatedAtField:                backup.UpdatedAt,
+		edgecenter.DBaaSBackupFinishedAtField:    backup.FinishedAt,
+		edgecenter.DBaaSClusterTaskIDField:       backup.TaskID,
+		edgecenter.DBaaSBackupCreatorTaskIDField: backup.CreatorTaskID,
 	}
 	for field, value := range values {
 		if err := d.Set(field, value); err != nil {
@@ -178,8 +180,8 @@ func setDBaaSBackupData(d *schema.ResourceData, client *edgecloudV2.Client, back
 	var dbms []interface{}
 	if backup.DBMS != nil {
 		dbms = []interface{}{map[string]interface{}{
-			TypeField:             backup.DBMS.Type,
-			DBaaSDbmsVersionField: backup.DBMS.Version,
+			edgecenter.TypeField:             backup.DBMS.Type,
+			edgecenter.DBaaSDbmsVersionField: backup.DBMS.Version,
 		}}
 	}
 	if err := d.Set("dbms", dbms); err != nil {

@@ -345,10 +345,6 @@ func (LegacyService) Resources() map[string]*schema.Resource {
 		"edgecenter_instance_port_security":        resourceInstancePortSecurity(),
 		"edgecenter_useractions_subscription_amqp": resourceUserActionsSubscriptionAMQP(),
 		"edgecenter_useractions_subscription_log":  resourceUserActionsSubscriptionLog(),
-		"edgecenter_dbaas_cluster":                 resourceDBaaSCluster(),
-		"edgecenter_dbaas_database":                resourceDBaaSDatabase(),
-		"edgecenter_dbaas_user":                    resourceDBaaSUser(),
-		"edgecenter_dbaas_backup":                  resourceDBaaSBackup(),
 	}
 }
 
@@ -385,11 +381,6 @@ func (LegacyService) DataSources() map[string]*schema.Resource {
 		"edgecenter_useractions_subscription_amqp": dataSourceUserActionsListAMQPSubscriptions(),
 		"edgecenter_useractions_subscription_log":  dataSourceUserActionsListLogSubscriptions(),
 		"edgecenter_mkaas_cluster":                 dataSourceMKaaSCluster(),
-		"edgecenter_dbaas_dbms":                    dataSourceDBaaSDBMS(),
-		"edgecenter_dbaas_clusters":                dataSourceDBaaSClusters(),
-		"edgecenter_dbaas_databases":               dataSourceDBaaSDatabases(),
-		"edgecenter_dbaas_users":                   dataSourceDBaaSUsers(),
-		"edgecenter_dbaas_backup":                  dataSourceDBaaSBackup(),
 	}
 }
 

@@ -1,4 +1,4 @@
-package edgecenter
+package dbaas
 
 import (
 	"context"
@@ -9,43 +9,46 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
+
+const DBaaSUsersDataSource = "edgecenter_dbaas_users"
 
 func dataSourceDBaaSUsers() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceDBaaSUsersRead,
 		Description: "Represent DBaaS users data source.",
 		Schema: map[string]*schema.Schema{
-			ProjectIDField: {
+			edgecenter.ProjectIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			ProjectNameField: {
+			edgecenter.ProjectNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			RegionIDField: {
+			edgecenter.RegionIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			RegionNameField: {
+			edgecenter.RegionNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			DBaaSClusterIDField: {
+			edgecenter.DBaaSClusterIDField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The ID of the DBaaS cluster.",
 			},
-			NameField: {
+			edgecenter.NameField: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The name of the user to filter by.",
@@ -55,8 +58,8 @@ func dataSourceDBaaSUsers() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						NameField: {Type: schema.TypeString, Computed: true},
-						DBaaSUserDatabasesField: {
+						edgecenter.NameField: {Type: schema.TypeString, Computed: true},
+						edgecenter.DBaaSUserDatabasesField: {
 							Type:     schema.TypeList,
 							Computed: true,
 							Elem: &schema.Schema{
@@ -73,19 +76,19 @@ func dataSourceDBaaSUsers() *schema.Resource {
 func dataSourceDBaaSUsersRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Debug(ctx, "[DEBUG] Start DBaaS users data source reading")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(DBaaSClusterIDField).(string)
+	clusterID := d.Get(edgecenter.DBaaSClusterIDField).(string)
 
 	users, _, err := clientV2.DBaaS.UsersList(ctx, clusterID, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	filterName, hasFilter := d.GetOk(NameField)
+	filterName, hasFilter := d.GetOk(edgecenter.NameField)
 
 	var filtered []edgecloudV2.DBaaSUser
 	for _, u := range users {
@@ -106,8 +109,8 @@ func dataSourceDBaaSUsersRead(ctx context.Context, d *schema.ResourceData, m int
 			databases[j] = db.Name
 		}
 		items[i] = map[string]interface{}{
-			NameField:               u.Name,
-			DBaaSUserDatabasesField: databases,
+			edgecenter.NameField:               u.Name,
+			edgecenter.DBaaSUserDatabasesField: databases,
 		}
 	}
 	_ = d.Set("items", items)
