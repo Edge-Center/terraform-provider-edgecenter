@@ -88,3 +88,9 @@ reseller:
   - 'edgecenter/integrationtest/reseller/**'
   - 'edgecenter/integrationtest/support/reseller/**'
   - 'edgecenter/test/*_reseller_*'
+
+dbaas:
+  - 'edgecenter/services/dbaas/**'
+  - 'edgecenter/integrationtest/dbaas/**'
+  - 'edgecenter/integrationtest/support/dbaas/**'
+  - 'edgecenter/test/*_dbaas_*'

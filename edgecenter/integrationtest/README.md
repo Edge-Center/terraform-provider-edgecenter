@@ -74,12 +74,20 @@ integrationtest/
 │   │       ├── ResourcesService.go, AliasesService.go, OriginsService.go,
 │   │       ├── HeadersService.go, BlacklistsService.go, WhitelistsService.go,
 │   │       └── ServicesService.go   (generated)
-│   └── reseller/     # Reseller-specific helpers
-│       └── mock/     # Generated testify mocks + MockedReseller (package resellermock)
-│           ├── client.go                  # MockedReseller, NewMockedReseller
-│           ├── generate.go                # go:generate entry point
-│           ├── ResellerImageV2Service.go  (generated)
-│           └── ResellerNetworksService.go (generated)
+│   ├── reseller/     # Reseller-specific helpers
+│   │   └── mock/     # Generated testify mocks + MockedReseller (package resellermock)
+│   │       ├── client.go                  # MockedReseller, NewMockedReseller
+│   │       ├── generate.go                # go:generate entry point
+│   │       ├── ResellerImageV2Service.go  (generated)
+│   │       └── ResellerNetworksService.go (generated)
+│   └── dbaas/        # DBaaS-specific helpers
+│       └── mock/     # Generated testify mocks + MockedDBaaS (package dbaasmock)
+│           ├── client.go           # MockedDBaaS, NewMockedDBaaS, Allow*/Expect* resolution
+│           ├── generate.go         # go:generate entry point
+│           ├── DBaaSService.go     (generated)
+│           ├── TasksService.go     (generated)
+│           ├── ProjectsService.go  (generated)
+│           └── RegionsService.go   (generated)
 ├── cloud/            # Cloud resource integration tests
 │   ├── network_test.go
 │   └── ...
@@ -98,8 +106,11 @@ integrationtest/
 ├── protection/       # Protection resource integration tests
 │   ├── resource_test.go
 │   └── ...
-└── reseller/         # Reseller resource and data source integration tests
-    ├── images_v2_test.go
+├── reseller/         # Reseller resource and data source integration tests
+│   ├── images_v2_test.go
+│   └── ...
+└── dbaas/            # DBaaS resource and data source integration tests
+    ├── cluster_test.go
     └── ...
 ```
 
@@ -426,6 +437,55 @@ written up in `tsks/terraform-provider-edgecenter/bugs/reseller/`.
 Schema flags, the `entity_type` validator, the `image_ids` versus
 `all_public_images_are_available` conflict, the deprecation stubs of the v1 pair and the
 service registration are covered co-located in `services/reseller/schema_test.go`.
+
+## DBaaS
+
+DBaaS is the second migrated service that talks to the cloud API, and unlike reseller it
+resolves project and region on every call: its resources build the client with
+`InitCloudClient(ctx, d, m, nil)`, which goes through `GetRegionIDandProjectID`. With
+`region_id` in the config `GetRegionV2` returns immediately, but `GetProjectID` calls
+`Projects.List` even when `project_id` is given, so **every** DBaaS case needs project
+resolution stubbed:
+
+```go
+mc := dbaasmock.NewMockedDBaaS()
+dbaasmock.AllowProjectResolution(mc, testProjectID)
+mc.DBaaS.On("ClusterGet", mock.Anything, testClusterID).Return(cluster, nil, nil)
+```
+
+The whole DBaaS surface sits behind one SDK interface, `edgecloud.DBaaSService`, so
+expectations for clusters, databases, users, backups and engines all go on `mc.DBaaS`.
+`mc.Tasks` is needed wherever the provider waits on a task: cluster update
+(`WaitForTaskComplete`), cluster delete (`WaitAndGetTaskInfo`) and backup delete
+(`DeleteResourceIfExist` -> `WaitForTaskComplete` -> `BackupGet` until 404). Cluster and
+backup create do **not** touch `Tasks`: `CreateDBaaSClusterAndWait` polls
+`ClustersList` + `ClusterGet` until the status is `HEALTHY`, and
+`CreateDBaaSBackupAndWait` polls `BackupsListPage` + `BackupGet` until `FINISHED`. Both
+poll on a 5 second ticker whose first iteration runs immediately, so a mock that answers
+with the final status right away keeps the case instant. An expectation that forces a
+second iteration costs five real seconds.
+
+Regenerate the mocks with:
+
+```bash
+go generate ./edgecenter/integrationtest/support/dbaas/mock/...
+```
+
+Two data sources, `edgecenter_dbaas_clusters` and `edgecenter_dbaas_backup`, declare an
+`id` attribute and read it with `d.GetOk("id")`. `support.NewState` copies the case's
+`CurrentID` into `Attributes["id"]`, so the placeholder id every data source case needs
+would arrive as the lookup key. `runDataSourceRead` in `common_test.go` is the runner
+that fixes that up: it keeps `id` when the case puts it in `CurrentState` and drops it
+otherwise, which is what `ReadDataApply` produces in a real plan.
+
+Many of the cases here are **characterization tests**, the same way protection's and
+reseller's are: they pin behaviour that is wrong on purpose, so a fix shows up as a
+failing test rather than a silent change. Each such case says so in its name (for example
+`update reports success although the update task ended in error`). The matching defects
+are written up in `tsks/terraform-provider-edgecenter/bugs/dbaas/`.
+
+Schema flags, the identity pairs, the declared timeouts and the service registration are
+covered co-located in `services/dbaas/schema_test.go`.
 
 ## What to write for a new resource
 

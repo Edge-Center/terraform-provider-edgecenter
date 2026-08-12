@@ -1,4 +1,4 @@
-package edgecenter
+package dbaas
 
 import (
 	"context"
@@ -10,7 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
+
+const DBaaSUserResource = "edgecenter_dbaas_user"
 
 func resourceDBaaSUser() *schema.Resource {
 	return &schema.Resource{
@@ -21,58 +24,58 @@ func resourceDBaaSUser() *schema.Resource {
 		Description:   "Represent DBaaS database user resource.",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				projectID, regionID, clusterID, username, err := ImportStringParserExtended(d.Id())
+				projectID, regionID, clusterID, username, err := edgecenter.ImportStringParserExtended(d.Id())
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("importing DBaaS user: %w", err)
 				}
 				d.Set("project_id", projectID)
 				d.Set("region_id", regionID)
-				d.Set(DBaaSClusterIDField, clusterID)
+				d.Set(edgecenter.DBaaSClusterIDField, clusterID)
 				d.SetId(username)
 				return []*schema.ResourceData{d}, nil
 			},
 		},
 		Schema: map[string]*schema.Schema{
-			ProjectIDField: {
+			edgecenter.ProjectIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ForceNew:     true,
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			ProjectNameField: {
+			edgecenter.ProjectNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			RegionIDField: {
+			edgecenter.RegionIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ForceNew:     true,
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			RegionNameField: {
+			edgecenter.RegionNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			DBaaSClusterIDField: {
+			edgecenter.DBaaSClusterIDField: {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			NameField: {
+			edgecenter.NameField: {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			PasswordField: {
+			edgecenter.PasswordField: {
 				Type:      schema.TypeString,
 				Required:  true,
 				Sensitive: true,
 			},
-			DBaaSUserDatabasesField: {
+			edgecenter.DBaaSUserDatabasesField: {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -86,20 +89,20 @@ func resourceDBaaSUser() *schema.Resource {
 func resourceDBaaSUserCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start DBaaS user creating")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(DBaaSClusterIDField).(string)
-	name := d.Get(NameField).(string)
+	clusterID := d.Get(edgecenter.DBaaSClusterIDField).(string)
+	name := d.Get(edgecenter.NameField).(string)
 
 	createOpts := edgecloudV2.DBaaSUserCreateRequest{
 		Name:     name,
-		Password: d.Get(PasswordField).(string),
+		Password: d.Get(edgecenter.PasswordField).(string),
 	}
 
-	if v, ok := d.GetOk(DBaaSUserDatabasesField); ok {
+	if v, ok := d.GetOk(edgecenter.DBaaSUserDatabasesField); ok {
 		for _, db := range v.([]interface{}) {
 			createOpts.Databases = append(createOpts.Databases, edgecloudV2.DBaaSUserDatabase{
 				Name: db.(string),
@@ -121,12 +124,12 @@ func resourceDBaaSUserCreate(ctx context.Context, d *schema.ResourceData, m inte
 func resourceDBaaSUserRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start DBaaS user reading")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(DBaaSClusterIDField).(string)
+	clusterID := d.Get(edgecenter.DBaaSClusterIDField).(string)
 	username := d.Id()
 
 	user, resp, err := clientV2.DBaaS.UserGet(ctx, clusterID, username)
@@ -139,13 +142,13 @@ func resourceDBaaSUserRead(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	d.Set(NameField, user.Name)
+	d.Set(edgecenter.NameField, user.Name)
 
 	databases := make([]string, len(user.Databases))
 	for i, db := range user.Databases {
 		databases[i] = db.Name
 	}
-	d.Set(DBaaSUserDatabasesField, databases)
+	d.Set(edgecenter.DBaaSUserDatabasesField, databases)
 
 	return diag.Diagnostics{}
 }
@@ -153,17 +156,17 @@ func resourceDBaaSUserRead(ctx context.Context, d *schema.ResourceData, m interf
 func resourceDBaaSUserUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start DBaaS user updating")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(DBaaSClusterIDField).(string)
+	clusterID := d.Get(edgecenter.DBaaSClusterIDField).(string)
 	username := d.Id()
 
-	if d.HasChange(PasswordField) {
+	if d.HasChange(edgecenter.PasswordField) {
 		updateOpts := edgecloudV2.DBaaSUserUpdateRequest{
-			Password: d.Get(PasswordField).(string),
+			Password: d.Get(edgecenter.PasswordField).(string),
 		}
 		_, err = clientV2.DBaaS.UserUpdate(ctx, clusterID, username, updateOpts)
 		if err != nil {
@@ -171,8 +174,8 @@ func resourceDBaaSUserUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if d.HasChange(DBaaSUserDatabasesField) {
-		oldRaw, newRaw := d.GetChange(DBaaSUserDatabasesField)
+	if d.HasChange(edgecenter.DBaaSUserDatabasesField) {
+		oldRaw, newRaw := d.GetChange(edgecenter.DBaaSUserDatabasesField)
 		oldList := oldRaw.([]interface{})
 		newList := newRaw.([]interface{})
 
@@ -210,12 +213,12 @@ func resourceDBaaSUserUpdate(ctx context.Context, d *schema.ResourceData, m inte
 func resourceDBaaSUserDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start DBaaS user deleting")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(DBaaSClusterIDField).(string)
+	clusterID := d.Get(edgecenter.DBaaSClusterIDField).(string)
 	username := d.Id()
 
 	_, err = clientV2.DBaaS.UserDelete(ctx, clusterID, username)

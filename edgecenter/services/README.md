@@ -2,7 +2,7 @@
 
 Service packages of the EdgeCenter Terraform provider.
 
-Each subpackage (`cdn/`, `dns/`, `edgemon/`, `protection/`, `reseller/`, `storage/`) exposes its own
+Each subpackage (`cdn/`, `dbaas/`, `dns/`, `edgemon/`, `protection/`, `reseller/`, `storage/`) exposes its own
 resources and data sources through the `Resources()` and `DataSources()` methods and is
 registered in `edgecenter/provider/provider.go`.
 

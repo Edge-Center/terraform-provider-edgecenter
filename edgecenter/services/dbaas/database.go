@@ -1,4 +1,4 @@
-package edgecenter
+package dbaas
 
 import (
 	"context"
@@ -9,7 +9,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
+
+const DBaaSDatabaseResource = "edgecenter_dbaas_database"
 
 func resourceDBaaSDatabase() *schema.Resource {
 	return &schema.Resource{
@@ -19,59 +22,59 @@ func resourceDBaaSDatabase() *schema.Resource {
 		Description:   "Represent DBaaS database resource.",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				projectID, regionID, clusterID, databaseName, err := ImportStringParserExtended(d.Id())
+				projectID, regionID, clusterID, databaseName, err := edgecenter.ImportStringParserExtended(d.Id())
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("importing DBaaS database: %w", err)
 				}
 				d.Set("project_id", projectID)
 				d.Set("region_id", regionID)
-				d.Set(DBaaSClusterIDField, clusterID)
+				d.Set(edgecenter.DBaaSClusterIDField, clusterID)
 				d.SetId(databaseName)
 
 				return []*schema.ResourceData{d}, nil
 			},
 		},
 		Schema: map[string]*schema.Schema{
-			ProjectIDField: {
+			edgecenter.ProjectIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ForceNew:     true,
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			ProjectNameField: {
+			edgecenter.ProjectNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			RegionIDField: {
+			edgecenter.RegionIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ForceNew:     true,
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			RegionNameField: {
+			edgecenter.RegionNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			DBaaSClusterIDField: {
+			edgecenter.DBaaSClusterIDField: {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			NameField: {
+			edgecenter.NameField: {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			DBaaSDatabaseEncodingField: {
+			edgecenter.DBaaSDatabaseEncodingField: {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			DBaaSDatabaseLocaleField: {
+			edgecenter.DBaaSDatabaseLocaleField: {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -83,20 +86,20 @@ func resourceDBaaSDatabase() *schema.Resource {
 func resourceDBaaSDatabaseCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start DBaaS database creating")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(DBaaSClusterIDField).(string)
+	clusterID := d.Get(edgecenter.DBaaSClusterIDField).(string)
 	createOpts := edgecloudV2.DBaaSDatabaseCreateRequest{
-		Name: d.Get(NameField).(string),
+		Name: d.Get(edgecenter.NameField).(string),
 	}
 
-	if v, ok := d.GetOk(DBaaSDatabaseEncodingField); ok {
+	if v, ok := d.GetOk(edgecenter.DBaaSDatabaseEncodingField); ok {
 		createOpts.Encoding = v.(string)
 	}
-	if v, ok := d.GetOk(DBaaSDatabaseLocaleField); ok {
+	if v, ok := d.GetOk(edgecenter.DBaaSDatabaseLocaleField); ok {
 		createOpts.Locale = v.(string)
 	}
 
@@ -114,12 +117,12 @@ func resourceDBaaSDatabaseCreate(ctx context.Context, d *schema.ResourceData, m 
 func resourceDBaaSDatabaseRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start DBaaS database reading")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(DBaaSClusterIDField).(string)
+	clusterID := d.Get(edgecenter.DBaaSClusterIDField).(string)
 	databaseName := d.Id()
 
 	databases, _, err := clientV2.DBaaS.DatabasesList(ctx, clusterID, nil)
@@ -141,7 +144,7 @@ func resourceDBaaSDatabaseRead(ctx context.Context, d *schema.ResourceData, m in
 		return nil
 	}
 
-	_ = d.Set(NameField, databaseName)
+	_ = d.Set(edgecenter.NameField, databaseName)
 
 	return diag.Diagnostics{}
 }
@@ -149,12 +152,12 @@ func resourceDBaaSDatabaseRead(ctx context.Context, d *schema.ResourceData, m in
 func resourceDBaaSDatabaseDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start DBaaS database deleting")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(DBaaSClusterIDField).(string)
+	clusterID := d.Get(edgecenter.DBaaSClusterIDField).(string)
 	databaseName := d.Id()
 
 	_, _, err = clientV2.DBaaS.DatabaseDelete(ctx, clusterID, databaseName)

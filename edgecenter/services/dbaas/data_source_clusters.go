@@ -1,4 +1,4 @@
-package edgecenter
+package dbaas
 
 import (
 	"context"
@@ -10,62 +10,65 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
+
+const DBaaSClustersDataSource = "edgecenter_dbaas_clusters"
 
 func dataSourceDBaaSClusters() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceDBaaSClustersRead,
 		Description: "Represent DBaaS cluster data source.",
 		Schema: map[string]*schema.Schema{
-			ProjectIDField: {
+			edgecenter.ProjectIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			ProjectNameField: {
+			edgecenter.ProjectNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			RegionIDField: {
+			edgecenter.RegionIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			RegionNameField: {
+			edgecenter.RegionNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			NameField: {
+			edgecenter.NameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "The name of the DBaaS cluster. Either 'id' or 'name' must be specified.",
-				ExactlyOneOf: []string{"id", NameField},
+				ExactlyOneOf: []string{"id", edgecenter.NameField},
 			},
-			IDField: {
+			edgecenter.IDField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "The ID of the DBaaS cluster. Either 'id' or 'name' must be specified.",
-				ExactlyOneOf: []string{"id", NameField},
+				ExactlyOneOf: []string{"id", edgecenter.NameField},
 			},
-			DescriptionField: {
+			edgecenter.DescriptionField: {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			StatusField: {
+			edgecenter.StatusField: {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			DBaaSClusterHighAvailabilityField: {
+			edgecenter.DBaaSClusterHighAvailabilityField: {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			FlavorField: {
+			edgecenter.FlavorField: {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -74,8 +77,8 @@ func dataSourceDBaaSClusters() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						TypeField:             {Type: schema.TypeString, Computed: true},
-						DBaaSDbmsVersionField: {Type: schema.TypeString, Computed: true},
+						edgecenter.TypeField:             {Type: schema.TypeString, Computed: true},
+						edgecenter.DBaaSDbmsVersionField: {Type: schema.TypeString, Computed: true},
 					},
 				},
 			},
@@ -84,8 +87,8 @@ func dataSourceDBaaSClusters() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						DBaaSVolumeSizeField: {Type: schema.TypeInt, Computed: true},
-						DBaaSVolumeTypeField: {Type: schema.TypeString, Computed: true},
+						edgecenter.DBaaSVolumeSizeField: {Type: schema.TypeInt, Computed: true},
+						edgecenter.DBaaSVolumeTypeField: {Type: schema.TypeString, Computed: true},
 					},
 				},
 			},
@@ -94,30 +97,30 @@ func dataSourceDBaaSClusters() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						NetworkIDField: {Type: schema.TypeString, Computed: true},
-						SubnetIDField:  {Type: schema.TypeString, Computed: true},
+						edgecenter.NetworkIDField: {Type: schema.TypeString, Computed: true},
+						edgecenter.SubnetIDField:  {Type: schema.TypeString, Computed: true},
 					},
 				},
 			},
-			DBaaSClusterConnectionField: {
+			edgecenter.DBaaSClusterConnectionField: {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						DBaaSClusterHostField: {Type: schema.TypeString, Computed: true},
-						DBaaSClusterPortField: {Type: schema.TypeInt, Computed: true},
+						edgecenter.DBaaSClusterHostField: {Type: schema.TypeString, Computed: true},
+						edgecenter.DBaaSClusterPortField: {Type: schema.TypeInt, Computed: true},
 					},
 				},
 			},
-			CreatedAtField: {
+			edgecenter.CreatedAtField: {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			UpdatedAtField: {
+			edgecenter.UpdatedAtField: {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			DBaaSClusterTaskIDField: {
+			edgecenter.DBaaSClusterTaskIDField: {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -128,7 +131,7 @@ func dataSourceDBaaSClusters() *schema.Resource {
 func dataSourceDBaaSClustersRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Debug(ctx, "[DEBUG] Start DBaaS clusters data source reading")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -138,10 +141,10 @@ func dataSourceDBaaSClustersRead(ctx context.Context, d *schema.ResourceData, m 
 		clusterID string
 	)
 
-	if v, ok := d.GetOk(IDField); ok && v.(string) != "" {
+	if v, ok := d.GetOk(edgecenter.IDField); ok && v.(string) != "" {
 		clusterID = v.(string)
 	} else {
-		name := d.Get(NameField).(string)
+		name := d.Get(edgecenter.NameField).(string)
 		if name == "" {
 			return diag.Errorf("either 'id' or 'name' must be specified")
 		}
@@ -194,51 +197,51 @@ func dataSourceDBaaSClustersRead(ctx context.Context, d *schema.ResourceData, m 
 
 	d.SetId(cluster.ID)
 
-	_ = d.Set(RegionIDField, cluster.RegionID)
-	_ = d.Set(ProjectIDField, cluster.ProjectID)
-	_ = d.Set(NameField, cluster.Name)
-	_ = d.Set(DescriptionField, cluster.Description)
-	_ = d.Set(DBaaSClusterHighAvailabilityField, cluster.HighAvailability)
-	_ = d.Set(FlavorField, cluster.Flavor)
-	_ = d.Set(StatusField, cluster.Status)
+	_ = d.Set(edgecenter.RegionIDField, cluster.RegionID)
+	_ = d.Set(edgecenter.ProjectIDField, cluster.ProjectID)
+	_ = d.Set(edgecenter.NameField, cluster.Name)
+	_ = d.Set(edgecenter.DescriptionField, cluster.Description)
+	_ = d.Set(edgecenter.DBaaSClusterHighAvailabilityField, cluster.HighAvailability)
+	_ = d.Set(edgecenter.FlavorField, cluster.Flavor)
+	_ = d.Set(edgecenter.StatusField, cluster.Status)
 
 	if cluster.DBMS != nil {
 		dbms := map[string]interface{}{
-			TypeField:             cluster.DBMS.Type,
-			DBaaSDbmsVersionField: cluster.DBMS.Version,
+			edgecenter.TypeField:             cluster.DBMS.Type,
+			edgecenter.DBaaSDbmsVersionField: cluster.DBMS.Version,
 		}
 		_ = d.Set("dbms", []interface{}{dbms})
 	}
 
 	if cluster.Volume != nil {
 		vol := map[string]interface{}{
-			DBaaSVolumeSizeField: cluster.Volume.Size,
-			DBaaSVolumeTypeField: string(cluster.Volume.Type),
+			edgecenter.DBaaSVolumeSizeField: cluster.Volume.Size,
+			edgecenter.DBaaSVolumeTypeField: string(cluster.Volume.Type),
 		}
 		_ = d.Set("volume", []interface{}{vol})
 	}
 
 	if cluster.Interface != nil {
 		iface := map[string]interface{}{
-			NetworkIDField: cluster.Interface.NetworkID,
-			SubnetIDField:  cluster.Interface.SubnetID,
+			edgecenter.NetworkIDField: cluster.Interface.NetworkID,
+			edgecenter.SubnetIDField:  cluster.Interface.SubnetID,
 		}
 		_ = d.Set("interface", []interface{}{iface})
 	}
 
 	if cluster.Connection != nil {
 		conn := map[string]interface{}{
-			DBaaSClusterHostField: cluster.Connection.Host,
-			DBaaSClusterPortField: cluster.Connection.Port,
+			edgecenter.DBaaSClusterHostField: cluster.Connection.Host,
+			edgecenter.DBaaSClusterPortField: cluster.Connection.Port,
 		}
-		_ = d.Set(DBaaSClusterConnectionField, []interface{}{conn})
+		_ = d.Set(edgecenter.DBaaSClusterConnectionField, []interface{}{conn})
 	}
 
-	_ = d.Set(CreatedAtField, cluster.CreatedAt)
-	_ = d.Set(UpdatedAtField, cluster.UpdatedAt)
+	_ = d.Set(edgecenter.CreatedAtField, cluster.CreatedAt)
+	_ = d.Set(edgecenter.UpdatedAtField, cluster.UpdatedAt)
 
 	if cluster.TaskID != "" {
-		_ = d.Set(DBaaSClusterTaskIDField, cluster.TaskID)
+		_ = d.Set(edgecenter.DBaaSClusterTaskIDField, cluster.TaskID)
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("[DEBUG] Finish DBaaS clusters data source reading, cluster ID: %s", cluster.ID))

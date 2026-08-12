@@ -1,4 +1,4 @@
-package edgecenter
+package dbaas
 
 import (
 	"context"
@@ -6,7 +6,11 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
+
+const DBaaSDbmsDataSource = "edgecenter_dbaas_dbms"
 
 func dataSourceDBaaSDBMS() *schema.Resource {
 	return &schema.Resource{
@@ -53,7 +57,7 @@ func dataSourceDBaaSDBMS() *schema.Resource {
 }
 
 func dataSourceDBaaSDBMSRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
