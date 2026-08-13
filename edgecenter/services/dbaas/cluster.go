@@ -158,6 +158,28 @@ func resourceDBaaSCluster() *schema.Resource {
 					},
 				},
 			},
+			edgecenter.DBaaSClusterAccessField: {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "The access control settings for the DBaaS cluster.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						edgecenter.DBaaSClusterAllowedCIDRsField: {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "The list of allowed CIDRs for public access to the cluster.",
+						},
+						edgecenter.DBaaSClusterIsPublicField: {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Whether the cluster public endpoint is enabled.",
+						},
+					},
+				},
+			},
 			edgecenter.StatusField: {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -242,11 +264,19 @@ func resourceDBaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 		}
 	}
 
+	createOpts.Access = expandDBaaSClusterAccess(d.Get(edgecenter.DBaaSClusterAccessField))
+
 	tflog.Debug(ctx, fmt.Sprintf("DBaaS cluster create options: %+v", createOpts))
 
 	cluster, err := utilV2.CreateDBaaSClusterAndWait(ctx, clientV2, createOpts, DBaaSClusterCreateTimeout)
 	if err != nil {
 		return diag.Errorf("error from creating DBaaS cluster: %s", err)
+	}
+
+	if createOpts.Access != nil {
+		if err = waitDBaaSClusterAccessState(ctx, clientV2, cluster.ID, createOpts.Access, DBaaSClusterCreateTimeout); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId(cluster.ID)
@@ -312,12 +342,11 @@ func resourceDBaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 		_ = d.Set("interface", []interface{}{iface})
 	}
 
+	if cluster.Access != nil {
+		_ = d.Set(edgecenter.DBaaSClusterAccessField, flattenDBaaSClusterAccess(cluster.Access))
+	}
 	if cluster.Connection != nil {
-		conn := map[string]interface{}{
-			edgecenter.DBaaSClusterHostField: cluster.Connection.Host,
-			edgecenter.DBaaSClusterPortField: cluster.Connection.Port,
-		}
-		_ = d.Set(edgecenter.DBaaSClusterConnectionField, []interface{}{conn})
+		_ = d.Set(edgecenter.DBaaSClusterConnectionField, flattenDBaaSClusterConnection(cluster.Connection))
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("DBaaS cluster read complete: %+v", cluster))
@@ -335,6 +364,7 @@ func resourceDBaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	updateOpts := edgecloudV2.DBaaSClusterUpdateRequest{}
+	var clusterChanged bool
 
 	name := d.Get(edgecenter.NameField).(string)
 	updateOpts.Name = &name
@@ -342,10 +372,12 @@ func resourceDBaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if d.HasChange(edgecenter.DescriptionField) {
 		desc := d.Get(edgecenter.DescriptionField).(string)
 		updateOpts.Description = &desc
+		clusterChanged = true
 	}
 	if d.HasChange(edgecenter.FlavorField) {
 		flavor := d.Get(edgecenter.FlavorField).(string)
 		updateOpts.Flavor = flavor
+		clusterChanged = true
 	}
 
 	if d.HasChange("volume") {
@@ -357,20 +389,53 @@ func resourceDBaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 					Size: vol[edgecenter.DBaaSVolumeSizeField].(int),
 					Type: edgecloudV2.VolumeType(vol[edgecenter.DBaaSVolumeTypeField].(string)),
 				}
+				clusterChanged = true
 			}
 		}
 	}
 
-	tasks, _, err := clientV2.DBaaS.ClusterUpdate(ctx, clusterID, updateOpts)
-	if err != nil {
-		return diag.FromErr(err)
+	if clusterChanged {
+		tasks, _, err := clientV2.DBaaS.ClusterUpdate(ctx, clusterID, updateOpts)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if len(tasks.Tasks) > 0 {
+			taskID := tasks.Tasks[0]
+			err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, DBaaSClusterUpdateTimeout)
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("[WARN] task %s not found, assuming update completed: %s", taskID, err))
+			}
+		}
 	}
 
-	if len(tasks.Tasks) > 0 {
-		taskID := tasks.Tasks[0]
-		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, DBaaSClusterUpdateTimeout)
+	if d.HasChange(edgecenter.DBaaSClusterAccessField) {
+		access := expandDBaaSClusterAccess(d.Get(edgecenter.DBaaSClusterAccessField))
+		accessUpdateOpts := expandDBaaSClusterAccessControlUpdateRequest(d.Get(edgecenter.DBaaSClusterAccessField))
+		if access == nil {
+			access = &edgecloudV2.DBaaSClusterAccess{}
+		}
+
+		tasks, _, err := clientV2.DBaaS.ClusterUpdateAccessControl(ctx, clusterID, accessUpdateOpts)
 		if err != nil {
-			tflog.Warn(ctx, fmt.Sprintf("[WARN] task %s not found, assuming update completed: %s", taskID, err))
+			return diag.FromErr(err)
+		}
+
+		if len(tasks.Tasks) > 0 {
+			taskID := tasks.Tasks[0]
+			err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, DBaaSClusterUpdateTimeout)
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("[WARN] task %s not found, assuming access control update completed: %s", taskID, err))
+			}
+		}
+
+		_, err = utilV2.WaitDBaaSClusterStatusHealthy(ctx, clientV2, clusterID, DBaaSClusterUpdateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if err = waitDBaaSClusterAccessState(ctx, clientV2, clusterID, access, DBaaSClusterUpdateTimeout); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 

@@ -23,4 +23,9 @@ resource "edgecenter_dbaas_cluster" "example" {
     network_id = "6bf878c1-1ce4-47c3-a39b-6b5f1d79bf25"
     subnet_id  = "dc3a3ea9-86ae-47ad-a8e8-79df0ce04839"
   }
+
+  access {
+    is_public     = true
+    allowed_cidrs = ["192.168.23.0/24"]
+  }
 }

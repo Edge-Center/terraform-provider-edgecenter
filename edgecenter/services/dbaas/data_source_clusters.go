@@ -102,6 +102,23 @@ func dataSourceDBaaSClusters() *schema.Resource {
 					},
 				},
 			},
+			edgecenter.DBaaSClusterAccessField: {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						edgecenter.DBaaSClusterAllowedCIDRsField: {
+							Type:     schema.TypeSet,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						edgecenter.DBaaSClusterIsPublicField: {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+					},
+				},
+			},
 			edgecenter.DBaaSClusterConnectionField: {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -229,12 +246,11 @@ func dataSourceDBaaSClustersRead(ctx context.Context, d *schema.ResourceData, m 
 		_ = d.Set("interface", []interface{}{iface})
 	}
 
+	if cluster.Access != nil {
+		_ = d.Set(edgecenter.DBaaSClusterAccessField, flattenDBaaSClusterAccess(cluster.Access))
+	}
 	if cluster.Connection != nil {
-		conn := map[string]interface{}{
-			edgecenter.DBaaSClusterHostField: cluster.Connection.Host,
-			edgecenter.DBaaSClusterPortField: cluster.Connection.Port,
-		}
-		_ = d.Set(edgecenter.DBaaSClusterConnectionField, []interface{}{conn})
+		_ = d.Set(edgecenter.DBaaSClusterConnectionField, flattenDBaaSClusterConnection(cluster.Connection))
 	}
 
 	_ = d.Set(edgecenter.CreatedAtField, cluster.CreatedAt)

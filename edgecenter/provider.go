@@ -186,10 +186,14 @@ const (
 	DBaaSVolumeSizeField = "volume_size"
 	DBaaSVolumeTypeField = "volume_type"
 
+	DBaaSClusterAllowedCIDRsField = "allowed_cidrs"
+	DBaaSClusterIsPublicField     = "is_public"
+
 	DBaaSClusterHostField = "host"
 	DBaaSClusterPortField = "port"
 
 	DBaaSClusterConnectionField = "connection_info"
+	DBaaSClusterAccessField     = "access"
 
 	DBaaSDatabaseEncodingField = "encoding"
 	DBaaSDatabaseLocaleField   = "locale"
