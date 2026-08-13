@@ -153,7 +153,7 @@ func resourceRouter() *schema.Resource {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "Set of static routes to be applied to the router.",
-				Elem:        hostRouteSchema(true),
+				Elem:        HostRouteSchema(true),
 			},
 			"last_updated": {
 				Type:        schema.TypeString,

@@ -38,6 +38,11 @@ resource "edgecenter_dbaas_cluster" "example" {
     network_id = "6bf878c1-1ce4-47c3-a39b-6b5f1d79bf25"
     subnet_id  = "dc3a3ea9-86ae-47ad-a8e8-79df0ce04839"
   }
+
+  access {
+    is_public     = true
+    allowed_cidrs = ["192.168.23.0/24"]
+  }
 }
 ```
 
@@ -54,6 +59,7 @@ resource "edgecenter_dbaas_cluster" "example" {
 
 ### Optional
 
+- `access` (Block List, Max: 1) The access control settings for the DBaaS cluster. (see [below for nested schema](#nestedblock--access))
 - `description` (String) The description of the DBaaS cluster.
 - `high_availability` (Boolean) Enable high availability for the cluster.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
@@ -96,6 +102,15 @@ Required:
 
 - `volume_size` (Number) The size of the volume in GB.
 - `volume_type` (String) The type of the volume (e.g., db_standard).
+
+
+<a id="nestedblock--access"></a>
+### Nested Schema for `access`
+
+Optional:
+
+- `allowed_cidrs` (Set of String) The list of allowed CIDRs for public access to the cluster.
+- `is_public` (Boolean) Whether the cluster public endpoint is enabled.
 
 
 <a id="nestedblock--timeouts"></a>

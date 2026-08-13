@@ -6,6 +6,10 @@ import (
 
 	dnsSDK "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/buckets"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/locations"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storages"
+	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/models"
 	cdn "github.com/Edge-Center/edgecentercdn-go"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
@@ -45,13 +49,37 @@ type DNSClientService interface {
 
 var _ DNSClientService = (*dnsSDK.Client)(nil)
 
+type StorageLocationService interface {
+	LocationsList(opts ...func(params *locations.LocationListHTTPParams)) ([]models.ClientLocationRes, error)
+}
+
+type StorageS3Service interface {
+	StoragesList(opts ...func(params *storages.StorageListHTTPV2Params)) ([]models.Storage, error)
+	CreateStorage(opts ...func(params *storages.StorageCreateHTTPParams)) (*models.Storage, error)
+	DeleteStorage(opts ...func(params *storages.StorageDeleteHTTPParams)) error
+}
+
+type StorageBucketService interface {
+	BucketsList(opts ...func(params *buckets.StorageListBucketsHTTPParams)) ([]models.BucketDto, error)
+	CreateBucket(opts ...func(params *buckets.StorageBucketCreateHTTPParams)) error
+	DeleteBucket(opts ...func(params *buckets.StorageBucketRemoveHTTPParams)) error
+}
+
+type StorageClientService interface {
+	StorageLocationService
+	StorageS3Service
+	StorageBucketService
+}
+
+var _ StorageClientService = (*storageSDK.SDK)(nil)
+
 type Config struct {
 	PermanentToken     string
 	CloudBaseURL       string
 	UserAgent          string
 	Provider           *edgecloud.ProviderClient
 	CDNClient          cdn.ClientService
-	StorageClient      *storageSDK.SDK
+	StorageClient      StorageClientService
 	DNSClient          DNSClientService
 	ProtectionClient   *protection.Client
 	RmonClient         rmon.ClientService
@@ -61,7 +89,7 @@ type Config struct {
 func NewConfig(
 	provider *edgecloud.ProviderClient,
 	cdnClient cdn.ClientService,
-	storageClient *storageSDK.SDK,
+	storageClient StorageClientService,
 	dnsClient DNSClientService,
 	protectionClient *protection.Client,
 	rmonClient rmon.ClientService,

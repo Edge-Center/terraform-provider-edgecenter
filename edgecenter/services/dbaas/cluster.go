@@ -1,0 +1,488 @@
+package dbaas
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+)
+
+const DBaaSClusterResource = "edgecenter_dbaas_cluster"
+
+const (
+	DBaaSClusterCreateTimeout = 30 * time.Minute
+	DBaaSClusterReadTimeout   = 10 * time.Minute
+	DBaaSClusterUpdateTimeout = 30 * time.Minute
+	DBaaSClusterDeleteTimeout = 20 * time.Minute
+)
+
+func resourceDBaaSCluster() *schema.Resource {
+	return &schema.Resource{
+		CreateContext: resourceDBaaSClusterCreate,
+		ReadContext:   resourceDBaaSClusterRead,
+		UpdateContext: resourceDBaaSClusterUpdate,
+		DeleteContext: resourceDBaaSClusterDelete,
+		Description:   "Represent DBaaS cluster resource.",
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(DBaaSClusterCreateTimeout),
+			Read:   schema.DefaultTimeout(DBaaSClusterReadTimeout),
+			Update: schema.DefaultTimeout(DBaaSClusterUpdateTimeout),
+			Delete: schema.DefaultTimeout(DBaaSClusterDeleteTimeout),
+		},
+		Importer: &schema.ResourceImporter{
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				projectID, regionID, clusterID, err := edgecenter.ImportStringParser(d.Id())
+				if err != nil {
+					return nil, fmt.Errorf("importing DBaaS cluster: %w", err)
+				}
+				d.Set("project_id", projectID)
+				d.Set("region_id", regionID)
+				d.SetId(clusterID)
+
+				return []*schema.ResourceData{d}, nil
+			},
+		},
+
+		Schema: map[string]*schema.Schema{
+			edgecenter.ProjectIDField: {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
+			},
+			edgecenter.ProjectNameField: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
+			},
+			edgecenter.RegionIDField: {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
+			},
+			edgecenter.RegionNameField: {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
+			},
+			edgecenter.NameField: {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the DBaaS cluster.",
+			},
+			edgecenter.DescriptionField: {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    false,
+				Description: "The description of the DBaaS cluster.",
+			},
+			edgecenter.DBaaSClusterHighAvailabilityField: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				ForceNew:    true,
+				Description: "Enable high availability for the cluster.",
+			},
+			edgecenter.FlavorField: {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The flavor of the DBaaS cluster.",
+			},
+			"dbms": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Required: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						edgecenter.TypeField: {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The type of DBMS (e.g., POSTGRESQL).",
+						},
+						edgecenter.DBaaSDbmsVersionField: {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The version of DBMS (e.g., 17.5).",
+						},
+					},
+				},
+			},
+			"volume": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						edgecenter.DBaaSVolumeSizeField: {
+							Type:        schema.TypeInt,
+							Required:    true,
+							Description: "The size of the volume in GB.",
+						},
+						edgecenter.DBaaSVolumeTypeField: {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The type of the volume (e.g., db_standard).",
+						},
+					},
+				},
+			},
+			"interface": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Required: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						edgecenter.NetworkIDField: {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The network ID for the cluster.",
+						},
+						edgecenter.SubnetIDField: {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The subnet ID for the cluster.",
+						},
+					},
+				},
+			},
+			edgecenter.DBaaSClusterAccessField: {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "The access control settings for the DBaaS cluster.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						edgecenter.DBaaSClusterAllowedCIDRsField: {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "The list of allowed CIDRs for public access to the cluster.",
+						},
+						edgecenter.DBaaSClusterIsPublicField: {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Whether the cluster public endpoint is enabled.",
+						},
+					},
+				},
+			},
+			edgecenter.StatusField: {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			edgecenter.CreatedAtField: {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			edgecenter.UpdatedAtField: {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			edgecenter.DBaaSClusterTaskIDField: {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			edgecenter.DBaaSClusterConnectionField: {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						edgecenter.DBaaSClusterHostField: {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						edgecenter.DBaaSClusterPortField: {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func resourceDBaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	tflog.Info(ctx, "Start DBaaS cluster creating")
+
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	createOpts := edgecloudV2.DBaaSClusterCreateRequest{
+		Name:             d.Get(edgecenter.NameField).(string),
+		Description:      d.Get(edgecenter.DescriptionField).(string),
+		HighAvailability: d.Get(edgecenter.DBaaSClusterHighAvailabilityField).(bool),
+		Flavor:           d.Get(edgecenter.FlavorField).(string),
+	}
+
+	if v, ok := d.GetOk("dbms"); ok {
+		dbmsList := v.([]interface{})
+		if len(dbmsList) > 0 {
+			dbms := dbmsList[0].(map[string]interface{})
+			createOpts.DBMS = edgecloudV2.DBaaSDbmsType{
+				Type:    dbms[edgecenter.TypeField].(string),
+				Version: dbms[edgecenter.DBaaSDbmsVersionField].(string),
+			}
+		}
+	}
+
+	if v, ok := d.GetOk("volume"); ok {
+		volList := v.([]interface{})
+		if len(volList) > 0 {
+			vol := volList[0].(map[string]interface{})
+			createOpts.Volume = edgecloudV2.DBaaSVolume{
+				Size: vol[edgecenter.DBaaSVolumeSizeField].(int),
+				Type: edgecloudV2.VolumeType(vol[edgecenter.DBaaSVolumeTypeField].(string)),
+			}
+		}
+	}
+
+	if v, ok := d.GetOk("interface"); ok {
+		ifaceList := v.([]interface{})
+		if len(ifaceList) > 0 {
+			iface := ifaceList[0].(map[string]interface{})
+			createOpts.Interface = edgecloudV2.DBaaSClusterInterface{
+				NetworkID: iface[edgecenter.NetworkIDField].(string),
+				SubnetID:  iface[edgecenter.SubnetIDField].(string),
+			}
+		}
+	}
+
+	createOpts.Access = expandDBaaSClusterAccess(d.Get(edgecenter.DBaaSClusterAccessField))
+
+	tflog.Debug(ctx, fmt.Sprintf("DBaaS cluster create options: %+v", createOpts))
+
+	cluster, err := utilV2.CreateDBaaSClusterAndWait(ctx, clientV2, createOpts, DBaaSClusterCreateTimeout)
+	if err != nil {
+		return diag.Errorf("error from creating DBaaS cluster: %s", err)
+	}
+
+	if createOpts.Access != nil {
+		if err = waitDBaaSClusterAccessState(ctx, clientV2, cluster.ID, createOpts.Access, DBaaSClusterCreateTimeout); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	d.SetId(cluster.ID)
+	tflog.Info(ctx, fmt.Sprintf("DBaaS cluster id = %s", cluster.ID))
+
+	return resourceDBaaSClusterRead(ctx, d, m)
+}
+
+func resourceDBaaSClusterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	tflog.Info(ctx, "Start DBaaS cluster reading")
+
+	clusterID := d.Id()
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	cluster, resp, err := clientV2.DBaaS.ClusterGet(ctx, clusterID)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			tflog.Warn(ctx, fmt.Sprintf("[WARN] Removing DBaaS cluster %s because resource doesn't exist anymore", d.Id()))
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
+	_ = d.Set(edgecenter.RegionIDField, clientV2.Region)
+	_ = d.Set(edgecenter.ProjectIDField, clientV2.Project)
+	_ = d.Set(edgecenter.NameField, cluster.Name)
+	_ = d.Set(edgecenter.DescriptionField, cluster.Description)
+	_ = d.Set(edgecenter.DBaaSClusterHighAvailabilityField, cluster.HighAvailability)
+	_ = d.Set(edgecenter.FlavorField, cluster.Flavor)
+	_ = d.Set(edgecenter.StatusField, cluster.Status)
+	_ = d.Set(edgecenter.CreatedAtField, cluster.CreatedAt)
+	_ = d.Set(edgecenter.UpdatedAtField, cluster.UpdatedAt)
+
+	if cluster.TaskID != "" {
+		_ = d.Set(edgecenter.DBaaSClusterTaskIDField, cluster.TaskID)
+	}
+
+	if cluster.DBMS != nil {
+		dbms := map[string]interface{}{
+			edgecenter.TypeField:             cluster.DBMS.Type,
+			edgecenter.DBaaSDbmsVersionField: cluster.DBMS.Version,
+		}
+		_ = d.Set("dbms", []interface{}{dbms})
+	}
+
+	if cluster.Volume != nil {
+		vol := map[string]interface{}{
+			edgecenter.DBaaSVolumeSizeField: cluster.Volume.Size,
+			edgecenter.DBaaSVolumeTypeField: string(cluster.Volume.Type),
+		}
+		_ = d.Set("volume", []interface{}{vol})
+	}
+
+	if cluster.Interface != nil {
+		iface := map[string]interface{}{
+			edgecenter.NetworkIDField: cluster.Interface.NetworkID,
+			edgecenter.SubnetIDField:  cluster.Interface.SubnetID,
+		}
+		_ = d.Set("interface", []interface{}{iface})
+	}
+
+	if cluster.Access != nil {
+		_ = d.Set(edgecenter.DBaaSClusterAccessField, flattenDBaaSClusterAccess(cluster.Access))
+	}
+	if cluster.Connection != nil {
+		_ = d.Set(edgecenter.DBaaSClusterConnectionField, flattenDBaaSClusterConnection(cluster.Connection))
+	}
+
+	tflog.Debug(ctx, fmt.Sprintf("DBaaS cluster read complete: %+v", cluster))
+
+	return diag.Diagnostics{}
+}
+
+func resourceDBaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	tflog.Info(ctx, "Start DBaaS cluster update")
+
+	clusterID := d.Id()
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	updateOpts := edgecloudV2.DBaaSClusterUpdateRequest{}
+	var clusterChanged bool
+
+	name := d.Get(edgecenter.NameField).(string)
+	updateOpts.Name = &name
+
+	if d.HasChange(edgecenter.DescriptionField) {
+		desc := d.Get(edgecenter.DescriptionField).(string)
+		updateOpts.Description = &desc
+		clusterChanged = true
+	}
+	if d.HasChange(edgecenter.FlavorField) {
+		flavor := d.Get(edgecenter.FlavorField).(string)
+		updateOpts.Flavor = flavor
+		clusterChanged = true
+	}
+
+	if d.HasChange("volume") {
+		if v, ok := d.GetOk("volume"); ok {
+			volList := v.([]interface{})
+			if len(volList) > 0 {
+				vol := volList[0].(map[string]interface{})
+				updateOpts.Volume = &edgecloudV2.DBaaSVolume{
+					Size: vol[edgecenter.DBaaSVolumeSizeField].(int),
+					Type: edgecloudV2.VolumeType(vol[edgecenter.DBaaSVolumeTypeField].(string)),
+				}
+				clusterChanged = true
+			}
+		}
+	}
+
+	if clusterChanged {
+		tasks, _, err := clientV2.DBaaS.ClusterUpdate(ctx, clusterID, updateOpts)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if len(tasks.Tasks) > 0 {
+			taskID := tasks.Tasks[0]
+			err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, DBaaSClusterUpdateTimeout)
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("[WARN] task %s not found, assuming update completed: %s", taskID, err))
+			}
+		}
+	}
+
+	if d.HasChange(edgecenter.DBaaSClusterAccessField) {
+		access := expandDBaaSClusterAccess(d.Get(edgecenter.DBaaSClusterAccessField))
+		accessUpdateOpts := expandDBaaSClusterAccessControlUpdateRequest(d.Get(edgecenter.DBaaSClusterAccessField))
+		if access == nil {
+			access = &edgecloudV2.DBaaSClusterAccess{}
+		}
+
+		tasks, _, err := clientV2.DBaaS.ClusterUpdateAccessControl(ctx, clusterID, accessUpdateOpts)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if len(tasks.Tasks) > 0 {
+			taskID := tasks.Tasks[0]
+			err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, DBaaSClusterUpdateTimeout)
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("[WARN] task %s not found, assuming access control update completed: %s", taskID, err))
+			}
+		}
+
+		_, err = utilV2.WaitDBaaSClusterStatusHealthy(ctx, clientV2, clusterID, DBaaSClusterUpdateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if err = waitDBaaSClusterAccessState(ctx, clientV2, clusterID, access, DBaaSClusterUpdateTimeout); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	tflog.Info(ctx, "Finish DBaaS cluster update")
+
+	return resourceDBaaSClusterRead(ctx, d, m)
+}
+
+func resourceDBaaSClusterDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	tflog.Info(ctx, "Start DBaaS cluster delete")
+
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	clusterID := d.Id()
+	tflog.Info(ctx, fmt.Sprintf("DBaaS cluster id = %s", clusterID))
+
+	results, _, err := clientV2.DBaaS.ClusterDelete(ctx, clusterID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if len(results.Tasks) == 0 {
+		return diag.Errorf("no tasks returned for cluster deletion")
+	}
+
+	taskID := results.Tasks[0]
+	tflog.Info(ctx, fmt.Sprintf("Task id (%s)", taskID))
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, DBaaSClusterDeleteTimeout)
+	if err != nil {
+		_, resp, getErr := clientV2.DBaaS.ClusterGet(ctx, clusterID)
+		if getErr != nil && resp != nil && resp.StatusCode == http.StatusNotFound {
+			tflog.Warn(ctx, fmt.Sprintf("[WARN] DBaaS cluster %s already deleted, task %s not found", clusterID, taskID))
+			d.SetId("")
+			return diag.Diagnostics{}
+		}
+		return diag.FromErr(err)
+	}
+
+	if task.State == edgecloudV2.TaskStateError {
+		return diag.Errorf("cannot delete DBaaS cluster with ID: %s", clusterID)
+	}
+
+	d.SetId("")
+	tflog.Info(ctx, "Finish of DBaaS cluster deleting")
+
+	return diag.Diagnostics{}
+}

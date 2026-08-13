@@ -96,7 +96,7 @@ func dataSourceSubnet() *schema.Resource {
 				Type:        schema.TypeSet,
 				Computed:    true,
 				Description: "Set of additional routes to be added to instances that are part of this subnet.",
-				Elem:        hostRouteSchema(false),
+				Elem:        HostRouteSchema(false),
 			},
 			AllocationPoolsField: {
 				Type:        schema.TypeSet,

@@ -22,7 +22,7 @@ type fetchNetworksWithSubnetsOptions struct {
 	networkName string
 }
 
-func hostRouteSchema(required bool) *schema.Resource {
+func HostRouteSchema(required bool) *schema.Resource {
 	destination := &schema.Schema{
 		Type:        schema.TypeString,
 		Description: "The CIDR of the destination IPv4 subnet.",
@@ -116,7 +116,7 @@ func hostRoutesToListOfMapsV2(hostRoutes []edgecloudV2.HostRoute) []map[string]s
 	return hrs
 }
 
-func prepareSubnets(subs []edgecloudV2.Subnetwork) []map[string]interface{} {
+func PrepareSubnets(subs []edgecloudV2.Subnetwork) []map[string]interface{} {
 	subnetList := make([]map[string]interface{}, 0, len(subs))
 	for _, s := range subs {
 		subnetList = append(subnetList, map[string]interface{}{
@@ -134,38 +134,6 @@ func prepareSubnets(subs []edgecloudV2.Subnetwork) []map[string]interface{} {
 	}
 
 	return subnetList
-}
-
-func prepareResellerNetwork(rn edgecloudV2.ResellerNetwork) map[string]interface{} {
-	network := make(map[string]interface{})
-
-	network[CreatedAtField] = rn.CreatedAt
-	network[DefaultField] = rn.Default
-	network[ExternalField] = rn.External
-	network[SharedField] = rn.Shared
-	network[IDField] = rn.ID
-	network[MTUField] = rn.MTU
-	network[NameField] = rn.Name
-	network[RegionIDField] = rn.RegionID
-	network[RegionNameField] = rn.Region
-	network[TypeField] = rn.Type
-	network[SubnetsField] = prepareSubnets(rn.Subnets)
-	network[CreatorTaskIDField] = rn.CreatorTaskID
-	network[TaskIDField] = rn.TaskID
-	network[SegmentationIDField] = rn.SegmentationID
-	network[UpdatedAtField] = rn.UpdatedAt
-	network[ClientIDField] = rn.ClientID
-	network[ProjectIDField] = rn.RegionID
-	network[MetadataField] = PrepareMetadataReadonly(rn.Metadata)
-
-	return network
-}
-
-func resellerNetworksCloudClientConf() *CloudClientConf {
-	return &CloudClientConf{
-		DoNotUseRegionID:  true,
-		DoNotUseProjectID: true,
-	}
 }
 
 func fetchNetworksWithSubnets(ctx context.Context, opts fetchNetworksWithSubnetsOptions) (rawNetworkType, []edgecloudV2.Subnetwork, []edgecloudV2.MetadataDetailed, error) {

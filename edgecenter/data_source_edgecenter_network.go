@@ -131,7 +131,7 @@ func dataSourceNetwork() *schema.Resource {
 							Type:        schema.TypeSet,
 							Computed:    true,
 							Description: "Set of additional routes to be added to instances that are part of this subnet.",
-							Elem:        hostRouteSchema(false),
+							Elem:        HostRouteSchema(false),
 						},
 						"gateway_ip": {
 							Type:        schema.TypeString,
@@ -278,7 +278,7 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set("shared", rawNetwork["shared"])
 
 	if withDetails && len(subs) > 0 {
-		if err := d.Set("subnets", prepareSubnets(subs)); err != nil {
+		if err := d.Set("subnets", PrepareSubnets(subs)); err != nil {
 			return diag.FromErr(err)
 		}
 	}

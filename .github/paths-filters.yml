@@ -72,11 +72,25 @@ dns:
   - 'edgecenter/test/*_dns_*'
 
 storage:
-  - 'edgecenter/resource_edgecenter_storage*'
-  - 'edgecenter/data_source_edgecenter_storage*'
+  - 'edgecenter/services/storage/**'
+  - 'edgecenter/integrationtest/storage/**'
+  - 'edgecenter/integrationtest/support/storage/**'
   - 'edgecenter/test/*_storage_*'
 
+protection:
+  - 'edgecenter/services/protection/**'
+  - 'edgecenter/integrationtest/protection/**'
+  - 'edgecenter/integrationtest/support/protection/**'
+  - 'edgecenter/test/*_protection_*'
+
 reseller:
-  - 'edgecenter/resource_edgecenter_reseller*'
-  - 'edgecenter/data_source_edgecenter_reseller*'
+  - 'edgecenter/services/reseller/**'
+  - 'edgecenter/integrationtest/reseller/**'
+  - 'edgecenter/integrationtest/support/reseller/**'
   - 'edgecenter/test/*_reseller_*'
+
+dbaas:
+  - 'edgecenter/services/dbaas/**'
+  - 'edgecenter/integrationtest/dbaas/**'
+  - 'edgecenter/integrationtest/support/dbaas/**'
+  - 'edgecenter/test/*_dbaas_*'

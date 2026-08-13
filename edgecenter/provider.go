@@ -186,10 +186,14 @@ const (
 	DBaaSVolumeSizeField = "volume_size"
 	DBaaSVolumeTypeField = "volume_type"
 
+	DBaaSClusterAllowedCIDRsField = "allowed_cidrs"
+	DBaaSClusterIsPublicField     = "is_public"
+
 	DBaaSClusterHostField = "host"
 	DBaaSClusterPortField = "port"
 
 	DBaaSClusterConnectionField = "connection_info"
+	DBaaSClusterAccessField     = "access"
 
 	DBaaSDatabaseEncodingField = "encoding"
 	DBaaSDatabaseLocaleField   = "locale"
@@ -317,50 +321,34 @@ func ProviderSchema() map[string]*schema.Schema {
 
 func (LegacyService) Resources() map[string]*schema.Resource {
 	return map[string]*schema.Resource{
-		"edgecenter_project":                               resourceProject(),
-		"edgecenter_volume":                                resourceVolume(),
-		"edgecenter_network":                               resourceNetwork(),
-		"edgecenter_subnet":                                resourceSubnet(),
-		"edgecenter_router":                                resourceRouter(),
-		"edgecenter_instance":                              resourceInstance(),
-		"edgecenter_instanceV2":                            resourceInstanceV2(),
-		"edgecenter_keypair":                               resourceKeypair(),
-		"edgecenter_reservedfixedip":                       resourceReservedFixedIP(),
-		"edgecenter_floatingip":                            resourceFloatingIP(),
-		"edgecenter_loadbalancer":                          resourceLoadBalancer(),
-		"edgecenter_loadbalancerv2":                        resourceLoadBalancerV2(),
-		"edgecenter_lblistener":                            resourceLbListener(),
-		"edgecenter_lbpool":                                resourceLBPool(),
-		"edgecenter_lbmember":                              resourceLBMember(),
-		"edgecenter_securitygroup":                         resourceSecurityGroup(),
-		"edgecenter_baremetal":                             resourceBmInstance(),
-		"edgecenter_snapshot":                              resourceSnapshot(),
-		"edgecenter_servergroup":                           resourceServerGroup(),
-		"edgecenter_mkaas_cluster":                         resourceMKaaSCluster(),
-		"edgecenter_mkaas_pool":                            resourceMKaaSPool(),
-		"edgecenter_secret":                                resourceSecret(),
-		"edgecenter_storage_s3":                            resourceStorageS3(),
-		"edgecenter_storage_s3_bucket":                     resourceStorageS3Bucket(),
-		LifecyclePolicyResourceField:                       resourceLifecyclePolicy(),
-		"edgecenter_lb_l7policy":                           resourceL7Policy(),
-		"edgecenter_lb_l7rule":                             resourceL7Rule(),
-		"edgecenter_instance_port_security":                resourceInstancePortSecurity(),
-		"edgecenter_useractions_subscription_amqp":         resourceUserActionsSubscriptionAMQP(),
-		"edgecenter_useractions_subscription_log":          resourceUserActionsSubscriptionLog(),
-		"edgecenter_reseller_images":                       resourceResellerImages(),
-		"edgecenter_reseller_imagesV2":                     resourceResellerImagesV2(),
-		"edgecenter_protection_resource":                   resourceProtectionResource(),
-		"edgecenter_protection_resource_certificate":       resourceProtectionResourceCertificate(),
-		"edgecenter_protection_resource_origin":            resourceProtectionResourceOrigin(),
-		"edgecenter_protection_resource_header":            resourceProtectionResourceHeader(),
-		"edgecenter_protection_resource_blacklist_entry":   resourceProtectionResourceBlacklistEntry(),
-		"edgecenter_protection_resource_whitelist_entry":   resourceProtectionResourceWhitelistEntry(),
-		"edgecenter_protection_resource_alias":             resourceProtectionResourceAlias(),
-		"edgecenter_protection_resource_alias_certificate": resourceProtectionResourceAliasCertificate(),
-		"edgecenter_dbaas_cluster":                         resourceDBaaSCluster(),
-		"edgecenter_dbaas_database":                        resourceDBaaSDatabase(),
-		"edgecenter_dbaas_user":                            resourceDBaaSUser(),
-		"edgecenter_dbaas_backup":                          resourceDBaaSBackup(),
+		"edgecenter_project":                       resourceProject(),
+		"edgecenter_volume":                        resourceVolume(),
+		"edgecenter_network":                       resourceNetwork(),
+		"edgecenter_subnet":                        resourceSubnet(),
+		"edgecenter_router":                        resourceRouter(),
+		"edgecenter_instance":                      resourceInstance(),
+		"edgecenter_instanceV2":                    resourceInstanceV2(),
+		"edgecenter_keypair":                       resourceKeypair(),
+		"edgecenter_reservedfixedip":               resourceReservedFixedIP(),
+		"edgecenter_floatingip":                    resourceFloatingIP(),
+		"edgecenter_loadbalancer":                  resourceLoadBalancer(),
+		"edgecenter_loadbalancerv2":                resourceLoadBalancerV2(),
+		"edgecenter_lblistener":                    resourceLbListener(),
+		"edgecenter_lbpool":                        resourceLBPool(),
+		"edgecenter_lbmember":                      resourceLBMember(),
+		"edgecenter_securitygroup":                 resourceSecurityGroup(),
+		"edgecenter_baremetal":                     resourceBmInstance(),
+		"edgecenter_snapshot":                      resourceSnapshot(),
+		"edgecenter_servergroup":                   resourceServerGroup(),
+		"edgecenter_mkaas_cluster":                 resourceMKaaSCluster(),
+		"edgecenter_mkaas_pool":                    resourceMKaaSPool(),
+		"edgecenter_secret":                        resourceSecret(),
+		LifecyclePolicyResourceField:               resourceLifecyclePolicy(),
+		"edgecenter_lb_l7policy":                   resourceL7Policy(),
+		"edgecenter_lb_l7rule":                     resourceL7Rule(),
+		"edgecenter_instance_port_security":        resourceInstancePortSecurity(),
+		"edgecenter_useractions_subscription_amqp": resourceUserActionsSubscriptionAMQP(),
+		"edgecenter_useractions_subscription_log":  resourceUserActionsSubscriptionLog(),
 	}
 }
 
@@ -383,8 +371,6 @@ func (LegacyService) DataSources() map[string]*schema.Resource {
 		"edgecenter_instance":                      dataSourceInstance(),
 		"edgecenter_instanceV2":                    dataSourceInstanceV2(),
 		"edgecenter_floatingip":                    dataSourceFloatingIP(),
-		"edgecenter_storage_s3":                    dataSourceStorageS3(),
-		"edgecenter_storage_s3_bucket":             dataSourceStorageS3Bucket(),
 		"edgecenter_reservedfixedip":               dataSourceReservedFixedIP(),
 		"edgecenter_servergroup":                   dataSourceServerGroup(),
 		"edgecenter_snapshot":                      dataSourceSnapshot(),
@@ -398,15 +384,7 @@ func (LegacyService) DataSources() map[string]*schema.Resource {
 		"edgecenter_instance_port_security":        dataSourceInstancePortSecurity(),
 		"edgecenter_useractions_subscription_amqp": dataSourceUserActionsListAMQPSubscriptions(),
 		"edgecenter_useractions_subscription_log":  dataSourceUserActionsListLogSubscriptions(),
-		"edgecenter_reseller_images":               dataSourceResellerImages(),
-		"edgecenter_reseller_networks":             dataSourceResellerNetworksList(),
-		"edgecenter_reseller_imagesV2":             dataSourceResellerImagesV2(),
 		"edgecenter_mkaas_cluster":                 dataSourceMKaaSCluster(),
-		"edgecenter_dbaas_dbms":                    dataSourceDBaaSDBMS(),
-		"edgecenter_dbaas_clusters":                dataSourceDBaaSClusters(),
-		"edgecenter_dbaas_databases":               dataSourceDBaaSDatabases(),
-		"edgecenter_dbaas_users":                   dataSourceDBaaSUsers(),
-		"edgecenter_dbaas_backup":                  dataSourceDBaaSBackup(),
 	}
 }
 
