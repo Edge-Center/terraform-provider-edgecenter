@@ -42,6 +42,7 @@ output "view" {
 
 ### Read-Only
 
+- `access` (List of Object) (see [below for nested schema](#nestedatt--access))
 - `connection_info` (List of Object) (see [below for nested schema](#nestedatt--connection_info))
 - `created_at` (String)
 - `dbms` (List of Object) (see [below for nested schema](#nestedatt--dbms))
@@ -53,6 +54,15 @@ output "view" {
 - `task_id` (String)
 - `updated_at` (String)
 - `volume` (List of Object) (see [below for nested schema](#nestedatt--volume))
+
+<a id="nestedatt--access"></a>
+### Nested Schema for `access`
+
+Read-Only:
+
+- `allowed_cidrs` (Set of String)
+- `is_public` (Boolean)
+
 
 <a id="nestedatt--connection_info"></a>
 ### Nested Schema for `connection_info`
