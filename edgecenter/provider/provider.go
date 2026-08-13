@@ -16,7 +16,13 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/storage"
 )
 
+const devVersion = "dev"
+
 func Provider() *schema.Provider {
+	return ProviderWithVersion(devVersion)
+}
+
+func ProviderWithVersion(version string) *schema.Provider {
 	resources, dataSources := registerAll(
 		edgecenter.LegacyService{},
 		edgemon.Service{},
@@ -39,7 +45,7 @@ func Provider() *schema.Provider {
 		if terraformVersion == "" {
 			terraformVersion = "0.12+compatible"
 		}
-		return edgecenter.ProviderConfigure(ctx, d, terraformVersion)
+		return edgecenter.ProviderConfigure(ctx, d, terraformVersion, version)
 	}
 
 	return p

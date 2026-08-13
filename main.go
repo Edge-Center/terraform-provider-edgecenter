@@ -3,10 +3,13 @@ package main
 import (
 	"flag"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
+
+var version = "dev"
 
 func main() {
 	var debug bool
@@ -19,7 +22,9 @@ func main() {
 	opts := &plugin.ServeOpts{
 		Debug:        debug,
 		ProviderAddr: address,
-		ProviderFunc: provider.Provider,
+		ProviderFunc: func() *schema.Provider {
+			return provider.ProviderWithVersion(version)
+		},
 	}
 
 	plugin.Serve(opts)

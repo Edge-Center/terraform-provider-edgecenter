@@ -10,6 +10,25 @@ Latest provider
 ------------
 - [edge-center provider](https://registry.terraform.io/providers/Edge-Center/edgecenter/latest)
 
+Version check
+------------
+Whenever the provider is configured, which happens on `plan`, `apply`,
+`refresh` and `destroy`, it checks whether a newer release exists and prints a
+warning when the installed version is behind.
+
+The check asks the GitHub releases page of this repository first. Only if that
+fails does it fall back to the Terraform registry, and after that to the public
+Yandex Cloud terraform mirror. The answer, including a failure, is cached in
+the user cache directory for 24 hours, so at most one request per day leaves
+the machine. Nothing about your configuration, account or credentials is sent,
+and any failure is silent: an unreachable network leaves the run untouched and
+costs at most six seconds once a day.
+
+Set `EC_DISABLE_VERSION_CHECK=1` to turn the check off. It also stays quiet
+when `CHECKPOINT_DISABLE` or `TF_IN_AUTOMATION` is set to any value, and in
+builds without a release version, such as local builds installed through
+`dev_overrides`.
+
 
 Using the provider
 ------------------

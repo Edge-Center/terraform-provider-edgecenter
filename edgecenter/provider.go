@@ -22,6 +22,7 @@ import (
 	ermonProvider "github.com/Edge-Center/edgecenteredgemon-go/edgecenter/provider"
 	protectionSDK "github.com/Edge-Center/edgecenterprotection-go"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/meta"
+	"github.com/Edge-Center/terraform-provider-edgecenter/internal/versioncheck"
 )
 
 const (
@@ -390,9 +391,10 @@ func (LegacyService) DataSources() map[string]*schema.Resource {
 }
 
 func ProviderConfigure(
-	_ context.Context,
+	ctx context.Context,
 	d *schema.ResourceData,
 	terraformVersion string,
+	providerVersion string,
 ) (*Config, diag.Diagnostics) {
 	username := d.Get("user_name").(string)
 	password := d.Get("password").(string)
@@ -440,7 +442,7 @@ func ProviderConfigure(
 		platform = apiEndpoint + "/iam"
 	}
 
-	userAgent := fmt.Sprintf("terraform/%s", terraformVersion)
+	userAgent := fmt.Sprintf("terraform/%s terraform-provider-edgecenter/%s", terraformVersion, providerVersion)
 
 	var diags diag.Diagnostics
 
@@ -469,13 +471,17 @@ func ProviderConfigure(
 		log.Printf("[WARN] init auth client: %s\n", err)
 	}
 
-	cdnProvider := eccdnProvider.NewClient(cdnAPI, eccdnProvider.WithSignerFunc(func(req *http.Request) error {
-		for k, v := range provider.AuthenticatedHeaders() {
-			req.Header.Set(k, v)
-		}
+	cdnProvider := eccdnProvider.NewClient(
+		cdnAPI,
+		eccdnProvider.WithUA(userAgent),
+		eccdnProvider.WithSignerFunc(func(req *http.Request) error {
+			for k, v := range provider.AuthenticatedHeaders() {
+				req.Header.Set(k, v)
+			}
 
-		return nil
-	}))
+			return nil
+		}),
+	)
 	cdnService := cdn.NewService(cdnProvider)
 
 	config := Config{
@@ -548,6 +554,17 @@ func ProviderConfigure(
 		if err != nil {
 			return nil, diag.FromErr(fmt.Errorf("protection api client: %w", err))
 		}
+	}
+
+	if latest, ok := versioncheck.Available(ctx, providerVersion); ok {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "A newer version of the EdgeCenter provider is available",
+			Detail: fmt.Sprintf(
+				"Installed version is %s, the latest release is %s.\nRelease notes: %s\nSet %s=1 to disable this check.",
+				providerVersion, latest, versioncheck.ReleasesURL, versioncheck.EnvDisable,
+			),
+		})
 	}
 
 	return &config, diags
