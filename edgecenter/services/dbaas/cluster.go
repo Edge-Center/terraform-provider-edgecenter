@@ -158,6 +158,12 @@ func resourceDBaaSCluster() *schema.Resource {
 					},
 				},
 			},
+			edgecenter.DBaaSClusterFromBackupIDField: {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The ID of the backup to restore the cluster from.",
+			},
 			edgecenter.DBaaSClusterAccessField: {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -262,6 +268,11 @@ func resourceDBaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 				SubnetID:  iface[edgecenter.SubnetIDField].(string),
 			}
 		}
+	}
+
+	if v, ok := d.GetOk(edgecenter.DBaaSClusterFromBackupIDField); ok {
+		fromBackupID := v.(string)
+		createOpts.FromBackupID = &fromBackupID
 	}
 
 	createOpts.Access = expandDBaaSClusterAccess(d.Get(edgecenter.DBaaSClusterAccessField))

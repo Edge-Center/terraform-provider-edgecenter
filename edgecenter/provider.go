@@ -182,6 +182,7 @@ const (
 
 	DBaaSClusterHighAvailabilityField = "high_availability"
 	DBaaSClusterTaskIDField           = "task_id"
+	DBaaSClusterFromBackupIDField     = "from_backup_id"
 
 	DBaaSVolumeSizeField = "volume_size"
 	DBaaSVolumeTypeField = "volume_type"

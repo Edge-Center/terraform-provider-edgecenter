@@ -61,6 +61,7 @@ resource "edgecenter_dbaas_cluster" "example" {
 
 - `access` (Block List, Max: 1) The access control settings for the DBaaS cluster. (see [below for nested schema](#nestedblock--access))
 - `description` (String) The description of the DBaaS cluster.
+- `from_backup_id` (String) The ID of the backup to restore the cluster from.
 - `high_availability` (Boolean) Enable high availability for the cluster.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
 - `project_name` (String) The name of the project. Either 'project_id' or 'project_name' must be specified.
