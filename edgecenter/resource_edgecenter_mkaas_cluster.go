@@ -320,11 +320,12 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if unsupported := mkaasClusterUnsupportedUpdateChanges(d); len(unsupported) > 0 {
 		return diag.Errorf(
 			"MKaaS cluster update is not supported for these fields: %v. "+
-				"Only %q and %q are supported. "+
+				"Only %q, %q, and %q are supported. "+
 				"Please revert changes, or recreate the resource if applicable.",
 			unsupported,
 			NameField,
 			fmt.Sprintf("%s.0.%s", MKaaSClusterControlPlaneField, MKaaSNodeCountField),
+			fmt.Sprintf("%s.0.%s", MKaaSClusterControlPlaneField, MKaaSClusterVersionField),
 		)
 	}
 
@@ -339,7 +340,8 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	controlPlaneNodeCountPath := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, MKaaSNodeCountField)
-	needsUpdate := d.HasChange(NameField) || d.HasChange(controlPlaneNodeCountPath)
+	controlPlaneVersionPath := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, MKaaSClusterVersionField)
+	needsUpdate := d.HasChange(NameField) || d.HasChange(controlPlaneNodeCountPath) || d.HasChange(controlPlaneVersionPath)
 
 	if !needsUpdate {
 		tflog.Info(ctx, "No MKaaS cluster fields require update")
@@ -387,6 +389,35 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		}
 
 		tflog.Info(ctx, "Finish MKaaS Cluster master node count update")
+	}
+
+	if d.HasChange(controlPlaneVersionPath) {
+		tflog.Info(ctx, "Upgrading MKaaS cluster version")
+
+		cpList := d.Get(MKaaSClusterControlPlaneField).([]interface{})
+		cp := cpList[0].(map[string]interface{})
+		shortVersion := cp[MKaaSClusterVersionField].(string)
+		fullVersion, err := resolveK8sVersionFromAPI(ctx, clientV2, clientV2.Region, shortVersion)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		upgradeReq := edgecloudV2.MKaaSClusterUpgradeVersionRequest{
+			TargetVersion: fullVersion,
+		}
+
+		task, _, err := clientV2.MkaaS.ClusterUpgradeVersion(ctx, clusterID, upgradeReq)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		taskID := task.Tasks[0]
+		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSClusterUpdateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		tflog.Info(ctx, "Finish MKaaS Cluster version upgrade")
 	}
 
 	return resourceMKaaSClusterRead(ctx, d, m)

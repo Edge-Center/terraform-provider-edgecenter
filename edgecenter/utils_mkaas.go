@@ -62,7 +62,6 @@ func mkaasClusterUnsupportedUpdateChanges(d *schema.ResourceData) []string {
 		FlavorField,
 		MKaaSVolumeSizeField,
 		MKaaSVolumeTypeField,
-		MKaaSClusterVersionField,
 	}
 
 	for _, sf := range cpUnsupported {
