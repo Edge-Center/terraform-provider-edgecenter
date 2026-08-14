@@ -1,4 +1,4 @@
-package edgecenter
+package mkaas
 
 import (
 	"context"
@@ -14,7 +14,10 @@ import (
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
+
+const MKaaSPoolResource = "edgecenter_mkaas_pool"
 
 const (
 	MKaaSPoolReadTimeout   = 10 * time.Minute
@@ -41,9 +44,9 @@ func resourceMKaaSPool() *schema.Resource {
 			StateContext: func(ctx context.Context, d *schema.ResourceData,
 				meta interface{},
 			) ([]*schema.ResourceData, error) {
-				projectID, regionID, poolID, clusterIDStr, err := ImportStringParserExtended(d.Id())
+				projectID, regionID, poolID, clusterIDStr, err := edgecenter.ImportStringParserExtended(d.Id())
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("importing MKaaS pool: %w", err)
 				}
 				clusterID, err := strconv.Atoi(clusterIDStr)
 				if err != nil {
@@ -59,66 +62,66 @@ func resourceMKaaSPool() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			ProjectIDField: {
+			edgecenter.ProjectIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Description:  "The uuid of the project. Either `project_id` or `project_name` must be specified.",
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			ProjectNameField: {
+			edgecenter.ProjectNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "The name of the project. Either `project_id` or `project_name` must be specified.",
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			RegionIDField: {
+			edgecenter.RegionIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Description:  "The uuid of the region. Either `region_id` or `region_name` must be specified.",
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			RegionNameField: {
+			edgecenter.RegionNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "The name of the region. Either `region_id` or `region_name` must be specified.",
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			MKaaSClusterIDField: {
+			edgecenter.MKaaSClusterIDField: {
 				Type:        schema.TypeInt,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The id of the Kubernetes cluster this pool belongs to.",
 			},
-			NameField: {
+			edgecenter.NameField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the Kubernetes pool.",
 			},
-			FlavorField: {
+			edgecenter.FlavorField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The identifier of the flavor used for nodes in this pool, e.g. g1-standard-2-4.",
 			},
-			MKaaSNodeCountField: {
+			edgecenter.MKaaSNodeCountField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
-				ExactlyOneOf: []string{MKaaSNodeCountField, MKaaSPoolScalePolicyField},
+				ExactlyOneOf: []string{edgecenter.MKaaSNodeCountField, edgecenter.MKaaSPoolScalePolicyField},
 				Description:  "The number of nodes in the pool.",
 			},
-			MKaaSPoolCurrentNodeCountField: {
+			edgecenter.MKaaSPoolCurrentNodeCountField: {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "The current number of nodes in the pool, reflecting the live value from the API (managed by the autoscaler when enabled).",
 			},
-			MKaaSVolumeSizeField: {
+			edgecenter.MKaaSVolumeSizeField: {
 				Type:     schema.TypeInt,
 				Required: true,
 				Description: "The size of the control volumes in the cluster, specified in gigabytes (GB)." +
 					" Allowed range: `20–1024` GiB.",
 				ValidateFunc: validation.IntBetween(20, 1024),
 			},
-			MKaaSVolumeTypeField: {
+			edgecenter.MKaaSVolumeTypeField: {
 				Type:     schema.TypeString,
 				Required: true,
 				Description: fmt.Sprintf("The type of volume. Available values are `%s`,"+
@@ -128,7 +131,7 @@ func resourceMKaaSPool() *schema.Resource {
 					string(edgecloudV2.VolumeTypeSsdHiIops),
 				}, false),
 			},
-			MKaaSPoolSecurityGroupIDsField: {
+			edgecenter.MKaaSPoolSecurityGroupIDsField: {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -136,17 +139,17 @@ func resourceMKaaSPool() *schema.Resource {
 				},
 				Description: "The list of security group IDs associated with the pool.",
 			},
-			MKaaSPoolStateField: {
+			edgecenter.MKaaSPoolStateField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The state of the pool.",
 			},
-			MKaaSPoolStatusField: {
+			edgecenter.MKaaSPoolStatusField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The status of the pool.",
 			},
-			MKaaSPoolLabelsField: {
+			edgecenter.MKaaSPoolLabelsField: {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Description: "Arbitrary labels assigned to the pool.",
@@ -154,7 +157,7 @@ func resourceMKaaSPool() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			MKaaSPoolTaintsField: {
+			edgecenter.MKaaSPoolTaintsField: {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "Kubernetes taints applied to all nodes in the pool.",
@@ -180,29 +183,29 @@ func resourceMKaaSPool() *schema.Resource {
 					},
 				},
 			},
-			MKaaSPoolScalePolicyField: {
+			edgecenter.MKaaSPoolScalePolicyField: {
 				Type:         schema.TypeList,
 				Optional:     true,
 				MaxItems:     1,
-				ExactlyOneOf: []string{MKaaSNodeCountField, MKaaSPoolScalePolicyField},
+				ExactlyOneOf: []string{edgecenter.MKaaSNodeCountField, edgecenter.MKaaSPoolScalePolicyField},
 				Description: "Scale policy for the pool. Presence of `auto_scale` enables the " +
 					"Cluster Autoscaler; removing the block disables it.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						MKaaSPoolAutoScaleField: {
+						edgecenter.MKaaSPoolAutoScaleField: {
 							Type:        schema.TypeList,
 							Required:    true,
 							MaxItems:    1,
 							Description: "Auto-scaling configuration for the pool.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									MKaaSPoolMinNodeCountField: {
+									edgecenter.MKaaSPoolMinNodeCountField: {
 										Type:         schema.TypeInt,
 										Required:     true,
 										Description:  "Minimum number of nodes the autoscaler may scale the pool down to.",
 										ValidateFunc: validation.IntAtLeast(1),
 									},
-									MKaaSPoolMaxNodeCountField: {
+									edgecenter.MKaaSPoolMaxNodeCountField: {
 										Type:         schema.TypeInt,
 										Required:     true,
 										Description:  "Maximum number of nodes the autoscaler may scale the pool up to.",
@@ -222,19 +225,19 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 	tflog.Info(ctx, "Start MKaaS Cluster creating")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	clusterID := d.Get(MKaaSClusterIDField).(int)
+	clusterID := d.Get(edgecenter.MKaaSClusterIDField).(int)
 
 	minNodeCount, maxNodeCount, autoscale := expandScalePolicy(d)
 
 	createOpts := edgecloudV2.MKaaSPoolCreateRequest{
-		Name:               d.Get(NameField).(string),
-		Flavor:             d.Get(FlavorField).(string),
-		VolumeSize:         d.Get(MKaaSVolumeSizeField).(int),
-		VolumeType:         edgecloudV2.VolumeType(d.Get(MKaaSVolumeTypeField).(string)),
+		Name:               d.Get(edgecenter.NameField).(string),
+		Flavor:             d.Get(edgecenter.FlavorField).(string),
+		VolumeSize:         d.Get(edgecenter.MKaaSVolumeSizeField).(int),
+		VolumeType:         edgecloudV2.VolumeType(d.Get(edgecenter.MKaaSVolumeTypeField).(string)),
 		Labels:             map[string]string{},
 		Taints:             []edgecloudV2.MKaaSTaint{},
 		AutoscalingEnabled: autoscale,
@@ -244,12 +247,12 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 		createOpts.MaxNodeCount = &maxNodeCount
 	}
 
-	if nc, ok := d.GetOk(MKaaSNodeCountField); ok {
+	if nc, ok := d.GetOk(edgecenter.MKaaSNodeCountField); ok {
 		createOpts.NodeCount = nc.(int)
 	} else if autoscale {
 		createOpts.NodeCount = minNodeCount
 	}
-	if v, ok := d.GetOk(MKaaSPoolSecurityGroupIDsField); ok {
+	if v, ok := d.GetOk(edgecenter.MKaaSPoolSecurityGroupIDsField); ok {
 		sgs := v.([]interface{})
 		ids := make([]string, 0, len(sgs))
 		for _, sg := range sgs {
@@ -257,13 +260,12 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 		createOpts.SecurityGroupIds = ids
 	}
-	if v, ok := d.GetOk(MKaaSPoolLabelsField); ok {
+	if v, ok := d.GetOk(edgecenter.MKaaSPoolLabelsField); ok {
 		for k, iv := range v.(map[string]interface{}) {
 			createOpts.Labels[k] = iv.(string)
 		}
 	}
-	// expand taints from TypeSet
-	if raw, ok := d.GetOk(MKaaSPoolTaintsField); ok {
+	if raw, ok := d.GetOk(edgecenter.MKaaSPoolTaintsField); ok {
 		createOpts.Taints = expandTaints(raw.(*schema.Set))
 	}
 
@@ -300,12 +302,12 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	log.Println("Read MKaaS pool")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(MKaaSClusterIDField).(int)
+	clusterID := d.Get(edgecenter.MKaaSClusterIDField).(int)
 	poolIDStr := d.Id()
 	poolID, err := strconv.Atoi(poolIDStr)
 	if err != nil {
@@ -318,21 +320,21 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 
 	_, _, configAutoscale := expandScalePolicy(d)
 	if !pool.AutoscalingEnabled && !configAutoscale {
-		_ = d.Set(MKaaSNodeCountField, pool.NodeCount)
+		_ = d.Set(edgecenter.MKaaSNodeCountField, pool.NodeCount)
 	}
 
-	_ = d.Set(NameField, pool.Name)
-	_ = d.Set(MKaaSClusterIDField, clusterID)
-	_ = d.Set(FlavorField, pool.Flavor)
-	_ = d.Set(MKaaSVolumeSizeField, pool.VolumeSize)
-	_ = d.Set(MKaaSVolumeTypeField, string(pool.VolumeType))
-	_ = d.Set(MKaaSPoolStateField, pool.State)
-	_ = d.Set(MKaaSPoolStatusField, pool.Status)
-	_ = d.Set(MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)
-	_ = d.Set(MKaaSPoolLabelsField, pool.Labels)
-	_ = d.Set(MKaaSPoolTaintsField, flattenTaints(pool.Taints))
-	_ = d.Set(MKaaSPoolScalePolicyField, flattenScalePolicy(pool))
-	_ = d.Set(MKaaSPoolCurrentNodeCountField, pool.NodeCount)
+	_ = d.Set(edgecenter.NameField, pool.Name)
+	_ = d.Set(edgecenter.MKaaSClusterIDField, clusterID)
+	_ = d.Set(edgecenter.FlavorField, pool.Flavor)
+	_ = d.Set(edgecenter.MKaaSVolumeSizeField, pool.VolumeSize)
+	_ = d.Set(edgecenter.MKaaSVolumeTypeField, string(pool.VolumeType))
+	_ = d.Set(edgecenter.MKaaSPoolStateField, pool.State)
+	_ = d.Set(edgecenter.MKaaSPoolStatusField, pool.Status)
+	_ = d.Set(edgecenter.MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)
+	_ = d.Set(edgecenter.MKaaSPoolLabelsField, pool.Labels)
+	_ = d.Set(edgecenter.MKaaSPoolTaintsField, flattenTaints(pool.Taints))
+	_ = d.Set(edgecenter.MKaaSPoolScalePolicyField, flattenScalePolicy(pool))
+	_ = d.Set(edgecenter.MKaaSPoolCurrentNodeCountField, pool.NodeCount)
 
 	return diags
 }
@@ -346,23 +348,23 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 				"Only %q, %q, %q, %q, %q and %q are supported. "+
 				"Please revert changes, or recreate the resource if applicable.",
 			unsupported,
-			NameField,
-			MKaaSNodeCountField,
-			MKaaSPoolSecurityGroupIDsField,
-			MKaaSPoolLabelsField,
-			MKaaSPoolTaintsField,
-			MKaaSPoolScalePolicyField,
+			edgecenter.NameField,
+			edgecenter.MKaaSNodeCountField,
+			edgecenter.MKaaSPoolSecurityGroupIDsField,
+			edgecenter.MKaaSPoolLabelsField,
+			edgecenter.MKaaSPoolTaintsField,
+			edgecenter.MKaaSPoolScalePolicyField,
 		)
 	}
 
-	clusterID := d.Get(MKaaSClusterIDField).(int)
+	clusterID := d.Get(edgecenter.MKaaSClusterIDField).(int)
 
 	poolID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("invalid pool id %q: %w", d.Id(), err))
 	}
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -374,8 +376,8 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		return utilV2.WaitForTaskComplete(ctx, clientV2, taskResp.Tasks[0], MKaaSPoolUpdateTimeout)
 	}
 
-	if d.HasChange(NameField) {
-		name := d.Get(NameField).(string)
+	if d.HasChange(edgecenter.NameField) {
+		name := d.Get(edgecenter.NameField).(string)
 
 		tflog.Info(ctx, "Updating MKaaS pool name", map[string]interface{}{
 			"pool_id": poolID,
@@ -397,7 +399,7 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 
 	minNodeCount, maxNodeCount, autoscaleNow := expandScalePolicy(d)
 
-	if d.HasChange(MKaaSPoolScalePolicyField) {
+	if d.HasChange(edgecenter.MKaaSPoolScalePolicyField) {
 		req := edgecloudV2.MKaaSPoolUpdateAutoscalingRequest{
 			EnableAutoscaling: &autoscaleNow,
 		}
@@ -423,8 +425,8 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if d.HasChange(MKaaSNodeCountField) && !autoscaleNow {
-		nodeCount := d.Get(MKaaSNodeCountField).(int)
+	if d.HasChange(edgecenter.MKaaSNodeCountField) && !autoscaleNow {
+		nodeCount := d.Get(edgecenter.MKaaSNodeCountField).(int)
 
 		tflog.Info(ctx, "Updating MKaaS pool node count", map[string]interface{}{
 			"pool_id":    poolID,
@@ -444,8 +446,8 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if d.HasChange(MKaaSPoolSecurityGroupIDsField) {
-		raw := d.Get(MKaaSPoolSecurityGroupIDsField).([]interface{})
+	if d.HasChange(edgecenter.MKaaSPoolSecurityGroupIDsField) {
+		raw := d.Get(edgecenter.MKaaSPoolSecurityGroupIDsField).([]interface{})
 		ids := make([]string, 0, len(raw))
 		for _, v := range raw {
 			ids = append(ids, v.(string))
@@ -470,8 +472,8 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if d.HasChange(MKaaSPoolLabelsField) {
-		raw := d.Get(MKaaSPoolLabelsField).(map[string]interface{})
+	if d.HasChange(edgecenter.MKaaSPoolLabelsField) {
+		raw := d.Get(edgecenter.MKaaSPoolLabelsField).(map[string]interface{})
 		labels := map[string]string{}
 		for k, v := range raw {
 			labels[k] = v.(string)
@@ -495,8 +497,8 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if d.HasChange(MKaaSPoolTaintsField) {
-		taints := expandTaints(d.Get(MKaaSPoolTaintsField).(*schema.Set))
+	if d.HasChange(edgecenter.MKaaSPoolTaintsField) {
+		taints := expandTaints(d.Get(edgecenter.MKaaSPoolTaintsField).(*schema.Set))
 
 		tflog.Info(ctx, "Updating MKaaS pool taints", map[string]interface{}{
 			"pool_id": poolID,
@@ -525,12 +527,12 @@ func resourceMKaaSPoolDelete(ctx context.Context, d *schema.ResourceData, m inte
 	tflog.Info(ctx, "Start MKaaS delete")
 	var diags diag.Diagnostics
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	clusterID := d.Get(MKaaSClusterIDField).(int)
+	clusterID := d.Get(edgecenter.MKaaSClusterIDField).(int)
 	poolID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("invalid pool id %q: %w", d.Id(), err))

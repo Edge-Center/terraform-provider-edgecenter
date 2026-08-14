@@ -80,11 +80,19 @@ integrationtest/
 │   │       ├── generate.go                # go:generate entry point
 │   │       ├── ResellerImageV2Service.go  (generated)
 │   │       └── ResellerNetworksService.go (generated)
-│   └── dbaas/        # DBaaS-specific helpers
-│       └── mock/     # Generated testify mocks + MockedDBaaS (package dbaasmock)
-│           ├── client.go           # MockedDBaaS, NewMockedDBaaS, Allow*/Expect* resolution
+│   ├── dbaas/        # DBaaS-specific helpers
+│   │   └── mock/     # Generated testify mocks + MockedDBaaS (package dbaasmock)
+│   │       ├── client.go           # MockedDBaaS, NewMockedDBaaS, Allow*/Expect* resolution
+│   │       ├── generate.go         # go:generate entry point
+│   │       ├── DBaaSService.go     (generated)
+│   │       ├── TasksService.go     (generated)
+│   │       ├── ProjectsService.go  (generated)
+│   │       └── RegionsService.go   (generated)
+│   └── mkaas/        # MKaaS-specific helpers
+│       └── mock/     # Generated testify mocks + MockedMKaaS (package mkaasmock)
+│           ├── client.go           # MockedMKaaS, NewMockedMKaaS, Allow* resolution
 │           ├── generate.go         # go:generate entry point
-│           ├── DBaaSService.go     (generated)
+│           ├── MKaaSService.go     (generated)
 │           ├── TasksService.go     (generated)
 │           ├── ProjectsService.go  (generated)
 │           └── RegionsService.go   (generated)
@@ -109,7 +117,10 @@ integrationtest/
 ├── reseller/         # Reseller resource and data source integration tests
 │   ├── images_v2_test.go
 │   └── ...
-└── dbaas/            # DBaaS resource and data source integration tests
+├── dbaas/            # DBaaS resource and data source integration tests
+│   ├── cluster_test.go
+│   └── ...
+└── mkaas/            # MKaaS resource and data source integration tests
     ├── cluster_test.go
     └── ...
 ```
@@ -486,6 +497,63 @@ are written up in `tsks/terraform-provider-edgecenter/bugs/dbaas/`.
 
 Schema flags, the identity pairs, the declared timeouts and the service registration are
 covered co-located in `services/dbaas/schema_test.go`.
+
+## MKaaS
+
+MKaaS is the third migrated service on the cloud API and resolves project and region on
+every call, exactly like DBaaS: every case needs `mkaasmock.AllowProjectResolution(mc,
+testProjectID)`. `Regions` stays a bare mock with no expectations, so a regression that
+starts resolving the region by name fails loudly instead of passing.
+
+The whole surface sits behind one SDK interface, `edgecloud.MKaaSService`, so cluster,
+pool and version expectations all go on `mc.MKaaS`. `mc.Tasks` is needed for every write:
+cluster create goes through `ExecuteAndExtractTaskResult`, everything else through
+`WaitAndGetTaskInfo` or `WaitForTaskComplete`. Ids arrive as `float64` inside
+`TaskResult`, keyed `mkaasclusters` and `mkaaspools` - `clusterCreated` and `poolCreated`
+in `common_test.go` build that payload.
+
+```go
+mc := mkaasmock.NewMockedMKaaS()
+mkaasmock.AllowProjectResolution(mc, testProjectID)
+mc.MKaaS.On("VersionsList", mock.Anything, testRegionID).
+    Return(availableVersions("v1.30.9", "v1.31.4"), nil, nil)
+mc.Tasks.On("Get", mock.Anything, testTaskID).
+    Return(finishedTask(clusterCreated(testClusterID)), nil, nil).Once()
+```
+
+Regenerate the mocks with:
+
+```bash
+go generate ./edgecenter/integrationtest/support/mkaas/mock/...
+```
+
+Three things worth knowing before adding cases here:
+
+- The cluster data source declares an `id` attribute and reads it with `d.GetOk("id")`,
+  the same trap DBaaS has, so its cases run through `runDataSourceRead` rather than
+  `support.DispatchCase`.
+- Six cases assert on a marshalled request rather than on the request struct. Two defects
+  live in the SDK's `omitempty` tags (`node_count = 0` and an emptied `labels` map never
+  reach the wire), and a struct-level mock cannot see either. `marshal` in
+  `common_test.go` is what makes them observable; each is paired with a positive case on
+  the same field so the assertion cannot go vacuous.
+- Four cases assert a panic instead of a diagnostic. `Tasks[0]` and
+  `TaskResult.Mkaas{Clusters,Pools}[0]` are indexed with no guard on both resources, so a
+  success answer that carries no task or no id crashes the provider. Those cases drive
+  the resource directly, without `RunResourceCases`, because a recovered panic would
+  leave unmet mock expectations behind.
+
+`diff_test.go` covers the plan surface: the replacement census (which attributes the API
+cannot patch and are still not `ForceNew`), the scope drift a `project_name` based config
+produces, both importers, and both `CustomizeDiff` functions.
+
+Many of the cases here are **characterization tests**, the same way protection's,
+reseller's and dbaas's are: they pin behaviour that is wrong on purpose, so a fix shows up
+as a failing test rather than a silent change. Each such case says so in its name (for
+example `read keeps a deleted pool in state forever`).
+
+Schema flags, the identity pairs, the declared timeouts, the three deprecated `k8s` stubs
+and the service registration are covered co-located in `services/mkaas/schema_test.go`.
 
 ## What to write for a new resource
 

@@ -19,6 +19,7 @@ import (
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/mkaas"
 )
 
 type poolAutoScaleData struct { //nolint:unused
@@ -496,7 +497,7 @@ func DeleteTestMKaaSCluster(t *testing.T, clientV2 *edgecloudV2.Client, clusterI
 	}
 
 	taskID := results.Tasks[0]
-	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, edgecenter.MKaaSClusterDeleteTimeout)
+	task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, mkaas.MKaaSClusterDeleteTimeout)
 	if err != nil {
 		return fmt.Errorf("failed to wait for cluster deletion: %w", err)
 	}

@@ -1,4 +1,4 @@
-package edgecenter
+package mkaas
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+const K8sPoolDataSource = "edgecenter_k8s_pool"
 
 func dataSourceK8sPool() *schema.Resource {
 	return &schema.Resource{

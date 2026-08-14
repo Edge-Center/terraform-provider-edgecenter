@@ -53,10 +53,9 @@ cloud:
   - 'edgecenter/test/*_cloud_*'
 
 mkaas:
-  - 'edgecenter/resource_edgecenter_mkaas*'
-  - 'edgecenter/resource_edgecenter_k8s*'
-  - 'edgecenter/data_source_edgecenter_mkaas*'
-  - 'edgecenter/data_source_edgecenter_k8s*'
+  - 'edgecenter/services/mkaas/**'
+  - 'edgecenter/integrationtest/mkaas/**'
+  - 'edgecenter/integrationtest/support/mkaas/**'
   - 'edgecenter/test/*_mkaas_*'
 
 cdn:

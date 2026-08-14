@@ -1,4 +1,4 @@
-package edgecenter
+package mkaas
 
 import (
 	"context"
@@ -10,7 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
+
+const MKaaSClusterDataSource = "edgecenter_mkaas_cluster"
 
 func dataSourceMKaaSCluster() *schema.Resource {
 	return &schema.Resource{
@@ -84,7 +87,7 @@ func dataSourceMKaaSCluster() *schema.Resource {
 func dataSourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Debug(ctx, "[DEBUG] Start MKaaS cluster reading")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
