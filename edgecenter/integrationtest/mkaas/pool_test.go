@@ -238,7 +238,7 @@ func TestIntegrationMKaaSPoolResource_Create(t *testing.T) {
 			},
 		},
 		{
-			Name: "an explicit node count of zero never reaches the request",
+			Name: "an explicit node count of zero never reaches the request and the create dies",
 			Op:   support.OpApply,
 			Prepare: func() *mkaasmock.MockedMKaaS {
 				mc := mkaasmock.NewMockedMKaaS()
@@ -249,19 +249,16 @@ func TestIntegrationMKaaSPoolResource_Create(t *testing.T) {
 					Run(capture).
 					Return(taskResponse(testTaskID), nil, nil).Once()
 				mc.Tasks.On("Get", mock.Anything, testTaskID).
-					Return(finishedTask(poolCreated(testPoolID)), nil, nil).Once()
-				mc.MKaaS.On("PoolGet", mock.Anything, testClusterID, testPoolID).
-					Return(samplePool(map[string]interface{}{"node_count": 3}), nil, nil).Once()
+					Return(failedTaskWithError("node count must be greater than 0: bad request"), nil, nil).Once()
 
 				return mc
 			},
 			NewConfig: poolConfig(map[string]interface{}{"node_count": 0}),
 			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *mkaasmock.MockedMKaaS) {
-				support.RequireNoErrorDiags(t, diags)
 				require.NotContains(t, marshal(t, sent), `"node_count"`,
 					"d.GetOk cannot tell zero from absent and omitempty then drops the field off the wire")
-				require.Equal(t, "3", state.Attributes["node_count"],
-					"the server picks its own size and the read records it, so the plan never converges")
+				support.RequireErrorDiagContains(t, diags, "node count must be greater than 0")
+				require.Nil(t, state, "the pool the backend refused never lands in state")
 			},
 		},
 		{
@@ -638,7 +635,7 @@ func TestIntegrationMKaaSPoolResource_Update(t *testing.T) {
 			},
 		},
 		{
-			Name:      "dropping every label sends a body with no labels key at all",
+			Name:      "dropping every label sends an empty body that the api reads as clear",
 			Op:        support.OpApply,
 			CurrentID: testPoolIDStr,
 			Prepare: func() *mkaasmock.MockedMKaaS {
@@ -656,7 +653,7 @@ func TestIntegrationMKaaSPoolResource_Update(t *testing.T) {
 					Return(finishedTask(nil), nil, nil).Once()
 				mc.MKaaS.On("PoolGet", mock.Anything, testClusterID, testPoolID).
 					Return(samplePool(map[string]interface{}{
-						"labels": map[string]string{"team": "platform"},
+						"labels": map[string]string{},
 					}), nil, nil).Once()
 
 				return mc
@@ -668,9 +665,9 @@ func TestIntegrationMKaaSPoolResource_Update(t *testing.T) {
 			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *mkaasmock.MockedMKaaS) {
 				support.RequireNoErrorDiags(t, diags)
 				require.Equal(t, "{}", marshal(t, sentLabels),
-					"omitempty drops the empty map, so the api is asked to change nothing")
-				require.Equal(t, "platform", state.Attributes["labels.team"],
-					"the labels survive on the api side and the plan never converges")
+					"omitempty drops the empty map, so the request carries no labels key")
+				require.Empty(t, state.Attributes["labels.team"],
+					"a missing labels key means empty to this api, so the empty body still clears them")
 			},
 		},
 		{
