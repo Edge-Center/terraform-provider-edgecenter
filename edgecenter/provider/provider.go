@@ -11,6 +11,7 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/dbaas"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/dns"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/edgemon"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/mkaas"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/protection"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/reseller"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/storage"
@@ -32,6 +33,7 @@ func ProviderWithVersion(version string) *schema.Provider {
 		protection.Service{},
 		reseller.Service{},
 		dbaas.Service{},
+		mkaas.Service{},
 	)
 
 	p := &schema.Provider{

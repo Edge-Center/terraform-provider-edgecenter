@@ -1,4 +1,4 @@
-package edgecenter
+package mkaas
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 func expandTaints(set *schema.Set) []edgecloudV2.MKaaSTaint {
@@ -42,14 +43,14 @@ func mkaasClusterUnsupportedUpdateChanges(d *schema.ResourceData) []string {
 	var unsupported []string
 
 	topLevel := []string{
-		MKaaSClusterKeypairNameField,
-		MKaaSClusterPublishKubeAPIToInternet,
-		NetworkIDField,
-		SubnetIDField,
-		ProjectIDField,
-		ProjectNameField,
-		RegionIDField,
-		RegionNameField,
+		edgecenter.MKaaSClusterKeypairNameField,
+		edgecenter.MKaaSClusterPublishKubeAPIToInternet,
+		edgecenter.NetworkIDField,
+		edgecenter.SubnetIDField,
+		edgecenter.ProjectIDField,
+		edgecenter.ProjectNameField,
+		edgecenter.RegionIDField,
+		edgecenter.RegionNameField,
 	}
 
 	for _, f := range topLevel {
@@ -59,23 +60,23 @@ func mkaasClusterUnsupportedUpdateChanges(d *schema.ResourceData) []string {
 	}
 
 	cpUnsupported := []string{
-		FlavorField,
-		MKaaSVolumeSizeField,
-		MKaaSVolumeTypeField,
+		edgecenter.FlavorField,
+		edgecenter.MKaaSVolumeSizeField,
+		edgecenter.MKaaSVolumeTypeField,
 	}
 
 	for _, sf := range cpUnsupported {
-		p := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, sf)
+		p := fmt.Sprintf("%s.%d.%s", edgecenter.MKaaSClusterControlPlaneField, 0, sf)
 		if d.HasChange(p) {
 			unsupported = append(unsupported, p)
 		}
 	}
 
-	if d.HasChange(MKaaSClusterPodSubnetField) {
-		unsupported = append(unsupported, MKaaSClusterPodSubnetField)
+	if d.HasChange(edgecenter.MKaaSClusterPodSubnetField) {
+		unsupported = append(unsupported, edgecenter.MKaaSClusterPodSubnetField)
 	}
-	if d.HasChange(MKaaSClusterServiceSubnetField) {
-		unsupported = append(unsupported, MKaaSClusterServiceSubnetField)
+	if d.HasChange(edgecenter.MKaaSClusterServiceSubnetField) {
+		unsupported = append(unsupported, edgecenter.MKaaSClusterServiceSubnetField)
 	}
 
 	return unsupported
@@ -95,7 +96,7 @@ func ValidateUniqueTaintKeys(set *schema.Set) error {
 }
 
 func customMKaaSPoolDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
-	if raw, ok := d.GetOk(MKaaSPoolTaintsField); ok {
+	if raw, ok := d.GetOk(edgecenter.MKaaSPoolTaintsField); ok {
 		if err := ValidateUniqueTaintKeys(raw.(*schema.Set)); err != nil {
 			return err
 		}
@@ -109,8 +110,8 @@ func customMKaaSPoolDiff(_ context.Context, d *schema.ResourceDiff, _ interface{
 		)
 	}
 
-	if d.HasChange(MKaaSNodeCountField) || d.HasChange(MKaaSPoolScalePolicyField) {
-		if err := d.SetNewComputed(MKaaSPoolCurrentNodeCountField); err != nil {
+	if d.HasChange(edgecenter.MKaaSNodeCountField) || d.HasChange(edgecenter.MKaaSPoolScalePolicyField) {
+		if err := d.SetNewComputed(edgecenter.MKaaSPoolCurrentNodeCountField); err != nil {
 			return err
 		}
 	}
@@ -118,17 +119,12 @@ func customMKaaSPoolDiff(_ context.Context, d *schema.ResourceDiff, _ interface{
 	return nil
 }
 
-// scalePolicyReader is surface for reading the nested scale_policy block.
 type scalePolicyReader interface {
 	GetOk(key string) (interface{}, bool)
 }
 
-// expandScalePolicy returns (minNodeCount, maxNodeCount, enabled). enabled is
-// true if a scale_policy { auto_scale { ... } } block is present in config.
-// When enabled is false, minNodeCount and maxNodeCount are zero and should be
-// ignored.
 func expandScalePolicy(d scalePolicyReader) (int, int, bool) {
-	raw, ok := d.GetOk(MKaaSPoolScalePolicyField)
+	raw, ok := d.GetOk(edgecenter.MKaaSPoolScalePolicyField)
 	if !ok {
 		return 0, 0, false
 	}
@@ -140,7 +136,7 @@ func expandScalePolicy(d scalePolicyReader) (int, int, bool) {
 	if !ok {
 		return 0, 0, false
 	}
-	asList, ok := spMap[MKaaSPoolAutoScaleField].([]interface{})
+	asList, ok := spMap[edgecenter.MKaaSPoolAutoScaleField].([]interface{})
 	if !ok || len(asList) == 0 || asList[0] == nil {
 		return 0, 0, false
 	}
@@ -149,23 +145,22 @@ func expandScalePolicy(d scalePolicyReader) (int, int, bool) {
 		return 0, 0, false
 	}
 
-	minNodeCount := asMap[MKaaSPoolMinNodeCountField].(int)
-	maxNodeCount := asMap[MKaaSPoolMaxNodeCountField].(int)
+	minNodeCount := asMap[edgecenter.MKaaSPoolMinNodeCountField].(int)
+	maxNodeCount := asMap[edgecenter.MKaaSPoolMaxNodeCountField].(int)
 
 	return minNodeCount, maxNodeCount, true
 }
 
-// flattenScalePolicy emits the nested scale_policy shape only when pool.AutoscalingEnabled is true.
 func flattenScalePolicy(pool *edgecloudV2.MKaaSPool) []interface{} {
 	if pool == nil || !pool.AutoscalingEnabled {
 		return nil
 	}
 	return []interface{}{
 		map[string]interface{}{
-			MKaaSPoolAutoScaleField: []interface{}{
+			edgecenter.MKaaSPoolAutoScaleField: []interface{}{
 				map[string]interface{}{
-					MKaaSPoolMinNodeCountField: pool.MinNodeCount,
-					MKaaSPoolMaxNodeCountField: pool.MaxNodeCount,
+					edgecenter.MKaaSPoolMinNodeCountField: pool.MinNodeCount,
+					edgecenter.MKaaSPoolMaxNodeCountField: pool.MaxNodeCount,
 				},
 			},
 		},
@@ -176,14 +171,14 @@ func mkaasPoolUnsupportedUpdateChanges(d *schema.ResourceData) []string {
 	var unsupported []string
 
 	fields := []string{
-		ProjectIDField,
-		ProjectNameField,
-		RegionIDField,
-		RegionNameField,
-		MKaaSClusterIDField,
-		FlavorField,
-		MKaaSVolumeSizeField,
-		MKaaSVolumeTypeField,
+		edgecenter.ProjectIDField,
+		edgecenter.ProjectNameField,
+		edgecenter.RegionIDField,
+		edgecenter.RegionNameField,
+		edgecenter.MKaaSClusterIDField,
+		edgecenter.FlavorField,
+		edgecenter.MKaaSVolumeSizeField,
+		edgecenter.MKaaSVolumeTypeField,
 	}
 
 	for _, f := range fields {

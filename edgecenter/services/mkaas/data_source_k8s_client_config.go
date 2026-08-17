@@ -1,4 +1,4 @@
-package edgecenter
+package mkaas
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+const K8sClientConfigDataSource = "edgecenter_k8s_client_config"
 
 func dataSourceK8sClientConfig() *schema.Resource {
 	return &schema.Resource{

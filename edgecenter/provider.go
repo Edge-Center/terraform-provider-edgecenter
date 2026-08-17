@@ -342,8 +342,6 @@ func (LegacyService) Resources() map[string]*schema.Resource {
 		"edgecenter_baremetal":                     resourceBmInstance(),
 		"edgecenter_snapshot":                      resourceSnapshot(),
 		"edgecenter_servergroup":                   resourceServerGroup(),
-		"edgecenter_mkaas_cluster":                 resourceMKaaSCluster(),
-		"edgecenter_mkaas_pool":                    resourceMKaaSPool(),
 		"edgecenter_secret":                        resourceSecret(),
 		LifecyclePolicyResourceField:               resourceLifecyclePolicy(),
 		"edgecenter_lb_l7policy":                   resourceL7Policy(),
@@ -376,17 +374,12 @@ func (LegacyService) DataSources() map[string]*schema.Resource {
 		"edgecenter_reservedfixedip":               dataSourceReservedFixedIP(),
 		"edgecenter_servergroup":                   dataSourceServerGroup(),
 		"edgecenter_snapshot":                      dataSourceSnapshot(),
-		"edgecenter_k8s":                           dataSourceK8s(),
-		"edgecenter_k8s_pool":                      dataSourceK8sPool(),
-		"edgecenter_k8s_client_config":             dataSourceK8sClientConfig(),
-		"edgecenter_mkaas_pool":                    dataSourceMKaaSPool(),
 		"edgecenter_secret":                        dataSourceSecret(),
 		"edgecenter_lb_l7policy":                   dataSourceL7Policy(),
 		"edgecenter_lb_l7rule":                     datasourceL7Rule(),
 		"edgecenter_instance_port_security":        dataSourceInstancePortSecurity(),
 		"edgecenter_useractions_subscription_amqp": dataSourceUserActionsListAMQPSubscriptions(),
 		"edgecenter_useractions_subscription_log":  dataSourceUserActionsListLogSubscriptions(),
-		"edgecenter_mkaas_cluster":                 dataSourceMKaaSCluster(),
 	}
 }
 

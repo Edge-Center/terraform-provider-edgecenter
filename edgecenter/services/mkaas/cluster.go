@@ -1,4 +1,4 @@
-package edgecenter
+package mkaas
 
 import (
 	"context"
@@ -16,8 +16,11 @@ import (
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 	validationCustom "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/validation"
 )
+
+const MKaaSClusterResource = "edgecenter_mkaas_cluster"
 
 const (
 	MKaaSClusterReadTimeout   = 10 * time.Minute
@@ -42,9 +45,9 @@ func resourceMKaaSCluster() *schema.Resource {
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				projectID, regionID, k8sID, err := ImportStringParser(d.Id())
+				projectID, regionID, k8sID, err := edgecenter.ImportStringParser(d.Id())
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("importing MKaaS cluster: %w", err)
 				}
 				d.Set("project_id", projectID)
 				d.Set("region_id", regionID)
@@ -55,31 +58,31 @@ func resourceMKaaSCluster() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			ProjectIDField: {
+			edgecenter.ProjectIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Description:  "The uuid of the project. Either `project_id` or `project_name` must be specified.",
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			ProjectNameField: {
+			edgecenter.ProjectNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "The name of the project. Either `project_id` or `project_name` must be specified.",
-				ExactlyOneOf: []string{ProjectIDField, ProjectNameField},
+				ExactlyOneOf: []string{edgecenter.ProjectIDField, edgecenter.ProjectNameField},
 			},
-			RegionIDField: {
+			edgecenter.RegionIDField: {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Description:  "The uuid of the region. Either `region_id` or `region_name` must be specified.",
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			RegionNameField: {
+			edgecenter.RegionNameField: {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "The name of the region. Either `region_id` or `region_name` must be specified.",
-				ExactlyOneOf: []string{RegionIDField, RegionNameField},
+				ExactlyOneOf: []string{edgecenter.RegionIDField, edgecenter.RegionNameField},
 			},
-			NameField: {
+			edgecenter.NameField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the Kubernetes cluster (must be a valid: up to 63 characters, only letters, digits, or '-', and cannot start or end with '-')",
@@ -88,56 +91,56 @@ func resourceMKaaSCluster() *schema.Resource {
 					"must consist of lower case alphanumeric characters or '-', up to 63 characters, and start and end with an alphanumeric character",
 				),
 			},
-			MKaaSClusterKeypairNameField: {
+			edgecenter.MKaaSClusterKeypairNameField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the SSH keypair.",
 			},
-			MKaaSClusterPublishKubeAPIToInternet: {
+			edgecenter.MKaaSClusterPublishKubeAPIToInternet: {
 				Type:        schema.TypeBool,
 				Description: "Publish kube-api to internet.",
 				Optional:    true,
 			},
-			NetworkIDField: {
+			edgecenter.NetworkIDField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The id of the network that created the cluster.",
 			},
-			SubnetIDField: {
+			edgecenter.SubnetIDField: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The id of the subnet that created the cluster.",
 			},
-			MKaaSClusterControlPlaneField: {
+			edgecenter.MKaaSClusterControlPlaneField: {
 				Type:     schema.TypeList,
 				MaxItems: 1,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						FlavorField: {
+						edgecenter.FlavorField: {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The flavor type of the flavor.",
 						},
-						MKaaSNodeCountField: {
+						edgecenter.MKaaSNodeCountField: {
 							Type:         schema.TypeInt,
 							Required:     true,
 							Description:  "The number of control nodes in the cluster (allowed values: `1`, `3`).",
 							ValidateFunc: validation.IntInSlice([]int{1, 3}),
 						},
-						MKaaSVolumeSizeField: {
+						edgecenter.MKaaSVolumeSizeField: {
 							Type:         schema.TypeInt,
 							Required:     true,
 							Description:  "The size of the control volumes in the cluster, specified in gigabytes (GB). Allowed range: `30–1024` GiB.",
 							ValidateFunc: validation.IntBetween(30, 1024),
 						},
-						MKaaSVolumeTypeField: {
+						edgecenter.MKaaSVolumeTypeField: {
 							Type:         schema.TypeString,
 							Required:     true,
 							Description:  fmt.Sprintf("The type of volumes in the cluster (allowed values: `%s`).", edgecloudV2.VolumeTypeSsdHiIops),
 							ValidateFunc: validation.StringInSlice([]string{string(edgecloudV2.VolumeTypeSsdHiIops)}, false),
 						},
-						MKaaSClusterVersionField: {
+						edgecenter.MKaaSClusterVersionField: {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The version of the Kubernetes cluster (format `vx.xx`). Validated against available versions in the region via API.",
@@ -145,36 +148,36 @@ func resourceMKaaSCluster() *schema.Resource {
 					},
 				},
 			},
-			MKaaSClusterInternalIPField: {
+			edgecenter.MKaaSClusterInternalIPField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Internal IP address for the Kubernetes cluster.",
 			},
-			MKaaSClusterExternalIPField: {
+			edgecenter.MKaaSClusterExternalIPField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "External IP address for the Kubernetes cluster.",
 			},
-			MKaaSClusterCreatedField: {
+			edgecenter.MKaaSClusterCreatedField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The timestamp when the Kubernetes cluster was created.",
 			},
-			MKaaSClusterProcessingField: {
+			edgecenter.MKaaSClusterProcessingField: {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			StatusField: {
+			edgecenter.StatusField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Status of the Kubernetes cluster.",
 			},
-			MKaaSClusterStageField: {
+			edgecenter.MKaaSClusterStageField: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Stage of the Kubernetes cluster.",
 			},
-			MKaaSClusterPodSubnetField: {
+			edgecenter.MKaaSClusterPodSubnetField: {
 				Type:     schema.TypeString,
 				Required: true,
 				Description: "Pod subnet in CIDR format. Must not overlap with service_subnet and cluster subnet. " +
@@ -182,7 +185,7 @@ func resourceMKaaSCluster() *schema.Resource {
 				ValidateDiagFunc: validationCustom.ValidateCIDRInRanges,
 				ForceNew:         true,
 			},
-			MKaaSClusterServiceSubnetField: {
+			edgecenter.MKaaSClusterServiceSubnetField: {
 				Type:     schema.TypeString,
 				Required: true,
 				Description: "Service subnet in CIDR format. Must not overlap with pod_subnet and cluster subnet. " +
@@ -197,29 +200,29 @@ func resourceMKaaSCluster() *schema.Resource {
 func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start MKaaS creating")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	createOpts := edgecloudV2.MKaaSClusterCreateRequest{
-		Name:           d.Get(NameField).(string),
-		SSHKeyPairName: d.Get(MKaaSClusterKeypairNameField).(string),
-		NetworkID:      d.Get(NetworkIDField).(string),
-		SubnetID:       d.Get(SubnetIDField).(string),
+		Name:           d.Get(edgecenter.NameField).(string),
+		SSHKeyPairName: d.Get(edgecenter.MKaaSClusterKeypairNameField).(string),
+		NetworkID:      d.Get(edgecenter.NetworkIDField).(string),
+		SubnetID:       d.Get(edgecenter.SubnetIDField).(string),
 	}
 
-	if v, ok := d.GetOk(MKaaSClusterPodSubnetField); ok {
+	if v, ok := d.GetOk(edgecenter.MKaaSClusterPodSubnetField); ok {
 		podSubnet := v.(string)
 		createOpts.PodSubnet = &podSubnet
 	}
 
-	if v, ok := d.GetOk(MKaaSClusterServiceSubnetField); ok {
+	if v, ok := d.GetOk(edgecenter.MKaaSClusterServiceSubnetField); ok {
 		serviceSubnet := v.(string)
 		createOpts.ServiceSubnet = &serviceSubnet
 	}
 
-	if v, ok := d.GetOk(MKaaSClusterPublishKubeAPIToInternet); ok {
+	if v, ok := d.GetOk(edgecenter.MKaaSClusterPublishKubeAPIToInternet); ok {
 		createOpts.PublishKubeAPIToInternet = v.(bool)
 	}
 
@@ -227,18 +230,18 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 		cpList := v.([]interface{})
 		if len(cpList) > 0 {
 			cp := cpList[0].(map[string]interface{})
-			shortVersion := cp[MKaaSClusterVersionField].(string)
+			shortVersion := cp[edgecenter.MKaaSClusterVersionField].(string)
 			fullVersion, err := resolveK8sVersionFromAPI(ctx, clientV2, clientV2.Region, shortVersion)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 
 			createOpts.ControlPlane = edgecloudV2.ControlPlaneCreateRequest{
-				Flavor:     cp[FlavorField].(string),
-				NodeCount:  cp[MKaaSNodeCountField].(int),
-				VolumeSize: cp[MKaaSVolumeSizeField].(int),
+				Flavor:     cp[edgecenter.FlavorField].(string),
+				NodeCount:  cp[edgecenter.MKaaSNodeCountField].(int),
+				VolumeSize: cp[edgecenter.MKaaSVolumeSizeField].(int),
 				Version:    fullVersion,
-				VolumeType: edgecloudV2.VolumeType(cp[MKaaSVolumeTypeField].(string)),
+				VolumeType: edgecloudV2.VolumeType(cp[edgecenter.MKaaSVolumeTypeField].(string)),
 			}
 		}
 	}
@@ -271,7 +274,7 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 	tflog.Info(ctx, fmt.Sprintf("MKaaS id = %d", clusterID))
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -287,29 +290,29 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set(RegionIDField, clientV2.Region)
-	_ = d.Set(ProjectIDField, clientV2.Project)
-	_ = d.Set(NameField, cluster.Name)
-	_ = d.Set(MKaaSClusterKeypairNameField, cluster.SSHKeypairName)
-	_ = d.Set(NetworkIDField, cluster.NetworkID)
-	_ = d.Set(SubnetIDField, cluster.SubnetID)
+	_ = d.Set(edgecenter.RegionIDField, clientV2.Region)
+	_ = d.Set(edgecenter.ProjectIDField, clientV2.Project)
+	_ = d.Set(edgecenter.NameField, cluster.Name)
+	_ = d.Set(edgecenter.MKaaSClusterKeypairNameField, cluster.SSHKeypairName)
+	_ = d.Set(edgecenter.NetworkIDField, cluster.NetworkID)
+	_ = d.Set(edgecenter.SubnetIDField, cluster.SubnetID)
 
 	cp := map[string]interface{}{
-		FlavorField:              cluster.ControlPlane.Flavor,
-		MKaaSNodeCountField:      cluster.ControlPlane.NodeCount,
-		MKaaSVolumeSizeField:     cluster.ControlPlane.VolumeSize,
-		MKaaSVolumeTypeField:     string(cluster.ControlPlane.VolumeType),
-		MKaaSClusterVersionField: normalizeVersion(cluster.ControlPlane.Version),
+		edgecenter.FlavorField:              cluster.ControlPlane.Flavor,
+		edgecenter.MKaaSNodeCountField:      cluster.ControlPlane.NodeCount,
+		edgecenter.MKaaSVolumeSizeField:     cluster.ControlPlane.VolumeSize,
+		edgecenter.MKaaSVolumeTypeField:     string(cluster.ControlPlane.VolumeType),
+		edgecenter.MKaaSClusterVersionField: normalizeVersion(cluster.ControlPlane.Version),
 	}
-	_ = d.Set(MKaaSClusterControlPlaneField, []interface{}{cp})
-	_ = d.Set(MKaaSClusterInternalIPField, cluster.InternalIP)
-	_ = d.Set(MKaaSClusterExternalIPField, cluster.ExternalIP)
-	_ = d.Set(MKaaSClusterCreatedField, cluster.Created)
-	_ = d.Set(MKaaSClusterProcessingField, cluster.Processing)
-	_ = d.Set(StatusField, cluster.Status)
-	_ = d.Set(MKaaSClusterStageField, cluster.Stage)
-	_ = d.Set(MKaaSClusterPodSubnetField, cluster.PodSubnet)
-	_ = d.Set(MKaaSClusterServiceSubnetField, cluster.ServiceSubnet)
+	_ = d.Set(edgecenter.MKaaSClusterControlPlaneField, []interface{}{cp})
+	_ = d.Set(edgecenter.MKaaSClusterInternalIPField, cluster.InternalIP)
+	_ = d.Set(edgecenter.MKaaSClusterExternalIPField, cluster.ExternalIP)
+	_ = d.Set(edgecenter.MKaaSClusterCreatedField, cluster.Created)
+	_ = d.Set(edgecenter.MKaaSClusterProcessingField, cluster.Processing)
+	_ = d.Set(edgecenter.StatusField, cluster.Status)
+	_ = d.Set(edgecenter.MKaaSClusterStageField, cluster.Stage)
+	_ = d.Set(edgecenter.MKaaSClusterPodSubnetField, cluster.PodSubnet)
+	_ = d.Set(edgecenter.MKaaSClusterServiceSubnetField, cluster.ServiceSubnet)
 
 	return diag.Diagnostics{}
 }
@@ -323,9 +326,9 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 				"Only %q, %q, and %q are supported. "+
 				"Please revert changes, or recreate the resource if applicable.",
 			unsupported,
-			NameField,
-			fmt.Sprintf("%s.0.%s", MKaaSClusterControlPlaneField, MKaaSNodeCountField),
-			fmt.Sprintf("%s.0.%s", MKaaSClusterControlPlaneField, MKaaSClusterVersionField),
+			edgecenter.NameField,
+			fmt.Sprintf("%s.0.%s", edgecenter.MKaaSClusterControlPlaneField, edgecenter.MKaaSNodeCountField),
+			fmt.Sprintf("%s.0.%s", edgecenter.MKaaSClusterControlPlaneField, edgecenter.MKaaSClusterVersionField),
 		)
 	}
 
@@ -334,25 +337,25 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(fmt.Errorf("invalid cluster id: %w", err))
 	}
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	controlPlaneNodeCountPath := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, MKaaSNodeCountField)
-	controlPlaneVersionPath := fmt.Sprintf("%s.%d.%s", MKaaSClusterControlPlaneField, 0, MKaaSClusterVersionField)
-	needsUpdate := d.HasChange(NameField) || d.HasChange(controlPlaneNodeCountPath) || d.HasChange(controlPlaneVersionPath)
+	controlPlaneNodeCountPath := fmt.Sprintf("%s.%d.%s", edgecenter.MKaaSClusterControlPlaneField, 0, edgecenter.MKaaSNodeCountField)
+	controlPlaneVersionPath := fmt.Sprintf("%s.%d.%s", edgecenter.MKaaSClusterControlPlaneField, 0, edgecenter.MKaaSClusterVersionField)
+	needsUpdate := d.HasChange(edgecenter.NameField) || d.HasChange(controlPlaneNodeCountPath) || d.HasChange(controlPlaneVersionPath)
 
 	if !needsUpdate {
 		tflog.Info(ctx, "No MKaaS cluster fields require update")
 		return resourceMKaaSClusterRead(ctx, d, m)
 	}
 
-	if d.HasChange(NameField) {
+	if d.HasChange(edgecenter.NameField) {
 		tflog.Info(ctx, "Updating MKaaS cluster name")
 
 		updateNameReq := edgecloudV2.MKaaSClusterUpdateNameRequest{
-			Name: d.Get(NameField).(string),
+			Name: d.Get(edgecenter.NameField).(string),
 		}
 		task, _, err := clientV2.MkaaS.ClusterUpdateName(ctx, clusterID, updateNameReq)
 		if err != nil {
@@ -371,10 +374,10 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if d.HasChange(controlPlaneNodeCountPath) {
 		tflog.Info(ctx, "Updating MKaaS cluster master node count")
 
-		cpList := d.Get(MKaaSClusterControlPlaneField).([]interface{})
+		cpList := d.Get(edgecenter.MKaaSClusterControlPlaneField).([]interface{})
 		cp := cpList[0].(map[string]interface{})
 		updateMasterNodeCountReq := edgecloudV2.MKaaSClusterUpdateMasterNodeCountRequest{
-			MasterNodeCount: cp[MKaaSNodeCountField].(int),
+			MasterNodeCount: cp[edgecenter.MKaaSNodeCountField].(int),
 		}
 
 		task, _, err := clientV2.MkaaS.ClusterUpdateMasterNodeCount(ctx, clusterID, updateMasterNodeCountReq)
@@ -394,9 +397,9 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if d.HasChange(controlPlaneVersionPath) {
 		tflog.Info(ctx, "Upgrading MKaaS cluster version")
 
-		cpList := d.Get(MKaaSClusterControlPlaneField).([]interface{})
+		cpList := d.Get(edgecenter.MKaaSClusterControlPlaneField).([]interface{})
 		cp := cpList[0].(map[string]interface{})
-		shortVersion := cp[MKaaSClusterVersionField].(string)
+		shortVersion := cp[edgecenter.MKaaSClusterVersionField].(string)
 		fullVersion, err := resolveK8sVersionFromAPI(ctx, clientV2, clientV2.Region, shortVersion)
 		if err != nil {
 			return diag.FromErr(err)
@@ -426,7 +429,7 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 func resourceMKaaSClusterDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	tflog.Info(ctx, "Start MKaaS delete")
 
-	clientV2, err := InitCloudClient(ctx, d, m, nil)
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -459,8 +462,8 @@ func resourceMKaaSClusterDelete(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func customMKaaSClusterDiff(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
-	podStr := d.Get(MKaaSClusterPodSubnetField).(string)
-	svcStr := d.Get(MKaaSClusterServiceSubnetField).(string)
+	podStr := d.Get(edgecenter.MKaaSClusterPodSubnetField).(string)
+	svcStr := d.Get(edgecenter.MKaaSClusterServiceSubnetField).(string)
 
 	if podStr == "" || svcStr == "" {
 		return nil
