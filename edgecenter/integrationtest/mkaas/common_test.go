@@ -137,6 +137,10 @@ func failedTask() *edgecloud.Task {
 	return &edgecloud.Task{ID: testTaskID, State: edgecloud.TaskStateError}
 }
 
+func failedTaskWithError(text string) *edgecloud.Task {
+	return &edgecloud.Task{ID: testTaskID, State: edgecloud.TaskStateError, Error: &text}
+}
+
 func clusterCreated(ids ...float64) map[string]interface{} {
 	return map[string]interface{}{"mkaasclusters": ids}
 }
