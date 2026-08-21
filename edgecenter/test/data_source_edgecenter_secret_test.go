@@ -12,6 +12,7 @@ import (
 	secretsV2 "github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v2/secrets"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudsecurity "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/security"
 )
 
 func TestAccSecretDataSource(t *testing.T) {
@@ -21,11 +22,11 @@ func TestAccSecretDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createTestClient(cfg.Provider, edgecenter.SecretPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, cloudsecurity.SecretPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	clientV2, err := createTestClient(cfg.Provider, edgecenter.SecretPoint, edgecenter.VersionPointV2)
+	clientV2, err := createTestClient(cfg.Provider, cloudsecurity.SecretPoint, edgecenter.VersionPointV2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +45,7 @@ func TestAccSecretDataSource(t *testing.T) {
 	}
 
 	taskID := results.Tasks[0]
-	secretID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.SecretCreatingTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
+	secretID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(cloudsecurity.SecretCreatingTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)

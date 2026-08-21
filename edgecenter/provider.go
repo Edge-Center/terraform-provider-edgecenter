@@ -80,7 +80,6 @@ const (
 	StatusField                      = "status"
 	OperatingStatusField             = "operating_status"
 	ProvisioningStatusField          = "provisioning_status"
-	LifecyclePolicyResourceField     = "edgecenter_lifecyclepolicy"
 	ConnectionStringField            = "connection_string"
 	ReceiveChildClientEventsField    = "receive_child_client_events"
 	RoutingKeyField                  = "routing_key"
@@ -322,65 +321,11 @@ func ProviderSchema() map[string]*schema.Schema {
 }
 
 func (LegacyService) Resources() map[string]*schema.Resource {
-	return map[string]*schema.Resource{
-		"edgecenter_project":                       resourceProject(),
-		"edgecenter_volume":                        resourceVolume(),
-		"edgecenter_network":                       resourceNetwork(),
-		"edgecenter_subnet":                        resourceSubnet(),
-		"edgecenter_router":                        resourceRouter(),
-		"edgecenter_instance":                      resourceInstance(),
-		"edgecenter_instanceV2":                    resourceInstanceV2(),
-		"edgecenter_keypair":                       resourceKeypair(),
-		"edgecenter_reservedfixedip":               resourceReservedFixedIP(),
-		"edgecenter_floatingip":                    resourceFloatingIP(),
-		"edgecenter_loadbalancer":                  resourceLoadBalancer(),
-		"edgecenter_loadbalancerv2":                resourceLoadBalancerV2(),
-		"edgecenter_lblistener":                    resourceLbListener(),
-		"edgecenter_lbpool":                        resourceLBPool(),
-		"edgecenter_lbmember":                      resourceLBMember(),
-		"edgecenter_securitygroup":                 resourceSecurityGroup(),
-		"edgecenter_baremetal":                     resourceBmInstance(),
-		"edgecenter_snapshot":                      resourceSnapshot(),
-		"edgecenter_servergroup":                   resourceServerGroup(),
-		"edgecenter_secret":                        resourceSecret(),
-		LifecyclePolicyResourceField:               resourceLifecyclePolicy(),
-		"edgecenter_lb_l7policy":                   resourceL7Policy(),
-		"edgecenter_lb_l7rule":                     resourceL7Rule(),
-		"edgecenter_instance_port_security":        resourceInstancePortSecurity(),
-		"edgecenter_useractions_subscription_amqp": resourceUserActionsSubscriptionAMQP(),
-		"edgecenter_useractions_subscription_log":  resourceUserActionsSubscriptionLog(),
-	}
+	return map[string]*schema.Resource{}
 }
 
 func (LegacyService) DataSources() map[string]*schema.Resource {
-	return map[string]*schema.Resource{
-		"edgecenter_project":                       dataSourceProject(),
-		"edgecenter_region":                        dataSourceRegion(),
-		"edgecenter_availability_zone":             dataSourceAvailabilityZone(),
-		"edgecenter_flavor":                        dataSourceFlavor(),
-		"edgecenter_securitygroup":                 dataSourceSecurityGroup(),
-		"edgecenter_image":                         dataSourceImage(),
-		"edgecenter_volume":                        dataSourceVolume(),
-		"edgecenter_network":                       dataSourceNetwork(),
-		"edgecenter_subnet":                        dataSourceSubnet(),
-		"edgecenter_router":                        dataSourceRouter(),
-		"edgecenter_loadbalancer":                  dataSourceLoadBalancer(),
-		"edgecenter_loadbalancerv2":                dataSourceLoadBalancerV2(),
-		"edgecenter_lblistener":                    dataSourceLBListener(),
-		"edgecenter_lbpool":                        dataSourceLBPool(),
-		"edgecenter_instance":                      dataSourceInstance(),
-		"edgecenter_instanceV2":                    dataSourceInstanceV2(),
-		"edgecenter_floatingip":                    dataSourceFloatingIP(),
-		"edgecenter_reservedfixedip":               dataSourceReservedFixedIP(),
-		"edgecenter_servergroup":                   dataSourceServerGroup(),
-		"edgecenter_snapshot":                      dataSourceSnapshot(),
-		"edgecenter_secret":                        dataSourceSecret(),
-		"edgecenter_lb_l7policy":                   dataSourceL7Policy(),
-		"edgecenter_lb_l7rule":                     datasourceL7Rule(),
-		"edgecenter_instance_port_security":        dataSourceInstancePortSecurity(),
-		"edgecenter_useractions_subscription_amqp": dataSourceUserActionsListAMQPSubscriptions(),
-		"edgecenter_useractions_subscription_log":  dataSourceUserActionsListLogSubscriptions(),
-	}
+	return map[string]*schema.Resource{}
 }
 
 func ProviderConfigure(

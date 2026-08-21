@@ -11,6 +11,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/instance/v1/instances"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
 )
 
 func TestAccBaremetal(t *testing.T) {
@@ -50,7 +51,7 @@ func TestAccBaremetal(t *testing.T) {
 
 func testAccBaremetalDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudcompute.InstancePoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/secret/v1/secrets"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudsecurity "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/security"
 )
 
 func TestAccSecret(t *testing.T) {
@@ -46,7 +47,7 @@ func TestAccSecret(t *testing.T) {
 
 func testAccSecretDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.SecretPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudsecurity.SecretPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudsecurity "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/security"
 )
 
 func TestAccSecurityGroupDataSource(t *testing.T) {
@@ -19,7 +20,7 @@ func TestAccSecurityGroupDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createTestClient(cfg.Provider, edgecenter.SecurityGroupPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, cloudsecurity.SecurityGroupPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}

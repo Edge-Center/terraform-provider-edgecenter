@@ -11,6 +11,7 @@ import (
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/tfutil"
 )
 
 const DBaaSUserResource = "edgecenter_dbaas_user"
@@ -24,7 +25,7 @@ func resourceDBaaSUser() *schema.Resource {
 		Description:   "Represent DBaaS database user resource.",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				projectID, regionID, clusterID, username, err := edgecenter.ImportStringParserExtended(d.Id())
+				projectID, regionID, clusterID, username, err := tfutil.ImportStringParserExtended(d.Id())
 				if err != nil {
 					return nil, fmt.Errorf("importing DBaaS user: %w", err)
 				}

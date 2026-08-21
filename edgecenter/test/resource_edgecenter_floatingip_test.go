@@ -11,6 +11,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 func TestAccFloatingIP(t *testing.T) {
@@ -43,7 +44,7 @@ func TestAccFloatingIP(t *testing.T) {
 
 func testAccFloatingIPDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.FloatingIPsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudnetwork.FloatingIPsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

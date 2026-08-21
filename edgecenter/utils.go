@@ -110,27 +110,6 @@ func CreateClient(provider *edgecloud.ProviderClient, d *schema.ResourceData, en
 	return client, nil
 }
 
-// revertState reverts the state of the specified fields in the given schema.ResourceData if "last_updated" is not empty.
-// It takes a schema.ResourceData and a slice of strings containing the field names to be reverted as input arguments.
-func revertState(d *schema.ResourceData, fields *[]string) {
-	if d.Get("last_updated").(string) != "" {
-		for _, field := range *fields {
-			if d.HasChange(field) {
-				oldValue, _ := d.GetChange(field)
-				switch v := oldValue.(type) {
-				case int:
-					d.Set(field, v)
-				case string:
-					d.Set(field, v)
-				case map[string]interface{}:
-					d.Set(field, v)
-				}
-			}
-			log.Printf("[DEBUG] Revert (%s) '%s' field", d.Id(), field)
-		}
-	}
-}
-
 // ExtractHostAndPath splits a given URI into the host and path components.
 func ExtractHostAndPath(uri string) (string, string, error) {
 	var host, path string
@@ -243,21 +222,6 @@ func GetProjectID(
 	}
 
 	return project.ID, nil
-}
-
-func validateURLFunc(v interface{}, attributeName string) (warnings []string, errors []error) { //nolint:nonamedreturns
-	value, ok := v.(string)
-	if !ok {
-		errors = append(errors, fmt.Errorf("expected type of %s to be string", attributeName))
-		return
-	}
-
-	_, err := url.ParseRequestURI(value)
-	if err != nil {
-		errors = append(errors, fmt.Errorf("URL is not valid: %s", err.Error()))
-	}
-
-	return warnings, errors
 }
 
 // Filter iterates over elements of the collection, returning a slice of

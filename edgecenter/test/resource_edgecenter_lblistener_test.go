@@ -12,6 +12,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/listeners"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudlb "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/lb"
 )
 
 func TestAccLBListener(t *testing.T) {
@@ -23,7 +24,7 @@ func TestAccLBListener(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, cloudlb.LoadBalancersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +98,7 @@ func TestAccLBListener(t *testing.T) {
 
 func testAccLBListenerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudlb.LBListenersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

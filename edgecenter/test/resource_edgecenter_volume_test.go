@@ -13,6 +13,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
 )
 
 func TestAccVolume(t *testing.T) {
@@ -95,7 +96,7 @@ func TestAccVolume(t *testing.T) {
 
 func testAccVolumeDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudcompute.VolumesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}
