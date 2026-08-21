@@ -14,6 +14,8 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 const cidrOfUpdatedSubnet = "192.168.45.0/24"
@@ -29,12 +31,12 @@ func TestAccInstanceV2(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clientNet, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	clientNet, err := createTestClient(cfg.Provider, cloudnetwork.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientSubnet, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	clientSubnet, err := createTestClient(cfg.Provider, cloudnetwork.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -316,7 +318,7 @@ configuration = [`)
 
 func testAccInstanceV2Destroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudcompute.InstancePoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

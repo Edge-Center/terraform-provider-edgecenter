@@ -11,6 +11,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 func TestAccSubnetDataSource(t *testing.T) {
@@ -20,12 +21,12 @@ func TestAccSubnetDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clientNet, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	clientNet, err := createTestClient(cfg.Provider, cloudnetwork.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientSubnet, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	clientSubnet, err := createTestClient(cfg.Provider, cloudnetwork.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}

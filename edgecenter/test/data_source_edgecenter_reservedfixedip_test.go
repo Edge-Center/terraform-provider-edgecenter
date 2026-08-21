@@ -11,6 +11,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/reservedfixedip/v1/reservedfixedips"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 func TestAccReservedFixedIPDataSource(t *testing.T) {
@@ -20,7 +21,7 @@ func TestAccReservedFixedIPDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createTestClient(cfg.Provider, edgecenter.ReservedFixedIPsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, cloudnetwork.ReservedFixedIPsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +36,7 @@ func TestAccReservedFixedIPDataSource(t *testing.T) {
 	}
 
 	taskID := res.Tasks[0]
-	reservedFixedIPID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.ReservedFixedIPCreateTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
+	reservedFixedIPID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(cloudnetwork.ReservedFixedIPCreateTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/keypair/v2/keypairs"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
 )
 
 func TestAccKeyPair(t *testing.T) {
@@ -56,7 +57,7 @@ func TestAccKeyPair(t *testing.T) {
 
 func testAccKeypairDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.KeypairsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudcompute.KeypairsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

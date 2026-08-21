@@ -14,6 +14,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/types"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudlb "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/lb"
 )
 
 func TestAccLBPoolDataSource(t *testing.T) {
@@ -25,17 +26,17 @@ func TestAccLBPoolDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createTestClient(cfg.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, cloudlb.LoadBalancersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientListener, err := createTestClient(cfg.Provider, edgecenter.LBListenersPoint, edgecenter.VersionPointV1)
+	clientListener, err := createTestClient(cfg.Provider, cloudlb.LBListenersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientPools, err := createTestClient(cfg.Provider, edgecenter.LBPoolsPoint, edgecenter.VersionPointV1)
+	clientPools, err := createTestClient(cfg.Provider, cloudlb.LBPoolsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +85,7 @@ func TestAccLBPoolDataSource(t *testing.T) {
 	}
 
 	taskID := res.Tasks[0]
-	lbPoolID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.LBPoolsCreateTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
+	lbPoolID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(cloudlb.LBPoolsCreateTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)

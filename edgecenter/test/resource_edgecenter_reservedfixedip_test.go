@@ -11,6 +11,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/reservedfixedip/v1/reservedfixedips"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 func TestAccReservedFixedIP(t *testing.T) {
@@ -70,7 +71,7 @@ func TestAccReservedFixedIP(t *testing.T) {
 
 func testAccReservedFixedIPDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.FloatingIPsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudnetwork.FloatingIPsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

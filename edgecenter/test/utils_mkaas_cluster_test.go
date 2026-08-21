@@ -18,7 +18,7 @@ import (
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/mkaas"
 )
 
@@ -335,12 +335,12 @@ func CreateTestNetwork(client *edgecloudV2.Client, req *edgecloudV2.NetworkCreat
 	}
 	taskID := results.Tasks[0]
 
-	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, edgecenter.NetworkCreatingTimeout)
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, cloudnetwork.NetworkCreatingTimeout)
 	if err != nil {
 		return "", err
 	}
 
-	createdNetworksRaw, ok := taskInfo.CreatedResources[edgecenter.NetworksPoint]
+	createdNetworksRaw, ok := taskInfo.CreatedResources[cloudnetwork.NetworksPoint]
 	if !ok {
 		return "", fmt.Errorf("cannot retrieve Network ID from task info: %s", taskID)
 	}
@@ -372,7 +372,7 @@ func DeleteTestNetwork(client *edgecloudV2.Client, networkID string) error {
 	}
 	taskID := results.Tasks[0]
 
-	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, edgecenter.NetworkDeletingTimeout)
+	taskInfo, err := utilV2.WaitAndGetTaskInfo(ctx, client, taskID, cloudnetwork.NetworkDeletingTimeout)
 	if err != nil {
 		return err
 	}
@@ -388,7 +388,7 @@ func DeleteTestNetwork(client *edgecloudV2.Client, networkID string) error {
 func CreateTestSubnet(client *edgecloudV2.Client, req *edgecloudV2.SubnetworkCreateRequest) (string, error) {
 	ctx := context.Background()
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Subnetworks.Create, req, client, edgecenter.SubnetCreatingTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Subnetworks.Create, req, client, cloudnetwork.SubnetCreatingTimeout)
 	if err != nil {
 		return "", err
 	}

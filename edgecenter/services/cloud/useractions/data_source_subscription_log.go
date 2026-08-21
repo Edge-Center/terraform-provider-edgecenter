@@ -1,0 +1,94 @@
+package useractions
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+)
+
+const SubscriptionLogDataSource = "edgecenter_useractions_subscription_log"
+
+func dataSourceUserActionsListLogSubscriptions() *schema.Resource {
+	return &schema.Resource{
+		ReadContext: dataSourceUserActionsLogRead,
+		Description: `Data source provides access to user action logs and client subscription.`,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+		Schema: map[string]*schema.Schema{
+			edgecenter.SendUserActionLogsURLField: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL to send user action logs for the specified client.",
+			},
+			edgecenter.AuthHeaderNameField: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The name of the authorization header.",
+			},
+			edgecenter.AuthHeaderValueField: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The value of the authorization header",
+			},
+		},
+	}
+}
+
+func dataSourceUserActionsLogRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	tflog.Debug(ctx, "Start reading log subscription to the user actions")
+
+	clientV2, err := edgecenter.InitCloudClient(ctx, d, m, userActionsCloudClientConf())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	subs, _, err := clientV2.UserActions.ListLogSubscriptions(ctx)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if subs.Count > 1 {
+		return diag.FromErr(fmt.Errorf("forbidden to use admin token. Please use user token"))
+	}
+
+	if subs.Count == 0 {
+		d.SetId("0")
+
+		return diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Log subscription to the user actions list is empty",
+			},
+		}
+	}
+
+	sub := subs.Results[0]
+
+	d.SetId(strconv.Itoa(sub.ID))
+
+	err = d.Set(edgecenter.SendUserActionLogsURLField, sub.URL)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = d.Set(edgecenter.AuthHeaderNameField, sub.AuthHeaderName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = d.Set(edgecenter.AuthHeaderValueField, sub.AuthHeaderValue)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	tflog.Debug(ctx, "Finish reading log subscription to the user actions")
+
+	return nil
+}
