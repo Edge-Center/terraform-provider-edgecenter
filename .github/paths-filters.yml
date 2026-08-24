@@ -34,6 +34,7 @@ cloud:
   - 'edgecenter/test/data_source_edgecenter_network_test.go'
   - 'edgecenter/test/data_source_edgecenter_project_test.go'
   - 'edgecenter/test/data_source_edgecenter_region_test.go'
+  - 'edgecenter/test/data_source_edgecenter_reseller_networks_test.go'
   - 'edgecenter/test/data_source_edgecenter_reservedfixedip_test.go'
   - 'edgecenter/test/data_source_edgecenter_router_test.go'
   - 'edgecenter/test/data_source_edgecenter_secret_test.go'
@@ -104,6 +105,9 @@ protection:
 reseller:
   - 'edgecenter/services/reseller/**'
   - 'edgecenter/services/cloud/network/**'
+  - 'edgecenter/services/cloud/useractions/**'
+  - 'edgecenter/test/resource_edgecenter_useractions_amqp_test.go'
+  - 'edgecenter/test/data_source_edgecenter_useractions_amqp_test.go'
   - 'edgecenter/integrationtest/reseller/**'
   - 'edgecenter/integrationtest/support/reseller/**'
   - 'edgecenter/test/*_reseller_*'
