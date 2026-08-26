@@ -8,6 +8,12 @@ import (
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cdn"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/lb"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/platform"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/security"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/useractions"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/dbaas"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/dns"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/edgemon"
@@ -34,6 +40,12 @@ func ProviderWithVersion(version string) *schema.Provider {
 		reseller.Service{},
 		dbaas.Service{},
 		mkaas.Service{},
+		platform.Service{},
+		network.Service{},
+		compute.Service{},
+		lb.Service{},
+		security.Service{},
+		useractions.Service{},
 	)
 
 	p := &schema.Provider{

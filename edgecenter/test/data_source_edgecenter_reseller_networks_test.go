@@ -10,6 +10,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 func TestAccResellerNetworksDataSource(t *testing.T) {
@@ -23,7 +24,7 @@ func TestAccResellerNetworksDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, cloudnetwork.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}

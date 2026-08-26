@@ -12,6 +12,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 func TestAccNetwork(t *testing.T) {
@@ -104,7 +105,7 @@ func TestAccNetwork(t *testing.T) {
 
 func testAccNetworkDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudnetwork.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudplatform "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/platform"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -17,7 +18,7 @@ func TestAccProject(t *testing.T) {
 	project_test_name := fmt.Sprintf("terraformtestkey%d", random)
 	test_description_1 := "test_description_1"
 	test_description_2 := "test_description_2"
-	resourceName := fmt.Sprintf("%s.%s", edgecenter.ProjectResource, project_test_name)
+	resourceName := fmt.Sprintf("%s.%s", cloudplatform.ProjectResource, project_test_name)
 
 	type Params struct {
 		Name        string
@@ -40,7 +41,7 @@ resource "%s" "%s" {
   name = "%s"
   description ="%s"
 }
-		`, edgecenter.ProjectResource, p.Name, p.Name, p.Description)
+		`, cloudplatform.ProjectResource, p.Name, p.Name, p.Description)
 	}
 
 	resource.Test(t, resource.TestCase{

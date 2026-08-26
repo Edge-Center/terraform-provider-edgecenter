@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -72,6 +73,47 @@ func ImportStringParserSimple(infoStr string) (id1 string, id2 string, err error
 	}
 
 	id1, id2 = infoStrings[0], infoStrings[1]
+
+	return
+}
+
+func RevertState(d *schema.ResourceData, fields *[]string) {
+	if d.Get("last_updated").(string) != "" {
+		for _, field := range *fields {
+			if d.HasChange(field) {
+				oldValue, _ := d.GetChange(field)
+				switch v := oldValue.(type) {
+				case int:
+					d.Set(field, v)
+				case string:
+					d.Set(field, v)
+				case map[string]interface{}:
+					d.Set(field, v)
+				}
+			}
+			log.Printf("[DEBUG] Revert (%s) '%s' field", d.Id(), field)
+		}
+	}
+}
+
+func ImportStringParserExtended(infoStr string) (projectID int, regionID int, id3 string, id4 string, err error) { // nolint: nonamedreturns
+	log.Printf("[DEBUG] Input id string: %s", infoStr)
+	infoStrings := strings.Split(infoStr, ":")
+	if len(infoStrings) != 4 {
+		err = fmt.Errorf("failed import: wrong input id: %s", infoStr)
+		return
+	}
+
+	id1, id2, id3, id4 := infoStrings[0], infoStrings[1], infoStrings[2], infoStrings[3]
+
+	projectID, err = strconv.Atoi(id1)
+	if err != nil {
+		return
+	}
+	regionID, err = strconv.Atoi(id2)
+	if err != nil {
+		return
+	}
 
 	return
 }

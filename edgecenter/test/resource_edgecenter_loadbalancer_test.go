@@ -12,6 +12,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/loadbalancer/v1/loadbalancers"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudlb "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/lb"
 )
 
 func TestAccLoadBalancer(t *testing.T) {
@@ -78,7 +79,7 @@ resource "edgecenter_loadbalancerv2" "acctest" {
 
 func testAccLoadBalancerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.LoadBalancersPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudlb.LoadBalancersPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

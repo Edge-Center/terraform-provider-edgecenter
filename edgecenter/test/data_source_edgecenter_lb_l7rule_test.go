@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
+	cloudlb "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/lb"
 )
 
 func TestAccLBL7RuleDataSource(t *testing.T) {
@@ -56,7 +56,7 @@ func TestAccLBL7RuleDataSource(t *testing.T) {
 	}
 
 	t.Log("trying to create l7Policy...")
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.L7Policies.Create, &l7CreateOpts, client, edgecenter.LBL7PolicyCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.L7Policies.Create, &l7CreateOpts, client, cloudlb.LBL7PolicyCreateTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}

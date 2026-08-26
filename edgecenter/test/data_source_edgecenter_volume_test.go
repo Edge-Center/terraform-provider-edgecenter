@@ -11,6 +11,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
 )
 
 func TestAccVolumeDataSource(t *testing.T) {
@@ -19,7 +20,7 @@ func TestAccVolumeDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createTestClient(cfg.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, cloudcompute.VolumesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}

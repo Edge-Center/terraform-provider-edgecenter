@@ -11,6 +11,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
 )
 
 func TestAccServerGroupResource(t *testing.T) {
@@ -57,7 +58,7 @@ func TestAccServerGroupResource(t *testing.T) {
 
 func testAccServerGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.ServerGroupsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudcompute.ServerGroupsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/servergroup/v1/servergroups"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
 )
 
 func TestAccServerGroupDataSource(t *testing.T) {
@@ -19,7 +20,7 @@ func TestAccServerGroupDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createTestClient(cfg.Provider, edgecenter.ServerGroupsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, cloudcompute.ServerGroupsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}

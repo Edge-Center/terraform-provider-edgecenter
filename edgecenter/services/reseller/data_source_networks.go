@@ -12,6 +12,7 @@ import (
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 const (
@@ -173,7 +174,7 @@ func dataSourceResellerNetworksList() *schema.Resource {
 										Type:        schema.TypeSet,
 										Computed:    true,
 										Description: "Set of additional routes to be added to instances that are part of this subnet.",
-										Elem:        edgecenter.HostRouteSchema(false),
+										Elem:        cloudnetwork.HostRouteSchema(false),
 									},
 									edgecenter.GatewayIPField: {
 										Type:        schema.TypeString,
@@ -325,7 +326,7 @@ func prepareResellerNetwork(rn edgecloudV2.ResellerNetwork) map[string]interface
 	network[edgecenter.RegionIDField] = rn.RegionID
 	network[edgecenter.RegionNameField] = rn.Region
 	network[edgecenter.TypeField] = rn.Type
-	network[edgecenter.SubnetsField] = edgecenter.PrepareSubnets(rn.Subnets)
+	network[edgecenter.SubnetsField] = cloudnetwork.PrepareSubnets(rn.Subnets)
 	network[edgecenter.CreatorTaskIDField] = rn.CreatorTaskID
 	network[edgecenter.TaskIDField] = rn.TaskID
 	network[edgecenter.SegmentationIDField] = rn.SegmentationID

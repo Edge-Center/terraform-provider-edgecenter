@@ -9,7 +9,7 @@ import (
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudlb "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/lb"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -53,7 +53,7 @@ func TestAccLBL7PolicyDataSource(t *testing.T) {
 		RedirectPrefix: "https://test-prfix.ru/",
 	}
 
-	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.L7Policies.Create, &l7CreateOpts, client, edgecenter.LBL7PolicyCreateTimeout)
+	taskResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.L7Policies.Create, &l7CreateOpts, client, cloudlb.LBL7PolicyCreateTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}

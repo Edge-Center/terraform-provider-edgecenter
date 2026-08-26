@@ -11,6 +11,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/floatingip/v1/floatingips"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/task/v1/tasks"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 func TestAccFloatingIPDataSource(t *testing.T) {
@@ -20,7 +21,7 @@ func TestAccFloatingIPDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client, err := createTestClient(cfg.Provider, edgecenter.FloatingIPsPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(cfg.Provider, cloudnetwork.FloatingIPsPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +34,7 @@ func TestAccFloatingIPDataSource(t *testing.T) {
 	}
 
 	taskID := res.Tasks[0]
-	floatingIPID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(edgecenter.FloatingIPCreateTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
+	floatingIPID, err := tasks.WaitTaskAndReturnResult(client, taskID, true, int(cloudnetwork.FloatingIPCreateTimeout.Seconds()), func(task tasks.TaskID) (interface{}, error) {
 		taskInfo, err := tasks.Get(client, string(task)).Extract()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get task with ID: %s. Error: %w", task, err)

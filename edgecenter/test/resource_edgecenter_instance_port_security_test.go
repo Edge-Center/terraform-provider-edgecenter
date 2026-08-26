@@ -15,6 +15,8 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -38,12 +40,12 @@ func TestAccInstancePortSecurity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clientNet, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	clientNet, err := createTestClient(cfg.Provider, cloudnetwork.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientSubnet, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	clientSubnet, err := createTestClient(cfg.Provider, cloudnetwork.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +143,7 @@ func TestAccInstancePortSecurity(t *testing.T) {
 		Interfaces:    interfaces,
 	}
 
-	taskInstanceResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Instances.Create, &instanceCreateOpts, client, edgecenter.InstanceCreateTimeout)
+	taskInstanceResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Instances.Create, &instanceCreateOpts, client, cloudcompute.InstanceCreateTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}

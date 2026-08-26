@@ -11,6 +11,7 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 func TestAccRouterDataSource(t *testing.T) {
@@ -20,12 +21,12 @@ func TestAccRouterDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clientNet, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	clientNet, err := createTestClient(cfg.Provider, cloudnetwork.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientRouter, err := createTestClient(cfg.Provider, edgecenter.RouterPoint, edgecenter.VersionPointV1)
+	clientRouter, err := createTestClient(cfg.Provider, cloudnetwork.RouterPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}

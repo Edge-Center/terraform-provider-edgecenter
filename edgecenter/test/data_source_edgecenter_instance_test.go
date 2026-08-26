@@ -10,9 +10,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
 )
 
 func TestAccInstanceDataSource(t *testing.T) {
@@ -74,7 +74,7 @@ func TestAccInstanceDataSource(t *testing.T) {
 		},
 	}
 
-	taskResultCreate, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Instances.Create, &opts, client, edgecenter.InstanceCreateTimeout)
+	taskResultCreate, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Instances.Create, &opts, client, cloudcompute.InstanceCreateTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}

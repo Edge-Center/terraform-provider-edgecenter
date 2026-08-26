@@ -15,13 +15,15 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/lifecyclepolicy/v1/lifecyclepolicy"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/network/v1/networks"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
+	cloudsecurity "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/security"
 )
 
 func TestAccLifecyclePolicy(t *testing.T) {
 	t.Parallel()
 	// Templates
 	resName := "acctest"
-	fullLPName := edgecenter.LifecyclePolicyResourceField + "." + resName
+	fullLPName := cloudsecurity.LifecyclePolicyResource + "." + resName
 	volumeId := "edgecenter_volume." + resName + ".id"
 	cronScheduleConfig := func(cron lifecyclepolicy.CreateCronScheduleOpts) string {
 		return fmt.Sprintf(`
@@ -81,7 +83,7 @@ resource "%s" "%s" {
 	status = "%s"
 	%s
 	%s
-}`, edgecenter.LifecyclePolicyResourceField, resName, projectInfo(), regionInfo(), opts.Name, opts.Status, volumes, schedules)
+}`, cloudsecurity.LifecyclePolicyResource, resName, projectInfo(), regionInfo(), opts.Name, opts.Status, volumes, schedules)
 	}
 
 	// Options
@@ -201,11 +203,11 @@ resource "%s" "%s" {
 
 func testAccLifecyclePolicyDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	volumesClient, err := createTestClient(config.Provider, edgecenter.VolumesPoint, edgecenter.VersionPointV1)
+	volumesClient, err := createTestClient(config.Provider, cloudcompute.VolumesPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}
-	lifecyclePolicyClient, err := createTestClient(config.Provider, edgecenter.LifecyclePolicyPoint, edgecenter.VersionPointV1)
+	lifecyclePolicyClient, err := createTestClient(config.Provider, cloudsecurity.LifecyclePolicyPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}
@@ -218,7 +220,7 @@ func testAccLifecyclePolicyDestroy(s *terraform.State) error {
 			if !strings.Contains(err.Error(), "not found") {
 				return err
 			}
-		} else if rs.Type == edgecenter.LifecyclePolicyResourceField {
+		} else if rs.Type == cloudsecurity.LifecyclePolicyResource {
 			id, err := strconv.Atoi(rs.Primary.ID)
 			if err != nil {
 				return fmt.Errorf("error converting lifecycle policy ID to integer: %s", err)

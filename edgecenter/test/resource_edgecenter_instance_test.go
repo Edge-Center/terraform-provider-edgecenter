@@ -16,6 +16,9 @@ import (
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/subnet/v1/subnets"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
+	cloudsecurity "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/security"
 )
 
 func TestAccInstance(t *testing.T) {
@@ -33,17 +36,17 @@ func TestAccInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clientNet, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	clientNet, err := createTestClient(cfg.Provider, cloudnetwork.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientSubnet, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	clientSubnet, err := createTestClient(cfg.Provider, cloudnetwork.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientSec, err := createTestClient(cfg.Provider, edgecenter.SecurityGroupPoint, edgecenter.VersionPointV1)
+	clientSec, err := createTestClient(cfg.Provider, cloudsecurity.SecurityGroupPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,7 +353,7 @@ func TestAccInstance(t *testing.T) {
 
 func testAccInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.InstancePoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudcompute.InstancePoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/securitygroup/v1/securitygroups"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	cloudsecurity "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/security"
 )
 
 func TestAccSecurityGroup(t *testing.T) {
@@ -93,7 +94,7 @@ func TestAccSecurityGroup(t *testing.T) {
 
 func testAccSecurityGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*edgecenter.Config)
-	client, err := createTestClient(config.Provider, edgecenter.SecurityGroupPoint, edgecenter.VersionPointV1)
+	client, err := createTestClient(config.Provider, cloudsecurity.SecurityGroupPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		return err
 	}

@@ -15,6 +15,7 @@ import (
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/tfutil"
 )
 
 const MKaaSPoolResource = "edgecenter_mkaas_pool"
@@ -44,7 +45,7 @@ func resourceMKaaSPool() *schema.Resource {
 			StateContext: func(ctx context.Context, d *schema.ResourceData,
 				meta interface{},
 			) ([]*schema.ResourceData, error) {
-				projectID, regionID, poolID, clusterIDStr, err := edgecenter.ImportStringParserExtended(d.Id())
+				projectID, regionID, poolID, clusterIDStr, err := tfutil.ImportStringParserExtended(d.Id())
 				if err != nil {
 					return nil, fmt.Errorf("importing MKaaS pool: %w", err)
 				}

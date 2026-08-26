@@ -15,6 +15,8 @@ import (
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
+	cloudcompute "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/compute"
+	cloudnetwork "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/cloud/network"
 )
 
 var InstancePortSecurityDatasourceInstanceName = testName("ips-ds-vm")
@@ -37,12 +39,12 @@ func TestAccInstancePortSecurityDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clientNet, err := createTestClient(cfg.Provider, edgecenter.NetworksPoint, edgecenter.VersionPointV1)
+	clientNet, err := createTestClient(cfg.Provider, cloudnetwork.NetworksPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientSubnet, err := createTestClient(cfg.Provider, edgecenter.SubnetPoint, edgecenter.VersionPointV1)
+	clientSubnet, err := createTestClient(cfg.Provider, cloudnetwork.SubnetPoint, edgecenter.VersionPointV1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +129,7 @@ func TestAccInstancePortSecurityDataSource(t *testing.T) {
 		Interfaces:    interfaces,
 	}
 
-	taskInstanceResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Instances.Create, &instanceCreateOpts, client, edgecenter.InstanceCreateTimeout)
+	taskInstanceResult, err := utilV2.ExecuteAndExtractTaskResult(ctx, client.Instances.Create, &instanceCreateOpts, client, cloudcompute.InstanceCreateTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}

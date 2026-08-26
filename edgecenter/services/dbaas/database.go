@@ -10,6 +10,7 @@ import (
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/tfutil"
 )
 
 const DBaaSDatabaseResource = "edgecenter_dbaas_database"
@@ -22,7 +23,7 @@ func resourceDBaaSDatabase() *schema.Resource {
 		Description:   "Represent DBaaS database resource.",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				projectID, regionID, clusterID, databaseName, err := edgecenter.ImportStringParserExtended(d.Id())
+				projectID, regionID, clusterID, databaseName, err := tfutil.ImportStringParserExtended(d.Id())
 				if err != nil {
 					return nil, fmt.Errorf("importing DBaaS database: %w", err)
 				}
