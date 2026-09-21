@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [master, main, release-cloud, instanceV2]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -24,6 +27,9 @@ env:
 jobs:
   detect:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       shared: ${{ steps.f.outputs.shared }}
       cloud: ${{ steps.f.outputs.cloud }}
@@ -33,8 +39,8 @@ jobs:
       storage: ${{ steps.f.outputs.storage }}
       reseller: ${{ steps.f.outputs.reseller }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
         id: f
         with:
           filters: .github/paths-filters.yml
@@ -45,10 +51,10 @@ jobs:
     env:
       EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.26.0
 
@@ -64,8 +70,8 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.26.0
       - name: Run unit tests
@@ -74,8 +80,8 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.26.0
       - name: Run integration tests
@@ -97,12 +103,12 @@ jobs:
       max-parallel: 1
     name: tests-${{ matrix.kind.tag }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.26.0
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: ~1.9.0
       - name: Run tests (${{ matrix.kind.tag }})
@@ -123,12 +129,12 @@ jobs:
       fail-fast: false
     name: tests-${{ matrix.kind.tag }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.26.0
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: ~1.9.0
       - name: Sweep stale test resources
@@ -147,8 +153,8 @@ jobs:
       EC_PERMANENT_TOKEN: ${{ secrets.EC_PERMANENT_TOKEN }}
       TEST_MKAAS_REGION_ID: ${{ secrets.TEST_MKAAS_REGION_ID }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.26.0
       - name: Sweep stale MKAAS resources
@@ -175,12 +181,12 @@ jobs:
       max-parallel: 2
     name: tests-${{ matrix.kind.tag }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.26.0
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: ~1.9.0
       - name: Build local provider
@@ -237,12 +243,12 @@ jobs:
       fail-fast: false
     name: tests-${{ matrix.tag }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.26.0
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: ~1.9.0
       - name: Run tests (${{ matrix.tag }})
