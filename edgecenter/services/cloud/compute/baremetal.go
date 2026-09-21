@@ -22,13 +22,15 @@ import (
 const (
 	BmInstanceDeletingTimeout int = 1200
 	BmInstanceCreatingTimeout int = 3600
+	BmImageUpdatingTimeout    int = 3600
 	BmInstancePoint               = "bminstances"
 	BaremetalResource             = "edgecenter_baremetal"
 )
 
 var (
-	bmCreateTimeout = time.Second * time.Duration(BmInstanceCreatingTimeout)
-	bmDeleteTimeout = time.Second * time.Duration(BmInstanceDeletingTimeout)
+	bmCreateTimeout      = time.Second * time.Duration(BmInstanceCreatingTimeout)
+	bmDeleteTimeout      = time.Second * time.Duration(BmInstanceDeletingTimeout)
+	bmImageUpdateTimeout = time.Second * time.Duration(BmImageUpdatingTimeout)
 )
 
 func resourceBmInstance() *schema.Resource {
@@ -679,6 +681,29 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 			if err := attachInterfaceToInstanceV2(ctx, clientV2, instanceID, iface); err != nil {
 				return diag.FromErr(err)
 			}
+		}
+	}
+
+	if d.HasChange("image_id") {
+		opts := &edgecloudV2.BareMetalRebuildRequest{
+			ImageID: d.Get("image_id").(string),
+		}
+
+		result, _, err := clientV2.Instances.BareMetalRebuildInstance(ctx, instanceID, opts)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		taskID := result.Tasks[0]
+		log.Printf("[DEBUG] Task id (%s)", taskID)
+
+		task, err := utilV2.WaitAndGetTaskInfo(ctx, clientV2, taskID, bmImageUpdateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if task.State == edgecloudV2.TaskStateError {
+			return diag.Errorf("cannot rebuild baremetal instance with ID: %s", instanceID)
 		}
 	}
 
