@@ -8,7 +8,7 @@ require (
 	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.1
 	github.com/Edge-Center/edgecentercdn-go v0.2.7
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
-	github.com/Edge-Center/edgecentercloud-go/v2 v2.7.0
+	github.com/Edge-Center/edgecentercloud-go/v2 v2.7.1
 	github.com/Edge-Center/edgecenteredgemon-go v0.1.0
 	github.com/Edge-Center/edgecenterprotection-go v0.1.7
 	github.com/connerdouglass/go-retry v1.0.1
@@ -22,7 +22,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/vektra/mockery/v2 v2.53.2
 	github.com/zclconf/go-cty v1.17.0
-	golang.org/x/sync v0.17.0
+	golang.org/x/sync v0.22.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -33,6 +33,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/avast/retry-go/v4 v4.6.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chigopher/pathlib v0.19.1 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -119,23 +120,23 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.mongodb.org/mongo-driver v1.11.3 // indirect
-	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/otel v1.37.0 // indirect
-	go.opentelemetry.io/otel/metric v1.37.0 // indirect
-	go.opentelemetry.io/otel/trace v1.37.0 // indirect
+	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
+	go.opentelemetry.io/otel v1.44.0 // indirect
+	go.opentelemetry.io/otel/metric v1.44.0 // indirect
+	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
-	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/term v0.35.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
-	golang.org/x/tools v0.36.0 // indirect
+	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/term v0.45.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/tools v0.48.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
-	google.golang.org/grpc v1.75.1 // indirect
-	google.golang.org/protobuf v1.36.9 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
+	google.golang.org/grpc v1.83.2 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
