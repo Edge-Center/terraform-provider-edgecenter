@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	cdn "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/rules"
@@ -945,10 +947,11 @@ func resourceCDNRule() *schema.Resource {
 				Description: "Enable or disable the location.",
 			},
 			"weight": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Description: "Specify the location weight to determine the order in which the locations are applied: from the lowest (0) to the highest.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.IntBetween(1, math.MaxInt32),
+				Description:  "Specify the location weight to determine the order in which the locations are applied: from the lowest (1) to the highest.",
 			},
 			"origin_group": {
 				Type:        schema.TypeInt,
@@ -980,12 +983,12 @@ func resourceCDNRuleCreate(ctx context.Context, d *schema.ResourceData, m interf
 	req.Name = d.Get("name").(string)
 	req.Rule = d.Get("rule").(string)
 
-	if d.Get("active") != nil {
-		req.Active = d.Get("active").(bool)
+	if isConfigured(d, "active") {
+		req.Active = pointer.ToBool(d.Get("active").(bool))
 	}
 
-	if d.Get("weight") != nil {
-		req.Weight = d.Get("weight").(int)
+	if isConfigured(d, "weight") {
+		req.Weight = pointer.ToInt(d.Get("weight").(int))
 	}
 
 	if d.Get("origin_group") != nil && d.Get("origin_group").(int) > 0 {
@@ -1060,10 +1063,12 @@ func resourceCDNRuleUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	var req rules.UpdateRequest
 	req.Name = d.Get("name").(string)
 	req.Rule = d.Get("rule").(string)
-	req.Active = d.Get("active").(bool)
+	if isConfigured(d, "active") {
+		req.Active = pointer.ToBool(d.Get("active").(bool))
+	}
 
-	if d.Get("weight") != nil {
-		req.Weight = d.Get("weight").(int)
+	if isConfigured(d, "weight") {
+		req.Weight = pointer.ToInt(d.Get("weight").(int))
 	}
 
 	if d.Get("origin_group") != nil && d.Get("origin_group").(int) > 0 {
@@ -1085,6 +1090,10 @@ func resourceCDNRuleUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	log.Println("[DEBUG] Finish CDN Rule updating")
 
 	return resourceCDNRuleRead(ctx, d, m)
+}
+
+func isConfigured(d *schema.ResourceData, key string) bool {
+	return !d.GetRawConfig().GetAttr(key).IsNull()
 }
 
 func resourceCDNRuleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

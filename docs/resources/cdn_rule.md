@@ -110,7 +110,7 @@ resource "edgecenter_cdn_resource" "cdn_example_com" {
 - `options` (Block List, Max: 1) Each option in CDN resource settings. Each option added to CDN resource settings should have the following mandatory request fields: enabled, value. (see [below for nested schema](#nestedblock--options))
 - `origin_group` (Number) Specify a source group ID for the location. Set to "null" to inherit the source group from the CDN resource settings.
 - `origin_protocol` (String) Choose the protocol that will be used by CDN servers to request content from the source. If not specified, the HTTP protocol will be used. Allowed values are "HTTPS", "HTTP", or "MATCH". If "MATCH" is chosen, content on the source should be available over both HTTP and HTTPS protocols.
-- `weight` (Number) Specify the location weight to determine the order in which the locations are applied: from the lowest (0) to the highest.
+- `weight` (Number) Specify the location weight to determine the order in which the locations are applied: from the lowest (1) to the highest.
 
 ### Read-Only
 
