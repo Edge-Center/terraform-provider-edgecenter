@@ -4,6 +4,8 @@ package cdn_test
 
 import (
 	"fmt"
+	"math"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -48,6 +50,10 @@ func ruleConfig(name string) map[string]interface{} {
 	}
 }
 
+func pointsTo[T comparable](got *T, want T) bool {
+	return got != nil && *got == want
+}
+
 func sampleRule(name string) *rules.Rule {
 	return &rules.Rule{
 		ID:             testRuleID,
@@ -72,8 +78,8 @@ func ruleCreateCase() support.ResourceCase[*cdnmock.MockedCDN] {
 		mock.MatchedBy(func(req *rules.CreateRequest) bool {
 			return req.Name == testRuleName &&
 				req.Rule == testRulePattern &&
-				req.Active &&
-				req.Weight == 10 &&
+				pointsTo(req.Active, true) &&
+				pointsTo(req.Weight, 10) &&
 				req.OriginGroup == nil &&
 				req.OverrideOriginProtocol != nil && *req.OverrideOriginProtocol == "HTTPS" &&
 				req.Options != nil &&
@@ -142,6 +148,140 @@ func ruleCreateWithOriginGroupCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	}
 }
 
+func ruleCreateDisabledWithLowestWeightCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	config := ruleConfig(testRuleName)
+	config["active"] = false
+	config["weight"] = 1
+
+	created := sampleRule(testRuleName)
+	created.Active = false
+	created.Weight = 1
+
+	mc.Rules.On("Create", mock.Anything, int64(testRuleResourceID),
+		mock.MatchedBy(func(req *rules.CreateRequest) bool {
+			return pointsTo(req.Active, false) && pointsTo(req.Weight, 1)
+		}),
+	).Return(created, nil)
+
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).
+		Return(created, nil)
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create sends active false and weight 1",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: config,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"active": "false",
+				"weight": "1",
+			})
+		},
+	}
+}
+
+func ruleCreateWithoutActiveAndWeightCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	config := ruleConfig(testRuleName)
+	delete(config, "active")
+	delete(config, "weight")
+
+	mc.Rules.On("Create", mock.Anything, int64(testRuleResourceID),
+		mock.MatchedBy(func(req *rules.CreateRequest) bool {
+			return req.Active == nil && req.Weight == nil
+		}),
+	).Return(sampleRule(testRuleName), nil)
+
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).
+		Return(sampleRule(testRuleName), nil)
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create leaves unset active and weight to API defaults",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: config,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"active": "true",
+				"weight": "10",
+			})
+		},
+	}
+}
+
+func ruleUpdateDisablesCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	config := ruleConfig(testRuleName)
+	config["active"] = false
+
+	disabled := sampleRule(testRuleName)
+	disabled.Active = false
+
+	mc.Rules.On("Update", mock.Anything, int64(testRuleResourceID), int64(testRuleID),
+		mock.MatchedBy(func(req *rules.UpdateRequest) bool {
+			return pointsTo(req.Active, false) && pointsTo(req.Weight, 10)
+		}),
+	).Return(disabled, nil)
+
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).
+		Return(disabled, nil)
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "update sends active false",
+		Op:           support.OpApply,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testRuleID),
+		CurrentState: ruleConfig(testRuleName),
+		NewConfig:    config,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{"active": "false"})
+		},
+	}
+}
+
+func ruleUpdateWithoutActiveAndWeightCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	const newName = "tf-rule-renamed"
+
+	config := ruleConfig(newName)
+	delete(config, "active")
+	delete(config, "weight")
+
+	mc.Rules.On("Update", mock.Anything, int64(testRuleResourceID), int64(testRuleID),
+		mock.MatchedBy(func(req *rules.UpdateRequest) bool {
+			return req.Name == newName && req.Active == nil && req.Weight == nil
+		}),
+	).Return(sampleRule(newName), nil)
+
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).
+		Return(sampleRule(newName), nil)
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "update omits active and weight that are not in config",
+		Op:           support.OpApply,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testRuleID),
+		CurrentState: ruleConfig(testRuleName),
+		NewConfig:    config,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"name":   newName,
+				"active": "true",
+				"weight": "10",
+			})
+		},
+	}
+}
+
 func ruleReadCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
@@ -180,7 +320,7 @@ func ruleUpdateCase() support.ResourceCase[*cdnmock.MockedCDN] {
 
 	mc.Rules.On("Update", mock.Anything, int64(testRuleResourceID), int64(testRuleID),
 		mock.MatchedBy(func(req *rules.UpdateRequest) bool {
-			return req.Name == newName && req.Rule == testRulePattern && req.Active
+			return req.Name == newName && req.Rule == testRulePattern && pointsTo(req.Active, true)
 		}),
 	).Return(sampleRule(newName), nil)
 
@@ -379,8 +519,12 @@ func TestIntegrationRule_TableDriven(t *testing.T) {
 		ruleCreateCase(),
 		ruleCreateWithOriginGroupCase(),
 		ruleCreateWithoutOriginProtocolCase(),
+		ruleCreateDisabledWithLowestWeightCase(),
+		ruleCreateWithoutActiveAndWeightCase(),
 		ruleReadCase(),
 		ruleUpdateCase(),
+		ruleUpdateDisablesCase(),
+		ruleUpdateWithoutActiveAndWeightCase(),
 		ruleUpdateOptionsCase(),
 		ruleDeleteCase(),
 		ruleCreateAPIFailureCase(),
@@ -389,5 +533,32 @@ func TestIntegrationRule_TableDriven(t *testing.T) {
 		ruleDeleteAPIFailureCase(),
 	}
 
-	support.RunResourceCases(t, resource, cases, support.DispatchCase[*cdnmock.MockedCDN])
+	support.RunResourceCases(t, resource, cases, support.DispatchCaseWithRawConfig[*cdnmock.MockedCDN])
+}
+
+func TestIntegrationRule_WeightValidation(t *testing.T) {
+	t.Parallel()
+
+	resource := cdnResource(t, "edgecenter_cdn_rule")
+
+	tests := []struct {
+		weight int64
+		valid  bool
+	}{
+		{weight: -1, valid: false},
+		{weight: 0, valid: false},
+		{weight: 1, valid: true},
+		{weight: math.MaxInt32, valid: true},
+		{weight: math.MaxInt32 + 1, valid: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(strconv.FormatInt(tt.weight, 10), func(t *testing.T) {
+			config := ruleConfig(testRuleName)
+			config["weight"] = float64(tt.weight)
+
+			diags := resource.Validate(terraform.NewResourceConfigRaw(config))
+			require.Equal(t, tt.valid, !diags.HasError(), "%v", diags)
+		})
+	}
 }
