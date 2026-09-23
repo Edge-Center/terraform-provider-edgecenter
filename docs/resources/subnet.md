@@ -59,7 +59,7 @@ resource "edgecenter_subnet" "subnet" {
 
 ### Required
 
-- `cidr` (String) Represents the IP address range of the subnet.
+- `cidr` (String) Represents the IP address range of the subnet. The subnet will be recreated if the CIDR is changed.
 - `name` (String) The name of the subnet.
 - `network_id` (String) The ID of the network to which this subnet belongs.
 

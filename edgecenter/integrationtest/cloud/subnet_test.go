@@ -14,13 +14,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
 
-const testSubnetID = "subnet-id"
+const (
+	testSubnetID   = "subnet-id"
+	testSubnetID2  = "subnet-id-2"
+	testSubnetCIDR = "10.0.1.0/24"
+)
 
 func sampleSubnet(id, name, cidr, networkID string) *edgecloud.Subnetwork {
 	return &edgecloud.Subnetwork{
@@ -150,6 +154,69 @@ func subnetUpdateNameCase(subnetID, netID string) support.ResourceCase[*cloudmoc
 			support.RequireStateID(t, state, subnetID)
 			support.RequireStateAttrs(t, state, map[string]string{
 				"name": "updated-subnet",
+			})
+		},
+	}
+}
+
+func subnetCIDRRecreateCase(subnetID, newSubnetID, netID string) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 3)
+
+	newCIDR := "10.0.2.0/24"
+
+	mc.Subnetworks.On("Delete", mock.Anything, subnetID).
+		Return(&edgecloud.TaskResponse{Tasks: []string{"task-del"}}, nil, nil)
+
+	mc.Tasks.On("Get", mock.Anything, "task-del").
+		Return(&edgecloud.Task{State: edgecloud.TaskStateFinished}, nil, nil)
+
+	mc.Subnetworks.On("Get", mock.Anything, subnetID).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
+
+	mc.Subnetworks.On("Create", mock.Anything,
+		mock.MatchedBy(func(req *edgecloud.SubnetworkCreateRequest) bool {
+			return req.Name == "test-subnet" && req.CIDR == newCIDR && req.NetworkID == netID
+		}),
+	).Return(&edgecloud.TaskResponse{Tasks: []string{"task-new"}}, nil, nil)
+
+	mc.Tasks.On("Get", mock.Anything, "task-new").
+		Return(&edgecloud.Task{
+			State: edgecloud.TaskStateFinished,
+			CreatedResources: map[string]interface{}{
+				"subnets": []interface{}{newSubnetID},
+			},
+		}, nil, nil)
+
+	mc.Subnetworks.On("Get", mock.Anything, newSubnetID).
+		Return(sampleSubnet(newSubnetID, "test-subnet", newCIDR, netID), nil, nil)
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "changing cidr destroys the subnet and creates a new one",
+		Op:        support.OpApply,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: subnetID,
+		CurrentState: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			cloud.WithName("test-subnet"),
+			map[string]interface{}{
+				"cidr":       testSubnetCIDR,
+				"network_id": netID,
+			},
+		),
+		NewConfig: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			cloud.WithName("test-subnet"),
+			map[string]interface{}{
+				"cidr":       newCIDR,
+				"network_id": netID,
+			},
+		),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateID(t, state, newSubnetID)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"cidr": newCIDR,
 			})
 		},
 	}
@@ -322,6 +389,7 @@ func TestIntegrationSubnet_TableDriven(t *testing.T) {
 		subnetCreateCase(testSubnetID, netID),
 		subnetReadCase(testSubnetID, netID),
 		subnetUpdateNameCase(testSubnetID, netID),
+		subnetCIDRRecreateCase(testSubnetID, testSubnetID2, netID),
 		subnetDeleteCase(testSubnetID),
 		subnetCreateAPIFailureCase(),
 		subnetDeleteTaskErrorCase(testSubnetID),
