@@ -14,9 +14,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
 
 const testProjectResourceID = 100
@@ -202,6 +202,27 @@ func projectReadNonExistentCase(projID int) support.ResourceCase[*cloudmock.Mock
 	}
 }
 
+func projectReadForbiddenCase(projID int) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+
+	mc.Projects.On("Get", mock.Anything, fmt.Sprintf("%d", projID)).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusForbidden}}, fmt.Errorf("project is deleting"))
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "read deleting project (403) -> clears state",
+		Op:        support.OpRead,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: fmt.Sprintf("%d", projID),
+		CurrentState: map[string]interface{}{
+			"name": "test-project",
+		},
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil when project is deleting")
+		},
+	}
+}
+
 func projectDeleteTaskErrorCase(projID int) support.ResourceCase[*cloudmock.MockedCloud] {
 	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
 
@@ -241,6 +262,7 @@ func TestIntegrationProject_TableDriven(t *testing.T) {
 		projectDeleteCase(testProjectResourceID),
 		projectCreateAPIFailureCase(),
 		projectReadNonExistentCase(testProjectResourceID),
+		projectReadForbiddenCase(testProjectResourceID),
 		projectDeleteTaskErrorCase(testProjectResourceID),
 	}
 

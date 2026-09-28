@@ -207,8 +207,13 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interfac
 	networkID := d.Id()
 	log.Printf("[DEBUG] Network id = %s", networkID)
 
-	network, _, err := clientV2.Networks.Get(ctx, networkID)
+	network, resp, err := clientV2.Networks.Get(ctx, networkID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing network %s because resource doesn't exist anymore", networkID)
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("cannot get network with ID: %s. Error: %s", networkID, err)
 	}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
@@ -136,8 +137,14 @@ func resourceServerGroupRead(ctx context.Context, d *schema.ResourceData, m inte
 	d.Set("project_id", clientV2.Project)
 	d.Set("region_id", clientV2.Region)
 
-	serverGroup, _, err := clientV2.ServerGroups.Get(ctx, d.Id())
+	serverGroupID := d.Id()
+	serverGroup, resp, err := clientV2.ServerGroups.Get(ctx, serverGroupID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing server group %s because resource doesn't exist anymore", serverGroupID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
