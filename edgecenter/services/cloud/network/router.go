@@ -407,8 +407,13 @@ func resourceRouterDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	routerID := d.Id()
-	results, _, err := clientV2.Routers.Delete(ctx, routerID)
+	results, resp, err := clientV2.Routers.Delete(ctx, routerID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing router %s because resource doesn't exist anymore", routerID)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 	taskID := results.Tasks[0]

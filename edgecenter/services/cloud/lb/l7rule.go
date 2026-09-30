@@ -371,8 +371,13 @@ func resourceL7RuleV2Delete(ctx context.Context, d *schema.ResourceData, m inter
 
 	l7policyID := d.Get("l7policy_id").(string)
 
-	result, _, err := clientV2.L7Rules.Delete(ctx, l7policyID, d.Id())
+	result, resp, err := clientV2.L7Rules.Delete(ctx, l7policyID, d.Id())
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing L7Rule %s because resource doesn't exist anymore", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 	taskID := result.Tasks[0]

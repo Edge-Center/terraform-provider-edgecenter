@@ -286,8 +286,13 @@ func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	results, _, err := clientV2.Networks.Delete(ctx, networkID)
+	results, resp, err := clientV2.Networks.Delete(ctx, networkID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing network %s because resource doesn't exist anymore", networkID)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 

@@ -502,8 +502,13 @@ func resourceLBListenerDelete(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	id := d.Id()
-	results, _, err := clientV2.Loadbalancers.ListenerDelete(ctx, id)
+	results, resp, err := clientV2.Loadbalancers.ListenerDelete(ctx, id)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing LBListener %s because resource doesn't exist anymore", id)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 

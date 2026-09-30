@@ -423,8 +423,13 @@ func resourceL7PolicyV2Delete(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	id := d.Id()
-	results, _, err := clientV2.L7Policies.Delete(ctx, id)
+	results, resp, err := clientV2.L7Policies.Delete(ctx, id)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing L7Policy %s because resource doesn't exist anymore", id)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -435,7 +440,7 @@ func resourceL7PolicyV2Delete(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if task.State == edgecloudV2.TaskStateError {
-		return diag.Errorf("cannot delete LBListener with ID: %s", id)
+		return diag.Errorf("cannot delete L7Policy with ID: %s", id)
 	}
 
 	return nil
