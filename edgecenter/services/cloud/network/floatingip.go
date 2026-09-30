@@ -350,8 +350,13 @@ func resourceFloatingIPDelete(ctx context.Context, d *schema.ResourceData, m int
 
 	id := d.Id()
 
-	results, _, err := clientV2.Floatingips.Delete(ctx, id)
+	results, resp, err := clientV2.Floatingips.Delete(ctx, id)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing floating IP %s because resource doesn't exist anymore", id)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 
