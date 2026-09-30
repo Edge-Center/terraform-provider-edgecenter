@@ -2,6 +2,7 @@ package security
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
@@ -397,8 +398,13 @@ func resourceInstancePortSecurityDelete(ctx context.Context, d *schema.ResourceD
 	portID := d.Get(edgecenter.PortIDField).(string)
 	instanceID := d.Get(edgecenter.InstanceIDField).(string)
 
-	instanceIfacePort, err := utilV2.InstanceNetworkInterfaceByID(ctx, clientV2, instanceID, portID)
+	instanceIfacePort, resp, err := utilV2.InstanceNetworkInterfaceByIDWithResponse(ctx, clientV2, instanceID, portID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) || errors.Is(err, utilV2.ErrInstanceInterfaceNotFound) {
+			log.Printf("[WARN] Removing instance port security for instance %s and port %s because resource doesn't exist anymore", instanceID, portID)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 

@@ -296,10 +296,8 @@ func networkDeleteNotFoundCase(netID string) support.ResourceCase[*cloudmock.Moc
 			cloud.WithName("test-net"),
 		),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
-			support.RequireHasErrorDiags(t, diags)
-			support.RequireErrorDiagContains(t, diags, "not found")
-			require.NotNil(t, state, "state must not be nil when delete gets 404")
-			require.Equal(t, netID, state.ID, "ID must not be cleared on failed delete")
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when the network is already gone")
 		},
 	}
 }

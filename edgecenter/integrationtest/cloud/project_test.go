@@ -14,9 +14,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
 
 const testProjectResourceID = 100
@@ -157,6 +157,27 @@ func projectDeleteCase(projID int) support.ResourceCase[*cloudmock.MockedCloud] 
 	}
 }
 
+func projectDeleteAlreadyGoneCase(projID int, status int) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+
+	mc.Projects.On("Delete", mock.Anything, fmt.Sprintf("%d", projID)).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: status}}, fmt.Errorf("delete status %d", status))
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      fmt.Sprintf("delete project with status %d", status),
+		Op:        support.OpDelete,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: fmt.Sprintf("%d", projID),
+		CurrentState: map[string]interface{}{
+			"name": "test-project",
+		},
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil when project is already absent or being deleted")
+		},
+	}
+}
+
 func projectCreateAPIFailureCase() support.ResourceCase[*cloudmock.MockedCloud] {
 	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
 
@@ -239,6 +260,8 @@ func TestIntegrationProject_TableDriven(t *testing.T) {
 		projectReadCase(testProjectResourceID),
 		projectUpdateNameCase(testProjectResourceID),
 		projectDeleteCase(testProjectResourceID),
+		projectDeleteAlreadyGoneCase(testProjectResourceID, http.StatusNotFound),
+		projectDeleteAlreadyGoneCase(testProjectResourceID, http.StatusConflict),
 		projectCreateAPIFailureCase(),
 		projectReadNonExistentCase(testProjectResourceID),
 		projectDeleteTaskErrorCase(testProjectResourceID),

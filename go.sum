@@ -13,6 +13,8 @@ github.com/Edge-Center/edgecentercloud-go v0.1.11 h1:00h5o/71lEoSdU1B4AWmviuOfO2
 github.com/Edge-Center/edgecentercloud-go v0.1.11/go.mod h1:kmXGtx0lL1ib+SPfJe/uIAyDHamquAvqiftoLSyhxF8=
 github.com/Edge-Center/edgecentercloud-go/v2 v2.7.1 h1:2KCLIPa73UyN/egRO75f09Lhezpgzuw53tNpDC+HSDQ=
 github.com/Edge-Center/edgecentercloud-go/v2 v2.7.1/go.mod h1:08v+urXHeErCAeqQ1hseTrstoD89RCBkL4uPYULBN1w=
+github.com/Edge-Center/edgecentercloud-go/v2 v2.7.2 h1:WsLPdpJOsJm4diuYo4tD/7OygPYkYAmLAVnDf34VVX0=
+github.com/Edge-Center/edgecentercloud-go/v2 v2.7.2/go.mod h1:08v+urXHeErCAeqQ1hseTrstoD89RCBkL4uPYULBN1w=
 github.com/Edge-Center/edgecenteredgemon-go v0.1.0 h1:+oyQK4o6tSpUC1R0QEp/U9/5YtImt+Klmf/ec2yngt4=
 github.com/Edge-Center/edgecenteredgemon-go v0.1.0/go.mod h1:+X+bLKzx+lr1C//4LvbKe9ZXMvoteWsHeAZ43fjJWcI=
 github.com/Edge-Center/edgecenterprotection-go v0.1.7 h1:f9AF/B8+5a9OqbF5lhegKSClGvPvRG18pqZRuDJPSFI=

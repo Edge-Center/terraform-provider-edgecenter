@@ -173,8 +173,13 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 	id := d.Id()
 
-	results, _, err := clientV2.Projects.Delete(ctx, id)
+	results, resp, err := clientV2.Projects.Delete(ctx, id)
 	if err != nil {
+		if resp != nil && (resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusConflict) {
+			log.Printf("[WARN] Removing project %s because it is already absent or being deleted", id)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
@@ -152,7 +153,13 @@ func resourceKeypairDelete(ctx context.Context, d *schema.ResourceData, m interf
 	clientV2.Region = 1
 
 	kpID := d.Id()
-	if _, err := clientV2.KeyPairs.DeleteV2(ctx, kpID); err != nil {
+	resp, err := clientV2.KeyPairs.DeleteV2(ctx, kpID)
+	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing keypair %s because resource doesn't exist anymore", kpID)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 

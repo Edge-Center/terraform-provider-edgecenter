@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -321,8 +322,13 @@ func resourceVolumeDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 
-	volume, _, err := clientV2.Volumes.Get(ctx, d.Id())
+	volume, resp, err := clientV2.Volumes.Get(ctx, d.Id())
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] Removing volume %s because resource doesn't exist anymore", volumeID)
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("Error getting volume: %s", err)
 	}
 

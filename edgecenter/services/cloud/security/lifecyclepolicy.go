@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
@@ -430,8 +431,13 @@ func resourceLifecyclePolicyDelete(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	log.Printf("[DEBUG] Start of LifecyclePolicy %s deleting", id)
-	_, err = clientV2.LifeCyclePolicies.Delete(ctx, integerID)
+	resp, err := clientV2.LifeCyclePolicies.Delete(ctx, integerID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing LifecyclePolicy %s because resource doesn't exist anymore", id)
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("Error deleting lifecycle policy: %s", err)
 	}
 	d.SetId("")

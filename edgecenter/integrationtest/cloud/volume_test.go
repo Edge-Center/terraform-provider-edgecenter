@@ -14,10 +14,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
 
 const testVolumeID = "vol-id"
@@ -108,6 +108,30 @@ func volumeDeleteCase(volID string) support.ResourceCase[*cloudmock.MockedCloud]
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
 			support.RequireNoErrorDiags(t, diags)
 			require.Nil(t, state, "state must be nil after delete")
+		},
+	}
+}
+
+func volumeDeleteNotFoundCase(volID string) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
+
+	mc.Volumes.On("Get", mock.Anything, volID).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "delete non-existent volume",
+		Op:        support.OpDelete,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: volID,
+		CurrentState: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			cloud.WithName("test-volume"),
+			cloud.WithSize(10),
+		),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil when volume is already gone")
 		},
 	}
 }
@@ -280,6 +304,7 @@ func TestIntegrationVolume_TableDriven(t *testing.T) {
 		volumeCreateAPIFailureCase(),
 		volumeUpdateSizeCase(testVolumeID),
 		volumeDeleteCase(testVolumeID),
+		volumeDeleteNotFoundCase(testVolumeID),
 		volumeTaskErrorOnDeleteCase(testVolumeID),
 		volumeReadNotFoundCase(testVolumeID),
 	}
