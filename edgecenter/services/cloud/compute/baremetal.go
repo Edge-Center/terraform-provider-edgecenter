@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"reflect"
 	"sort"
 	"strconv"
@@ -395,7 +394,7 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	instance, resp, err := clientV2.Instances.Get(ctx, instanceID)
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
+		if utilV2.IsNotFoundErr(resp) {
 			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil

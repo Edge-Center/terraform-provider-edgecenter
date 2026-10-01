@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
@@ -119,8 +120,13 @@ func resourceKeypairRead(ctx context.Context, d *schema.ResourceData, m interfac
 	clientV2.Region = 1
 
 	kpID := d.Id()
-	kp, _, err := clientV2.KeyPairs.GetV2(ctx, kpID)
+	kp, resp, err := clientV2.KeyPairs.GetV2(ctx, kpID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing keypair %s because resource doesn't exist anymore", kpID)
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("cannot get keypairs with ID %s. Error: %s", kpID, err.Error())
 	}
 

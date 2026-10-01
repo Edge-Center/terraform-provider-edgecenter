@@ -106,7 +106,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Println("[DEBUG] Start FloatingIP reading")
+	log.Println("[DEBUG] Start Project reading")
 	clientConf := edgecenter.CloudClientConf{
 		DoNotUseRegionID:  true,
 		DoNotUseProjectID: true,
@@ -118,7 +118,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 
 	project, response, err := clientV2.Projects.Get(ctx, d.Id())
 	if err != nil {
-		if response.StatusCode == http.StatusNotFound {
+		if response != nil && (response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusForbidden) {
 			log.Printf("[WARN] Removing project %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil

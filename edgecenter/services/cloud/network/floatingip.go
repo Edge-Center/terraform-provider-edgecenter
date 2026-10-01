@@ -227,16 +227,19 @@ func resourceFloatingIPRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	floatingIPs, response, err := clientV2.Floatingips.List(ctx)
 	if err != nil {
-		log.Printf("[WARN] Error while GET list floatingIPs. StstusCode: %d.", response.StatusCode)
+		if response != nil {
+			log.Printf("[WARN] Error while GET list floatingIPs. StatusCode: %d.", response.StatusCode)
+		}
 		return diag.FromErr(err)
 	}
+	floatingIPID := d.Id()
 	index := slices.IndexFunc(floatingIPs, func(f edgecloudV2.FloatingIP) bool {
-		return f.ID == d.Id()
+		return f.ID == floatingIPID
 	})
 	if index == -1 {
-		log.Printf("[WARN] Removing floating ip %s because resource doesn't exist anymore", d.Id())
+		log.Printf("[WARN] Removing floating ip %s because resource doesn't exist anymore", floatingIPID)
 		d.SetId("")
-		return diag.FromErr(fmt.Errorf("could not find a floatingIP with id: %s", d.Id()))
+		return nil
 	}
 	floatingIP := floatingIPs[index]
 	if floatingIP.FixedIPAddress != nil {

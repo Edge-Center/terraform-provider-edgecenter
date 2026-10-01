@@ -4,6 +4,7 @@ package edgecenter_test
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -13,10 +14,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
 
 const (
@@ -137,7 +138,7 @@ func portSecReadNotFoundCase() support.ResourceCase[*cloudmock.MockedCloud] {
 	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
 
 	mc.Instances.On("InterfaceList", mock.Anything, testInstanceID).
-		Return(nil, nil, fmt.Errorf("port not found")).Once()
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("port not found")).Once()
 
 	return support.ResourceCase[*cloudmock.MockedCloud]{
 		Name:      "read non-existent (404)",
@@ -152,8 +153,62 @@ func portSecReadNotFoundCase() support.ResourceCase[*cloudmock.MockedCloud] {
 			},
 		),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when resource not found")
+		},
+	}
+}
+
+func portSecReadMissingFromListCase() support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
+
+	mc.Instances.On("InterfaceList", mock.Anything, testInstanceID).
+		Return([]edgecloud.InstancePortInterface{}, nil, nil).Once()
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "read port missing from interface list -> clears state",
+		Op:        support.OpRead,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: testPortID,
+		CurrentState: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			map[string]interface{}{
+				"instance_id": testInstanceID,
+				"port_id":     testPortID,
+			},
+		),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when resource is missing from the API list")
+		},
+	}
+}
+
+func portSecReadAPIFailureCase() support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
+
+	mc.Instances.On("InterfaceList", mock.Anything, testInstanceID).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusInternalServerError}}, fmt.Errorf("api error")).Once()
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "read server error (500) -> keeps state",
+		Op:        support.OpRead,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: testPortID,
+		CurrentState: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			map[string]interface{}{
+				"instance_id": testInstanceID,
+				"port_id":     testPortID,
+			},
+		),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
 			support.RequireHasErrorDiags(t, diags)
-			support.RequireErrorDiagContains(t, diags, "port not found")
+			support.RequireErrorDiagContains(t, diags, "api error")
+			require.NotNil(t, state, "state must not be cleared on a non-404 read error")
+			require.Equal(t, testPortID, state.ID)
 		},
 	}
 }
@@ -273,6 +328,8 @@ func TestIntegrationInstancePortSecurity_TableDriven(t *testing.T) {
 		portSecDisableCase(),
 		portSecReadCase(),
 		portSecReadNotFoundCase(),
+		portSecReadMissingFromListCase(),
+		portSecReadAPIFailureCase(),
 		portSecDeleteDisabledCase(),
 		portSecDeleteEnabledWithSGsCase(),
 		portSecDisableAPIFailureCase(),

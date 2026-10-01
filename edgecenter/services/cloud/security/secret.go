@@ -203,8 +203,13 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	secretID := d.Id()
 	log.Printf("[DEBUG] Secret id = %s", secretID)
-	secret, _, err := clientV2.Secrets.Get(ctx, secretID)
+	secret, resp, err := clientV2.Secrets.Get(ctx, secretID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing secret %s because resource doesn't exist anymore", secretID)
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("cannot get secret with ID: %s. Error: %s", secretID, err.Error())
 	}
 

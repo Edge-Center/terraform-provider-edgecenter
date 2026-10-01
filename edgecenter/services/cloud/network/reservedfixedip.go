@@ -288,7 +288,7 @@ func resourceReservedFixedIPRead(ctx context.Context, d *schema.ResourceData, m 
 
 	reservedFixedIP, resp, err := clientV2.ReservedFixedIP.Get(ctx, d.Id())
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
+		if utilV2.IsNotFoundErr(resp) {
 			log.Printf("[WARN] Removing reserved fixed ip %s because resource doesn't exist anymore", d.Id())
 			d.SetId("")
 			return nil

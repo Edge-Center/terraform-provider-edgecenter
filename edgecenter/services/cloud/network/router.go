@@ -242,8 +242,13 @@ func resourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface
 	d.Set("region_id", clientV2.Region)
 	d.Set("project_id", clientV2.Project)
 
-	router, _, err := clientV2.Routers.Get(ctx, routerID)
+	router, resp, err := clientV2.Routers.Get(ctx, routerID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing router %s because resource doesn't exist anymore", routerID)
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("cannot get router with ID: %s. Error: %s", routerID, err)
 	}
 

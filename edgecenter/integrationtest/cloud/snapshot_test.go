@@ -187,8 +187,8 @@ func snapshotReadNonExistentCase(snapID string) support.ResourceCase[*cloudmock.
 			cloud.WithName("test-snapshot"),
 		),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
-			support.RequireHasErrorDiags(t, diags)
-			require.NotNil(t, state, "state should not be nil even on 404")
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when resource not found")
 		},
 	}
 }
