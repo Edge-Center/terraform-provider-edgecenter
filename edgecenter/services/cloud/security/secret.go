@@ -185,7 +185,7 @@ func resourceSecretCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId(secretID)
 
-	resourceSecretRead(ctx, d, m)
+	diags = append(diags, resourceSecretRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish Secret creating (%s)", secretID)
 

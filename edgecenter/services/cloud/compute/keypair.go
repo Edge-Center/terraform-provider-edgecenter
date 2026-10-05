@@ -95,7 +95,7 @@ func resourceKeypairCreate(ctx context.Context, d *schema.ResourceData, m interf
 	log.Printf("[DEBUG] KeyPair id (%s)", kp.SSHKeyID)
 	d.SetId(kp.SSHKeyID)
 
-	resourceKeypairRead(ctx, d, m)
+	diags = append(diags, resourceKeypairRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish KeyPair creating (%s)", kp.SSHKeyID)
 

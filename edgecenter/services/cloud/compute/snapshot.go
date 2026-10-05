@@ -155,7 +155,7 @@ func resourceSnapshotCreate(ctx context.Context, d *schema.ResourceData, m inter
 	log.Printf("[DEBUG] Snapshot id (%s)", SnapshotID)
 
 	d.SetId(SnapshotID)
-	resourceSnapshotRead(ctx, d, m)
+	diags = append(diags, resourceSnapshotRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish snapshot creating (%s)", SnapshotID)
 

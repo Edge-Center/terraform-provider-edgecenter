@@ -213,7 +213,7 @@ func resourceLoadBalancerV2Create(ctx context.Context, d *schema.ResourceData, m
 
 	d.SetId(lbID)
 
-	resourceLoadBalancerV2Read(ctx, d, m)
+	diags = append(diags, resourceLoadBalancerV2Read(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish LoadBalancer creating (%s)", lbID)
 

@@ -187,7 +187,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 	log.Printf("[DEBUG] Network id (%s)", networkID)
 
 	d.SetId(networkID)
-	resourceNetworkRead(ctx, d, m)
+	diags = append(diags, resourceNetworkRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish Network creating (%s)", networkID)
 

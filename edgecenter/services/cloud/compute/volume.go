@@ -187,7 +187,7 @@ func resourceVolumeCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Printf("[DEBUG] Volume id (%s)", VolumeID)
 
 	d.SetId(VolumeID)
-	resourceVolumeRead(ctx, d, m)
+	diags = append(diags, resourceVolumeRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish volume creating (%s)", VolumeID)
 

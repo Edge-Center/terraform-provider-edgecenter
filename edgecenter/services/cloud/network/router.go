@@ -220,7 +220,7 @@ func resourceRouterCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	log.Printf("[DEBUG] Router id (%s)", routerID)
 
 	d.SetId(routerID)
-	resourceRouterRead(ctx, d, m)
+	diags = append(diags, resourceRouterRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish router creating (%s)", routerID)
 
