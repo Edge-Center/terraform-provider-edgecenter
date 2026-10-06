@@ -83,11 +83,11 @@ func resourceUserActionsAMQPCreate(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	resourceUserActionsAMQPRead(ctx, d, m)
+	diags := resourceUserActionsAMQPRead(ctx, d, m)
 
 	tflog.Debug(ctx, "Finished creating AMQP subscription to the user actions")
 
-	return nil
+	return diags
 }
 
 func resourceUserActionsAMQPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -173,11 +173,11 @@ func resourceUserActionsAMQPUpdate(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	resourceUserActionsAMQPRead(ctx, d, m)
+	diags := resourceUserActionsAMQPRead(ctx, d, m)
 
 	tflog.Debug(ctx, "Finished updating AMQP subscription to the user actions")
 
-	return nil
+	return diags
 }
 
 func resourceUserActionsAMQPDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
