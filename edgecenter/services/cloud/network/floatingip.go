@@ -209,7 +209,7 @@ func resourceFloatingIPCreate(ctx context.Context, d *schema.ResourceData, m int
 	log.Printf("[DEBUG] FloatingIP id (%s)", floatingIPID)
 
 	d.SetId(floatingIPID)
-	resourceFloatingIPRead(ctx, d, m)
+	diags = append(diags, resourceFloatingIPRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish FloatingIP creating (%s)", floatingIPID)
 

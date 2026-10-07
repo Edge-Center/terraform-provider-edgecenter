@@ -182,7 +182,7 @@ func resourceLBMemberCreate(ctx context.Context, d *schema.ResourceData, m inter
 	pmID := poolMember.Members[0]
 
 	d.SetId(pmID)
-	resourceLBMemberRead(ctx, d, m)
+	diags = append(diags, resourceLBMemberRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish LBMember creating (%s)", pmID)
 

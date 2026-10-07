@@ -372,7 +372,7 @@ func resourceBmInstanceCreate(ctx context.Context, d *schema.ResourceData, m int
 	log.Printf("[DEBUG] Baremetal Instance id (%s)", instanceID)
 
 	d.SetId(instanceID)
-	resourceBmInstanceRead(ctx, d, m)
+	diags = append(diags, resourceBmInstanceRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish Baremetal Instance creating (%s)", instanceID)
 

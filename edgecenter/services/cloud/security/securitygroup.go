@@ -282,7 +282,7 @@ func resourceSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 
 	d.SetId(sg.ID)
 
-	resourceSecurityGroupRead(ctx, d, m)
+	diags = append(diags, resourceSecurityGroupRead(ctx, d, m)...)
 	log.Printf("[DEBUG] Finish SecurityGroup creating (%s)", sg.ID)
 
 	return diags

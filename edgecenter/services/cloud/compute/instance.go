@@ -516,7 +516,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		return append(diags, diagsAdjust...)
 	}
 
-	resourceInstanceRead(ctx, d, m)
+	diags = append(diags, resourceInstanceRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish Instance creating (%s)", instanceID)
 

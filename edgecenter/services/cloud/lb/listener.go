@@ -287,7 +287,7 @@ func resourceLBListenerCreate(ctx context.Context, d *schema.ResourceData, m int
 	listenerID := taskResult.Listeners[0]
 
 	d.SetId(listenerID)
-	resourceLBListenerRead(ctx, d, m)
+	diags = append(diags, resourceLBListenerRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish LBListener creating (%s)", listenerID)
 

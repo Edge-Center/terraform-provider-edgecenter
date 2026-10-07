@@ -279,7 +279,7 @@ func resourceLBPoolCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	lbPoolID := taskResult.Pools[0]
 
 	d.SetId(lbPoolID)
-	resourceLBPoolRead(ctx, d, m)
+	diags = append(diags, resourceLBPoolRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish LBPool creating (%s)", lbPoolID)
 

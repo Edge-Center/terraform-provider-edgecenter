@@ -59,11 +59,11 @@ func resourceUserActionsLogCreate(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	resourceUserActionsLogRead(ctx, d, m)
+	diags := resourceUserActionsLogRead(ctx, d, m)
 
 	tflog.Debug(ctx, "Finished creating log subscription to the user actions")
 
-	return nil
+	return diags
 }
 
 func resourceUserActionsLogRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -140,11 +140,11 @@ func resourceUserActionsLogUpdate(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	resourceUserActionsLogRead(ctx, d, m)
+	diags := resourceUserActionsLogRead(ctx, d, m)
 
 	tflog.Debug(ctx, "Finished updating log subscription to the user actions")
 
-	return nil
+	return diags
 }
 
 func resourceUserActionsLogDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

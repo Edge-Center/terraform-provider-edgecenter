@@ -266,7 +266,7 @@ func resourceSubnetCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	subnetID := taskResult.Subnets[0]
 
 	d.SetId(subnetID)
-	resourceSubnetRead(ctx, d, m)
+	diags = append(diags, resourceSubnetRead(ctx, d, m)...)
 
 	log.Printf("[DEBUG] Finish Subnet creating (%s)", subnetID)
 

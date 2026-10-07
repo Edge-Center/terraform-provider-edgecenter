@@ -119,7 +119,7 @@ func resourceServerGroupCreate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	d.SetId(serverGroup.ID)
-	resourceServerGroupRead(ctx, d, m)
+	diags = append(diags, resourceServerGroupRead(ctx, d, m)...)
 	log.Println("[DEBUG] Finish ServerGroup creating")
 
 	return diags
