@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
+	edgecloud "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
@@ -226,14 +227,50 @@ func resourceInstancePortSecurityRead(ctx context.Context, d *schema.ResourceDat
 	portID := d.Get(edgecenter.PortIDField).(string)
 	instanceID := d.Get(edgecenter.InstanceIDField).(string)
 
-	instanceIface, err := utilV2.InstanceNetworkInterfaceByID(ctx, clientV2, instanceID, portID)
+	instanceIfaces, resp, err := clientV2.Instances.InterfaceList(ctx, instanceID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing instance port security %s because resource doesn't exist anymore", portID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
-	instancePort, err := utilV2.InstanceNetworkPortByID(ctx, clientV2, instanceID, portID)
+	var instanceIface *edgecloud.InstancePortInterface
+	for idx := range instanceIfaces {
+		if instanceIfaces[idx].PortID == portID {
+			instanceIface = &instanceIfaces[idx]
+			break
+		}
+	}
+	if instanceIface == nil {
+		log.Printf("[WARN] Removing instance port security %s because resource doesn't exist anymore", portID)
+		d.SetId("")
+		return nil
+	}
+
+	instancePorts, resp, err := clientV2.Instances.PortsList(ctx, instanceID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing instance port security %s because resource doesn't exist anymore", portID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
+	}
+
+	var instancePort *edgecloud.InstancePort
+	for idx := range instancePorts {
+		if instancePorts[idx].ID == portID {
+			instancePort = &instancePorts[idx]
+			break
+		}
+	}
+	if instancePort == nil {
+		log.Printf("[WARN] Removing instance port security %s because resource doesn't exist anymore", portID)
+		d.SetId("")
+		return nil
 	}
 	d.Set(PortSecurityDisabledField, !instanceIface.PortSecurityEnabled)
 

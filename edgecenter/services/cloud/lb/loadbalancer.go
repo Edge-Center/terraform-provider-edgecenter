@@ -236,8 +236,14 @@ func resourceLoadBalancerRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	lb, _, err := clientV2.Loadbalancers.Get(ctx, d.Id())
+	lbID := d.Id()
+	lb, resp, err := clientV2.Loadbalancers.Get(ctx, lbID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing load balancer %s because resource doesn't exist anymore", lbID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 

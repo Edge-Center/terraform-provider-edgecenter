@@ -4,6 +4,8 @@ package edgecenter_test
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -409,6 +411,29 @@ func lifecyclePolicyDeleteAPIFailureCase(lcpID int) support.ResourceCase[*cloudm
 	}
 }
 
+func lifecyclePolicyReadNonExistentCase(lcpID int) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
+
+	mc.LifeCyclePolicies.On("Get", mock.Anything, lcpID, mock.Anything).
+		Return(nil, &edgecloud.Response{Response: &http.Response{StatusCode: http.StatusNotFound}}, fmt.Errorf("not found"))
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "read non-existent (404)",
+		Op:        support.OpRead,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: strconv.Itoa(lcpID),
+		CurrentState: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			cloud.WithName("test-lcp"),
+		),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when resource not found")
+		},
+	}
+}
+
 func TestIntegrationLifecyclePolicy_TableDriven(t *testing.T) {
 	t.Parallel()
 
@@ -422,6 +447,7 @@ func TestIntegrationLifecyclePolicy_TableDriven(t *testing.T) {
 		lifecyclePolicyCreateAPIFailureCase(),
 		lifecyclePolicyValidationEmptyScheduleCase(),
 		lifecyclePolicyDeleteAPIFailureCase(testLCPID),
+		lifecyclePolicyReadNonExistentCase(testLCPID),
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*cloudmock.MockedCloud])

@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
+	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
@@ -296,8 +297,14 @@ func resourceSecurityGroupRead(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(err)
 	}
 
-	sg, _, err := clientV2.SecurityGroups.Get(ctx, d.Id())
+	sgID := d.Id()
+	sg, resp, err := clientV2.SecurityGroups.Get(ctx, sgID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing security group %s because resource doesn't exist anymore", sgID)
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 

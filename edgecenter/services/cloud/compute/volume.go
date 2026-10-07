@@ -207,8 +207,13 @@ func resourceVolumeRead(ctx context.Context, d *schema.ResourceData, m interface
 	volumeID := d.Id()
 	log.Printf("[DEBUG] Volume id = %s", volumeID)
 
-	volume, _, err := clientV2.Volumes.Get(ctx, volumeID)
+	volume, resp, err := clientV2.Volumes.Get(ctx, volumeID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing volume %s because resource doesn't exist anymore", volumeID)
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("cannot get volume with ID: %s. Error: %s", volumeID, err)
 	}
 

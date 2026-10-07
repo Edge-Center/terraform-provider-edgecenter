@@ -220,8 +220,8 @@ func volumeReadNotFoundCase(volID string) support.ResourceCase[*cloudmock.Mocked
 			cloud.WithSize(10),
 		),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
-			support.RequireHasErrorDiags(t, diags)
-			support.RequireErrorDiagContains(t, diags, "not found")
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when resource not found")
 		},
 	}
 }

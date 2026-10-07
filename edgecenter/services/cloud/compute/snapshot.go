@@ -174,8 +174,13 @@ func resourceSnapshotRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	snapshotID := d.Id()
 	log.Printf("[DEBUG] Snapshot id = %s", snapshotID)
-	snapshot, _, err := clientV2.Snapshots.Get(ctx, snapshotID)
+	snapshot, resp, err := clientV2.Snapshots.Get(ctx, snapshotID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing snapshot %s because resource doesn't exist anymore", snapshotID)
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("cannot get snapshot with ID: %s. Error: %s", snapshotID, err)
 	}
 

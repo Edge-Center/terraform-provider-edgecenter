@@ -284,8 +284,13 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	subnetID := d.Id()
 	log.Printf("[DEBUG] Subnet id = %s", subnetID)
-	subnet, _, err := clientV2.Subnetworks.Get(ctx, subnetID)
+	subnet, resp, err := clientV2.Subnetworks.Get(ctx, subnetID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing subnet %s because resource doesn't exist anymore", subnetID)
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("cannot get subnet with ID: %s. Error: %s", subnetID, err)
 	}
 

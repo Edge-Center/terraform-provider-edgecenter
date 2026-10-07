@@ -133,9 +133,8 @@ func secretReadNotFoundCase(secretID string) support.ResourceCase[*cloudmock.Moc
 			cloud.WithProjectRegion(testProjectID, testRegionID),
 		),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
-			support.RequireHasErrorDiags(t, diags)
-			support.RequireErrorDiagContains(t, diags, "not found")
-			require.NotNil(t, state, "state is preserved on read error")
+			support.RequireNoDiags(t, diags)
+			require.Nil(t, state, "state must be nil when resource not found")
 		},
 	}
 }
