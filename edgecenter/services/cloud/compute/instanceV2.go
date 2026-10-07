@@ -893,8 +893,13 @@ func resourceInstanceDeleteV2(ctx context.Context, d *schema.ResourceData, m int
 	log.Printf("[DEBUG] Instance id = %s", instanceID)
 
 	var delOpts edgecloudV2.InstanceDeleteOptions
-	results, _, err := clientV2.Instances.Delete(ctx, instanceID, &delOpts)
+	results, resp, err := clientV2.Instances.Delete(ctx, instanceID, &delOpts)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing instance %s because resource doesn't exist anymore", instanceID)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 	taskID := results.Tasks[0]

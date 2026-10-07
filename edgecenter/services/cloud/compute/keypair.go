@@ -158,7 +158,13 @@ func resourceKeypairDelete(ctx context.Context, d *schema.ResourceData, m interf
 	clientV2.Region = 1
 
 	kpID := d.Id()
-	if _, err := clientV2.KeyPairs.DeleteV2(ctx, kpID); err != nil {
+	resp, err := clientV2.KeyPairs.DeleteV2(ctx, kpID)
+	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing keypair %s because resource doesn't exist anymore", kpID)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 

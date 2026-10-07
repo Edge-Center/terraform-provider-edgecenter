@@ -176,8 +176,13 @@ func resourceServerGroupDelete(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(err)
 	}
 
-	_, err = clientV2.ServerGroups.Delete(ctx, d.Id())
+	resp, err := clientV2.ServerGroups.Delete(ctx, d.Id())
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing server group %s because resource doesn't exist anymore", d.Id())
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 

@@ -517,8 +517,13 @@ func resourceSecurityGroupDelete(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	sgID := d.Id()
-	_, err = clientV2.SecurityGroups.Delete(ctx, sgID)
+	resp, err := clientV2.SecurityGroups.Delete(ctx, sgID)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing security group %s because resource doesn't exist anymore", sgID)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 

@@ -726,8 +726,13 @@ func resourceBmInstanceDelete(ctx context.Context, d *schema.ResourceData, m int
 	var delOpts edgecloudV2.InstanceDeleteOptions
 	delOpts.DeleteFloatings = true
 
-	results, _, err := clientV2.Instances.Delete(ctx, instanceID, &delOpts)
+	results, resp, err := clientV2.Instances.Delete(ctx, instanceID, &delOpts)
 	if err != nil {
+		if utilV2.IsNotFoundErr(resp) {
+			log.Printf("[WARN] Removing baremetal instance %s because resource doesn't exist anymore", instanceID)
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 	taskID := results.Tasks[0]
