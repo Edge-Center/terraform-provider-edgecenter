@@ -68,11 +68,13 @@ func TestIntegrationCDNResource_UpdateAfterEmptyOptionsRead(t *testing.T) {
 			ID:          testCDNResourceID,
 			Cname:       testCDNResourceCname,
 			Description: description,
+			OriginGroup: testCDNResourceOriginGr,
 			Status:      "active",
 			Options:     &cdnsdk.ResourceOptions{},
 		}
 	}
 
+	mockImplicitOriginGroup(mc, testCDNResourceOrigin)
 	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(emptyOptions("tf test"), nil).Once()
 	mc.Resources.On("Update", mock.Anything, int64(testCDNResourceID),
 		mock.MatchedBy(func(req *resources.UpdateRequest) bool {

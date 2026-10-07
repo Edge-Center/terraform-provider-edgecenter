@@ -2,15 +2,19 @@ package cdn
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	cdn "github.com/Edge-Center/edgecentercdn-go/edgecenter"
+	"github.com/Edge-Center/edgecentercdn-go/origingroups"
 	"github.com/Edge-Center/edgecentercdn-go/resources"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/tfutil"
@@ -999,6 +1003,9 @@ func resourceCDNResource() *schema.Resource {
 					"origin_group",
 					"origin",
 				},
+				DiffSuppressFunc: func(_, oldValue, newValue string, _ *schema.ResourceData) bool {
+					return strings.EqualFold(oldValue, newValue)
+				},
 				Description: "Enter a domain name or the IP address of your source. Specify a port if custom. You can use either \"origin\" or \"origin_group\" field in the request.",
 			},
 			"origin_protocol": {
@@ -1062,7 +1069,14 @@ func resourceCDNResource() *schema.Resource {
 		ReadContext:   resourceCDNResourceRead,
 		UpdateContext: resourceCDNResourceUpdate,
 		DeleteContext: resourceCDNResourceDelete,
-		Description:   "Represent CDN resource",
+		CustomizeDiff: func(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+			if _, newOrigin := d.GetChange("origin"); d.Id() != "" && d.HasChange("origin") && newOrigin.(string) != "" {
+				return d.SetNewComputed("origin_group")
+			}
+
+			return nil
+		},
+		Description: "Represent CDN resource",
 	}
 }
 
@@ -1128,6 +1142,17 @@ func resourceCDNResourceRead(ctx context.Context, d *schema.ResourceData, m inte
 	d.Set("cname", result.Cname)
 	d.Set("description", result.Description)
 	d.Set("origin_group", result.OriginGroup)
+	origin := ""
+	if result.OriginGroup != 0 {
+		group, err := client.OriginGroups().Get(ctx, result.OriginGroup)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if isImplicitOriginGroup(group, result.Cname, id) && len(group.Origins) == 1 {
+			origin = group.Origins[0].Source
+		}
+	}
+	d.Set("origin", origin)
 	d.Set("origin_protocol", result.OriginProtocol)
 	d.Set("secondary_hostnames", result.SecondaryHostnames)
 	d.Set("ssl_enabled", result.SSLEnabled)
@@ -1160,6 +1185,13 @@ func resourceCDNResourceUpdate(ctx context.Context, d *schema.ResourceData, m in
 	req.Active = d.Get("active").(bool)
 	req.Description = d.Get("description").(string)
 	req.OriginGroup = d.Get("origin_group").(int)
+	if origin, ok := d.GetOk("origin"); ok && d.HasChange("origin") {
+		groupID, err := applyOriginChange(ctx, client.OriginGroups(), d, id, origin.(string))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		req.OriginGroup = groupID
+	}
 	req.SSLEnabled = d.Get("ssl_enabled").(bool)
 	if v, ok := d.GetOk("ssl_data"); ok {
 		val := v.(int)
@@ -1187,6 +1219,65 @@ func resourceCDNResourceUpdate(ctx context.Context, d *schema.ResourceData, m in
 	log.Println("[DEBUG] Finish CDN Resource updating")
 
 	return resourceCDNResourceRead(ctx, d, m)
+}
+
+func applyOriginChange(ctx context.Context, groups origingroups.OriginGroupService, d *schema.ResourceData, resourceID int64, origin string) (int, error) {
+	cname := d.Get("cname").(string)
+	origins := []origingroups.OriginRequest{{Source: origin, Enabled: true}}
+
+	currentGroup, _ := d.GetChange("origin_group")
+	if groupID := int64(currentGroup.(int)); groupID != 0 {
+		group, err := groups.Get(ctx, groupID)
+		if err != nil {
+			return 0, fmt.Errorf("get origin group %d: %w", groupID, err)
+		}
+		if isImplicitOriginGroup(group, cname, resourceID) {
+			if group.Authorization != nil {
+				return 0, fmt.Errorf("origin group %d has authorization configured, change its origins through edgecenter_cdn_origingroup instead of the origin attribute", groupID)
+			}
+			req := origingroups.GroupRequest{
+				Name:                group.Name,
+				UseNext:             group.UseNext,
+				Origins:             origins,
+				ConsistentBalancing: group.ConsistentBalancing,
+			}
+			if _, err := groups.Update(ctx, groupID, &req); err != nil {
+				return 0, fmt.Errorf("update origin group %d: %w", groupID, err)
+			}
+
+			return int(groupID), nil
+		}
+	}
+
+	suffix := make([]byte, 8)
+	if _, err := rand.Read(suffix); err != nil {
+		return 0, fmt.Errorf("generate origin group name: %w", err)
+	}
+	req := origingroups.GroupRequest{
+		Name:    fmt.Sprintf("%s (%s)", implicitOriginGroupPrefix(cname, resourceID), hex.EncodeToString(suffix)),
+		Origins: origins,
+	}
+	group, err := groups.Create(ctx, &req)
+	if err != nil {
+		return 0, fmt.Errorf("create origin group for %s: %w", cname, err)
+	}
+
+	return int(group.ID), nil
+}
+
+func implicitOriginGroupPrefix(cname string, resourceID int64) string {
+	const cnameLimit = 185
+	if r := []rune(cname); len(r) > cnameLimit {
+		cname = string(r[:cnameLimit])
+	}
+
+	return fmt.Sprintf("Origins for %s (%d)", cname, resourceID)
+}
+
+func isImplicitOriginGroup(group *origingroups.OriginGroup, cname string, resourceID int64) bool {
+	prefix := implicitOriginGroupPrefix(cname, resourceID)
+
+	return len(group.Name) >= len(prefix) && strings.EqualFold(group.Name[:len(prefix)], prefix)
 }
 
 func resourceCDNResourceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

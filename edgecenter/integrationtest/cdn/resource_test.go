@@ -4,6 +4,7 @@ package cdn_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	cdnsdk "github.com/Edge-Center/edgecentercdn-go/edgecenter"
+	"github.com/Edge-Center/edgecentercdn-go/origingroups"
 	"github.com/Edge-Center/edgecentercdn-go/resources"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
@@ -68,6 +70,27 @@ func sampleCDNResource(description string) *resources.Resource {
 	}
 }
 
+func implicitOriginGroupName() string {
+	return fmt.Sprintf("Origins for %s (%d)", testCDNResourceCname, testCDNResourceID)
+}
+
+func sampleImplicitOriginGroup(id int64, source string) *origingroups.OriginGroup {
+	return &origingroups.OriginGroup{
+		ID:      id,
+		Name:    implicitOriginGroupName(),
+		Origins: []origingroups.Origin{{ID: 1, Source: source, Enabled: true}},
+	}
+}
+
+func mockImplicitOriginGroup(mc *cdnmock.MockedCDN, source string) {
+	mc.OriginGroups.On("Get", mock.Anything, int64(testCDNResourceOriginGr)).
+		Return(sampleImplicitOriginGroup(testCDNResourceOriginGr, source), nil)
+}
+
+func hasSingleOrigin(origins []origingroups.OriginRequest, source string) bool {
+	return len(origins) == 1 && origins[0].Source == source && origins[0].Enabled && !origins[0].Backup
+}
+
 func hasBothHostnames(hostnames []string) bool {
 	if len(hostnames) != 2 {
 		return false
@@ -97,6 +120,7 @@ func cdnResourceCreateCase() support.ResourceCase[*cdnmock.MockedCDN] {
 		}),
 	).Return(sampleCDNResource("tf test"), nil)
 
+	mockImplicitOriginGroup(mc, testCDNResourceOrigin)
 	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).
 		Return(sampleCDNResource("tf test"), nil)
 
@@ -132,6 +156,7 @@ func cdnResourceCreateDedupesHostnamesCase() support.ResourceCase[*cdnmock.Mocke
 		}),
 	).Return(sampleCDNResource("tf test"), nil)
 
+	mockImplicitOriginGroup(mc, testCDNResourceOrigin)
 	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).
 		Return(sampleCDNResource("tf test"), nil)
 
@@ -159,6 +184,7 @@ func cdnResourceReadCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	drifted.OriginProtocol = resources.HTTPProtocol
 	drifted.Options.BrowserCacheSettings.Value = "60s"
 
+	mockImplicitOriginGroup(mc, testCDNResourceOrigin)
 	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(drifted, nil)
 
 	return support.ResourceCase[*cdnmock.MockedCDN]{
@@ -195,6 +221,7 @@ func cdnResourceUpdateCase() support.ResourceCase[*cdnmock.MockedCDN] {
 		}),
 	).Return(sampleCDNResource(newDescription), nil)
 
+	mockImplicitOriginGroup(mc, testCDNResourceOrigin)
 	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).
 		Return(sampleCDNResource(newDescription), nil)
 
@@ -281,6 +308,7 @@ func cdnResourceCreateWithOriginGroupCase() support.ResourceCase[*cdnmock.Mocked
 		}),
 	).Return(sampleCDNResource("tf test"), nil)
 
+	mockImplicitOriginGroup(mc, testCDNResourceOrigin)
 	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).
 		Return(sampleCDNResource("tf test"), nil)
 
@@ -315,6 +343,7 @@ func cdnResourceCreateWithSSLCase() support.ResourceCase[*cdnmock.MockedCDN] {
 		}),
 	).Return(withSSL, nil)
 
+	mockImplicitOriginGroup(mc, testCDNResourceOrigin)
 	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(withSSL, nil)
 
 	config := cdnResourceConfig("tf test")
@@ -351,6 +380,7 @@ func cdnResourceUpdateSendsSSLDataPointerCase() support.ResourceCase[*cdnmock.Mo
 		}),
 	).Return(withSSL, nil)
 
+	mockImplicitOriginGroup(mc, testCDNResourceOrigin)
 	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(withSSL, nil)
 
 	current := cdnResourceConfig("tf test")
@@ -389,6 +419,7 @@ func cdnResourceUpdateOptionsCase() support.ResourceCase[*cdnmock.MockedCDN] {
 		}),
 	).Return(updated, nil)
 
+	mockImplicitOriginGroup(mc, testCDNResourceOrigin)
 	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(updated, nil)
 
 	newConfig := cdnResourceConfig("tf test")
@@ -472,6 +503,295 @@ func cdnResourceReadInvalidIDCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	}
 }
 
+func cdnResourceUpdateOriginCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	const newOrigin = "9.9.9.9:8080"
+
+	mc.OriginGroups.On("Get", mock.Anything, int64(testCDNResourceOriginGr)).
+		Return(sampleImplicitOriginGroup(testCDNResourceOriginGr, testCDNResourceOrigin), nil).Once()
+	mc.OriginGroups.On("Update", mock.Anything, int64(testCDNResourceOriginGr),
+		mock.MatchedBy(func(req *origingroups.GroupRequest) bool {
+			return req.Name == implicitOriginGroupName() && hasSingleOrigin(req.Origins, newOrigin)
+		}),
+	).Return(sampleImplicitOriginGroup(testCDNResourceOriginGr, newOrigin), nil)
+	mc.Resources.On("Update", mock.Anything, int64(testCDNResourceID),
+		mock.MatchedBy(func(req *resources.UpdateRequest) bool {
+			return req.OriginGroup == testCDNResourceOriginGr
+		}),
+	).Return(sampleCDNResource("tf test"), nil)
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(sampleCDNResource("tf test"), nil)
+	mc.OriginGroups.On("Get", mock.Anything, int64(testCDNResourceOriginGr)).
+		Return(sampleImplicitOriginGroup(testCDNResourceOriginGr, newOrigin), nil)
+
+	current := cdnResourceConfig("tf test")
+	current["origin_group"] = testCDNResourceOriginGr
+	updated := cdnResourceConfig("tf test")
+	updated["origin"] = newOrigin
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "update origin rewrites the implicit origin group",
+		Op:           support.OpApply,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: current,
+		NewConfig:    updated,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, mc *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			mc.OriginGroups.AssertCalled(t, "Update", mock.Anything, int64(testCDNResourceOriginGr), mock.Anything)
+			mc.OriginGroups.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"origin":       newOrigin,
+				"origin_group": fmt.Sprintf("%d", testCDNResourceOriginGr),
+			})
+		},
+	}
+}
+
+func cdnResourceUpdateOriginOnSharedGroupCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	const (
+		newOrigin  = "9.9.9.9:8080"
+		newGroupID = 77
+	)
+
+	shared := &origingroups.OriginGroup{
+		ID:   testCDNResourceOriginGr,
+		Name: "shared group",
+		Origins: []origingroups.Origin{
+			{ID: 1, Source: "a.origin.example", Enabled: true},
+			{ID: 2, Source: "b.origin.example", Enabled: true},
+		},
+	}
+	mc.OriginGroups.On("Get", mock.Anything, int64(testCDNResourceOriginGr)).Return(shared, nil)
+	mc.OriginGroups.On("Create", mock.Anything,
+		mock.MatchedBy(func(req *origingroups.GroupRequest) bool {
+			return strings.HasPrefix(req.Name, implicitOriginGroupName()+" (") &&
+				len(req.Name) == len(implicitOriginGroupName())+19 &&
+				hasSingleOrigin(req.Origins, newOrigin)
+		}),
+	).Return(sampleImplicitOriginGroup(newGroupID, newOrigin), nil)
+
+	moved := sampleCDNResource("tf test")
+	moved.OriginGroup = newGroupID
+	mc.Resources.On("Update", mock.Anything, int64(testCDNResourceID),
+		mock.MatchedBy(func(req *resources.UpdateRequest) bool {
+			return req.OriginGroup == newGroupID
+		}),
+	).Return(moved, nil)
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(moved, nil)
+	mc.OriginGroups.On("Get", mock.Anything, int64(newGroupID)).
+		Return(sampleImplicitOriginGroup(newGroupID, newOrigin), nil)
+
+	current := cdnResourceConfig("tf test")
+	delete(current, "origin")
+	current["origin_group"] = testCDNResourceOriginGr
+	updated := cdnResourceConfig("tf test")
+	updated["origin"] = newOrigin
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "update origin on a shared group creates a private group",
+		Op:           support.OpApply,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: current,
+		NewConfig:    updated,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, mc *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			mc.OriginGroups.AssertNotCalled(t, "Update", mock.Anything, mock.Anything, mock.Anything)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"origin":       newOrigin,
+				"origin_group": fmt.Sprintf("%d", newGroupID),
+			})
+		},
+	}
+}
+
+func cdnResourceUpdateOriginGroupAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.OriginGroups.On("Get", mock.Anything, int64(testCDNResourceOriginGr)).
+		Return(sampleImplicitOriginGroup(testCDNResourceOriginGr, testCDNResourceOrigin), nil)
+	mc.OriginGroups.On("Update", mock.Anything, int64(testCDNResourceOriginGr), mock.Anything).
+		Return(nil, fmt.Errorf("api error: origin does not resolve"))
+
+	current := cdnResourceConfig("tf test")
+	current["origin_group"] = testCDNResourceOriginGr
+	updated := cdnResourceConfig("tf test")
+	updated["origin"] = "9.9.9.9:8080"
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "API error on origin group update stops the resource update",
+		Op:           support.OpApply,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: current,
+		NewConfig:    updated,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, mc *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "origin does not resolve")
+			mc.Resources.AssertNotCalled(t, "Update", mock.Anything, mock.Anything, mock.Anything)
+			require.NotNil(t, state, "state must survive a failed update")
+		},
+	}
+}
+
+func cdnResourceReadFillsOriginCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(sampleCDNResource("tf test"), nil)
+	mockImplicitOriginGroup(mc, testCDNResourceOrigin)
+
+	current := cdnResourceConfig("tf test")
+	delete(current, "origin")
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read fills origin from the implicit origin group",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: current,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"origin":       testCDNResourceOrigin,
+				"origin_group": fmt.Sprintf("%d", testCDNResourceOriginGr),
+			})
+		},
+	}
+}
+
+func cdnResourceReadClearsOriginForSharedGroupCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(sampleCDNResource("tf test"), nil)
+	mc.OriginGroups.On("Get", mock.Anything, int64(testCDNResourceOriginGr)).Return(&origingroups.OriginGroup{
+		ID:      testCDNResourceOriginGr,
+		Name:    "shared group",
+		Origins: []origingroups.Origin{{ID: 1, Source: "a.origin.example", Enabled: true}},
+	}, nil)
+
+	current := cdnResourceConfig("tf test")
+	current["origin_group"] = testCDNResourceOriginGr
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read clears a stale origin for a shared group",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: current,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"origin":       "",
+				"origin_group": fmt.Sprintf("%d", testCDNResourceOriginGr),
+			})
+		},
+	}
+}
+
+func cdnResourceReadOriginGroupAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(sampleCDNResource("tf test"), nil)
+	mc.OriginGroups.On("Get", mock.Anything, int64(testCDNResourceOriginGr)).
+		Return(nil, fmt.Errorf("api error: server unavailable"))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "API error on origin group read",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: cdnResourceConfig("tf test"),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "server unavailable")
+		},
+	}
+}
+
+func cdnResourceReadClearsOriginForMultiOriginGroupCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(sampleCDNResource("tf test"), nil)
+	mc.OriginGroups.On("Get", mock.Anything, int64(testCDNResourceOriginGr)).Return(&origingroups.OriginGroup{
+		ID:   testCDNResourceOriginGr,
+		Name: implicitOriginGroupName(),
+		Origins: []origingroups.Origin{
+			{ID: 1, Source: testCDNResourceOrigin, Enabled: true},
+			{ID: 2, Source: "backup.origin.example", Enabled: true, Backup: true},
+		},
+	}, nil)
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read clears origin when the implicit group grew a second origin",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: cdnResourceConfig("tf test"),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{"origin": ""})
+		},
+	}
+}
+
+func cdnResourceReadMatchesImplicitGroupCaseInsensitivelyCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).Return(sampleCDNResource("tf test"), nil)
+	mc.OriginGroups.On("Get", mock.Anything, int64(testCDNResourceOriginGr)).Return(&origingroups.OriginGroup{
+		ID:      testCDNResourceOriginGr,
+		Name:    strings.ToUpper(implicitOriginGroupName()) + " (deadbeef)",
+		Origins: []origingroups.Origin{{ID: 1, Source: testCDNResourceOrigin, Enabled: true}},
+	}, nil)
+
+	current := cdnResourceConfig("tf test")
+	delete(current, "origin")
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read recognises a suffixed implicit group regardless of case",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: current,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{"origin": testCDNResourceOrigin})
+		},
+	}
+}
+
+func cdnResourceUpdateOriginRefusesAuthorizedGroupCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	authorized := sampleImplicitOriginGroup(testCDNResourceOriginGr, testCDNResourceOrigin)
+	authorized.Authorization = &origingroups.Authorization{AuthType: "aws_signature_v4", AccessKeyID: "key"}
+	mc.OriginGroups.On("Get", mock.Anything, int64(testCDNResourceOriginGr)).Return(authorized, nil)
+
+	current := cdnResourceConfig("tf test")
+	current["origin_group"] = testCDNResourceOriginGr
+	updated := cdnResourceConfig("tf test")
+	updated["origin"] = "9.9.9.9:8080"
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "update origin refuses to touch an implicit group with authorization",
+		Op:           support.OpApply,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: current,
+		NewConfig:    updated,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, mc *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "has authorization configured")
+			mc.OriginGroups.AssertNotCalled(t, "Update", mock.Anything, mock.Anything, mock.Anything)
+			mc.OriginGroups.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+			mc.Resources.AssertNotCalled(t, "Update", mock.Anything, mock.Anything, mock.Anything)
+		},
+	}
+}
+
 func TestIntegrationCDNResource_TableDriven(t *testing.T) {
 	t.Parallel()
 
@@ -486,6 +806,15 @@ func TestIntegrationCDNResource_TableDriven(t *testing.T) {
 		cdnResourceUpdateCase(),
 		cdnResourceUpdateOptionsCase(),
 		cdnResourceUpdateSendsSSLDataPointerCase(),
+		cdnResourceUpdateOriginCase(),
+		cdnResourceUpdateOriginOnSharedGroupCase(),
+		cdnResourceUpdateOriginGroupAPIFailureCase(),
+		cdnResourceReadFillsOriginCase(),
+		cdnResourceReadClearsOriginForSharedGroupCase(),
+		cdnResourceReadClearsOriginForMultiOriginGroupCase(),
+		cdnResourceReadMatchesImplicitGroupCaseInsensitivelyCase(),
+		cdnResourceUpdateOriginRefusesAuthorizedGroupCase(),
+		cdnResourceReadOriginGroupAPIFailureCase(),
 		cdnResourceDeleteCase(),
 		cdnResourceCreateAPIFailureCase(),
 		cdnResourceUpdateAPIFailureCase(),

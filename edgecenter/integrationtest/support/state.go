@@ -2,8 +2,11 @@ package support
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
+	"github.com/hashicorp/go-cty/cty"
+	ctyjson "github.com/hashicorp/go-cty/cty/json"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -22,6 +25,22 @@ func NewState(
 	data.SetId(id)
 
 	return data.State()
+}
+
+func NewRawConfig(
+	t *testing.T,
+	resource *schema.Resource,
+	raw map[string]interface{},
+) cty.Value {
+	t.Helper()
+
+	data, err := json.Marshal(normalizeRawConfig(raw))
+	require.NoError(t, err)
+
+	value, err := ctyjson.Unmarshal(data, resource.CoreConfigSchema().ImpliedType())
+	require.NoError(t, err)
+
+	return value
 }
 
 func NewResourceDataFromState(

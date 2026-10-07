@@ -29,8 +29,8 @@ directly), `state.go` (builds `terraform.InstanceState` from a Go map, no HCL),
 integrationtest/
 ├── support/          # Generic foundation helpers (package support)
 │   ├── case.go       # ResourceCase[T], CheckFunc, Operation, Meta
-│   ├── runner.go     # RunResourceCases, DispatchCase, RunCase*
-│   ├── state.go      # NewState, ApplyConfig, NewResourceDataFromState
+│   ├── runner.go     # RunResourceCases, DispatchCase, DispatchCaseWithRawConfig, RunCase*
+│   ├── state.go      # NewState, NewRawConfig, ApplyConfig, NewResourceDataFromState
 │   ├── diag.go       # RequireNoErrorDiags, RequireHasErrorDiags, RequireOnlyErrorDiags, RequireErrorDiagContains
 │   ├── sets.go       # StringSet, IntSet, List
 │   ├── cloud/        # Cloud-specific helpers (package cloud)
@@ -261,6 +261,14 @@ one by one here. They are covered wholesale by a co-located white-box test,
 `services/cdn/options_test.go`: it fills **every** option and **every** field of every
 option via reflection, pushes the struct through `d.Set` -> `d.Get`, converts it back,
 and compares. Any mapper that drops or mangles a field fails there, by option name.
+
+`edgecenter_cdn_rule` sends `active` and `weight` only when the config sets them, and
+tells that from `d.GetRawConfig()`. `support.ApplyConfig` builds the prior state through
+`ResourceData.State()`, which carries no `RawConfig`, so the rule cases run through
+`support.DispatchCaseWithRawConfig`: it builds the config value from the resource
+schema, stamps it onto the prior state the way the SDK does, and hands read and delete
+to `support.DispatchCase`. An absent block comes out null there, not as the empty list
+Terraform sends, so the helper suits checks on attributes rather than on blocks.
 
 Data sources are covered too: they are plain `*schema.Resource` values fetched from
 `provider.Provider().DataSourcesMap` and driven with `support.OpRead`. Because

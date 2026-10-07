@@ -88,6 +88,27 @@ func DispatchCase[T any](
 	}
 }
 
+func DispatchCaseWithRawConfig[T any](
+	t *testing.T,
+	resource *schema.Resource,
+	tc ResourceCase[T],
+	fake T,
+) (*terraform.InstanceState, diag.Diagnostics) {
+	t.Helper()
+
+	if tc.Op != OpApply {
+		return DispatchCase(t, resource, tc, fake)
+	}
+
+	current := currentStateFromCase(t, resource, tc.CurrentState, tc.CurrentID)
+	if current == nil {
+		current = &terraform.InstanceState{Attributes: map[string]string{}}
+	}
+	current.RawConfig = NewRawConfig(t, resource, tc.NewConfig)
+
+	return ApplyConfig(t, context.Background(), resource, current, tc.NewConfig, resolveMeta(fake))
+}
+
 func resolveMeta[T any](fake T) interface{} {
 	if provider, ok := any(fake).(MetaProvider); ok {
 		return provider.TestMeta()
