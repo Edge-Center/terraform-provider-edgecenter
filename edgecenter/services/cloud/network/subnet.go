@@ -94,7 +94,8 @@ func resourceSubnet() *schema.Resource {
 			edgecenter.CIDRField: {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Represents the IP address range of the subnet.",
+				ForceNew:    true,
+				Description: "Represents the IP address range of the subnet. The subnet will be recreated if the CIDR is changed.",
 			},
 			edgecenter.NetworkIDField: {
 				Type:        schema.TypeString,
