@@ -127,6 +127,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 	log.Printf("[DEBUG] Retrieved Project %s: %#v", d.Id(), project)
 	d.Set(edgecenter.ClientIDField, project.ClientID)
+	d.Set(edgecenter.NameField, project.Name)
 	d.Set(edgecenter.DescriptionField, project.Description)
 	d.Set(edgecenter.StateField, project.State)
 	d.Set(edgecenter.CreatedAtField, project.CreatedAt)
