@@ -3,6 +3,7 @@ package edgecenter
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	dnsSDK "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
@@ -122,6 +123,11 @@ func (c *Config) NewCloudClient() (*edgecloudV2.Client, error) {
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error from creating cloud client: %w", err)
+	}
+
+	cloudClient.HTTPClient = &http.Client{
+		Transport: newConflictRetryTransport(cloudClient.HTTPClient.Transport),
+		Timeout:   cloudClient.HTTPClient.Timeout,
 	}
 
 	return cloudClient, nil
