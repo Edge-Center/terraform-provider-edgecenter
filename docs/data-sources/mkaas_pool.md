@@ -48,6 +48,7 @@ data "edgecenter_mkaas_pool" "apps" {
 - `labels` (Map of String) Arbitrary labels assigned to the pool.
 - `name` (String) The name of the Kubernetes pool.
 - `node_count` (Number) The current number of nodes in the pool.
+- `public_ip_enabled` (Boolean) Whether worker nodes in the pool have public IP addresses.
 - `scale_policy` (List of Object) Scale policy of the pool. Populated only when autoscaling is enabled. (see [below for nested schema](#nestedatt--scale_policy))
 - `security_group_ids` (List of String) List of security group IDs attached to the pool.
 - `state` (String) The state of the pool.

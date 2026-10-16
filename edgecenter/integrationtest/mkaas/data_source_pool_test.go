@@ -46,6 +46,7 @@ func TestIntegrationMKaaSPoolDataSource_Read(t *testing.T) {
 				mc.MKaaS.On("PoolGet", mock.Anything, testClusterID, testPoolID).
 					Return(samplePool(map[string]interface{}{
 						"node_count":         5,
+						"public_ip_enabled":  true,
 						"labels":             map[string]string{"team": "platform"},
 						"taints":             []edgecloud.MKaaSTaint{{Key: "dedicated", Value: "gpu", Effect: "NoSchedule"}},
 						"security_group_ids": []string{"sg-1"},
@@ -63,6 +64,7 @@ func TestIntegrationMKaaSPoolDataSource_Read(t *testing.T) {
 					"name":                 testPoolName,
 					"flavor":               testFlavor,
 					"node_count":           "5",
+					"public_ip_enabled":    "true",
 					"current_node_count":   "5",
 					"volume_size":          "20",
 					"volume_type":          string(edgecloud.VolumeTypeStandard),

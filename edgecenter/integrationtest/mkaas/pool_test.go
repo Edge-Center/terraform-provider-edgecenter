@@ -38,12 +38,13 @@ func taint(key, value, effect string) map[string]interface{} {
 
 func poolConfig(parts ...map[string]interface{}) map[string]interface{} {
 	base := merge(projectRegion(), map[string]interface{}{
-		"cluster_id":  testClusterID,
-		"name":        testPoolName,
-		"flavor":      testFlavor,
-		"node_count":  2,
-		"volume_size": 20,
-		"volume_type": string(edgecloud.VolumeTypeStandard),
+		"cluster_id":        testClusterID,
+		"name":              testPoolName,
+		"flavor":            testFlavor,
+		"node_count":        2,
+		"volume_size":       20,
+		"volume_type":       string(edgecloud.VolumeTypeStandard),
+		"public_ip_enabled": false,
 	})
 
 	return merge(base, parts...)
@@ -79,6 +80,8 @@ func samplePool(parts map[string]interface{}) *edgecloud.MKaaSPool {
 			pool.Taints = value.([]edgecloud.MKaaSTaint)
 		case "security_group_ids":
 			pool.SecurityGroupIds = value.([]string)
+		case "public_ip_enabled":
+			pool.PublicIPEnabled = value.(bool)
 		}
 	}
 
@@ -302,6 +305,28 @@ func TestIntegrationMKaaSPoolResource_Create(t *testing.T) {
 				mc.MKaaS.AssertNotCalled(t, "PoolGet", mock.Anything, mock.Anything, mock.Anything)
 			},
 		},
+		{
+			Name: "create with public IP enabled sends the flag",
+			Op:   support.OpApply,
+			Prepare: func() *mkaasmock.MockedMKaaS {
+				mc := mkaasmock.NewMockedMKaaS()
+				mkaasmock.AllowProjectResolution(mc, testProjectID)
+				mc.MKaaS.On("PoolCreate", mock.Anything, testClusterID, mock.Anything).
+					Run(capture).
+					Return(taskResponse(testTaskID), nil, nil).Once()
+				mc.Tasks.On("Get", mock.Anything, testTaskID).
+					Return(finishedTask(poolCreated(testPoolID)), nil, nil).Once()
+				mc.MKaaS.On("PoolGet", mock.Anything, testClusterID, testPoolID).
+					Return(samplePool(map[string]interface{}{"public_ip_enabled": true}), nil, nil).Once()
+				return mc
+			},
+			NewConfig: poolConfig(map[string]interface{}{"public_ip_enabled": true}),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *mkaasmock.MockedMKaaS) {
+				support.RequireNoErrorDiags(t, diags)
+				require.True(t, sent.PublicIPEnabled)
+				require.Equal(t, "true", state.Attributes["public_ip_enabled"])
+			},
+		},
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*mkaasmock.MockedMKaaS])
@@ -503,6 +528,29 @@ func TestIntegrationMKaaSPoolResource_Update(t *testing.T) {
 			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *mkaasmock.MockedMKaaS) {
 				support.RequireNoErrorDiags(t, diags)
 				support.RequireStateAttrs(t, state, map[string]string{"name": "renamed"})
+			},
+		},
+		{
+			Name:      "public IP setting sends the configure request and waits for its task",
+			Op:        support.OpApply,
+			CurrentID: testPoolIDStr,
+			Prepare: func() *mkaasmock.MockedMKaaS {
+				mc := mkaasmock.NewMockedMKaaS()
+				mkaasmock.AllowProjectResolution(mc, testProjectID)
+				mc.MKaaS.On("PoolConfigurePublicIP", mock.Anything, testClusterID, testPoolID,
+					edgecloud.MKaaSPoolConfigurePublicIPRequest{PublicIPEnabled: true}).
+					Return(taskResponse(testTaskID), nil, nil).Once()
+				mc.Tasks.On("Get", mock.Anything, testTaskID).
+					Return(finishedTask(nil), nil, nil).Once()
+				mc.MKaaS.On("PoolGet", mock.Anything, testClusterID, testPoolID).
+					Return(samplePool(map[string]interface{}{"public_ip_enabled": true}), nil, nil).Once()
+				return mc
+			},
+			CurrentState: poolState(),
+			NewConfig:    poolConfig(map[string]interface{}{"public_ip_enabled": true}),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *mkaasmock.MockedMKaaS) {
+				support.RequireNoErrorDiags(t, diags)
+				require.Equal(t, "true", state.Attributes["public_ip_enabled"])
 			},
 		},
 		{
