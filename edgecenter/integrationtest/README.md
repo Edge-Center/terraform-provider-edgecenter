@@ -74,6 +74,10 @@ integrationtest/
 │   │       ├── ResourcesService.go, AliasesService.go, OriginsService.go,
 │   │       ├── HeadersService.go, BlacklistsService.go, WhitelistsService.go,
 │   │       └── ServicesService.go   (generated)
+│   ├── websec/       # WebSec-specific helpers
+│   │   └── mock/     # Hand-written testify mocks + MockedWebsec (package websecmock)
+│   │       ├── client.go   # MockedWebsec, NewMockedWebsec, clientShim (implements websec.ClientService)
+│   │       └── services.go # ResourcesService, LocationsService, SourceGroupsService, SSLCertsService, LECertsService
 │   ├── reseller/     # Reseller-specific helpers
 │   │   └── mock/     # Generated testify mocks + MockedReseller (package resellermock)
 │   │       ├── client.go                  # MockedReseller, NewMockedReseller
@@ -113,6 +117,9 @@ integrationtest/
 │   └── ...
 ├── protection/       # Protection resource integration tests
 │   ├── resource_test.go
+│   └── ...
+├── websec/           # WebSec resource integration tests
+│   ├── common_test.go
 │   └── ...
 ├── reseller/         # Reseller resource and data source integration tests
 │   ├── images_v2_test.go
@@ -405,6 +412,59 @@ Two things worth knowing before adding cases here:
 
 Schema flags and all four validators are covered co-located in
 `services/protection/schema_test.go`.
+
+## WebSec
+
+The WebSec client lives in `edgecentercdn-go` under `websec/`. Its root package exposes
+`websec.ClientService`, one method per service, and every service package (`resources`,
+`locations`, `sourcegroups`, `sslcerts`, `lecerts`) names its interface `Service`, so
+mockery would need `--structname` and `--filename` for each of the five. The services
+are small, five methods apiece, and the mocks are written by hand instead, the same way
+as edgemon's: `services.go` holds `ResourcesService`, `LocationsService`,
+`SourceGroupsService`, `SSLCertsService` and `LECertsService`, and `client.go` wires
+them into a `MockedWebsec` plus a `clientShim` that implements `websec.ClientService`.
+There is nothing to regenerate: when an SDK service gains a method, the shim stops
+compiling until the mock gets it too.
+
+`MockedWebsec` implements `MetaProvider` and `MockCleanuper` like the others, so
+`RunResourceCases` binds meta and verifies expectations automatically; a test that
+drives a resource directly registers `t.Cleanup(func() { mc.MockCleanup(t) })` itself.
+Expectations go on the service that owns the call - `mc.Resources`, `mc.Locations`,
+`mc.SourceGroups`, `mc.SSLCerts`, `mc.LECerts`. Ids in the SDK are `int64`, and testify
+compares arguments together with their type, so an untyped `42` in `On` never matches a
+call:
+
+```go
+mc := websecmock.NewMockedWebsec()
+mc.Resources.On("Get", mock.Anything, testResourceID).Return(&resources.Resource{ID: testResourceID}, nil)
+mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound())
+```
+
+`websec/common_test.go` builds API errors with `apiError`, which decodes a cdn-api body
+into the SDK error, so its details come out the way the transport produces them.
+Requests whose JSON matters are compared with `require.JSONEq` on `requestJSON`: the
+resource and the location send `null` for an option to delete it and leave the key out
+to keep it, and only the JSON shows the difference.
+
+`edgecenter_websec_resource` decides from `d.GetRawConfig()` whether `ssl_certificate`
+is left out of the config, so its apply cases run through
+`support.DispatchCaseWithRawConfig`. The plan cases of all five resources sit in
+`diff_test.go` and go through `planDiff`, which builds the config with
+`support.NewRawConfig`, stamps it onto the prior state like the SDK does and calls
+`resource.Diff`. `NewRawConfig` goes through JSON and cannot express a value unknown
+until apply, so `planDiff` takes the `cty.Path` of every attribute that has to be
+unknown, nested ones included:
+
+```go
+_, err := planDiff(t, resource, nil, config, cty.GetAttrPath("source").IndexInt(0).GetAttr("source"))
+```
+
+`edgecenter_websec_lecert` polls the issue request every 10 seconds.
+`websec.ResourceWebsecLECert(pollInterval)` builds the resource with another interval:
+the lecert cases use `time.Millisecond`, and the timeout cases use `time.Hour`, so that
+only the deadline can end the wait. The resource retries an update while another request
+holds the lock on subdomain deletion, and its case for that waits the real two second
+pause.
 
 ## Reseller
 

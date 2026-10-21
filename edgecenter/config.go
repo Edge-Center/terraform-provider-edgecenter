@@ -11,6 +11,7 @@ import (
 	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/client/storages"
 	"github.com/Edge-Center/edgecenter-storage-sdk-go/swagger/models"
 	cdn "github.com/Edge-Center/edgecentercdn-go"
+	websecsdk "github.com/Edge-Center/edgecentercdn-go/websec"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	rmon "github.com/Edge-Center/edgecenteredgemon-go"
@@ -82,6 +83,7 @@ type Config struct {
 	StorageClient      StorageClientService
 	DNSClient          DNSClientService
 	ProtectionClient   *protection.Client
+	WebsecClient       websecsdk.ClientService
 	RmonClient         rmon.ClientService
 	CloudClientFactory func() (*edgecloudV2.Client, error)
 }
