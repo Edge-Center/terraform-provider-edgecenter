@@ -165,6 +165,11 @@ func customLoadBalancerV2Diff(_ context.Context, d *schema.ResourceDiff, _ inter
 		return nil
 	}
 	if !d.GetRawConfig().GetAttr("vip_port_id").IsNull() {
+		if !d.NewValueKnown("flavor") {
+			if err := d.SetNewComputed("flavor"); err != nil {
+				return fmt.Errorf("mark flavor as computed: %w", err)
+			}
+		}
 		if err := d.ForceNew("flavor"); err != nil {
 			return fmt.Errorf("mark flavor change as force new: %w", err)
 		}
