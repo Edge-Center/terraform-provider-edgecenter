@@ -2,7 +2,8 @@ package edgecenter
 
 import (
 	"context"
-	"fmt"
+	"log"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -52,19 +53,11 @@ func forceNewOnScopeChange(ctx context.Context, d *schema.ResourceDiff, m interf
 			return nil
 		}
 
-		config, ok := m.(*Config)
+		resolved, ok := resolveScopeName(ctx, m, scope, name)
 		if !ok {
-			return fmt.Errorf("cannot resolve %s %q: provider is not configured", scope.name, name)
+			return nil
 		}
-
-		client, err := config.NewCloudClient()
-		if err != nil {
-			return err
-		}
-
-		if newID, err = scope.resolve(ctx, client, name); err != nil {
-			return err
-		}
+		newID = resolved
 	}
 
 	if newID == oldID {
@@ -78,6 +71,31 @@ func forceNewOnScopeChange(ctx context.Context, d *schema.ResourceDiff, m interf
 	}
 
 	return d.ForceNew(scope.id)
+}
+
+func resolveScopeName(ctx context.Context, m interface{}, scope scopeFields, name string) (int, bool) {
+	if id, err := strconv.Atoi(name); err == nil {
+		return id, true
+	}
+
+	config, ok := m.(*Config)
+	if !ok {
+		return 0, false
+	}
+
+	client, err := config.NewCloudClient()
+	if err != nil {
+		log.Printf("[DEBUG] cannot resolve %s %q during plan: %s", scope.name, name, err)
+		return 0, false
+	}
+
+	id, err := scope.resolve(ctx, client, name)
+	if err != nil {
+		log.Printf("[DEBUG] cannot resolve %s %q during plan: %s", scope.name, name, err)
+		return 0, false
+	}
+
+	return id, true
 }
 
 func resolveProjectIDByName(ctx context.Context, client *edgecloudV2.Client, name string) (int, error) {

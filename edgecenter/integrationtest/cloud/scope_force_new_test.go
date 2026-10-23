@@ -29,6 +29,8 @@ func scopeResolvingCloud() *cloudmock.MockedCloud {
 		Return([]edgecloud.Project{
 			{ID: testProjectID, Name: "test-project"},
 			{ID: testOtherProjectID, Name: "other-project"},
+			{ID: 3, Name: "shared-name"},
+			{ID: 4, Name: "shared-name"},
 		}, nil, nil).Maybe()
 	mc.Regions.On("List", mock.Anything, mock.Anything).
 		Return([]edgecloud.Region{
@@ -123,6 +125,52 @@ func TestIntegrationCloudScopeForceNew(t *testing.T) {
 			},
 			requiresNew: true,
 			projectID:   testOtherProjectID,
+		},
+		{
+			name:  "numeric project name of the same project",
+			state: cloud.WithProjectRegion(testProjectID, testRegionID),
+			config: map[string]interface{}{
+				"project_name": "1",
+				"region_id":    testRegionID,
+			},
+		},
+		{
+			name:  "numeric project name of another project",
+			state: cloud.WithProjectRegion(testProjectID, testRegionID),
+			config: map[string]interface{}{
+				"project_name": "2",
+				"region_id":    testRegionID,
+			},
+			requiresNew: true,
+			projectID:   testOtherProjectID,
+		},
+		{
+			name:  "numeric region name of another region",
+			state: cloud.WithProjectRegion(testProjectID, testRegionID),
+			config: map[string]interface{}{
+				"project_id":  testProjectID,
+				"region_name": "2",
+			},
+			requiresNew: true,
+			regionID:    testOtherRegionID,
+		},
+		{
+			name: "project name that the same apply creates",
+			state: cloud.Merge(cloud.WithProjectRegion(testProjectID, testRegionID), map[string]interface{}{
+				"project_name": "test-project",
+			}),
+			config: map[string]interface{}{
+				"project_name": "renamed-project",
+				"region_id":    testRegionID,
+			},
+		},
+		{
+			name:  "project name shared by two projects",
+			state: cloud.WithProjectRegion(testProjectID, testRegionID),
+			config: map[string]interface{}{
+				"project_name": "shared-name",
+				"region_id":    testRegionID,
+			},
 		},
 	}
 
