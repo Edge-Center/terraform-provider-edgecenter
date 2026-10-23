@@ -152,6 +152,11 @@ func resourceLoadBalancerV2() *schema.Resource {
 
 func customLoadBalancerV2Diff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	if d.Id() != "" && d.HasChange("vip_port_id") && !d.GetRawConfig().GetAttr("vip_port_id").IsNull() {
+		if !d.NewValueKnown("vip_port_id") {
+			if err := d.SetNewComputed("vip_port_id"); err != nil {
+				return fmt.Errorf("mark vip_port_id as computed: %w", err)
+			}
+		}
 		if err := d.ForceNew("vip_port_id"); err != nil {
 			return fmt.Errorf("mark vip_port_id change as force new: %w", err)
 		}
