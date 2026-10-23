@@ -32,6 +32,7 @@ func resourceFloatingIP() *schema.Resource {
 		ReadContext:   resourceFloatingIPRead,
 		UpdateContext: resourceFloatingIPUpdate,
 		DeleteContext: resourceFloatingIPDelete,
+		CustomizeDiff: edgecenter.ForceNewOnScopeChange,
 		Description: `A floating IP is a static IP address that can be associated with one of your instances or loadbalancers,
 allowing it to have a static public IP address. The floating IP can be re-associated to any other instance in the same datacenter.`,
 		Importer: &schema.ResourceImporter{
@@ -52,24 +53,28 @@ allowing it to have a static public IP address. The floating IP can be re-associ
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
