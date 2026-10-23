@@ -96,7 +96,7 @@ func getSnapshot(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.Re
 			message.WriteString("Found snapshots:\n")
 
 			for _, fSG := range foundSnapshots {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", fSG.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", fSG.ID)
 			}
 
 			return nil, fmt.Errorf("multiple snapshots found.\n %s.\n Use snapshot ID instead of name", message.String())

@@ -201,7 +201,7 @@ func getSecurityGroup(ctx context.Context, clientV2 *edgecloudV2.Client, d *sche
 			message.WriteString("Found security groups:\n")
 
 			for _, net := range foundSgs {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", net.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", net.ID)
 			}
 
 			return nil, fmt.Errorf("multiple security groups found.\n %s.\n Use security group ID instead of name", message.String())

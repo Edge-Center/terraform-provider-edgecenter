@@ -50,7 +50,7 @@ func getSecret(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.Reso
 			message.WriteString("Found secrets:\n")
 
 			for _, sec := range foundSecrets {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", sec.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", sec.ID)
 			}
 
 			return nil, fmt.Errorf("multiple secrets found.\n %s.\n Use secret ID instead of name", message.String())

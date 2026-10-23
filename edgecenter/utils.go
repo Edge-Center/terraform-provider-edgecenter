@@ -258,7 +258,7 @@ func DiagnosticsToString(diags diag.Diagnostics) string {
 	}
 
 	for _, diag := range diags {
-		_, _ = diagStrings.WriteString(fmt.Sprintf("Summary: %s | Detail: %s", diag.Summary, diag.Detail))
+		_, _ = fmt.Fprintf(&diagStrings, "Summary: %s | Detail: %s", diag.Summary, diag.Detail)
 	}
 
 	return diagStrings.String()
