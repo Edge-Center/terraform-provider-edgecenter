@@ -560,6 +560,39 @@ func (_m *MKaaSService) PoolUpdateAutoscaling(ctx context.Context, clusterID int
 	return r0, r1, r2
 }
 
+// PoolConfigurePublicIP provides a mock function with given fields: ctx, clusterID, poolID, reqBody
+func (_m *MKaaSService) PoolConfigurePublicIP(ctx context.Context, clusterID int, poolID int, reqBody edgecloud.MKaaSPoolConfigurePublicIPRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error) {
+	ret := _m.Called(ctx, clusterID, poolID, reqBody)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PoolConfigurePublicIP")
+	}
+
+	var r0 *edgecloud.TaskResponse
+	var r1 *edgecloud.Response
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error)); ok {
+		return rf(ctx, clusterID, poolID, reqBody)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) *edgecloud.TaskResponse); ok {
+		r0 = rf(ctx, clusterID, poolID, reqBody)
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*edgecloud.TaskResponse)
+	}
+	if rf, ok := ret.Get(1).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) *edgecloud.Response); ok {
+		r1 = rf(ctx, clusterID, poolID, reqBody)
+	} else if ret.Get(1) != nil {
+		r1 = ret.Get(1).(*edgecloud.Response)
+	}
+	if rf, ok := ret.Get(2).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) error); ok {
+		r2 = rf(ctx, clusterID, poolID, reqBody)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
 // PoolUpdateLabels provides a mock function with given fields: ctx, clusterID, poolID, reqBody
 func (_m *MKaaSService) PoolUpdateLabels(ctx context.Context, clusterID int, poolID int, reqBody edgecloud.MKaaSPoolUpdateLabelsRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error) {
 	ret := _m.Called(ctx, clusterID, poolID, reqBody)

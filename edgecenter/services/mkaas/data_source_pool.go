@@ -67,6 +67,11 @@ func dataSourceMKaaSPool() *schema.Resource {
 				Computed:    true,
 				Description: "The current number of nodes in the pool.",
 			},
+			edgecenter.MKaaSPoolPublicIPEnabledField: {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether worker nodes in the pool have public IP addresses.",
+			},
 			edgecenter.MKaaSPoolCurrentNodeCountField: {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -182,6 +187,7 @@ func dataSourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m inte
 	_ = d.Set(edgecenter.FlavorField, pool.Flavor)
 	_ = d.Set(edgecenter.MKaaSNodeCountField, pool.NodeCount)
 	_ = d.Set(edgecenter.MKaaSPoolCurrentNodeCountField, pool.NodeCount)
+	_ = d.Set(edgecenter.MKaaSPoolPublicIPEnabledField, pool.PublicIPEnabled)
 	_ = d.Set(edgecenter.MKaaSVolumeSizeField, pool.VolumeSize)
 	_ = d.Set(edgecenter.MKaaSVolumeTypeField, string(pool.VolumeType))
 	_ = d.Set(edgecenter.MKaaSPoolSecurityGroupIDsField, pool.SecurityGroupIds)

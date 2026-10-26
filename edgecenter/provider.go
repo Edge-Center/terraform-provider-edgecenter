@@ -166,6 +166,7 @@ const (
 	MKaaSPoolMinNodeCountField     = "min_node_count"
 	MKaaSPoolMaxNodeCountField     = "max_node_count"
 	MKaaSPoolCurrentNodeCountField = "current_node_count"
+	MKaaSPoolPublicIPEnabledField  = "public_ip_enabled"
 
 	MKaaSPoolLabelsField = "labels"
 	MKaaSPoolTaintsField = "taints"

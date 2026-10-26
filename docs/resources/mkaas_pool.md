@@ -71,6 +71,7 @@ resource "edgecenter_mkaas_pool" "apps" {
 - `node_count` (Number) The number of nodes in the pool.
 - `project_id` (Number) The uuid of the project. Either `project_id` or `project_name` must be specified.
 - `project_name` (String) The name of the project. Either `project_id` or `project_name` must be specified.
+- `public_ip_enabled` (Boolean) Whether worker nodes in the pool have public IP addresses.
 - `region_id` (Number) The uuid of the region. Either `region_id` or `region_name` must be specified.
 - `region_name` (String) The name of the region. Either `region_id` or `region_name` must be specified.
 - `scale_policy` (Block List, Max: 1) Scale policy for the pool. Presence of `auto_scale` enables the Cluster Autoscaler; removing the block disables it. (see [below for nested schema](#nestedblock--scale_policy))
