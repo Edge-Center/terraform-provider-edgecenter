@@ -154,7 +154,7 @@ func getLoadbalancer(ctx context.Context, clientV2 *edgecloudV2.Client, d *schem
 			message.WriteString("Found load balancers:\n")
 
 			for _, fLb := range foundLBs {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", fLb.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", fLb.ID)
 			}
 
 			return nil, fmt.Errorf("multiple load balancers found.\n %s.\n Use load balancer ID instead of name", message.String())

@@ -52,7 +52,7 @@ func getServerGroup(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema
 			message.WriteString("Found server groups:\n")
 
 			for _, fSG := range foundServerGroups {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", fSG.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", fSG.ID)
 			}
 
 			return nil, fmt.Errorf("multiple server groups found.\n %s.\n Use server group ID instead of name", message.String())

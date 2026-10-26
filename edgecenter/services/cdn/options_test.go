@@ -24,7 +24,7 @@ func fillValue(t *testing.T, v reflect.Value, name string) {
 		v.SetString(stringFor(name))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v.SetInt(intFor(name))
-	case reflect.Ptr:
+	case reflect.Pointer:
 		v.Set(reflect.New(v.Type().Elem()))
 		fillValue(t, v.Elem(), name)
 	case reflect.Struct:

@@ -1289,7 +1289,7 @@ func getInstance(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.Re
 			message.WriteString("Found instances:\n")
 
 			for _, fI := range foundInstances {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", fI.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", fI.ID)
 			}
 
 			return nil, fmt.Errorf("multiple instances found.\n %s.\n Use instance ID instead of name", message.String())

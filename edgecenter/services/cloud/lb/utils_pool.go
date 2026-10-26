@@ -63,7 +63,7 @@ func getLBPool(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.Reso
 			message.WriteString("Found load balancer pools:\n")
 
 			for _, fpl := range foundPools {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", fpl.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", fpl.ID)
 			}
 
 			return nil, fmt.Errorf("multiple load balancer pools found.\n %s.\n Use load balancer pool ID instead of name", message.String())
