@@ -201,7 +201,7 @@ func instanceV2ReadCase(instID string) support.ResourceCase[*cloudmock.MockedClo
 	}
 }
 
-func instanceV2ImportReservedFixedIPCase(instID string) support.ResourceCase[*cloudmock.MockedCloud] {
+func instanceV2ImportExternalPortCase(instID, caseName, portName, wantType, wantReservedPortID string) support.ResourceCase[*cloudmock.MockedCloud] {
 	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
 	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
 
@@ -213,16 +213,16 @@ func instanceV2ImportReservedFixedIPCase(instID string) support.ResourceCase[*cl
 			sampleInstV2Volume(testInstV2VolID, "boot-volume", 10, true),
 		}, nil, nil)
 
-	reservedIface := sampleInstV2ExtIface("port-reserved", "net-ext")
-	reservedIface.Name = "reserved_fixed_ip_203.0.113.10"
+	externalIface := sampleInstV2ExtIface("port-external", "net-ext")
+	externalIface.Name = portName
 	mc.Instances.On("InterfaceList", mock.Anything, instID).
-		Return([]edgecloud.InstancePortInterface{reservedIface}, nil, nil)
+		Return([]edgecloud.InstancePortInterface{externalIface}, nil, nil)
 
 	mc.Instances.On("MetadataList", mock.Anything, instID).
 		Return([]edgecloud.MetadataDetailed{}, nil, nil)
 
 	return support.ResourceCase[*cloudmock.MockedCloud]{
-		Name:         "import instance with external reserved fixed IP",
+		Name:         caseName,
 		Op:           support.OpRead,
 		Prepare:      func() *cloudmock.MockedCloud { return mc },
 		CurrentID:    instID,
@@ -238,9 +238,9 @@ func instanceV2ImportReservedFixedIPCase(instID string) support.ResourceCase[*cl
 					ifaces[parts[2]] = value
 				}
 			}
-			require.Equal(t, "reserved_fixed_ip", ifaces["type"])
-			require.Equal(t, "port-reserved", ifaces["reserved_fixed_ip_port_id"])
-			require.Equal(t, "port-reserved", ifaces["port_id"])
+			require.Equal(t, wantType, ifaces["type"])
+			require.Equal(t, wantReservedPortID, ifaces["reserved_fixed_ip_port_id"])
+			require.Equal(t, "port-external", ifaces["port_id"])
 		},
 	}
 }
@@ -460,7 +460,10 @@ func TestIntegrationInstanceV2_TableDriven(t *testing.T) {
 	cases := []support.ResourceCase[*cloudmock.MockedCloud]{
 		instanceV2CreateCase(testInstanceV2ID),
 		instanceV2ReadCase(testInstanceV2ID),
-		instanceV2ImportReservedFixedIPCase(testInstanceV2ID),
+		instanceV2ImportExternalPortCase(testInstanceV2ID, "import instance with external reserved fixed IP",
+			"reserved_fixed_ip_203.0.113.10", "reserved_fixed_ip", "port-external"),
+		instanceV2ImportExternalPortCase(testInstanceV2ID, "import external interface of instance named after reserved fixed IP",
+			"port for instance web-reserved_fixed_ip-1", "external", ""),
 		instanceV2ReadNotFoundCase(testInstanceV2ID),
 		instanceV2UpdateNameCase(testInstanceV2ID),
 		instanceV2DeleteCase(testInstanceV2ID),

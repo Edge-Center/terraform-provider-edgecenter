@@ -1156,7 +1156,7 @@ func prepareInterfacesOptsListFromAPI(interfacesListAPI []edgecloudV2.InstancePo
 
 		for _, assignment := range iFace.IPAssignments {
 			switch {
-			case strings.Contains(iFace.Name, string(edgecloudV2.InterfaceTypeReservedFixedIP)):
+			case strings.HasPrefix(iFace.Name, string(edgecloudV2.InterfaceTypeReservedFixedIP)+"_"):
 				interfaceOptsMap[InstanceReservedFixedIPPortIDField] = iFace.PortID
 				interfaceOptsMap[edgecenter.TypeField] = string(edgecloudV2.InterfaceTypeReservedFixedIP)
 
