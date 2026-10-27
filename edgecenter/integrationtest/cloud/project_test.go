@@ -35,7 +35,6 @@ func sampleProject(id int, name string) *edgecloud.Project {
 
 func projectCreateCase(projID int) support.ResourceCase[*cloudmock.MockedCloud] {
 	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
-	mc.Projects.On("List", mock.Anything, mock.Anything).Return([]edgecloud.Project{}, nil, nil)
 
 	mc.Projects.On("Create", mock.Anything,
 		mock.MatchedBy(func(req *edgecloud.ProjectCreateRequest) bool {
@@ -184,7 +183,6 @@ func projectDeleteAlreadyGoneCase(projID int, status int) support.ResourceCase[*
 
 func projectCreateAPIFailureCase() support.ResourceCase[*cloudmock.MockedCloud] {
 	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
-	mc.Projects.On("List", mock.Anything, mock.Anything).Return([]edgecloud.Project{}, nil, nil)
 
 	mc.Projects.On("Create", mock.Anything,
 		mock.MatchedBy(func(req *edgecloud.ProjectCreateRequest) bool {
@@ -342,9 +340,8 @@ func TestIntegrationProjectNamePlan(t *testing.T) {
 			config: map[string]interface{}{"name": "test-project", "description": "new description"},
 		},
 		{
-			name:    "create with the name of an existing project",
-			config:  map[string]interface{}{"name": "taken-project"},
-			wantErr: `project 101 is already named "taken-project"`,
+			name:   "create with the name of an existing project",
+			config: map[string]interface{}{"name": "taken-project"},
 		},
 		{
 			name:   "create with a free name",
@@ -371,7 +368,7 @@ func TestIntegrationProjectNamePlan(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			if tc.state != nil && tc.config["name"] == tc.state["name"] {
+			if tc.state == nil || tc.config["name"] == tc.state["name"] {
 				mc.Projects.AssertNotCalled(t, "List", mock.Anything, mock.Anything)
 			}
 		})

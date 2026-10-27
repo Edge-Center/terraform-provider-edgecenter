@@ -75,7 +75,7 @@ func resourceProject() *schema.Resource {
 }
 
 func rejectTakenProjectName(ctx context.Context, d *schema.ResourceDiff, m interface{}) error {
-	if !d.HasChange(edgecenter.NameField) || !d.NewValueKnown(edgecenter.NameField) {
+	if d.Id() == "" || !d.HasChange(edgecenter.NameField) || !d.NewValueKnown(edgecenter.NameField) {
 		return nil
 	}
 

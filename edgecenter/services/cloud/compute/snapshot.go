@@ -27,7 +27,7 @@ func resourceSnapshot() *schema.Resource {
 		ReadContext:   resourceSnapshotRead,
 		UpdateContext: resourceSnapshotUpdate,
 		DeleteContext: resourceSnapshotDelete,
-		CustomizeDiff: edgecenter.ForceNewOnScopeChange,
+		CustomizeDiff: edgecenter.RejectScopeChange,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				projectID, regionID, snapshotID, err := edgecenter.ImportStringParser(d.Id())

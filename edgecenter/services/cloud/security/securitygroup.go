@@ -32,7 +32,7 @@ func resourceSecurityGroup() *schema.Resource {
 		ReadContext:   resourceSecurityGroupRead,
 		UpdateContext: resourceSecurityGroupUpdate,
 		DeleteContext: resourceSecurityGroupDelete,
-		CustomizeDiff: edgecenter.ForceNewOnScopeChange,
+		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent SecurityGroups(Firewall)",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {

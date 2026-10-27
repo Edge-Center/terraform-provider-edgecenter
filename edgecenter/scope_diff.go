@@ -14,21 +14,22 @@ import (
 type scopeFields struct {
 	id      string
 	name    string
+	kind    string
 	resolve func(context.Context, *edgecloudV2.Client, string) (int, error)
 }
 
 var cloudScopes = []scopeFields{
-	{id: ProjectIDField, name: ProjectNameField, resolve: resolveProjectIDByName},
-	{id: RegionIDField, name: RegionNameField, resolve: resolveRegionIDByName},
+	{id: ProjectIDField, name: ProjectNameField, kind: "project", resolve: resolveProjectIDByName},
+	{id: RegionIDField, name: RegionNameField, kind: "region", resolve: resolveRegionIDByName},
 }
 
-func ForceNewOnScopeChange(ctx context.Context, d *schema.ResourceDiff, m interface{}) error {
+func RejectScopeChange(ctx context.Context, d *schema.ResourceDiff, m interface{}) error {
 	if d.Id() == "" {
 		return nil
 	}
 
 	for _, scope := range cloudScopes {
-		if err := forceNewOnScopeChange(ctx, d, m, scope); err != nil {
+		if err := rejectScopeChange(ctx, d, m, scope); err != nil {
 			return err
 		}
 	}
@@ -36,7 +37,7 @@ func ForceNewOnScopeChange(ctx context.Context, d *schema.ResourceDiff, m interf
 	return nil
 }
 
-func forceNewOnScopeChange(ctx context.Context, d *schema.ResourceDiff, m interface{}, scope scopeFields) error {
+func rejectScopeChange(ctx context.Context, d *schema.ResourceDiff, m interface{}, scope scopeFields) error {
 	oldRaw, newRaw := d.GetChange(scope.id)
 	oldID, newID := oldRaw.(int), newRaw.(int)
 	if oldID == 0 || !d.NewValueKnown(scope.id) {
@@ -65,17 +66,10 @@ func forceNewOnScopeChange(ctx context.Context, d *schema.ResourceDiff, m interf
 		return nil
 	}
 
-	if !configuredByID {
-		if err := d.SetNew(scope.id, newID); err != nil {
-			return fmt.Errorf("set %s from resolved %s: %w", scope.id, scope.name, err)
-		}
-	}
-
-	if err := d.ForceNew(scope.id); err != nil {
-		return fmt.Errorf("mark %s change as force new: %w", scope.id, err)
-	}
-
-	return nil
+	return fmt.Errorf(
+		"cannot move from %s %d to %s %d: an existing resource cannot change its project or region; revert the change or create a new resource in the target %s",
+		scope.kind, oldID, scope.kind, newID, scope.kind,
+	)
 }
 
 func resolveScopeName(ctx context.Context, m interface{}, scope scopeFields, name string) (int, bool) {

@@ -38,7 +38,7 @@ func resourceBmInstance() *schema.Resource {
 		ReadContext:   resourceBmInstanceRead,
 		UpdateContext: resourceBmInstanceUpdate,
 		DeleteContext: resourceBmInstanceDelete,
-		CustomizeDiff: edgecenter.ForceNewOnScopeChange,
+		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent baremetal instance",
 		Timeouts: &schema.ResourceTimeout{
 			Create: &bmCreateTimeout,
