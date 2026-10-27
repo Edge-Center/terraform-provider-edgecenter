@@ -2,6 +2,7 @@ package edgecenter
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -66,11 +67,15 @@ func forceNewOnScopeChange(ctx context.Context, d *schema.ResourceDiff, m interf
 
 	if !configuredByID {
 		if err := d.SetNew(scope.id, newID); err != nil {
-			return err
+			return fmt.Errorf("set %s from resolved %s: %w", scope.id, scope.name, err)
 		}
 	}
 
-	return d.ForceNew(scope.id)
+	if err := d.ForceNew(scope.id); err != nil {
+		return fmt.Errorf("mark %s change as force new: %w", scope.id, err)
+	}
+
+	return nil
 }
 
 func resolveScopeName(ctx context.Context, m interface{}, scope scopeFields, name string) (int, bool) {
