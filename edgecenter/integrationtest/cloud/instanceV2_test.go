@@ -5,6 +5,7 @@ package edgecenter_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -196,6 +197,50 @@ func instanceV2ReadCase(instID string) support.ResourceCase[*cloudmock.MockedClo
 				"flavor_id": "g1-standard-2-4",
 				"status":    "ACTIVE",
 			})
+		},
+	}
+}
+
+func instanceV2ImportExternalPortCase(instID, caseName, portName, wantType, wantReservedPortID string) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
+
+	mc.Instances.On("Get", mock.Anything, instID).
+		Return(sampleInstanceV2(instID, "test-instance", "g1-standard-2-4", "ACTIVE", "active"), nil, nil)
+
+	mc.Volumes.On("List", mock.Anything, mock.Anything).
+		Return([]edgecloud.Volume{
+			sampleInstV2Volume(testInstV2VolID, "boot-volume", 10, true),
+		}, nil, nil)
+
+	externalIface := sampleInstV2ExtIface("port-external", "net-ext")
+	externalIface.Name = portName
+	mc.Instances.On("InterfaceList", mock.Anything, instID).
+		Return([]edgecloud.InstancePortInterface{externalIface}, nil, nil)
+
+	mc.Instances.On("MetadataList", mock.Anything, instID).
+		Return([]edgecloud.MetadataDetailed{}, nil, nil)
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:         caseName,
+		Op:           support.OpRead,
+		Prepare:      func() *cloudmock.MockedCloud { return mc },
+		CurrentID:    instID,
+		CurrentState: cloud.WithProjectRegion(testProjectID, testRegionID),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateID(t, state, instID)
+
+			ifaces := map[string]string{}
+			for key, value := range state.Attributes {
+				parts := strings.Split(key, ".")
+				if len(parts) == 3 && parts[0] == "interfaces" && parts[1] != "#" {
+					ifaces[parts[2]] = value
+				}
+			}
+			require.Equal(t, wantType, ifaces["type"])
+			require.Equal(t, wantReservedPortID, ifaces["reserved_fixed_ip_port_id"])
+			require.Equal(t, "port-external", ifaces["port_id"])
 		},
 	}
 }
@@ -415,6 +460,10 @@ func TestIntegrationInstanceV2_TableDriven(t *testing.T) {
 	cases := []support.ResourceCase[*cloudmock.MockedCloud]{
 		instanceV2CreateCase(testInstanceV2ID),
 		instanceV2ReadCase(testInstanceV2ID),
+		instanceV2ImportExternalPortCase(testInstanceV2ID, "import instance with external reserved fixed IP",
+			"reserved_fixed_ip_203.0.113.10", "reserved_fixed_ip", "port-external"),
+		instanceV2ImportExternalPortCase(testInstanceV2ID, "import external interface of instance named after reserved fixed IP",
+			"port for instance web-reserved_fixed_ip-1", "external", ""),
 		instanceV2ReadNotFoundCase(testInstanceV2ID),
 		instanceV2UpdateNameCase(testInstanceV2ID),
 		instanceV2DeleteCase(testInstanceV2ID),
