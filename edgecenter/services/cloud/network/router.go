@@ -26,6 +26,7 @@ func resourceRouter() *schema.Resource {
 		ReadContext:   resourceRouterRead,
 		UpdateContext: resourceRouterUpdate,
 		DeleteContext: resourceRouterDelete,
+		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent router. Router enables you to dynamically exchange routes between networks",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {

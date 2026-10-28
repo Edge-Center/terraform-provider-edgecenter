@@ -72,7 +72,7 @@ func getLbListener(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.
 			message.WriteString("Found load balancer listeners:\n")
 
 			for _, fLb := range foundLbListeners {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", fLb.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", fLb.ID)
 			}
 
 			return nil, fmt.Errorf("multiple load balancer listeners found.\n %s.\n Use load balancer ID instead of name", message.String())

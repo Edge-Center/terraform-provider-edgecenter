@@ -1156,12 +1156,12 @@ func prepareInterfacesOptsListFromAPI(interfacesListAPI []edgecloudV2.InstancePo
 
 		for _, assignment := range iFace.IPAssignments {
 			switch {
-			case iFace.NetworkDetails.External:
-				interfaceOptsMap[edgecenter.TypeField] = string(edgecloudV2.InterfaceTypeExternal)
-
-			case strings.Contains(iFace.Name, string(edgecloudV2.InterfaceTypeReservedFixedIP)):
+			case strings.HasPrefix(iFace.Name, string(edgecloudV2.InterfaceTypeReservedFixedIP)+"_"):
 				interfaceOptsMap[InstanceReservedFixedIPPortIDField] = iFace.PortID
 				interfaceOptsMap[edgecenter.TypeField] = string(edgecloudV2.InterfaceTypeReservedFixedIP)
+
+			case iFace.NetworkDetails.External:
+				interfaceOptsMap[edgecenter.TypeField] = string(edgecloudV2.InterfaceTypeExternal)
 
 			default:
 				interfaceOptsMap[edgecenter.TypeField] = string(edgecloudV2.InterfaceTypeSubnet)
@@ -1289,7 +1289,7 @@ func getInstance(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.Re
 			message.WriteString("Found instances:\n")
 
 			for _, fI := range foundInstances {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", fI.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", fI.ID)
 			}
 
 			return nil, fmt.Errorf("multiple instances found.\n %s.\n Use instance ID instead of name", message.String())

@@ -70,7 +70,7 @@ func getVolume(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.Reso
 			message.WriteString("Found volumes:\n")
 
 			for _, vol := range foundVolumes {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", vol.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", vol.ID)
 			}
 
 			return nil, fmt.Errorf("multiple volumes found.\n %s.\n Use volume ID instead of name", message.String())

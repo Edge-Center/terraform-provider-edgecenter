@@ -70,7 +70,7 @@ func findNetworkByName(name string, nets []edgecloudV2.Network) (edgecloudV2.Net
 		message.WriteString("Found networks:\n")
 
 		for _, ntw := range foundNets {
-			message.WriteString(fmt.Sprintf("  - ID: %s\n", ntw.ID))
+			fmt.Fprintf(&message, "  - ID: %s\n", ntw.ID)
 		}
 
 		return edgecloudV2.Network{}, fmt.Errorf("multiple networks exist. %s\nUse network ID instead of name", message.String())
@@ -162,7 +162,7 @@ func fetchNetworksWithSubnets(ctx context.Context, opts fetchNetworksWithSubnets
 		message.WriteString("Found networks:\n")
 
 		for _, fnet := range foundNets {
-			message.WriteString(fmt.Sprintf("  - ID: %s\n", fnet.ID))
+			fmt.Fprintf(&message, "  - ID: %s\n", fnet.ID)
 		}
 
 		return nil, nil, nil, fmt.Errorf("multiple networks found.\n %s\n Use network ID instead of name", message.String())

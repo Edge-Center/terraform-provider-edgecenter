@@ -204,7 +204,7 @@ func resourceStorageS3Read(ctx context.Context, d *schema.ResourceData, m interf
 		message.WriteString("Found storages:\n")
 
 		for _, st := range result {
-			message.WriteString(fmt.Sprintf("  - ID: %d\n", st.ID))
+			fmt.Fprintf(&message, "  - ID: %d\n", st.ID)
 		}
 
 		return diag.Errorf("multiple storages found.\n %s.\n Use storage ID instead of name.", message.String())

@@ -105,6 +105,9 @@ func projectUpdateNameCase(projID int) support.ResourceCase[*cloudmock.MockedClo
 
 	updated := sampleProject(projID, "updated-project")
 
+	mc.Projects.On("List", mock.Anything, mock.Anything).
+		Return([]edgecloud.Project{*sampleProject(projID, "test-project"), *sampleProject(projID+1, "other-project")}, nil, nil)
+
 	mc.Projects.On("Get", mock.Anything, fmt.Sprintf("%d", projID)).
 		Return(updated, nil, nil)
 
@@ -290,4 +293,84 @@ func TestIntegrationProject_TableDriven(t *testing.T) {
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*cloudmock.MockedCloud])
+}
+
+func TestIntegrationProjectNamePlan(t *testing.T) {
+	t.Parallel()
+
+	resource := provider.Provider().ResourcesMap["edgecenter_project"]
+	require.NotNil(t, resource)
+
+	listed := []edgecloud.Project{
+		*sampleProject(testProjectResourceID, "test-project"),
+		*sampleProject(testProjectResourceID+1, "taken-project"),
+	}
+	existing := map[string]interface{}{
+		"name":        "test-project",
+		"description": "test project",
+	}
+
+	cases := []struct {
+		name    string
+		state   map[string]interface{}
+		config  map[string]interface{}
+		listErr error
+		wantErr string
+	}{
+		{
+			name:    "rename to the name of another project",
+			state:   existing,
+			config:  map[string]interface{}{"name": "taken-project", "description": "test project"},
+			wantErr: `project 101 is already named "taken-project"`,
+		},
+		{
+			name:   "rename to a free name",
+			state:  existing,
+			config: map[string]interface{}{"name": "renamed-project", "description": "test project"},
+		},
+		{
+			name:    "rename while the project list is unavailable",
+			state:   existing,
+			config:  map[string]interface{}{"name": "taken-project", "description": "test project"},
+			listErr: fmt.Errorf("list failed"),
+		},
+		{
+			name:   "unchanged name",
+			state:  existing,
+			config: map[string]interface{}{"name": "test-project", "description": "new description"},
+		},
+		{
+			name:   "create with the name of an existing project",
+			config: map[string]interface{}{"name": "taken-project"},
+		},
+		{
+			name:   "create with a free name",
+			config: map[string]interface{}{"name": "new-project"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+			mc.Projects.On("List", mock.Anything, mock.Anything).Return(listed, nil, tc.listErr).Maybe()
+
+			var state *terraform.InstanceState
+			if tc.state != nil {
+				state = support.NewState(t, resource, tc.state, fmt.Sprintf("%d", testProjectResourceID))
+			}
+
+			_, err := resource.Diff(t.Context(), state, terraform.NewResourceConfigRaw(tc.config), mc.TestMeta())
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
+
+			if tc.state == nil || tc.config["name"] == tc.state["name"] {
+				mc.Projects.AssertNotCalled(t, "List", mock.Anything, mock.Anything)
+			}
+		})
+	}
 }

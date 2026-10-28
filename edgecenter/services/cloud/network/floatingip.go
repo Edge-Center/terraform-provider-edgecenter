@@ -32,6 +32,7 @@ func resourceFloatingIP() *schema.Resource {
 		ReadContext:   resourceFloatingIPRead,
 		UpdateContext: resourceFloatingIPUpdate,
 		DeleteContext: resourceFloatingIPDelete,
+		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description: `A floating IP is a static IP address that can be associated with one of your instances or loadbalancers,
 allowing it to have a static public IP address. The floating IP can be re-associated to any other instance in the same datacenter.`,
 		Importer: &schema.ResourceImporter{

@@ -110,6 +110,12 @@ func resourceMKaaSPool() *schema.Resource {
 				ExactlyOneOf: []string{edgecenter.MKaaSNodeCountField, edgecenter.MKaaSPoolScalePolicyField},
 				Description:  "The number of nodes in the pool.",
 			},
+			edgecenter.MKaaSPoolPublicIPEnabledField: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether worker nodes in the pool have public IP addresses.",
+			},
 			edgecenter.MKaaSPoolCurrentNodeCountField: {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -242,6 +248,7 @@ func resourceMKaaSPoolCreate(ctx context.Context, d *schema.ResourceData, m inte
 		Labels:             map[string]string{},
 		Taints:             []edgecloudV2.MKaaSTaint{},
 		AutoscalingEnabled: autoscale,
+		PublicIPEnabled:    d.Get(edgecenter.MKaaSPoolPublicIPEnabledField).(bool),
 	}
 	if autoscale {
 		createOpts.MinNodeCount = &minNodeCount
@@ -336,6 +343,7 @@ func resourceMKaaSPoolRead(ctx context.Context, d *schema.ResourceData, m interf
 	_ = d.Set(edgecenter.MKaaSPoolTaintsField, flattenTaints(pool.Taints))
 	_ = d.Set(edgecenter.MKaaSPoolScalePolicyField, flattenScalePolicy(pool))
 	_ = d.Set(edgecenter.MKaaSPoolCurrentNodeCountField, pool.NodeCount)
+	_ = d.Set(edgecenter.MKaaSPoolPublicIPEnabledField, pool.PublicIPEnabled)
 
 	return diags
 }
@@ -346,7 +354,7 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	if unsupported := mkaasPoolUnsupportedUpdateChanges(d); len(unsupported) > 0 {
 		return diag.Errorf(
 			"MKaaS pool update is not supported for these fields: %v. "+
-				"Only %q, %q, %q, %q, %q and %q are supported. "+
+				"Only %q, %q, %q, %q, %q, %q and %q are supported. "+
 				"Please revert changes, or recreate the resource if applicable.",
 			unsupported,
 			edgecenter.NameField,
@@ -355,6 +363,7 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 			edgecenter.MKaaSPoolLabelsField,
 			edgecenter.MKaaSPoolTaintsField,
 			edgecenter.MKaaSPoolScalePolicyField,
+			edgecenter.MKaaSPoolPublicIPEnabledField,
 		)
 	}
 
@@ -511,6 +520,27 @@ func resourceMKaaSPoolUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 
 		taskResp, _, err := clientV2.MkaaS.PoolUpdateTaints(ctx, clusterID, poolID, req)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if err := waitForTask(taskResp); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if d.HasChange(edgecenter.MKaaSPoolPublicIPEnabledField) {
+		publicIPEnabled := d.Get(edgecenter.MKaaSPoolPublicIPEnabledField).(bool)
+
+		tflog.Info(ctx, "Updating MKaaS pool public IP setting", map[string]interface{}{
+			"pool_id":           poolID,
+			"public_ip_enabled": publicIPEnabled,
+		})
+
+		req := edgecloudV2.MKaaSPoolConfigurePublicIPRequest{
+			PublicIPEnabled: publicIPEnabled,
+		}
+
+		taskResp, _, err := clientV2.MkaaS.PoolConfigurePublicIP(ctx, clusterID, poolID, req)
 		if err != nil {
 			return diag.FromErr(err)
 		}

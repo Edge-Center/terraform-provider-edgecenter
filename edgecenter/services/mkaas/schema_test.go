@@ -256,6 +256,11 @@ func TestPoolSchemaFlags(t *testing.T) {
 		edgecenter.MKaaSPoolStatusField,
 	)
 
+	publicIP := res.Schema[edgecenter.MKaaSPoolPublicIPEnabledField]
+	require.Equal(t, schema.TypeBool, publicIP.Type)
+	require.True(t, publicIP.Optional)
+	require.Equal(t, false, publicIP.Default)
+
 	securityGroups := res.Schema[edgecenter.MKaaSPoolSecurityGroupIDsField]
 	require.Equal(t, schema.TypeList, securityGroups.Type)
 	require.True(t, securityGroups.Optional)

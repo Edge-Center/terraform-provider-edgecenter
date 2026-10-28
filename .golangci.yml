@@ -46,7 +46,7 @@ linters:
     - godot
     - goheader
     - gomoddirectives
-    - gomodguard
+    - gomodguard_v2
     - goprintffuncname
     - gosec
     - gosmopolitan
@@ -121,6 +121,10 @@ linters:
     # - gocyclo
     # - dupl
   settings:
+    goconst:
+      exclude-types:
+        - Call
+        - CompositeLit
     nlreturn:
       block-size: 10
     perfsprint:
@@ -165,6 +169,13 @@ linters:
         linters:
           - gosec
         text: "G304"
+      - path: '_test\.go'
+        linters:
+          - gosec
+        text: "G101|G602"
+      - linters:
+          - prealloc
+        text: "Consider preallocating diags"
 
 issues:
   max-issues-per-linter: 0

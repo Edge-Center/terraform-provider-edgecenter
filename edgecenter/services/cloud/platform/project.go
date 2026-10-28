@@ -2,6 +2,7 @@ package platform
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -26,6 +27,7 @@ func resourceProject() *schema.Resource {
 		ReadContext:   resourceProjectRead,
 		UpdateContext: resourceProjectUpdate,
 		DeleteContext: resourceProjectDelete,
+		CustomizeDiff: rejectTakenProjectName,
 		Description:   `A project is a structural unit that helps manage and organize cloud resources`,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -70,6 +72,38 @@ func resourceProject() *schema.Resource {
 			},
 		},
 	}
+}
+
+func rejectTakenProjectName(ctx context.Context, d *schema.ResourceDiff, m interface{}) error {
+	if d.Id() == "" || !d.HasChange(edgecenter.NameField) || !d.NewValueKnown(edgecenter.NameField) {
+		return nil
+	}
+
+	config, ok := m.(*edgecenter.Config)
+	if !ok {
+		return nil
+	}
+
+	clientV2, err := config.NewCloudClient()
+	if err != nil {
+		log.Printf("[DEBUG] cannot check project name during plan: %s", err)
+		return nil
+	}
+
+	projects, _, err := clientV2.Projects.List(ctx, nil)
+	if err != nil {
+		log.Printf("[DEBUG] cannot check project name during plan: %s", err)
+		return nil
+	}
+
+	name := d.Get(edgecenter.NameField).(string)
+	for _, project := range projects {
+		if project.Name == name && strconv.Itoa(project.ID) != d.Id() {
+			return fmt.Errorf("project %d is already named %q", project.ID, name)
+		}
+	}
+
+	return nil
 }
 
 func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

@@ -186,7 +186,7 @@ func getRouter(ctx context.Context, clientV2 *edgecloudV2.Client, d *schema.Reso
 			message.WriteString("Found routers:\n")
 
 			for _, rr := range foundRouters {
-				message.WriteString(fmt.Sprintf("  - ID: %s\n", rr.ID))
+				fmt.Fprintf(&message, "  - ID: %s\n", rr.ID)
 			}
 
 			return nil, fmt.Errorf("multiple routers found.\n %s.\n Use router ID instead of name", message.String())
