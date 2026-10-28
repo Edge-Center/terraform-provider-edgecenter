@@ -29,7 +29,7 @@ func resourceVolume() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceVolumeCreate,
 		ReadContext:   resourceVolumeRead,
-		UpdateContext: resourceVolumeUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceVolumeUpdate),
 		DeleteContext: resourceVolumeDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description: `A volume is a detachable block storage device akin to a USB hard drive or SSD, but located remotely in the cloud.
@@ -70,24 +70,28 @@ The disc type "infra_ssd" is an internal type of EdgeCenter.
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},

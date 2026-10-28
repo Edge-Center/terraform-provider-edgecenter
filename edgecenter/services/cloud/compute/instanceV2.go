@@ -50,7 +50,7 @@ func resourceInstanceV2() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceInstanceCreateV2,
 		ReadContext:   resourceInstanceReadV2,
-		UpdateContext: resourceInstanceUpdateV2,
+		UpdateContext: edgecenter.RequireSameScope(resourceInstanceUpdateV2),
 		DeleteContext: resourceInstanceDeleteV2,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "A cloud instance is a virtual machine in a cloud environment.",

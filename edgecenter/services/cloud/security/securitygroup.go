@@ -30,7 +30,7 @@ func resourceSecurityGroup() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceSecurityGroupCreate,
 		ReadContext:   resourceSecurityGroupRead,
-		UpdateContext: resourceSecurityGroupUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceSecurityGroupUpdate),
 		DeleteContext: resourceSecurityGroupDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent SecurityGroups(Firewall)",

@@ -28,7 +28,7 @@ func resourceReservedFixedIP() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceReservedFixedIPCreate,
 		ReadContext:   resourceReservedFixedIPRead,
-		UpdateContext: resourceReservedFixedIPUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceReservedFixedIPUpdate),
 		DeleteContext: resourceReservedFixedIPDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent reserved ips",
@@ -50,24 +50,28 @@ func resourceReservedFixedIP() *schema.Resource {
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},

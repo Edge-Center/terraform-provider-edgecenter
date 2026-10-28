@@ -24,7 +24,7 @@ func resourceRouter() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceRouterCreate,
 		ReadContext:   resourceRouterRead,
-		UpdateContext: resourceRouterUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceRouterUpdate),
 		DeleteContext: resourceRouterDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent router. Router enables you to dynamically exchange routes between networks",
@@ -46,24 +46,28 @@ func resourceRouter() *schema.Resource {
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},

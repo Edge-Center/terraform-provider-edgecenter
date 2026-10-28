@@ -31,7 +31,7 @@ func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceNetworkCreate,
 		ReadContext:   resourceNetworkRead,
-		UpdateContext: resourceNetworkUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceNetworkUpdate),
 		DeleteContext: resourceNetworkDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent network. A network is a software-defined network in a cloud computing infrastructure",
@@ -53,24 +53,28 @@ func resourceNetwork() *schema.Resource {
 			"project_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"project_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the project. Either 'project_id' or 'project_name' must be specified.",
 				ExactlyOneOf: []string{"project_id", "project_name"},
 			},
 			"region_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The uuid of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},
 			"region_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				Description:  "The name of the region. Either 'region_id' or 'region_name' must be specified.",
 				ExactlyOneOf: []string{"region_id", "region_name"},
 			},

@@ -25,7 +25,7 @@ func resourceSnapshot() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceSnapshotCreate,
 		ReadContext:   resourceSnapshotRead,
-		UpdateContext: resourceSnapshotUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceSnapshotUpdate),
 		DeleteContext: resourceSnapshotDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Importer: &schema.ResourceImporter{
