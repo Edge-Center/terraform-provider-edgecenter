@@ -83,14 +83,14 @@ func resourceLoadBalancerV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The flavor or specification of the load balancer to be created. Changing the flavor through the Cloud API recreates the load balancer and its child resources. If Terraform manages listeners, pools, members, L7 policies, or L7 rules, run `terraform apply -refresh-only` after a successful flavor change to synchronize their new IDs in state. API-driven flavor changes require a Floating IP. If `vip_port_id` is explicitly configured, Terraform replaces the load balancer instead.",
+				Description: "The flavor or specification of the load balancer to be created. Changing the flavor through the Cloud API recreates the load balancer and its child resources. If Terraform manages listeners, pools, members, L7 policies, or L7 rules, run `terraform apply -refresh-only` after a successful flavor change to synchronize their new IDs in state. API-driven flavor changes require a Floating IP. If `vip_port_id` is explicitly configured, Terraform replaces the load balancer instead. If `vip_port_id` is set and the new flavor becomes known only during apply, Terraform reports `Provider produced inconsistent final plan` and leaves the load balancer unchanged. Run `terraform apply` again to replace it.",
 			},
 			"vip_port_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"vip_network_id"},
-				Description:   "Attaches the created reserved IP.",
+				Description:   "Attaches the created reserved IP. Changing it on an existing load balancer replaces the load balancer. If the new value becomes known only during apply, for example when it refers to a reserved IP created in the same run, Terraform reports `Provider produced inconsistent final plan` and leaves the load balancer unchanged. Run `terraform apply` again to replace it.",
 			},
 			"vip_network_id": {
 				Type:          schema.TypeString,
