@@ -37,7 +37,7 @@ resource "edgecenter_loadbalancerv2" "lb" {
 
 ### Optional
 
-- `flavor` (String) The flavor or specification of the load balancer to be created. Changing the flavor through the Cloud API recreates the load balancer and its child resources. If Terraform manages listeners, pools, members, L7 policies, or L7 rules, run `terraform apply -refresh-only` after a successful flavor change to synchronize their new IDs in state. API-driven flavor changes require a Floating IP. If `vip_port_id` is explicitly configured, Terraform replaces the load balancer instead.
+- `flavor` (String) The flavor or specification of the load balancer to be created. Changing the flavor through the Cloud API recreates the load balancer and its child resources. If Terraform manages listeners, pools, members, L7 policies, or L7 rules, run `terraform apply -refresh-only` after a successful flavor change to synchronize their new IDs in state. API-driven flavor changes require a Floating IP. If `vip_port_id` is explicitly configured, Terraform replaces the load balancer instead. If `vip_port_id` is set and the new flavor becomes known only during apply, Terraform reports `Provider produced inconsistent final plan` and leaves the load balancer unchanged. Run `terraform apply` again to replace it.
 - `last_updated` (String) The timestamp of the last update (use with update context).
 - `metadata_map` (Map of String) A map containing metadata, for example tags.
 - `project_id` (Number) The uuid of the project. Either 'project_id' or 'project_name' must be specified.
@@ -46,7 +46,7 @@ resource "edgecenter_loadbalancerv2" "lb" {
 - `region_name` (String) The name of the region. Either 'region_id' or 'region_name' must be specified.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `vip_network_id` (String) Attaches the created network.
-- `vip_port_id` (String) Attaches the created reserved IP.
+- `vip_port_id` (String) Attaches the created reserved IP. Changing it on an existing load balancer replaces the load balancer. If the new value becomes known only during apply, for example when it refers to a reserved IP created in the same run, Terraform reports `Provider produced inconsistent final plan` and leaves the load balancer unchanged. Run `terraform apply` again to replace it.
 - `vip_subnet_id` (String) The ID of the subnet in which to allocate the VIP address for the load balancer.
 
 ### Read-Only
