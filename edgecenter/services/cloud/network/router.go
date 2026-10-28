@@ -24,7 +24,7 @@ func resourceRouter() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceRouterCreate,
 		ReadContext:   resourceRouterRead,
-		UpdateContext: resourceRouterUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceRouterUpdate),
 		DeleteContext: resourceRouterDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent router. Router enables you to dynamically exchange routes between networks",

@@ -37,7 +37,7 @@ func resourceInstance() *schema.Resource {
 	return &schema.Resource{
 		CreateContext:      resourceInstanceCreate,
 		ReadContext:        resourceInstanceRead,
-		UpdateContext:      resourceInstanceUpdate,
+		UpdateContext:      edgecenter.RequireSameScope(resourceInstanceUpdate),
 		DeleteContext:      resourceInstanceDelete,
 		CustomizeDiff:      edgecenter.RejectScopeChange,
 		Description:        "**WARNING:** Resource \"instance\" is deprecated and unavailable.\n Use edgecenter_instanceV2 resource instead.\n The v2migrate tool converts the project to V2 without recreating resources, see the [v1 to v2 migration guide](https://registry.terraform.io/providers/Edge-Center/edgecenter/latest/docs/guides/v1-to-v2-migration).\n\n A cloud instance is a virtual machine in a cloud environment.",

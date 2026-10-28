@@ -36,7 +36,7 @@ func resourceBmInstance() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceBmInstanceCreate,
 		ReadContext:   resourceBmInstanceRead,
-		UpdateContext: resourceBmInstanceUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceBmInstanceUpdate),
 		DeleteContext: resourceBmInstanceDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent baremetal instance",

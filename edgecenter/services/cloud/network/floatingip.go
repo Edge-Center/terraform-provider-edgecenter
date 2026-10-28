@@ -30,7 +30,7 @@ func resourceFloatingIP() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceFloatingIPCreate,
 		ReadContext:   resourceFloatingIPRead,
-		UpdateContext: resourceFloatingIPUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceFloatingIPUpdate),
 		DeleteContext: resourceFloatingIPDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description: `A floating IP is a static IP address that can be associated with one of your instances or loadbalancers,

@@ -28,7 +28,7 @@ func resourceReservedFixedIP() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceReservedFixedIPCreate,
 		ReadContext:   resourceReservedFixedIPRead,
-		UpdateContext: resourceReservedFixedIPUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceReservedFixedIPUpdate),
 		DeleteContext: resourceReservedFixedIPDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent reserved ips",

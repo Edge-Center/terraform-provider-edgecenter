@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
@@ -66,6 +67,43 @@ func rejectScopeChange(ctx context.Context, d *schema.ResourceDiff, m interface{
 		return nil
 	}
 
+	return scopeMoveError(scope, oldID, newID)
+}
+
+func RequireSameScope(update schema.UpdateContextFunc) schema.UpdateContextFunc {
+	return func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+		for _, scope := range cloudScopes {
+			if err := requireSameScope(ctx, d, m, scope); err != nil {
+				d.Partial(true)
+				return diag.FromErr(err)
+			}
+		}
+
+		return update(ctx, d, m)
+	}
+}
+
+func requireSameScope(ctx context.Context, d *schema.ResourceData, m interface{}, scope scopeFields) error {
+	oldRaw, _ := d.GetChange(scope.id)
+	oldID := oldRaw.(int)
+	name := d.Get(scope.name).(string)
+	if oldID == 0 || name == "" || !d.HasChange(scope.name) {
+		return nil
+	}
+
+	newID, err := lookupScopeID(ctx, m, scope, name)
+	if err != nil {
+		return fmt.Errorf("cannot resolve %s %q: %w", scope.name, name, err)
+	}
+
+	if newID != oldID {
+		return scopeMoveError(scope, oldID, newID)
+	}
+
+	return nil
+}
+
+func scopeMoveError(scope scopeFields, oldID, newID int) error {
 	return fmt.Errorf(
 		"cannot move from %s %d to %s %d: an existing resource cannot change its project or region; revert the change or create a new resource in the target %s",
 		scope.kind, oldID, scope.kind, newID, scope.kind,
@@ -73,28 +111,31 @@ func rejectScopeChange(ctx context.Context, d *schema.ResourceDiff, m interface{
 }
 
 func resolveScopeName(ctx context.Context, m interface{}, scope scopeFields, name string) (int, bool) {
-	if id, err := strconv.Atoi(name); err == nil {
-		return id, true
-	}
-
-	config, ok := m.(*Config)
-	if !ok {
-		return 0, false
-	}
-
-	client, err := config.NewCloudClient()
-	if err != nil {
-		log.Printf("[DEBUG] cannot resolve %s %q during plan: %s", scope.name, name, err)
-		return 0, false
-	}
-
-	id, err := scope.resolve(ctx, client, name)
+	id, err := lookupScopeID(ctx, m, scope, name)
 	if err != nil {
 		log.Printf("[DEBUG] cannot resolve %s %q during plan: %s", scope.name, name, err)
 		return 0, false
 	}
 
 	return id, true
+}
+
+func lookupScopeID(ctx context.Context, m interface{}, scope scopeFields, name string) (int, error) {
+	if id, err := strconv.Atoi(name); err == nil {
+		return id, nil
+	}
+
+	config, ok := m.(*Config)
+	if !ok {
+		return 0, fmt.Errorf("unexpected provider meta %T", m)
+	}
+
+	client, err := config.NewCloudClient()
+	if err != nil {
+		return 0, err
+	}
+
+	return scope.resolve(ctx, client, name)
 }
 
 func resolveProjectIDByName(ctx context.Context, client *edgecloudV2.Client, name string) (int, error) {

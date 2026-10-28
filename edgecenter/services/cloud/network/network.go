@@ -31,7 +31,7 @@ func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceNetworkCreate,
 		ReadContext:   resourceNetworkRead,
-		UpdateContext: resourceNetworkUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceNetworkUpdate),
 		DeleteContext: resourceNetworkDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent network. A network is a software-defined network in a cloud computing infrastructure",

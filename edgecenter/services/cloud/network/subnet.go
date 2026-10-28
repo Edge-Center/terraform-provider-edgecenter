@@ -35,7 +35,7 @@ func resourceSubnet() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceSubnetCreate,
 		ReadContext:   resourceSubnetRead,
-		UpdateContext: resourceSubnetUpdate,
+		UpdateContext: edgecenter.RequireSameScope(resourceSubnetUpdate),
 		DeleteContext: resourceSubnetDelete,
 		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent subnets. Subnetwork is a range of IP addresses in a cloud network. Addresses from this range will be assigned to machines in the cloud.",
