@@ -409,6 +409,10 @@ func resourceBmInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 	d.Set("flavor_id", instance.Flavor.FlavorID)
 	d.Set("status", instance.Status)
 	d.Set("vm_state", instance.VMState)
+	if imageID := instance.Metadata["image_id"]; imageID != "" && instance.TaskID == "" && d.Get("image_id").(string) == "" &&
+		d.Get("apptemplate_id").(string) == "" && d.Get("last_updated").(string) == "" {
+		d.Set("image_id", imageID)
+	}
 
 	flavor := make(map[string]interface{}, 4)
 	flavor["flavor_id"] = instance.Flavor.FlavorID
@@ -573,6 +577,20 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
+	var installedImageID string
+	if d.HasChange("image_id") && d.Get("image_id").(string) != "" {
+		instance, _, err := clientV2.Instances.Get(ctx, instanceID)
+		if err != nil {
+			d.Partial(true)
+			return diag.FromErr(err)
+		}
+		if instance.TaskID != "" {
+			d.Partial(true)
+			return diag.Errorf("cannot rebuild baremetal instance %s while task %s is running", instanceID, instance.TaskID)
+		}
+		installedImageID = instance.Metadata["image_id"]
+	}
+
 	if d.HasChange("name") {
 		nameTemplates := d.Get("name_templates").([]interface{})
 		nameTemplate := d.Get("name_template").(string)
@@ -684,7 +702,20 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 		}
 	}
 
-	if d.HasChange("image_id") {
+	var notRebuiltDetail string
+	oldImageID, newImageID := d.GetChange("image_id")
+	oldAppTemplateID, _ := d.GetChange("apptemplate_id")
+	switch {
+	case !d.HasChange("image_id"):
+	case newImageID.(string) == "":
+		notRebuiltDetail = "The rebuild API accepts only image_id, so the change was saved without changing the instance."
+	case installedImageID == newImageID.(string) && oldAppTemplateID.(string) != "":
+		notRebuiltDetail = "The instance already runs this image, so it was not rebuilt."
+	case installedImageID == newImageID.(string):
+		log.Printf("[DEBUG] Instance %s already runs image %s", instanceID, installedImageID)
+	case installedImageID == "" && oldImageID.(string) == "" && oldAppTemplateID.(string) == "":
+		notRebuiltDetail = "The installed image is unknown, so image_id was saved without rebuilding the instance."
+	default:
 		opts := &edgecloudV2.BareMetalRebuildRequest{
 			ImageID: d.Get("image_id").(string),
 		}
@@ -710,7 +741,16 @@ func resourceBmInstanceUpdate(ctx context.Context, d *schema.ResourceData, m int
 	d.Set("last_updated", time.Now().Format(time.RFC850))
 	log.Println("[DEBUG] Finish Instance updating")
 
-	return resourceBmInstanceRead(ctx, d, m)
+	diags := resourceBmInstanceRead(ctx, d, m)
+	if notRebuiltDetail != "" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Baremetal instance was not rebuilt",
+			Detail:   notRebuiltDetail,
+		})
+	}
+
+	return diags
 }
 
 func resourceBmInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
