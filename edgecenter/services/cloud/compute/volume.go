@@ -31,6 +31,7 @@ func resourceVolume() *schema.Resource {
 		ReadContext:   resourceVolumeRead,
 		UpdateContext: resourceVolumeUpdate,
 		DeleteContext: resourceVolumeDelete,
+		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description: `A volume is a detachable block storage device akin to a USB hard drive or SSD, but located remotely in the cloud.
 Volumes can be attached to a virtual machine and manipulated like a physical hard drive.
 

@@ -33,6 +33,7 @@ func resourceNetwork() *schema.Resource {
 		ReadContext:   resourceNetworkRead,
 		UpdateContext: resourceNetworkUpdate,
 		DeleteContext: resourceNetworkDelete,
+		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent network. A network is a software-defined network in a cloud computing infrastructure",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {

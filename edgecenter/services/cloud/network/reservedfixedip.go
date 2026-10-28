@@ -30,6 +30,7 @@ func resourceReservedFixedIP() *schema.Resource {
 		ReadContext:   resourceReservedFixedIPRead,
 		UpdateContext: resourceReservedFixedIPUpdate,
 		DeleteContext: resourceReservedFixedIPDelete,
+		CustomizeDiff: edgecenter.RejectScopeChange,
 		Description:   "Represent reserved ips",
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
