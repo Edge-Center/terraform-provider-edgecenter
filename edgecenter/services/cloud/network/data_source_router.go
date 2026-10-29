@@ -65,6 +65,10 @@ func dataSourceRouter() *schema.Resource {
 				Description: "Information related to the external gateway.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"network_id": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -151,10 +155,13 @@ func dataSourceRouterRead(ctx context.Context, d *schema.ResourceData, m interfa
 	_ = d.Set("region_id", router.RegionID)
 	_ = d.Set("project_id", router.ProjectID)
 
-	if len(router.ExternalGatewayInfo.ExternalFixedIPs) > 0 {
+	if len(router.ExternalGatewayInfo.ExternalFixedIPs) > 0 || router.ExternalGatewayInfo.NetworkID != "" || router.ExternalGatewayInfo.Type != nil {
 		egi := make(map[string]interface{}, 4)
 		egilst := make([]map[string]interface{}, 1)
 		egi["network_id"] = router.ExternalGatewayInfo.NetworkID
+		if router.ExternalGatewayInfo.Type != nil {
+			egi["type"] = *router.ExternalGatewayInfo.Type
+		}
 
 		efip := make([]map[string]string, len(router.ExternalGatewayInfo.ExternalFixedIPs))
 		for i, fip := range router.ExternalGatewayInfo.ExternalFixedIPs {
