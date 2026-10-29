@@ -3,9 +3,12 @@
 package cdn_test
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -54,14 +57,30 @@ func pointsTo[T comparable](got *T, want T) bool {
 	return got != nil && *got == want
 }
 
+func sendsNullOverride(req interface{}) bool {
+	body, err := json.Marshal(req)
+
+	return err == nil && strings.Contains(string(body), `"overrideOriginProtocol":null`)
+}
+
+func ruleConfigWithoutOriginProtocol(name string) map[string]interface{} {
+	config := ruleConfig(name)
+	delete(config, "origin_protocol")
+
+	return config
+}
+
 func sampleRule(name string) *rules.Rule {
+	overrideOriginProtocol := "HTTPS"
+
 	return &rules.Rule{
-		ID:             testRuleID,
-		Name:           name,
-		Pattern:        testRulePattern,
-		Active:         true,
-		Weight:         10,
-		OriginProtocol: "HTTPS",
+		ID:                     testRuleID,
+		Name:                   name,
+		Pattern:                testRulePattern,
+		Active:                 true,
+		Weight:                 10,
+		OriginProtocol:         "HTTPS",
+		OverrideOriginProtocol: &overrideOriginProtocol,
 		Options: &cdnsdk.LocationOptions{
 			BrowserCacheSettings: &cdnsdk.BrowserCacheSettings{
 				Enabled: true,
@@ -405,26 +424,140 @@ func ruleCreateWithoutOriginProtocolCase() support.ResourceCase[*cdnmock.MockedC
 	mc := cdnmock.NewMockedCDN()
 
 	inherited := sampleRule(testRuleName)
+	inherited.OverrideOriginProtocol = nil
 
 	mc.Rules.On("Create", mock.Anything, int64(testRuleResourceID),
 		mock.MatchedBy(func(req *rules.CreateRequest) bool {
-			return req.OverrideOriginProtocol == nil
+			return sendsNullOverride(req)
 		}),
 	).Return(inherited, nil)
 
 	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).Return(inherited, nil)
 
-	config := ruleConfig(testRuleName)
-	delete(config, "origin_protocol")
-
 	return support.ResourceCase[*cdnmock.MockedCDN]{
 		Name:      "create without origin_protocol sends a null override",
 		Op:        support.OpApply,
 		Prepare:   func() *cdnmock.MockedCDN { return mc },
-		NewConfig: config,
+		NewConfig: ruleConfigWithoutOriginProtocol(testRuleName),
 		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
 			support.RequireNoDiags(t, diags)
 			support.RequireStateID(t, state, fmt.Sprintf("%d", testRuleID))
+			support.RequireStateAttrs(t, state, map[string]string{"origin_protocol": ""})
+		},
+	}
+}
+
+func ruleReadInheritedOriginProtocolCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	inherited := sampleRule(testRuleName)
+	inherited.OverrideOriginProtocol = nil
+
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).Return(inherited, nil)
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read leaves inherited origin_protocol out of state",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testRuleID),
+		CurrentState: ruleConfig(testRuleName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{"origin_protocol": ""})
+		},
+	}
+}
+
+func ruleUpdateWithoutOriginProtocolCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	const newName = "tf-rule-renamed"
+
+	renamed := sampleRule(newName)
+	renamed.OverrideOriginProtocol = nil
+
+	mc.Rules.On("Update", mock.Anything, int64(testRuleResourceID), int64(testRuleID),
+		mock.MatchedBy(func(req *rules.UpdateRequest) bool {
+			return req.Name == newName && sendsNullOverride(req)
+		}),
+	).Return(renamed, nil)
+
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).Return(renamed, nil)
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "update without origin_protocol in config sends a null override",
+		Op:           support.OpApply,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testRuleID),
+		CurrentState: ruleConfigWithoutOriginProtocol(testRuleName),
+		NewConfig:    ruleConfigWithoutOriginProtocol(newName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"name":            newName,
+				"origin_protocol": "",
+			})
+		},
+	}
+}
+
+func ruleUpdateRemovesOriginProtocolCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	inherited := sampleRule(testRuleName)
+	inherited.OverrideOriginProtocol = nil
+
+	mc.Rules.On("Update", mock.Anything, int64(testRuleResourceID), int64(testRuleID),
+		mock.MatchedBy(func(req *rules.UpdateRequest) bool {
+			return req.Name == testRuleName && sendsNullOverride(req)
+		}),
+	).Return(inherited, nil)
+
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).Return(inherited, nil)
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "removing origin_protocol from config restores inheritance",
+		Op:           support.OpApply,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testRuleID),
+		CurrentState: ruleConfig(testRuleName),
+		NewConfig:    ruleConfigWithoutOriginProtocol(testRuleName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{"origin_protocol": ""})
+		},
+	}
+}
+
+func ruleUpdateChangesOriginProtocolCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	overrideOriginProtocol := "HTTP"
+	updated := sampleRule(testRuleName)
+	updated.OriginProtocol = overrideOriginProtocol
+	updated.OverrideOriginProtocol = &overrideOriginProtocol
+
+	mc.Rules.On("Update", mock.Anything, int64(testRuleResourceID), int64(testRuleID),
+		mock.MatchedBy(func(req *rules.UpdateRequest) bool {
+			return pointsTo(req.OverrideOriginProtocol, "HTTP")
+		}),
+	).Return(updated, nil)
+
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).Return(updated, nil)
+
+	newConfig := ruleConfig(testRuleName)
+	newConfig["origin_protocol"] = "HTTP"
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "update sends origin_protocol from config as the override",
+		Op:           support.OpApply,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testRuleID),
+		CurrentState: ruleConfig(testRuleName),
+		NewConfig:    newConfig,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{"origin_protocol": "HTTP"})
 		},
 	}
 }
@@ -522,9 +655,13 @@ func TestIntegrationRule_TableDriven(t *testing.T) {
 		ruleCreateDisabledWithLowestWeightCase(),
 		ruleCreateWithoutActiveAndWeightCase(),
 		ruleReadCase(),
+		ruleReadInheritedOriginProtocolCase(),
 		ruleUpdateCase(),
 		ruleUpdateDisablesCase(),
 		ruleUpdateWithoutActiveAndWeightCase(),
+		ruleUpdateWithoutOriginProtocolCase(),
+		ruleUpdateRemovesOriginProtocolCase(),
+		ruleUpdateChangesOriginProtocolCase(),
 		ruleUpdateOptionsCase(),
 		ruleDeleteCase(),
 		ruleCreateAPIFailureCase(),
@@ -534,6 +671,58 @@ func TestIntegrationRule_TableDriven(t *testing.T) {
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCaseWithRawConfig[*cdnmock.MockedCDN])
+}
+
+func TestIntegrationRule_OriginProtocolDiff(t *testing.T) {
+	t.Parallel()
+
+	resource := cdnResource(t, "edgecenter_cdn_rule")
+
+	cases := []struct {
+		name     string
+		state    map[string]interface{}
+		config   map[string]interface{}
+		wantDiff bool
+	}{
+		{
+			name:     "removing the override from config plans it away",
+			state:    ruleConfig(testRuleName),
+			config:   ruleConfigWithoutOriginProtocol(testRuleName),
+			wantDiff: true,
+		},
+		{
+			name:   "inherited protocol plans clean",
+			state:  ruleConfigWithoutOriginProtocol(testRuleName),
+			config: ruleConfigWithoutOriginProtocol(testRuleName),
+		},
+		{
+			name:   "unchanged override plans clean",
+			state:  ruleConfig(testRuleName),
+			config: ruleConfig(testRuleName),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			current := support.NewState(t, resource, tc.state, fmt.Sprintf("%d", testRuleID))
+
+			diff, err := resource.Diff(context.Background(), current, terraform.NewResourceConfigRaw(tc.config), nil)
+			require.NoError(t, err)
+
+			if !tc.wantDiff {
+				if diff != nil {
+					require.NotContains(t, diff.Attributes, "origin_protocol")
+				}
+
+				return
+			}
+
+			require.NotNil(t, diff)
+			require.Contains(t, diff.Attributes, "origin_protocol")
+			require.Equal(t, "HTTPS", diff.Attributes["origin_protocol"].Old)
+			require.Empty(t, diff.Attributes["origin_protocol"].New)
+		})
+	}
 }
 
 func TestIntegrationRule_WeightValidation(t *testing.T) {
