@@ -961,8 +961,7 @@ func resourceCDNRule() *schema.Resource {
 			"origin_protocol": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
-				Description: "Choose the protocol that will be used by CDN servers to request content from the source. If not specified, the HTTP protocol will be used. Allowed values are \"HTTPS\", \"HTTP\", or \"MATCH\". If \"MATCH\" is chosen, content on the source should be available over both HTTP and HTTPS protocols.",
+				Description: "Choose the protocol that will be used by CDN servers to request content from the source. If not specified, the protocol of the CDN resource is used. Allowed values are \"HTTPS\", \"HTTP\", or \"MATCH\". If \"MATCH\" is chosen, content on the source should be available over both HTTP and HTTPS protocols.",
 			},
 			"options": locationOptionsSchema,
 		},
@@ -1038,7 +1037,7 @@ func resourceCDNRuleRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("rule", result.Pattern)
 	d.Set("active", result.Active)
 	d.Set("origin_group", result.OriginGroup)
-	d.Set("origin_protocol", result.OriginProtocol)
+	d.Set("origin_protocol", pointer.GetString(result.OverrideOriginProtocol))
 	d.Set("weight", result.Weight)
 	if err := d.Set("options", locationOptionsToList(result.Options)); err != nil {
 		return diag.FromErr(err)
