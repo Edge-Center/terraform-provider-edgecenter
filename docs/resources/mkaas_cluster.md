@@ -27,6 +27,7 @@ resource "edgecenter_mkaas_cluster" "example" {
   pod_subnet                   = "192.168.128.0/18"
   service_subnet               = "192.168.64.0/18"
   publish_kube_api_to_internet = true
+  autohealing_enabled          = true
 
   control_plane {
     flavor      = "mkaas-master-g3-standard-2-4"
@@ -53,6 +54,7 @@ resource "edgecenter_mkaas_cluster" "example" {
 
 ### Optional
 
+- `autohealing_enabled` (Boolean) Whether MKaaS cluster autohealing is enabled.
 - `project_id` (Number) The uuid of the project. Either `project_id` or `project_name` must be specified.
 - `project_name` (String) The name of the project. Either `project_id` or `project_name` must be specified.
 - `publish_kube_api_to_internet` (Boolean) Publish kube-api to internet.

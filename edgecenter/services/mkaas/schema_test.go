@@ -208,6 +208,15 @@ func TestClusterSchemaFlags(t *testing.T) {
 	require.NotNil(t, nestedField(t, cp, edgecenter.MKaaSVolumeTypeField).ValidateFunc)
 	require.Nil(t, nestedField(t, cp, edgecenter.MKaaSClusterVersionField).ValidateFunc)
 
+	autohealing := res.Schema[edgecenter.MKaaSClusterAutohealingEnabledField]
+	require.NotNil(t, autohealing)
+	require.Equal(t, schema.TypeBool, autohealing.Type)
+	require.True(t, autohealing.Optional)
+	require.True(t, autohealing.Computed)
+	require.False(t, autohealing.Required)
+	require.False(t, autohealing.ForceNew)
+	require.Nil(t, autohealing.Default)
+
 	requireComputedOnly(t, res,
 		edgecenter.MKaaSClusterInternalIPField,
 		edgecenter.MKaaSClusterExternalIPField,
@@ -398,4 +407,17 @@ func TestPoolTimeouts(t *testing.T) {
 	require.Equal(t, 10*time.Minute, *res.Timeouts.Read)
 	require.Equal(t, 60*time.Minute, *res.Timeouts.Update)
 	require.Equal(t, 20*time.Minute, *res.Timeouts.Delete)
+}
+
+func TestClusterDataSourceSchemaFlags(t *testing.T) {
+	t.Parallel()
+
+	res := dataSourceMKaaSCluster()
+	autohealing := res.Schema["autohealing_enabled"]
+	require.NotNil(t, autohealing)
+	require.Equal(t, schema.TypeBool, autohealing.Type)
+	require.True(t, autohealing.Computed)
+	require.False(t, autohealing.Required)
+	require.False(t, autohealing.Optional)
+	require.False(t, autohealing.ForceNew)
 }

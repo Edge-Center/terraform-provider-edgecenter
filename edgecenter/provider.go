@@ -137,8 +137,9 @@ const (
 	ExcludeWindowsField              = "exclude_windows"
 	IncludePricesField               = "include_prices"
 
-	MKaaSClusterPodSubnetField     = "pod_subnet"
-	MKaaSClusterServiceSubnetField = "service_subnet"
+	MKaaSClusterPodSubnetField          = "pod_subnet"
+	MKaaSClusterServiceSubnetField      = "service_subnet"
+	MKaaSClusterAutohealingEnabledField = "autohealing_enabled"
 )
 
 const (
