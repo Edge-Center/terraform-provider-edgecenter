@@ -15,7 +15,6 @@ import (
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/tfutil"
 )
 
 const (
@@ -325,8 +324,9 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	d.Set(edgecenter.RegionIDField, subnet.RegionID)
 	d.Set(edgecenter.ProjectIDField, subnet.ProjectID)
-	fields := []string{edgecenter.ConnectToNetworkRouterField}
-	tfutil.RevertState(d, &fields)
+	if err = d.Set(edgecenter.ConnectToNetworkRouterField, subnet.ConnectedToNetworkRouter); err != nil {
+		return diag.FromErr(err)
+	}
 	if subnet.GatewayIP != nil {
 		d.Set(edgecenter.GatewayIPField, subnet.GatewayIP.String())
 	} else {

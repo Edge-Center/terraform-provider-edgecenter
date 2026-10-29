@@ -180,7 +180,7 @@ func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, m interfa
 	_ = d.Set(edgecenter.HostRoutesField, hostRoutesToListOfMapsV2(subnet.HostRoutes))
 	_ = d.Set(edgecenter.RegionIDField, subnet.RegionID)
 	_ = d.Set(edgecenter.ProjectIDField, subnet.ProjectID)
-	_ = d.Set(edgecenter.ConnectToNetworkRouterField, true)
+	_ = d.Set(edgecenter.ConnectToNetworkRouterField, subnet.ConnectedToNetworkRouter)
 	if subnet.GatewayIP != nil {
 		_ = d.Set(edgecenter.GatewayIPField, subnet.GatewayIP.String())
 	} else {
