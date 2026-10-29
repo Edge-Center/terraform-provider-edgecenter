@@ -77,7 +77,6 @@ func TestIntegrationPassthroughImporters(t *testing.T) {
 	names := []string{
 		"edgecenter_cdn_resource",
 		"edgecenter_cdn_origingroup",
-		"edgecenter_cdn_lecert",
 		"edgecenter_cdn_shielding",
 		"edgecenter_cdn_sslcert",
 	}

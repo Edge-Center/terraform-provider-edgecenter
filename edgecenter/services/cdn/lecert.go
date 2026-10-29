@@ -51,7 +51,7 @@ func resourceCDNLECert() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     true,
-				Description: "Отмена текущего процесса выпуска сертификата. false = отменить выпуск. Работает как кнопка: после apply возвращается к true. Нельзя указывать false при создании.",
+				Description: "Отмена текущего процесса выпуска сертификата. Пока сертификат не выпущен, false отменяет выпуск, а true запускает его заново. При создании false допустимо, только если для ресурса уже был выпуск, он отменен или остановлен и сертификат не выпущен.",
 			},
 		},
 		ReadContext:   resourceCDNLECertRead,
@@ -63,11 +63,11 @@ func resourceCDNLECert() *schema.Resource {
 				if d.Get("update").(bool) {
 					return fmt.Errorf("'update' cannot be set to true when creating the certificate")
 				}
-				if !d.Get("active").(bool) {
-					return fmt.Errorf("'active' cannot be set to false when creating the certificate")
-				}
 
 				return nil
+			}
+			if d.HasChange("resource_id") && !d.Get("active").(bool) {
+				return fmt.Errorf("'active' cannot be set to false when moving the certificate to another resource")
 			}
 			if d.HasChange("update") && d.HasChange("active") {
 				return fmt.Errorf("you cannot change 'update' and 'active' at the same time")
@@ -102,6 +102,14 @@ func importCDNLECert(ctx context.Context, d *schema.ResourceData, m interface{})
 		if err := d.Set("cert_type", certType); err != nil {
 			return nil, fmt.Errorf("set cert_type: %w", err)
 		}
+
+		return []*schema.ResourceData{d}, nil
+	}
+
+	client := m.(*edgecenter.Config).CDNClient
+	cert, err := client.LECerts().GetLECert(ctx, int64(resourceID))
+	if err == nil && cert.ID == 0 && cert.CertType == "" {
+		return nil, fmt.Errorf("cannot determine cert_type for resource %d while no certificate is issued, import it as %d:%s or %d:%s", resourceID, resourceID, lecerts.CertTypeLE, resourceID, lecerts.CertTypeMDDC)
 	}
 
 	return []*schema.ResourceData{d}, nil
@@ -113,19 +121,38 @@ func resourceCDNLECertCreate(ctx context.Context, d *schema.ResourceData, m inte
 	resourceID := int64(d.Get("resource_id").(int))
 	certType := lecerts.CertType(d.Get("cert_type").(string))
 
-	log.Printf("[DEBUG] Creating ACME cert (type=%s) for resource %d", certType, resourceID)
-	var err error
-	if certType == lecerts.CertTypeMDDC {
-		err = client.LECerts().IssueLECert(ctx, resourceID, &lecerts.IssueRequest{CertType: certType})
-	} else {
-		err = client.LECerts().IssueLECert(ctx, resourceID, nil)
+	if !d.Get("active").(bool) {
+		cert, err := client.LECerts().GetLECert(ctx, resourceID)
+		switch {
+		case errors.Is(err, cdnsdk.ErrNotFound):
+			return diag.FromErr(fmt.Errorf("'active' cannot be set to false when creating the certificate: resource %d has no ACME issuance to take over", resourceID))
+		case err != nil:
+			return diag.FromErr(fmt.Errorf("failed to read ACME cert for resource %d: %w", resourceID, err))
+		case cert.ID != 0:
+			return diag.FromErr(fmt.Errorf("'active' cannot be set to false when creating the certificate: resource %d already has an issued ACME certificate", resourceID))
+		case cert.Active:
+			return diag.FromErr(fmt.Errorf("'active' cannot be set to false when creating the certificate: ACME issuance for resource %d is not cancelled", resourceID))
+		}
+		log.Printf("[DEBUG] Nothing is being issued for resource %d, taking over its ACME cert", resourceID)
+
+		return resourceCDNLECertRead(ctx, d, m)
 	}
-	if err != nil {
+
+	log.Printf("[DEBUG] Creating ACME cert (type=%s) for resource %d", certType, resourceID)
+	if err := client.LECerts().IssueLECert(ctx, resourceID, leCertIssueRequest(certType)); err != nil {
 		return diag.FromErr(fmt.Errorf("failed to create ACME cert for resource %d: %w", resourceID, err))
 	}
 	log.Printf("[DEBUG] ACME cert creation finished for resource %d", resourceID)
 
 	return resourceCDNLECertRead(ctx, d, m)
+}
+
+func leCertIssueRequest(certType lecerts.CertType) *lecerts.IssueRequest {
+	if certType == lecerts.CertTypeMDDC {
+		return &lecerts.IssueRequest{CertType: certType}
+	}
+
+	return nil
 }
 
 func resourceCDNLECertRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -146,7 +173,8 @@ func resourceCDNLECertRead(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(fmt.Errorf("failed to read ACME cert for resource %d: %w", resourceID, err))
 	}
 
-	if cert.ID == 0 && !cert.Active {
+	idle := cert.ID == 0 && !cert.Active
+	if idle && d.Get("active").(bool) {
 		d.SetId("")
 		log.Printf("[DEBUG] ACME cert not found or inactive for resource %d, clearing state", resourceID)
 		return nil
@@ -162,7 +190,7 @@ func resourceCDNLECertRead(ctx context.Context, d *schema.ResourceData, m interf
 
 	d.SetId(fmt.Sprintf("%d", cert.ID))
 	_ = d.Set("cert_type", string(certType))
-	_ = d.Set("active", true)
+	_ = d.Set("active", !idle)
 	_ = d.Set("update", false)
 	log.Printf("[DEBUG] Finished reading ACME cert: ID=%d, type=%s", cert.ID, certType)
 
@@ -197,15 +225,23 @@ func resourceCDNLECertUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if !active {
+	if d.HasChange("active") && !active {
 		log.Printf("[DEBUG] Cancelling ACME cert for resource %d", resourceID)
 		if err = client.LECerts().CancelLECert(ctx, resourceID, active); err != nil {
+			_ = d.Set("active", true)
 			return diag.FromErr(fmt.Errorf("failed to cancel ACME cert for resource %d: %w", resourceID, err))
 		}
 	}
 
+	if d.HasChange("active") && active {
+		log.Printf("[DEBUG] Restarting ACME cert issuance for resource %d", resourceID)
+		if err = client.LECerts().IssueLECert(ctx, resourceID, leCertIssueRequest(lecerts.CertType(d.Get("cert_type").(string)))); err != nil {
+			_ = d.Set("active", false)
+			return diag.FromErr(fmt.Errorf("failed to restart ACME cert issuance for resource %d: %w", resourceID, err))
+		}
+	}
+
 	_ = d.Set("update", false)
-	_ = d.Set("active", true)
 	log.Printf("[DEBUG] Finished updating ACME cert for resource %d", resourceID)
 
 	return nil
