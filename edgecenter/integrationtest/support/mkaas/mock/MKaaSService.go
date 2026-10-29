@@ -131,6 +131,45 @@ func (_m *MKaaSService) ClusterGet(_a0 context.Context, _a1 int) (*edgecloud.MKa
 	return r0, r1, r2
 }
 
+// ClusterUpdateAutohealing provides a mock function with given fields: ctx, clusterID, reqBody
+func (_m *MKaaSService) ClusterUpdateAutohealing(ctx context.Context, clusterID int, reqBody edgecloud.MKaaSClusterUpdateAutohealingRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error) {
+	ret := _m.Called(ctx, clusterID, reqBody)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ClusterUpdateAutohealing")
+	}
+
+	var r0 *edgecloud.TaskResponse
+	var r1 *edgecloud.Response
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, int, edgecloud.MKaaSClusterUpdateAutohealingRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error)); ok {
+		return rf(ctx, clusterID, reqBody)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int, edgecloud.MKaaSClusterUpdateAutohealingRequest) *edgecloud.TaskResponse); ok {
+		r0 = rf(ctx, clusterID, reqBody)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*edgecloud.TaskResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, int, edgecloud.MKaaSClusterUpdateAutohealingRequest) *edgecloud.Response); ok {
+		r1 = rf(ctx, clusterID, reqBody)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*edgecloud.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, int, edgecloud.MKaaSClusterUpdateAutohealingRequest) error); ok {
+		r2 = rf(ctx, clusterID, reqBody)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
 // ClusterUpdateMasterNodeCount provides a mock function with given fields: ctx, clusterID, reqBody
 func (_m *MKaaSService) ClusterUpdateMasterNodeCount(ctx context.Context, clusterID int, reqBody edgecloud.MKaaSClusterUpdateMasterNodeCountRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error) {
 	ret := _m.Called(ctx, clusterID, reqBody)
@@ -404,6 +443,45 @@ func (_m *MKaaSService) NodesList(ctx context.Context, clusterID int, poolID int
 	return r0, r1, r2
 }
 
+// PoolConfigurePublicIP provides a mock function with given fields: ctx, clusterID, poolID, reqBody
+func (_m *MKaaSService) PoolConfigurePublicIP(ctx context.Context, clusterID int, poolID int, reqBody edgecloud.MKaaSPoolConfigurePublicIPRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error) {
+	ret := _m.Called(ctx, clusterID, poolID, reqBody)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PoolConfigurePublicIP")
+	}
+
+	var r0 *edgecloud.TaskResponse
+	var r1 *edgecloud.Response
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error)); ok {
+		return rf(ctx, clusterID, poolID, reqBody)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) *edgecloud.TaskResponse); ok {
+		r0 = rf(ctx, clusterID, poolID, reqBody)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*edgecloud.TaskResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) *edgecloud.Response); ok {
+		r1 = rf(ctx, clusterID, poolID, reqBody)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*edgecloud.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) error); ok {
+		r2 = rf(ctx, clusterID, poolID, reqBody)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
 // PoolCreate provides a mock function with given fields: ctx, clusterID, reqBody
 func (_m *MKaaSService) PoolCreate(ctx context.Context, clusterID int, reqBody edgecloud.MKaaSPoolCreateRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error) {
 	ret := _m.Called(ctx, clusterID, reqBody)
@@ -552,39 +630,6 @@ func (_m *MKaaSService) PoolUpdateAutoscaling(ctx context.Context, clusterID int
 	}
 
 	if rf, ok := ret.Get(2).(func(context.Context, int, int, edgecloud.MKaaSPoolUpdateAutoscalingRequest) error); ok {
-		r2 = rf(ctx, clusterID, poolID, reqBody)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
-}
-
-// PoolConfigurePublicIP provides a mock function with given fields: ctx, clusterID, poolID, reqBody
-func (_m *MKaaSService) PoolConfigurePublicIP(ctx context.Context, clusterID int, poolID int, reqBody edgecloud.MKaaSPoolConfigurePublicIPRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error) {
-	ret := _m.Called(ctx, clusterID, poolID, reqBody)
-
-	if len(ret) == 0 {
-		panic("no return value specified for PoolConfigurePublicIP")
-	}
-
-	var r0 *edgecloud.TaskResponse
-	var r1 *edgecloud.Response
-	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) (*edgecloud.TaskResponse, *edgecloud.Response, error)); ok {
-		return rf(ctx, clusterID, poolID, reqBody)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) *edgecloud.TaskResponse); ok {
-		r0 = rf(ctx, clusterID, poolID, reqBody)
-	} else if ret.Get(0) != nil {
-		r0 = ret.Get(0).(*edgecloud.TaskResponse)
-	}
-	if rf, ok := ret.Get(1).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) *edgecloud.Response); ok {
-		r1 = rf(ctx, clusterID, poolID, reqBody)
-	} else if ret.Get(1) != nil {
-		r1 = ret.Get(1).(*edgecloud.Response)
-	}
-	if rf, ok := ret.Get(2).(func(context.Context, int, int, edgecloud.MKaaSPoolConfigurePublicIPRequest) error); ok {
 		r2 = rf(ctx, clusterID, poolID, reqBody)
 	} else {
 		r2 = ret.Error(2)
