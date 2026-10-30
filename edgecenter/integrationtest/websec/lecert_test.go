@@ -134,6 +134,29 @@ func TestIntegrationWebsecLECert_Create(t *testing.T) {
 			},
 		},
 		{
+			Name: "create of the first certificate keeps polling while the status comes back empty",
+			Op:   support.OpApply,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(&lecerts.Status{}, nil).Twice()
+				mc.LECerts.On("Issue", mock.Anything, testResourceID, &lecerts.IssueRequest{CertType: lecerts.CertTypeLE}).Return(nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertIssued(), nil).Twice()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteCertificate(testCertID), siteSSLAutomated), nil).Once()
+
+				return mc
+			},
+			NewConfig: leCertConfig(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireNoDiags(t, diags)
+				support.RequireStateAttrs(t, state, map[string]string{
+					"ssl_certificate": testCertIDStr,
+					"issue_status":    "DONE",
+				})
+			},
+		},
+		{
 			Name: "create refuses a resource that uses its own certificate, which the issued one would replace",
 			Op:   support.OpApply,
 			Prepare: func() *websecmock.MockedWebsec {
@@ -460,6 +483,46 @@ func TestIntegrationWebsecLECert_Read(t *testing.T) {
 			},
 		},
 		{
+			Name: "read keeps an automated certificate when the status comes back empty",
+			Op:   support.OpRead,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteCertificate(testCertID)), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(&lecerts.Status{}, nil).Once()
+				mc.SSLCerts.On("Get", mock.Anything, testCertID).Return(&sslcerts.Cert{ID: testCertID, Automated: true}, nil).Once()
+
+				return mc
+			},
+			CurrentID:    testResourceIDStr,
+			CurrentState: leCertState(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireNoDiags(t, diags)
+				support.RequireStateAttrs(t, state, map[string]string{
+					"ssl_certificate": testCertIDStr,
+					"issue_status":    "",
+				})
+			},
+		},
+		{
+			Name: "read removes the certificate when the status comes back empty and the resource has no certificate",
+			Op:   support.OpRead,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(&lecerts.Status{}, nil).Once()
+
+				return mc
+			},
+			CurrentID:    testResourceIDStr,
+			CurrentState: leCertState(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireNoDiags(t, diags)
+				require.Nil(t, state)
+			},
+		},
+		{
 			Name: "read removes the certificate when the resource refers to a deleted certificate and has no request",
 			Op:   support.OpRead,
 			Prepare: func() *websecmock.MockedWebsec {
@@ -557,6 +620,26 @@ func TestIntegrationWebsecLECert_Delete(t *testing.T) {
 				mc := websecmock.NewMockedWebsec()
 
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteCertificate(testCertID)), nil).Once()
+				mc.SSLCerts.On("Get", mock.Anything, testCertID).Return(&sslcerts.Cert{ID: testCertID, Automated: true}, nil).Once()
+				mc.LECerts.On("Revoke", mock.Anything, testResourceID, false).Return(nil).Once()
+
+				return mc
+			},
+			CurrentID:    testResourceIDStr,
+			CurrentState: leCertState(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireNoDiags(t, diags)
+				require.Nil(t, state)
+			},
+		},
+		{
+			Name: "delete revokes a moved certificate when the status comes back empty",
+			Op:   support.OpDelete,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(&lecerts.Status{}, nil).Once()
 				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteCertificate(testCertID)), nil).Once()
 				mc.SSLCerts.On("Get", mock.Anything, testCertID).Return(&sslcerts.Cert{ID: testCertID, Automated: true}, nil).Once()
 				mc.LECerts.On("Revoke", mock.Anything, testResourceID, false).Return(nil).Once()

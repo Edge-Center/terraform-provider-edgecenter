@@ -220,7 +220,7 @@ func resourceWebsecLECertRead(ctx context.Context, d *schema.ResourceData, m int
 
 	request, err := client.LECerts().Get(ctx, resourceID)
 	switch {
-	case err == nil:
+	case err == nil && request.ID != 0:
 		running = request.Active
 		latest = latestLECertStatus(request)
 		if request.SSLID != nil {
@@ -229,7 +229,7 @@ func resourceWebsecLECertRead(ctx context.Context, d *schema.ResourceData, m int
 		if request.CertType != nil {
 			d.Set("cert_type", string(*request.CertType))
 		}
-	case isNotFound(err):
+	case err == nil || isNotFound(err):
 		automated, err := isLinkedCertificateAutomated(ctx, client, resource)
 		if err != nil {
 			return diag.FromErr(err)
