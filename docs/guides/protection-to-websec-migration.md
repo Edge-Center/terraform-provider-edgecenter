@@ -19,6 +19,12 @@ only to import.
 `removed` blocks need Terraform 1.7 or later. Do not manage a domain with an old and a new resource at
 the same time: changes made through one of them show up as drift in the other.
 
+The old resources keep working after the move, because the WebSec API answers the requests of the old
+API too. The one difference is `multiple_origins` and `wildcard_aliases` of
+`edgecenter_protection_resource`: they come from the permissions of the client now, and the value in
+the configuration is ignored. A value that differs from the permission shows up as a change in every
+plan. Delete both attributes from the configuration to stop it.
+
 ## Where the data goes
 
 The move keeps the ids of resources, certificates, aliases (now subdomains) and named options (now
