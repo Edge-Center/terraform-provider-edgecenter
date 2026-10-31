@@ -462,7 +462,9 @@ _, err := planDiff(t, resource, nil, config, cty.GetAttrPath("source").IndexInt(
 `edgecenter_websec_lecert` polls the issue request every 10 seconds.
 `websec.ResourceWebsecLECert(pollInterval)` builds the resource with another interval:
 the lecert cases use `time.Millisecond`, and the timeout cases use `time.Hour`, so that
-only the deadline can end the wait. The resource retries an update while another request
+only the deadline can end the wait. The case for the reason of the latest failed check
+polls every 10 ms with a create timeout of 61 seconds: the one minute margin before the
+deadline leaves it a second of polling. The resource retries an update while another request
 holds the lock on subdomain deletion, and its case for that waits the real two second
 pause.
 

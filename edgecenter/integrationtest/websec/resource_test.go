@@ -94,6 +94,18 @@ func siteSSLAutomated(remote *resources.Resource) {
 	remote.SSLAutomated = true
 }
 
+func siteApplied(remote *resources.Resource) {
+	remote.Status = resources.StatusActive
+}
+
+func siteStatusError(remote *resources.Resource) {
+	remote.Status = resources.StatusError
+}
+
+func siteDisabled(remote *resources.Resource) {
+	remote.Enabled = false
+}
+
 func TestIntegrationWebsecResource_Create(t *testing.T) {
 	t.Parallel()
 

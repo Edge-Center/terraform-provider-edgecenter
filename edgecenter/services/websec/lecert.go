@@ -15,16 +15,15 @@ import (
 
 	cdnsdk "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/websec/lecerts"
+	"github.com/Edge-Center/edgecentercdn-go/websec/resources"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
 
 const (
-	leCertPollInterval  = 10 * time.Second
-	leCertCancelTimeout = time.Minute
+	leCertPollInterval = 10 * time.Second
 
-	leCertStatusDone      = "DONE"
-	leCertStatusFailed    = "FAILED"
-	leCertStatusForbidden = "FORBIDDEN"
+	leCertStatusDone   = "DONE"
+	leCertStatusFailed = "FAILED"
 )
 
 func ResourceWebsecLECert(pollInterval time.Duration) *schema.Resource {
@@ -32,13 +31,17 @@ func ResourceWebsecLECert(pollInterval time.Duration) *schema.Resource {
 		Description: "WebSec automated certificate: a certificate that the server issues and renews for an " +
 			"`edgecenter_websec_resource`, from Let's Encrypt or another ACME authority (see `cert_type`). A resource has at " +
 			"most one such certificate, so the id is the resource id.\n\n" +
-			"Create requests the certificate and waits until the request ends. The authority checks the domain and every " +
-			"subdomain of the resource over HTTP, so they have to resolve to its `protected_ip` already: apply this resource " +
-			"as a separate step after DNS points there. A resource that uses its own `ssl_certificate` is refused: remove " +
-			"the attribute from the resource in the same apply.\n\n" +
-			"A failed request is cancelled, its reason is reported, and the certificate is marked tainted, so the next " +
-			"apply cleans up and requests it again. That apply also replaces a certificate issued after the create timeout " +
-			"ran out; `terraform untaint` keeps it.\n\n" +
+			"Create waits until the server applies the resource and its `status` is no longer `processed`, then requests " +
+			"the certificate and waits until the request ends. A resource with `active` or `enabled` off is not waited for: " +
+			"the server refuses the request at once. The authority checks the domain of the resource over HTTP, so it has " +
+			"to resolve to its `protected_ip`: apply this resource after DNS points there. The certificate covers the domain " +
+			"only, not the subdomains of the resource. The server repeats a failed check after a pause and Create keeps " +
+			"waiting: raise `timeouts.create` if the domain needs time to resolve. A resource that uses its own " +
+			"`ssl_certificate` is refused: remove the attribute from the resource in the same apply.\n\n" +
+			"A request that the server ends without a certificate is reported with its reason, and the certificate is " +
+			"marked tainted, so the next apply cleans up and requests it again. When the create timeout runs out first, the " +
+			"error shows the reason of the last failed check and the request keeps running; the next apply also replaces a " +
+			"certificate issued after the timeout, `terraform untaint` keeps it.\n\n" +
 			"The server renews the certificate only while `active` and `enabled` of the resource are true and its `status` " +
 			"is `active`.\n\n" +
 			"Destroy cancels a running request and revokes the certificate. Turn off the `redirect_http_to_https` option of " +
@@ -148,6 +151,12 @@ func resourceWebsecLECertCreate(ctx context.Context, d *schema.ResourceData, m i
 			"remove ssl_certificate from edgecenter_websec_resource in the same apply", resourceID, *resource.SSLCertificate)
 	}
 
+	if resource.Active && resource.Enabled && resource.Status == resources.StatusProcessed {
+		if err := waitWhileResourceProcessed(ctx, client.Resources(), resourceID, pollInterval); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	var lastRequestID int64
 	lastRequest, err := client.LECerts().Get(ctx, resourceID)
 	switch {
@@ -169,26 +178,13 @@ func resourceWebsecLECertCreate(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	latest := latestLECertStatus(request)
-	if !request.Active && latest.Status == leCertStatusDone {
-		log.Printf("[DEBUG] Finish WebSec lecert creating (id=%d)\n", resourceID)
-
-		return resourceWebsecLECertRead(ctx, d, m)
+	if latest := latestLECertStatus(request); latest.Status != leCertStatusDone {
+		return diag.FromErr(leCertRequestFailure(resourceID, latest))
 	}
 
-	failure := leCertRequestFailure(resourceID, latest)
-	if !request.Active {
-		return diag.FromErr(failure)
-	}
+	log.Printf("[DEBUG] Finish WebSec lecert creating (id=%d)\n", resourceID)
 
-	cancelCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), leCertCancelTimeout)
-	defer cancel()
-
-	if err := client.LECerts().Cancel(cancelCtx, resourceID); err != nil {
-		return diag.FromErr(fmt.Errorf("%w, and cancelling the request failed: %w", failure, err))
-	}
-
-	return diag.FromErr(failure)
+	return resourceWebsecLECertRead(ctx, d, m)
 }
 
 func resourceWebsecLECertRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -305,27 +301,56 @@ func waitForLECertRequest(ctx context.Context, certs lecerts.Service, resourceID
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
 
-	started := false
+	var running *lecerts.Status
 	for {
 		request, err := certs.Get(ctx, resourceID)
 		if err != nil && !isNotFound(err) {
 			return nil, fmt.Errorf("read the certificate issue request of resource %d: %w", resourceID, err)
 		}
 		if err == nil && request.ID > lastRequestID {
-			if isLECertRequestOver(request) {
+			if !request.Active {
 				return request, nil
 			}
-			started = true
+			running = request
 		}
 
 		log.Printf("[DEBUG] Waiting for the certificate issue request of WebSec resource %d\n", resourceID)
 
 		if !waitTick(pollCtx, ticker) {
-			if !started {
+			if running == nil {
 				return nil, fmt.Errorf("certificate issue request of resource %d was accepted but has not started within the create timeout", resourceID)
+			}
+			if attempt := latestLECertStatus(running); attempt.Status == leCertStatusFailed {
+				return nil, fmt.Errorf("certificate issue request of resource %d did not end within the create timeout, "+
+					"and its last attempt failed: %s", resourceID, leCertStatusError(attempt))
 			}
 
 			return nil, fmt.Errorf("certificate issue request of resource %d did not end within the create timeout", resourceID)
+		}
+	}
+}
+
+func waitWhileResourceProcessed(ctx context.Context, sites resources.Service, resourceID int64, pollInterval time.Duration) error {
+	pollCtx, cancel := withDeadlineMargin(ctx)
+	defer cancel()
+
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		log.Printf("[DEBUG] Waiting for WebSec resource %d to leave the %s status\n", resourceID, resources.StatusProcessed)
+
+		if !waitTick(pollCtx, ticker) {
+			return fmt.Errorf("resource %d is still %s at the create timeout: the server has not applied it yet, so "+
+				"the certificate was not requested", resourceID, resources.StatusProcessed)
+		}
+
+		resource, err := sites.Get(ctx, resourceID)
+		if err != nil {
+			return fmt.Errorf("read resource %d: %w", resourceID, err)
+		}
+		if resource.Status != resources.StatusProcessed {
+			return nil
 		}
 	}
 }
@@ -364,15 +389,6 @@ func cancelLECertRequest(ctx context.Context, certs lecerts.Service, resourceID 
 		if !waitTick(retryCtx, ticker) {
 			return err
 		}
-	}
-}
-
-func isLECertRequestOver(request *lecerts.Status) bool {
-	switch latestLECertStatus(request).Status {
-	case leCertStatusFailed, leCertStatusForbidden:
-		return true
-	default:
-		return !request.Active
 	}
 }
 

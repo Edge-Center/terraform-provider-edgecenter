@@ -28,6 +28,7 @@ const (
 	leCertIssueLockedBody      = `{"le_issue":"You cannot stop the issuing process until the current issuing attempt is in progress. Please wait until the attempt is completed and try again."}`
 	leCertIssueDeactivatedBody = `{"errors":{"le_issue":["The certificate issuing process has already been deactivated."]}}`
 	leCertIssueRunningBody     = `{"errors":{"resource":["Certificate issuing process have already being launched."]}}`
+	leCertIssueInactiveBody    = `{"errors":{"resource":["You can't issue a Let's Encrypt certificate to an inactive resource."]}}`
 	leCertRevokeSharedBody     = `{"errors":{"error":["Several resources [42, 43] are linked to this certificate. Use the ?force=true query param to revoke certificate from several resources."]}}`
 )
 
@@ -63,12 +64,26 @@ func leCertFailedAttempt(active bool) *lecerts.Status {
 	}
 }
 
+func leCertForbidden(active bool) *lecerts.Status {
+	return &lecerts.Status{
+		ID:       testLECertRequestID,
+		Resource: testResourceID,
+		Active:   active,
+		Statuses: []lecerts.StatusDetail{{
+			ID:      13,
+			Status:  "FORBIDDEN",
+			Details: "Issuing of Let's Encrypt certificates is disabled for your account. Please contact a support team.",
+		}},
+	}
+}
+
 func TestIntegrationWebsecLECert_Create(t *testing.T) {
 	t.Parallel()
 
 	resource := websecsvc.ResourceWebsecLECert(time.Millisecond)
 
 	issueRunning := apiError(t, http.StatusBadRequest, cdnsdk.ErrBadRequest, leCertIssueRunningBody)
+	issueInactive := apiError(t, http.StatusBadRequest, cdnsdk.ErrBadRequest, leCertIssueInactiveBody)
 	unavailable := serverError(t)
 
 	cases := []support.ResourceCase[*websecmock.MockedWebsec]{
@@ -85,7 +100,7 @@ func TestIntegrationWebsecLECert_Create(t *testing.T) {
 				}
 				running := &lecerts.Status{ID: testLECertRequestID, Resource: testResourceID, Active: true}
 
-				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(previous, nil).Twice()
 				mc.LECerts.On("Issue", mock.Anything, testResourceID, &lecerts.IssueRequest{CertType: lecerts.CertTypeLE}).Return(nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(running, nil).Once()
@@ -116,7 +131,7 @@ func TestIntegrationWebsecLECert_Create(t *testing.T) {
 				issued := leCertIssued()
 				issued.CertType = ptr(lecerts.CertTypeMDDC)
 
-				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Twice()
 				mc.LECerts.On("Issue", mock.Anything, testResourceID, &lecerts.IssueRequest{CertType: lecerts.CertTypeMDDC}).Return(nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(issued, nil).Twice()
@@ -139,7 +154,7 @@ func TestIntegrationWebsecLECert_Create(t *testing.T) {
 			Prepare: func() *websecmock.MockedWebsec {
 				mc := websecmock.NewMockedWebsec()
 
-				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(&lecerts.Status{}, nil).Twice()
 				mc.LECerts.On("Issue", mock.Anything, testResourceID, &lecerts.IssueRequest{CertType: lecerts.CertTypeLE}).Return(nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertIssued(), nil).Twice()
@@ -198,7 +213,7 @@ func TestIntegrationWebsecLECert_Create(t *testing.T) {
 			Prepare: func() *websecmock.MockedWebsec {
 				mc := websecmock.NewMockedWebsec()
 
-				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
 				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(issueRunning).Once()
 
@@ -212,16 +227,64 @@ func TestIntegrationWebsecLECert_Create(t *testing.T) {
 			},
 		},
 		{
-			Name: "create cancels the request after its first failed attempt and keeps the id for the next apply to clean up",
+			Name: "create waits until the server applies the resource before it requests the certificate",
 			Op:   support.OpApply,
 			Prepare: func() *websecmock.MockedWebsec {
 				mc := websecmock.NewMockedWebsec()
 
-				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Twice()
+				applied := mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once().NotBefore(applied)
+				mc.LECerts.On("Issue", mock.Anything, testResourceID, &lecerts.IssueRequest{CertType: lecerts.CertTypeLE}).Return(nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertIssued(), nil).Twice()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteCertificate(testCertID), siteSSLAutomated), nil).Once()
+
+				return mc
+			},
+			NewConfig: leCertConfig(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireNoDiags(t, diags)
+				support.RequireStateAttrs(t, state, map[string]string{
+					"ssl_certificate": testCertIDStr,
+					"issue_status":    "DONE",
+				})
+			},
+		},
+		{
+			Name: "create keeps waiting while the server repeats a failed check and does not cancel the request",
+			Op:   support.OpApply,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
 				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(nil).Once()
-				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertFailedAttempt(true), nil).Once()
-				mc.LECerts.On("Cancel", mock.Anything, testResourceID).Return(nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertFailedAttempt(true), nil).Twice()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertIssued(), nil).Twice()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteCertificate(testCertID), siteSSLAutomated), nil).Once()
+
+				return mc
+			},
+			NewConfig: leCertConfig(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireNoDiags(t, diags)
+				support.RequireStateAttrs(t, state, map[string]string{
+					"ssl_certificate": testCertIDStr,
+					"issue_status":    "DONE",
+					"issue_error":     "",
+				})
+			},
+		},
+		{
+			Name: "create reports a request that the server ended with a failure and keeps the id for the next apply to clean up",
+			Op:   support.OpApply,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
+				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertFailedAttempt(false), nil).Once()
 
 				return mc
 			},
@@ -233,25 +296,16 @@ func TestIntegrationWebsecLECert_Create(t *testing.T) {
 			},
 		},
 		{
-			Name: "create does not cancel a request that the server has already closed",
+			Name: "create waits until the server closes a forbidden request and reports it without a cancel",
 			Op:   support.OpApply,
 			Prepare: func() *websecmock.MockedWebsec {
 				mc := websecmock.NewMockedWebsec()
 
-				forbidden := &lecerts.Status{
-					ID:       testLECertRequestID,
-					Resource: testResourceID,
-					Statuses: []lecerts.StatusDetail{{
-						ID:      13,
-						Status:  "FORBIDDEN",
-						Details: "Issuing of Let's Encrypt certificates is disabled for your account. Please contact a support team.",
-					}},
-				}
-
-				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
 				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(nil).Once()
-				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(forbidden, nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertForbidden(true), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertForbidden(false), nil).Once()
 
 				return mc
 			},
@@ -263,26 +317,121 @@ func TestIntegrationWebsecLECert_Create(t *testing.T) {
 			},
 		},
 		{
-			Name: "a failed cancel is reported together with the reason of the failed request",
+			Name: "create reports a request that the server closed before the first poll",
 			Op:   support.OpApply,
 			Prepare: func() *websecmock.MockedWebsec {
 				mc := websecmock.NewMockedWebsec()
 
-				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
 				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(nil).Once()
-				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertFailedAttempt(true), nil).Once()
-				mc.LECerts.On("Cancel", mock.Anything, testResourceID).Return(unavailable).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertForbidden(false), nil).Once()
 
 				return mc
 			},
 			NewConfig: leCertConfig(),
 			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
 				support.RequireOnlyErrorDiags(t, diags)
-				support.RequireErrorDiagContains(t, diags, "ended with FAILED: ValidationIssue")
-				support.RequireErrorDiagContains(t, diags, "cancelling the request failed")
-				support.RequireErrorDiagContains(t, diags, "Error occurred.")
+				support.RequireErrorDiagContains(t, diags, "ended with FORBIDDEN: Issuing of Let's Encrypt certificates is disabled for your account.")
 				support.RequireStateID(t, state, testResourceIDStr)
+			},
+		},
+		{
+			Name: "the wait for the server to apply the resource ends on any status other than processed",
+			Op:   support.OpApply,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				changed := mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteStatusError), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once().NotBefore(changed)
+				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertIssued(), nil).Twice()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteCertificate(testCertID), siteSSLAutomated), nil).Once()
+
+				return mc
+			},
+			NewConfig: leCertConfig(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireNoDiags(t, diags)
+				support.RequireStateAttrs(t, state, map[string]string{"issue_status": "DONE"})
+			},
+		},
+		{
+			Name: "create does not wait for a resource in a status other than processed",
+			Op:   support.OpApply,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteStatusError), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
+				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertIssued(), nil).Twice()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteCertificate(testCertID), siteSSLAutomated), nil).Once()
+
+				return mc
+			},
+			NewConfig: leCertConfig(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireNoDiags(t, diags)
+				support.RequireStateAttrs(t, state, map[string]string{"issue_status": "DONE"})
+			},
+		},
+		{
+			Name: "create does not wait for a resource that is turned off and reports the refusal of the server",
+			Op:   support.OpApply,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteInactive), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
+				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(issueInactive).Once()
+
+				return mc
+			},
+			NewConfig: leCertConfig(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireOnlyErrorDiags(t, diags)
+				support.RequireErrorDiagContains(t, diags, "You can't issue a Let's Encrypt certificate to an inactive resource.")
+				require.Nil(t, state)
+			},
+		},
+		{
+			Name: "create does not wait for a disabled resource and reports the refusal of the server",
+			Op:   support.OpApply,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteDisabled), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
+				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(issueInactive).Once()
+
+				return mc
+			},
+			NewConfig: leCertConfig(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireOnlyErrorDiags(t, diags)
+				support.RequireErrorDiagContains(t, diags, "You can't issue a Let's Encrypt certificate to an inactive resource.")
+				require.Nil(t, state)
+			},
+		},
+		{
+			Name: "create stops when the resource cannot be read while it waits for the server to apply it",
+			Op:   support.OpApply,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(nil, unavailable).Once()
+
+				return mc
+			},
+			NewConfig: leCertConfig(),
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireOnlyErrorDiags(t, diags)
+				support.RequireErrorDiagContains(t, diags, "read resource 42")
+				support.RequireErrorDiagContains(t, diags, "Error occurred.")
+				require.Nil(t, state)
 			},
 		},
 	}
@@ -297,7 +446,7 @@ func TestIntegrationWebsecLECert_CreateTimeout(t *testing.T) {
 
 	var (
 		createCtx    context.Context
-		cancelCtxErr error
+		processedCtx context.Context
 	)
 
 	cases := []support.ResourceCase[*websecmock.MockedWebsec]{
@@ -307,7 +456,7 @@ func TestIntegrationWebsecLECert_CreateTimeout(t *testing.T) {
 			Prepare: func() *websecmock.MockedWebsec {
 				mc := websecmock.NewMockedWebsec()
 
-				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).
 					Run(func(args mock.Arguments) { createCtx = args.Get(0).(context.Context) }).
 					Return(nil, notFound()).Twice()
@@ -332,7 +481,7 @@ func TestIntegrationWebsecLECert_CreateTimeout(t *testing.T) {
 			Prepare: func() *websecmock.MockedWebsec {
 				mc := websecmock.NewMockedWebsec()
 
-				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
 				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).
@@ -347,35 +496,99 @@ func TestIntegrationWebsecLECert_CreateTimeout(t *testing.T) {
 			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
 				support.RequireOnlyErrorDiags(t, diags)
 				support.RequireErrorDiagContains(t, diags, "did not end within the create timeout")
+				for _, d := range diags {
+					require.NotContains(t, d.Summary, "last attempt", "a request without a failed attempt has no reason to report")
+				}
 				support.RequireStateID(t, state, testResourceIDStr)
 			},
 		},
 		{
-			Name: "the cancel of a failed request reaches the api although the create timeout has run out",
+			Name: "create reports the last failed check when its timeout runs out while the server repeats it, and keeps the id",
 			Op:   support.OpApply,
 			Prepare: func() *websecmock.MockedWebsec {
 				mc := websecmock.NewMockedWebsec()
 
-				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(), nil).Once()
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
 				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
 				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(nil).Once()
-				mc.LECerts.On("Get", mock.Anything, testResourceID).
-					Run(func(args mock.Arguments) { <-args.Get(0).(context.Context).Done() }).
-					Return(leCertFailedAttempt(true), nil).Once()
-				mc.LECerts.On("Cancel", mock.Anything, testResourceID).
-					Run(func(args mock.Arguments) { cancelCtxErr = args.Get(0).(context.Context).Err() }).
-					Return(nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertFailedAttempt(true), nil).Once()
 
 				return mc
 			},
 			NewConfig: map[string]interface{}{
 				"resource_id": int(testResourceID),
-				"timeouts":    map[string]interface{}{"create": "100ms"},
+				"timeouts":    map[string]interface{}{"create": "30s"},
 			},
 			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
 				support.RequireOnlyErrorDiags(t, diags)
-				support.RequireErrorDiagContains(t, diags, "ended with FAILED")
-				require.NoError(t, cancelCtxErr)
+				support.RequireErrorDiagContains(t, diags, "did not end within the create timeout, and its last attempt failed: "+
+					"ValidationIssue: Unable to resolve the domain name - example.com.")
+				support.RequireStateID(t, state, testResourceIDStr)
+			},
+		},
+		{
+			Name: "create gives up on a resource that the server has not applied by its timeout and leaves no state",
+			Op:   support.OpApply,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).
+					Run(func(args mock.Arguments) { processedCtx = args.Get(0).(context.Context) }).
+					Return(siteFromAPI(), nil).Once()
+
+				return mc
+			},
+			NewConfig: map[string]interface{}{
+				"resource_id": int(testResourceID),
+				"timeouts":    map[string]interface{}{"create": "30s"},
+			},
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireOnlyErrorDiags(t, diags)
+				support.RequireErrorDiagContains(t, diags, "resource 42 is still processed at the create timeout")
+				require.ErrorIs(t, processedCtx.Err(), context.Canceled, "create must give up before its context runs out")
+				require.Nil(t, state)
+			},
+		},
+	}
+
+	support.RunResourceCases(t, resource, cases, support.DispatchCase)
+}
+
+func TestIntegrationWebsecLECert_CreateTimeoutAfterSeveralAttempts(t *testing.T) {
+	t.Parallel()
+
+	resource := websecsvc.ResourceWebsecLECert(10 * time.Millisecond)
+
+	cases := []support.ResourceCase[*websecmock.MockedWebsec]{
+		{
+			Name: "create reports the reason of the latest failed check when its timeout runs out",
+			Op:   support.OpApply,
+			Prepare: func() *websecmock.MockedWebsec {
+				mc := websecmock.NewMockedWebsec()
+
+				later := leCertFailedAttempt(true)
+				later.Statuses = append(later.Statuses, lecerts.StatusDetail{
+					ID:      14,
+					Status:  "FAILED",
+					Error:   "ValidationIssue",
+					Details: "Unable to connect to the validation URL.",
+				})
+
+				mc.Resources.On("Get", mock.Anything, testResourceID).Return(siteFromAPI(siteApplied), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(nil, notFound()).Once()
+				mc.LECerts.On("Issue", mock.Anything, testResourceID, mock.Anything).Return(nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(leCertFailedAttempt(true), nil).Once()
+				mc.LECerts.On("Get", mock.Anything, testResourceID).Return(later, nil)
+
+				return mc
+			},
+			NewConfig: map[string]interface{}{
+				"resource_id": int(testResourceID),
+				"timeouts":    map[string]interface{}{"create": "61s"},
+			},
+			Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *websecmock.MockedWebsec) {
+				support.RequireOnlyErrorDiags(t, diags)
+				support.RequireErrorDiagContains(t, diags, "its last attempt failed: ValidationIssue: Unable to connect to the validation URL.")
 				support.RequireStateID(t, state, testResourceIDStr)
 			},
 		},

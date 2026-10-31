@@ -179,9 +179,8 @@ but plan rejects it and the API accepts no change to it either. Fix the weights.
 live origin has no group at all and needs a new `edgecenter_websec_source_group`.
 
 Subdomains named like `<timestamp>_<id>_<alias>` are aliases that had been deleted in the old API.
-Remove them from `subdomains`, and do it before adding `edgecenter_websec_lecert`: plan rejects such
-names, the API accepts no update of the resource while they are there, and a Let's Encrypt request
-fails on them.
+Remove them from `subdomains`: plan rejects such names, and the API accepts no update of the resource
+while they are there.
 
 If import of a certificate by `resource:N` fails because the resource refers to a deleted certificate,
 contact support: the API fails every update of such a resource. The uploaded certificate itself is in
