@@ -249,6 +249,7 @@ resource "edgecenter_lbmember" "lbm2" {
 - `edgecenter_protection_api` (String) Protection API (define only if you want to override Protection API endpoint)
 - `edgecenter_rmon_api` (String) RMON API
 - `edgecenter_storage_api` (String) Storage API (define only if you want to override Storage API endpoint)
+- `edgecenter_websec_api` (String) WebSec API (define only if you want to override WebSec API endpoint)
 - `ignore_creds_auth_error` (Boolean, Deprecated) Should be set to true when you are gonna to use storage resource with permanent API-token only.
 - `password` (String, Deprecated)
 - `permanent_api_token` (String, Sensitive) A permanent [API-token](https://support.edgecenter.ru/knowledge_base/item/257788)

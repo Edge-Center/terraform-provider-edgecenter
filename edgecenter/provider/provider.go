@@ -21,6 +21,7 @@ import (
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/protection"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/reseller"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/storage"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/services/websec"
 )
 
 const devVersion = "dev"
@@ -37,6 +38,7 @@ func ProviderWithVersion(version string) *schema.Provider {
 		dns.Service{},
 		storage.Service{},
 		protection.Service{},
+		websec.Service{},
 		reseller.Service{},
 		dbaas.Service{},
 		mkaas.Service{},
