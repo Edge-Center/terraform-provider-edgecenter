@@ -80,7 +80,7 @@ Optional:
 - `fail_timeout` (Number) Time in seconds in which `max_fails` failed attempts make the source unavailable, and for which it then stays unavailable, at least 1. Defaults to `1`.
 - `max_fails` (Number) Number of failed attempts within `fail_timeout` after which the source is considered unavailable, at least 1. Defaults to `1`.
 - `mode` (String) `primary`, `backup` (gets requests only when the primary sources fail) or `down` (gets no requests). Defaults to `primary`.
-- `weight` (Number) Weight of the source in load balancing, from 1 to 100. The weights of all sources of the group add up to at most 100 whatever their mode, so a third source with the default weight does not fit. Defaults to `50`.
+- `weight` (Number) Weight of the source in load balancing, from 1 to 100. The weights of the primary sources of the group add up to at most 100, so a third primary source with the default weight does not fit. Defaults to `50`.
 
 ## Import
 

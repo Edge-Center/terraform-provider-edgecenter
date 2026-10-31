@@ -108,9 +108,9 @@ func resourceWebsecSourceGroup() *schema.Resource {
 							Optional:     true,
 							Default:      50,
 							ValidateFunc: validation.IntBetween(1, 100),
-							Description: "Weight of the source in load balancing, from 1 to 100. The weights of all sources of the " +
-								"group add up to at most 100 whatever their mode, so a third source with the default weight does " +
-								"not fit. Defaults to `50`.",
+							Description: "Weight of the source in load balancing, from 1 to 100. The weights of the primary sources " +
+								"of the group add up to at most 100, so a third primary source with the default weight does not " +
+								"fit. Defaults to `50`.",
 						},
 						"max_fails": {
 							Type:         schema.TypeInt,
@@ -354,11 +354,14 @@ func validateSourceGroupWeight(_ context.Context, d *schema.ResourceDiff, _ inte
 
 	total := 0
 	for _, item := range sources {
-		total += item.(map[string]interface{})["weight"].(int)
+		source := item.(map[string]interface{})
+		if source["mode"].(string) == string(sourcegroups.SourceModePrimary) {
+			total += source["weight"].(int)
+		}
 	}
 
 	if total > maxSourceGroupWeight {
-		return fmt.Errorf("the weights of all sources add up to %d, but a source group allows at most %d", total, maxSourceGroupWeight)
+		return fmt.Errorf("the weights of primary sources add up to %d, but a source group allows at most %d", total, maxSourceGroupWeight)
 	}
 
 	return nil

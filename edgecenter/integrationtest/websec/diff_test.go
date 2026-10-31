@@ -296,23 +296,34 @@ func TestIntegrationWebsecSourceGroup_Diff(t *testing.T) {
 		require.NoError(t, err, "an unknown source reads as an empty string, two of them must not look equal")
 	})
 
-	t.Run("a third source with the default weight breaks the weight limit whatever its mode", func(t *testing.T) {
+	t.Run("a third primary source with the default weight breaks the weight limit", func(t *testing.T) {
 		t.Parallel()
 
 		_, err := planDiff(t, resource, nil, sourceGroupConfig(
 			map[string]interface{}{"source": "203.0.113.10"},
+			map[string]interface{}{"source": "203.0.113.11"},
+			map[string]interface{}{"source": "203.0.113.12"},
+		))
+		require.ErrorContains(t, err, "the weights of primary sources add up to 150, but a source group allows at most 100")
+	})
+
+	t.Run("backup and down sources do not count toward the weight limit", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := planDiff(t, resource, nil, sourceGroupConfig(
+			map[string]interface{}{"source": "203.0.113.10", "weight": 100},
 			map[string]interface{}{"source": "203.0.113.11", "mode": "backup"},
 			map[string]interface{}{"source": "203.0.113.12", "mode": "down"},
 		))
-		require.ErrorContains(t, err, "the weights of all sources add up to 150, but a source group allows at most 100")
+		require.NoError(t, err)
 	})
 
-	t.Run("weights that add up to exactly 100 pass", func(t *testing.T) {
+	t.Run("primary weights that add up to exactly 100 pass", func(t *testing.T) {
 		t.Parallel()
 
 		_, err := planDiff(t, resource, nil, sourceGroupConfig(
 			map[string]interface{}{"source": "203.0.113.10", "weight": 60},
-			map[string]interface{}{"source": "203.0.113.11", "weight": 40, "mode": "backup"},
+			map[string]interface{}{"source": "203.0.113.11", "weight": 40},
 		))
 		require.NoError(t, err)
 	})

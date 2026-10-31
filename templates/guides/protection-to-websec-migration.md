@@ -174,9 +174,9 @@ API is 1 second; the old one was 10.
 An origin without a mode comes out as `mode = ""`, which plan rejects. Set `primary`, `backup` or
 `down`.
 
-A source group whose weights add up to more than 100 is moved as it is, but plan rejects it and the API
-accepts no change to it either. Fix the weights. A resource that had no live origin has no group at
-all and needs a new `edgecenter_websec_source_group`.
+A source group in which the weights of the primary sources add up to more than 100 is moved as it is,
+but plan rejects it and the API accepts no change to it either. Fix the weights. A resource that had no
+live origin has no group at all and needs a new `edgecenter_websec_source_group`.
 
 Subdomains named like `<timestamp>_<id>_<alias>` are aliases that had been deleted in the old API.
 Remove them from `subdomains`, and do it before adding `edgecenter_websec_lecert`: plan rejects such
