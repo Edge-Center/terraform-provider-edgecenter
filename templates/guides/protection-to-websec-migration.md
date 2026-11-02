@@ -12,24 +12,29 @@ a client from it to the WebSec API, and from then on the domains are managed wit
 `edgecenter_websec_*` resources. The configuration is not converted automatically. The old resources
 leave the state through `removed` blocks, the new ones come in through `import` blocks, and
 `terraform plan -generate-config-out` writes their configuration from what the WebSec API holds after
-the move. A mechanical translation of the old configuration would not match it: the move adds network
-masks and drops some options, so the plan would show changes where the goal is only to import.
+the move. A mechanical translation of the old configuration would not match it: the move also stores
+the switches that were off, turns some of them off and creates source groups with settings of its own,
+so the plan would show changes where the goal is only to import.
 
 `removed` blocks need Terraform 1.7 or later. Do not manage a domain with an old and a new resource at
 the same time: changes made through one of them show up as drift in the other.
 
-The old resources keep working after the move, because the WebSec API answers the requests of the old
-API too. The one difference is `multiple_origins` and `wildcard_aliases` of
-`edgecenter_protection_resource`: they come from the permissions of the client now, and the value in
-the configuration is ignored. A value that differs from the permission shows up as a change in every
-plan. Delete both attributes from the configuration to stop it.
+The old resources keep working after the move for a while, because the WebSec API answers the
+requests of the old API too, but they are no longer supported, so move to the `edgecenter_websec_*`
+resources. Until then some things work differently for them. `multiple_origins` and `wildcard_aliases`
+of `edgecenter_protection_resource` come from the permissions of the client now, and the value in the
+configuration is ignored. A value that differs from the permission shows up as a change in every plan.
+Delete both attributes from the configuration to stop it. A primary origin cannot be deleted while a
+backup or down origin of the resource is left, so give backup and down origins `depends_on` on the
+primary one.
 
 ## Where the data goes
 
-The move keeps the ids of resources, certificates, aliases (now subdomains) and named options (now
-locations). Source groups are created anew, one for every resource that had an origin, named
-`Default group for <domain>`. Origins, headers and list entries have no ids of their own any more:
-they become parts of the source group and of the resource options and come in together with them.
+The move keeps the ids of resources, certificates, aliases (now subdomains) and settings for paths
+(now locations). Source groups are created anew, one for every resource that had an origin, named
+`Default group for <domain>`. There are no separate `edgecenter_websec_*` resources for origins,
+headers and list entries: they become parts of the source group and of the resource options and come
+in together with them.
 
 | Old resource | New place | Import id |
 |---|---|---|
@@ -40,7 +45,7 @@ they become parts of the source group and of the resource options and come in to
 | `edgecenter_protection_resource_alias` (`N:A`) | an element of `subdomains` | comes with the resource |
 | `edgecenter_protection_resource_certificate` (`N`) with `ssl_type = "custom"` | `edgecenter_websec_ssl_certificate` and `ssl_certificate` of the resource | `resource:N` |
 | `edgecenter_protection_resource_certificate` (`N`) with `ssl_type = "le"` | `edgecenter_websec_lecert`; the resource has no `ssl_certificate` in the configuration | `N` |
-| `edgecenter_protection_resource_alias_certificate` (`N:A`) | nothing: the WebSec API has no certificate of a subdomain | `removed` only |
+| `edgecenter_protection_resource_alias_certificate` (`N:A`) | nothing in Terraform: the provider has no resource for the certificate of a subdomain | `removed` only |
 
 The attributes of `edgecenter_protection_resource` move like this:
 
@@ -50,27 +55,32 @@ The attributes of `edgecenter_protection_resource` move like this:
 - `http_to_origin` becomes `options.source_protocol_https` with the opposite value;
 - `load_balancing_type` becomes `options.ip_hash`, where `Round Robin with session persistence` is `true`;
 - `redirect_to_https` becomes `options.redirect_http_to_https`, which stays enabled only when the resource had a certificate;
-- `waf` becomes `options.waf`, `www_redirect` becomes `options.www_redirects`;
+- `waf` becomes `options.waf`, `www_redirect` becomes `options.www_redirects`. The old API allowed the www redirect without a `www.<domain>` alias, but plan rejects an enabled `www_redirects` without `www.<domain>` in `subdomains`: add that subdomain or set `enabled = false` in the block;
 - `client`, `enabled`, `ip` and `status` become `client`, `enabled`, `protected_ip` and `status`, and `wait_for_le` is gone;
-- `multiple_origins` and `wildcard_aliases` are permissions of the client now, and only an administrator changes them.
+- `multiple_origins` and `wildcard_aliases` are permissions of the client now: Terraform cannot set them, and support changes them on request.
 
 ## Before you start
 
 Check that the data is in the WebSec API already. The provider setting `edgecenter_websec_api` points
 at it, by default `<api_endpoint>/v2/protection`, and the paths below are relative to it.
 `GET /resources/N` must answer 200 for every old resource, and `protected_ip` in the answer must be the
-`ip` attribute of the old `edgecenter_protection_resource`. If `protected_ip` is `null` or another
-address, stop and contact support. The first update of such a resource would take a new address from
-the pool while the A record of the domain points at the old one. The provider refuses to update a
-resource without `protected_ip`, but import does not show the problem.
+address the A record of the domain points at. Take the address from DNS, not from `ip` in the state: an
+apply or refresh of the old resources after the move writes the current `protected_ip` into `ip`. If
+`protected_ip` is `null` or another address, stop and contact support before you change anything. With
+`null` the first update gives the resource a new address while the A record still points at the old
+one. `edgecenter_websec_resource` refuses to update a resource without `protected_ip`, but the old
+resources do not, and import does not show the problem either.
 
 ## Moving
 
-First take the old resources out of the configuration and put a `removed` block with
-`destroy = false` in place of each of them. Do not simply delete an old resource from the
-configuration: the old and the new resources work with the same objects, and Terraform would delete the
-object in the WebSec API. A resource with `count` or `for_each` needs one `removed` block for all its
-instances.
+First take the old resources out of the configuration and put a `removed` block with `destroy = false`
+in place of each of them. Without it Terraform deletes the object in the WebSec API, because the old
+and the new resources work with the same objects. A resource with `count` or `for_each` needs one
+`removed` block for all its instances. References to attributes of the old resources elsewhere in the
+configuration, such as `ip` of `edgecenter_protection_resource` in a DNS record or an output, make plan
+fail, and `terraform validate` lists them. Put the current values in their place for now and switch
+them to the new attributes, `ip` to `protected_ip` of `edgecenter_websec_resource`, when you edit
+`websec.tf`.
 
 ```terraform
 removed {
@@ -98,8 +108,9 @@ removed {
 }
 ```
 
-If the old API no longer answers for the client, plan fails on the refresh of the old resources. Take
-them out of the state with `terraform state rm` instead of `removed`:
+Terraform before 1.9.3 refreshes the resources of `removed` blocks during plan, so with such a version
+plan fails if the old API no longer answers for the client. Then take the old resources out of the state
+with `terraform state rm` instead of `removed`:
 
 ```shell
 terraform state list | grep edgecenter_protection_ | while read -r address; do terraform state rm "$address"; done
@@ -135,12 +146,17 @@ import {
 }
 ```
 
-Locations made from the named options of the old API are imported by `N:L` if Terraform should manage
-them; `GET /resources/N/locations` lists them. Their `location` is the name of the old named option. If
-it does not start with `/` or `^/`, neither plan nor the API accepts the location, and it has to get a
-proper pattern.
+If the old API never issued the certificate, there is nothing to import, and the import fails with
+"Cannot import non-existent remote object". Add `edgecenter_websec_lecert` for that resource without an
+`import` block instead: it requests a new certificate.
 
-Generate the configuration:
+Locations made from the settings for paths of the old API are imported by `N:L` if Terraform should
+manage them; `GET /resources/N/locations` lists them. Their `location` is the name the setting had in
+the old API. If it does not start with `/` or `^/`, neither plan nor the API accepts the location, and
+it has to get a proper pattern.
+
+Generate the configuration. `websec.tf` must not exist yet. This plan usually ends with errors about the
+values that the next step fixes, but Terraform still writes the file:
 
 ```shell
 terraform plan -generate-config-out=websec.tf
@@ -161,9 +177,9 @@ in. Then apply.
 
 ## What has to be fixed by hand
 
-Headers with the same name arrive as separate elements of `options.response_headers.value`, but the
-API requires unique names. Merge them into one header with a list of values, or the first update that
-sends the headers fails.
+Headers with the same name arrive as separate elements of `options.response_headers.value`, but names
+must be unique, and `X-Cache` and `x-cache` count as the same name. Merge them into one header with a
+list of values, because plan rejects them.
 
 The old resource sent `max_fails` of an origin only when it was set, and the old API took 0 then. The
 WebSec API accepts `max_fails` from 1, so a generated configuration with `max_fails = 0` does not pass
@@ -175,27 +191,22 @@ API is 1 second; the old one was 10.
 An origin without a mode comes out as `mode = ""`, which plan rejects. Set `primary`, `backup` or
 `down`.
 
-A source group in which the weights of the primary sources add up to more than 100 is moved as it is,
-but plan rejects it and the API accepts no change to it either. Fix the weights. A resource that had no
-live origin has no group at all and needs a new `edgecenter_websec_source_group`.
+The weights of the primary sources of a group must add up to 100 or less, and plan rejects a moved
+group with a larger sum. Fix the weights.
 
-Subdomains named like `<timestamp>_<id>_<alias>` are aliases that had been deleted in the old API.
-Remove them from `subdomains`: plan rejects such names, and the API accepts no update of the resource
-while they are there.
-
-If import of a certificate by `resource:N` fails because the resource refers to a deleted certificate,
-contact support: the API fails every update of such a resource. The uploaded certificate itself is in
-the WebSec API under an id of its own. Find it with `GET /ssl/certificates?search=<name>` and import it
-by that id.
+A resource that had no origins has no group at all. Do not add an `import` block for its group: import
+by `resource:N` fails with `resource N has no source group`. Add a new `edgecenter_websec_source_group`
+instead and set `source_group` of the resource to a reference to it in place of the generated
+`source_group = 0`.
 
 `edgecenter_protection_resource_alias_certificate` has no counterpart, so it only gets a `removed`
-block. The certificate itself is in the WebSec API and stays attached to its subdomain, but do not
-import it into `edgecenter_websec_ssl_certificate`. Its `has_related_resources` does not see
-subdomains, and deleting or replacing it deletes the subdomain. The API cannot change the certificate
-of a subdomain: to get rid of it, remove the subdomain and add it again.
+block. The certificate itself is in the WebSec API and stays attached to its subdomain. Do not import
+it into `edgecenter_websec_ssl_certificate` and do not delete it: the subdomain depends on it. The
+certificate of a subdomain can be changed through `/resources/N/subdomains` of the WebSec API.
 
-Addresses in `blacklist` and `whitelist` are stored as networks, `9.9.9.9` as `9.9.9.9/32`. The
-provider treats both forms as the same value, so either can stay in the configuration.
+Entries of `blacklist` and `whitelist` come back from the API as addresses or as networks, `9.9.9.9`
+or `9.9.9.9/32`, depending on how they were added. The provider treats both forms as the same value, so
+either can stay in the configuration.
 
 A moved resource keeps the `status` string of the old API. The server renews a Let's Encrypt
 certificate only for a resource whose `status` is `active`, so check `status` of the resources that use
