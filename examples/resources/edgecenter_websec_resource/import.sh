@@ -1,0 +1,1 @@
+terraform import edgecenter_websec_resource.example_com 12345

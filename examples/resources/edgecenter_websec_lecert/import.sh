@@ -1,0 +1,1 @@
+terraform import edgecenter_websec_lecert.example_com 12345

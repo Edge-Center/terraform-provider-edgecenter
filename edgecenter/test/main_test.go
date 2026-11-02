@@ -19,6 +19,7 @@ import (
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
 	cdn "github.com/Edge-Center/edgecentercdn-go"
 	eccdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
+	websecsdk "github.com/Edge-Center/edgecentercdn-go/websec"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter/volume/v1/volumes"
@@ -105,6 +106,7 @@ const (
 	EC_STORAGE_URL_VAR        VarName = "EC_STORAGE_API"
 	EC_DNS_URL_VAR            VarName = "EC_DNS_API"
 	EC_PROTECTION_URL_VAR     VarName = "EC_PROTECTION_API"
+	EC_WEBSEC_URL_VAR         VarName = "EC_WEBSEC_API"
 	EC_RMON_URL_VAR           VarName = "EC_RMON_API"
 	EC_IMAGE_VAR              VarName = "EC_IMAGE"
 	EC_SECGROUP_VAR           VarName = "EC_SECGROUP"
@@ -150,6 +152,7 @@ var (
 	EC_STORAGE_API        = getEnv(EC_STORAGE_URL_VAR)
 	EC_DNS_API            = getEnv(EC_DNS_URL_VAR)
 	EC_PROTECTION_API     = getEnv(EC_PROTECTION_URL_VAR)
+	EC_WEBSEC_API         = getEnv(EC_WEBSEC_URL_VAR)
 	EC_RMON_API           = getEnv(EC_RMON_URL_VAR)
 	EC_NETWORK_ID         = getEnv(EC_NETWORK_ID_VAR)
 	EC_SUBNET_ID          = getEnv(EC_SUBNET_ID_VAR)
@@ -178,6 +181,7 @@ var varsMap = map[VarName]string{
 	EC_STORAGE_URL_VAR:        EC_STORAGE_API,
 	EC_DNS_URL_VAR:            EC_DNS_API,
 	EC_PROTECTION_URL_VAR:     EC_PROTECTION_API,
+	EC_WEBSEC_URL_VAR:         EC_WEBSEC_API,
 	EC_RMON_URL_VAR:           EC_RMON_API,
 	EC_NETWORK_ID_VAR:         EC_NETWORK_ID,
 	EC_SUBNET_ID_VAR:          EC_SUBNET_ID,
@@ -381,6 +385,20 @@ func createTestConfig() (*edgecenter.Config, error) {
 	}
 
 	config := edgecenter.NewConfig(provider, cdnService, storageClient, dnsClient, protectionClient, rmonClient, permanentToken, ecAPI, userAgent)
+
+	if EC_WEBSEC_API != "" {
+		websecProvider := eccdnProvider.NewClient(
+			EC_WEBSEC_API,
+			eccdnProvider.WithUA(userAgent),
+			eccdnProvider.WithSignerFunc(func(req *http.Request) error {
+				for k, v := range provider.AuthenticatedHeaders() {
+					req.Header.Set(k, v)
+				}
+				return nil
+			}),
+		)
+		config.WebsecClient = websecsdk.NewService(websecProvider)
+	}
 
 	return &config, nil
 }

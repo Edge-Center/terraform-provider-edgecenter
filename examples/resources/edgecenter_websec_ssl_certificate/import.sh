@@ -1,0 +1,2 @@
+terraform import edgecenter_websec_ssl_certificate.example_com 11
+terraform import edgecenter_websec_ssl_certificate.example_com resource:12345

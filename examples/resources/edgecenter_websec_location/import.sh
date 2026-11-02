@@ -1,0 +1,1 @@
+terraform import edgecenter_websec_location.example_com_api 12345:67

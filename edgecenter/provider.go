@@ -15,6 +15,7 @@ import (
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
 	cdn "github.com/Edge-Center/edgecentercdn-go"
 	eccdnProvider "github.com/Edge-Center/edgecentercdn-go/edgecenter/provider"
+	websecsdk "github.com/Edge-Center/edgecentercdn-go/websec"
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	ec "github.com/Edge-Center/edgecentercloud-go/edgecenter"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
@@ -318,6 +319,12 @@ func ProviderSchema() map[string]*schema.Schema {
 			Description: "Protection API (define only if you want to override Protection API endpoint)",
 			DefaultFunc: schema.EnvDefaultFunc("EC_PROTECTION_API", ""),
 		},
+		"edgecenter_websec_api": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "WebSec API (define only if you want to override WebSec API endpoint)",
+			DefaultFunc: schema.EnvDefaultFunc("EC_WEBSEC_API", ""),
+		},
 	}
 }
 
@@ -371,6 +378,11 @@ func ProviderConfigure(
 	protectionAPI := d.Get("edgecenter_protection_api").(string)
 	if protectionAPI == "" {
 		protectionAPI = apiEndpoint + "/protection"
+	}
+
+	websecAPI := d.Get("edgecenter_websec_api").(string)
+	if websecAPI == "" {
+		websecAPI = apiEndpoint + "/v2/protection"
 	}
 
 	platform := d.Get("edgecenter_platform_api").(string)
@@ -494,6 +506,19 @@ func ProviderConfigure(
 			return nil, diag.FromErr(fmt.Errorf("protection api client: %w", err))
 		}
 	}
+
+	websecProvider := eccdnProvider.NewClient(
+		websecAPI,
+		eccdnProvider.WithUA(userAgent),
+		eccdnProvider.WithSignerFunc(func(req *http.Request) error {
+			for k, v := range provider.AuthenticatedHeaders() {
+				req.Header.Set(k, v)
+			}
+
+			return nil
+		}),
+	)
+	config.WebsecClient = websecsdk.NewService(websecProvider)
 
 	if latest, ok := versioncheck.Available(ctx, providerVersion); ok {
 		diags = append(diags, diag.Diagnostic{

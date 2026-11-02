@@ -102,6 +102,12 @@ protection:
   - 'edgecenter/integrationtest/support/protection/**'
   - 'edgecenter/test/*_protection_*'
 
+websec:
+  - 'edgecenter/services/websec/**'
+  - 'edgecenter/integrationtest/websec/**'
+  - 'edgecenter/integrationtest/support/websec/**'
+  - 'edgecenter/test/*_websec_*'
+
 reseller:
   - 'edgecenter/services/reseller/**'
   - 'edgecenter/services/cloud/network/**'
