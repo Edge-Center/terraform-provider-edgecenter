@@ -237,6 +237,10 @@ func resourceOptionSchemas() map[string]*schema.Schema {
 		nil,
 	)
 	optionSchemas["waf"] = booleanOptionSchema("Enable the web application firewall. The WAF must be enabled on the account.")
+	optionSchemas["waf_monitoring_mode"] = booleanOptionSchema(
+		"Run the WAF in monitoring mode. It can be enabled only together with `waf`, and only if the WAF of the " +
+			"account supports this mode.",
+	)
 	optionSchemas["www_redirects"] = booleanOptionSchema(
 		"Redirect requests from the www subdomain to `domain`. Enabling it needs `www.<domain>` in `subdomains`. " +
 			"Removing that subdomain deletes the option in the API, so remove this block in the same change.",
@@ -454,7 +458,7 @@ func expandResourceOptions(d *schema.ResourceData, onlyChanged bool) *options.Re
 		UpstreamHealthChecker:                   unmanagedOption[options.UpstreamHealthCheckerOption](e),
 		WAF:                                     expandOption(e, "waf", expandBooleanOption),
 		MLAnalysis:                              unmanagedOption[options.BooleanOption](e),
-		WAFMonitoringMode:                       unmanagedOption[options.BooleanOption](e),
+		WAFMonitoringMode:                       expandOption(e, "waf_monitoring_mode", expandBooleanOption),
 		RedirectHTTPSToHTTP:                     unmanagedOption[options.BooleanOption](e),
 		AntibotChallengeURLExceptions:           unmanagedOption[options.ListOption](e),
 		AntibotFloodChallengeUserAgentWhitelist: unmanagedOption[options.ListOption](e),
@@ -575,6 +579,7 @@ func flattenResourceOptions(opts *options.ResourceOptions) ([]interface{}, error
 		flattenOption(blocks, "www_redirects", opts.WWWRedirects, flattenBooleanOption)
 		flattenOption(blocks, "source_protocol_https", opts.SourceProtocolHTTPS, flattenBooleanOption)
 		flattenOption(blocks, "waf", opts.WAF, flattenBooleanOption)
+		flattenOption(blocks, "waf_monitoring_mode", opts.WAFMonitoringMode, flattenBooleanOption)
 	}
 
 	return optionsList(blocks), nil

@@ -136,6 +136,7 @@ Optional:
 - `tls_versions` (Block List, Max: 1) TLS versions the resource accepts. The versions you can use are set per client, by default "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" and "TLSv1.3". Without this block the resource is created with no TLS versions option at all, so set it explicitly. (see [below for nested schema](#nestedblock--options--tls_versions))
 - `user_agent_acl` (Block List, Max: 1) Allow or deny requests by the User-Agent header. (see [below for nested schema](#nestedblock--options--user_agent_acl))
 - `waf` (Block List, Max: 1) Enable the web application firewall. The WAF must be enabled on the account. (see [below for nested schema](#nestedblock--options--waf))
+- `waf_monitoring_mode` (Block List, Max: 1) Run the WAF in monitoring mode. It can be enabled only together with `waf`, and only if the WAF of the account supports this mode. (see [below for nested schema](#nestedblock--options--waf_monitoring_mode))
 - `whitelist` (Block List, Max: 1) IPv4 and IPv6 addresses and networks on the whitelist of the resource. (see [below for nested schema](#nestedblock--options--whitelist))
 - `www_redirects` (Block List, Max: 1) Redirect requests from the www subdomain to `domain`. Enabling it needs `www.<domain>` in `subdomains`. Removing that subdomain deletes the option in the API, so remove this block in the same change. (see [below for nested schema](#nestedblock--options--www_redirects))
 
@@ -302,6 +303,18 @@ Optional:
 
 <a id="nestedblock--options--waf"></a>
 ### Nested Schema for `options.waf`
+
+Required:
+
+- `value` (Boolean) Value of the option.
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
+
+
+<a id="nestedblock--options--waf_monitoring_mode"></a>
+### Nested Schema for `options.waf_monitoring_mode`
 
 Required:
 

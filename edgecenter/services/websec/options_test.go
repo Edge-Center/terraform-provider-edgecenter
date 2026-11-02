@@ -108,7 +108,7 @@ func TestEveryResourceOptionSurvivesTheSchemaRoundTrip(t *testing.T) {
 		UpstreamHealthChecker:                   options.Null[options.UpstreamHealthCheckerOption](),
 		WAF:                                     options.Value(options.BooleanOption{Value: true}),
 		MLAnalysis:                              options.Null[options.BooleanOption](),
-		WAFMonitoringMode:                       options.Null[options.BooleanOption](),
+		WAFMonitoringMode:                       options.Value(options.BooleanOption{Enabled: true, Value: true}),
 		RedirectHTTPSToHTTP:                     options.Null[options.BooleanOption](),
 		AntibotChallengeURLExceptions:           options.Null[options.ListOption](),
 		AntibotFloodChallengeUserAgentWhitelist: options.Null[options.ListOption](),
