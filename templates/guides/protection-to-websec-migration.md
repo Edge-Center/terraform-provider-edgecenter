@@ -12,9 +12,8 @@ a client from it to the WebSec API, and from then on the domains are managed wit
 `edgecenter_websec_*` resources. The configuration is not converted automatically. The old resources
 leave the state through `removed` blocks, the new ones come in through `import` blocks, and
 `terraform plan -generate-config-out` writes their configuration from what the WebSec API holds after
-the move. A mechanical translation of the old configuration would not match it: the move adds TLS
-versions and network masks and drops some options, so the plan would show changes where the goal is
-only to import.
+the move. A mechanical translation of the old configuration would not match it: the move adds network
+masks and drops some options, so the plan would show changes where the goal is only to import.
 
 `removed` blocks need Terraform 1.7 or later. Do not manage a domain with an old and a new resource at
 the same time: changes made through one of them show up as drift in the other.
@@ -46,7 +45,7 @@ they become parts of the source group and of the resource options and come in to
 The attributes of `edgecenter_protection_resource` move like this:
 
 - `name` becomes `domain`, `active` stays `active`;
-- `tls` (`1`, `1.1`, `1.2`, `1.3`) becomes `options.tls_versions` (`TLSv1`, `TLSv1.1`, `TLSv1.2`, `TLSv1.3`), and the move adds `TLSv1.2` and `TLSv1.3` where they were missing;
+- `tls` (`1`, `1.1`, `1.2`, `1.3`) becomes `options.tls_versions` (`TLSv1`, `TLSv1.1`, `TLSv1.2`, `TLSv1.3`);
 - `geoip_mode` and `geoip_list` become `options.country_acl`: `allow` turns into `policy_type = "allow"`, `block` into `policy_type = "deny"`, the countries are in uppercase, and with `no` or an empty list there is no option at all;
 - `http_to_origin` becomes `options.source_protocol_https` with the opposite value;
 - `load_balancing_type` becomes `options.ip_hash`, where `Round Robin with session persistence` is `true`;
@@ -68,8 +67,10 @@ resource without `protected_ip`, but import does not show the problem.
 ## Moving
 
 First take the old resources out of the configuration and put a `removed` block with
-`destroy = false` in place of each of them. A resource with `count` or `for_each` needs one `removed`
-block for all its instances.
+`destroy = false` in place of each of them. Do not simply delete an old resource from the
+configuration: the old and the new resources work with the same objects, and Terraform would delete the
+object in the WebSec API. A resource with `count` or `for_each` needs one `removed` block for all its
+instances.
 
 ```terraform
 removed {
