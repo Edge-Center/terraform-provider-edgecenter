@@ -49,6 +49,8 @@ resource "edgecenter_protection_resource_blacklist_entry" "blacklist2" {
 
 Import is supported using the following syntax:
 
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
 ```shell
 # import using <resource_id>:<entry_id> format
 terraform import edgecenter_protection_resource_blacklist_entry.blacklist1 12345:67

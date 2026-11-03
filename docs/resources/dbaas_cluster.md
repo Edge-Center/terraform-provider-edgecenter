@@ -137,6 +137,8 @@ Read-Only:
 
 Import is supported using the following syntax:
 
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
 ```shell
 # import using <project_id>:<region_id>:<cluster_id> format
 terraform import edgecenter_dbaas_cluster.example 1:1:080bbca5-1234-1234-1234-0bccd6f8f1b0

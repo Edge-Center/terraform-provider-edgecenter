@@ -162,17 +162,17 @@ func CreateCluster(t *testing.T, data tfData) (*Cluster, error) {
 		return nil, fmt.Errorf("terraform init: %w", err)
 	}
 
-	if _, err := tt.ApplyAndIdempotentE(t, opts); err != nil {
+	if _, err := tt.ApplyAndIdempotentContextE(t, t.Context(), opts); err != nil {
 		t.Logf("terraform apply failed: %v", err)
-		if _, destroyErr := tt.DestroyE(t, opts); destroyErr != nil {
+		if _, destroyErr := tt.DestroyContextE(t, t.Context(), opts); destroyErr != nil {
 			t.Logf("terraform destroy attempt after failed apply returned error: %v", destroyErr)
 		}
 		return nil, fmt.Errorf("terraform apply: %w", err)
 	}
 
-	id, err := tt.OutputRequiredE(t, opts, "cluster_id")
+	id, err := tt.OutputRequiredContextE(t, t.Context(), opts, "cluster_id")
 	if err != nil || strings.TrimSpace(id) == "" {
-		if _, destroyErr := tt.DestroyE(t, opts); destroyErr != nil {
+		if _, destroyErr := tt.DestroyContextE(t, t.Context(), opts); destroyErr != nil {
 			t.Logf("terraform destroy attempt after empty cluster_id returned error: %v", destroyErr)
 		}
 		if err != nil {
@@ -199,7 +199,7 @@ func (c *Cluster) Destroy(t *testing.T) error {
 			destroyErr = fmt.Errorf("terraform init before destroy: %w", err)
 			return
 		}
-		_, destroyErr = tt.DestroyE(t, c.Opts)
+		_, destroyErr = tt.DestroyContextE(t, t.Context(), c.Opts)
 	})
 	return destroyErr
 }
@@ -218,7 +218,7 @@ func (c *Cluster) UpdateCluster(t *testing.T, mutate func(*tfData)) error {
 		return fmt.Errorf("terraform init (update): %w", err)
 	}
 
-	if _, err := tt.ApplyE(t, c.Opts); err != nil {
+	if _, err := tt.ApplyContextE(t, t.Context(), c.Opts); err != nil {
 		return fmt.Errorf("terraform apply (update): %w", err)
 	}
 
@@ -266,8 +266,8 @@ func ImportClusterPlanApply(t *testing.T, token, projectID, regionID, clusterID,
 		return nil, fmt.Errorf("terraform init (import dir): %w", err)
 	}
 
-	if _, err := tt.RunTerraformCommandE(
-		t, importOpts,
+	if _, err := tt.RunTerraformCommandContextE(
+		t, t.Context(), importOpts,
 		"plan",
 		"-generate-config-out=generated.tf",
 		"-input=false",
@@ -279,12 +279,12 @@ func ImportClusterPlanApply(t *testing.T, token, projectID, regionID, clusterID,
 		return nil, fmt.Errorf("generated.tf not found after plan -generate-config-out: %w", err)
 	}
 
-	if _, err := tt.ApplyAndIdempotentE(t, importOpts); err != nil {
+	if _, err := tt.ApplyAndIdempotentContextE(t, t.Context(), importOpts); err != nil {
 		return nil, fmt.Errorf("terraform apply (import dir): %w", err)
 	}
 
-	if out, err := tt.RunTerraformCommandE(
-		t, importOpts,
+	if out, err := tt.RunTerraformCommandContextE(
+		t, t.Context(), importOpts,
 		"plan",
 		"-detailed-exitcode",
 		"-input=false",
@@ -562,8 +562,8 @@ func renderTemplateToWith(path, tmpl string, data any) error { //nolint:unused
 
 func terraformInitE(t *testing.T, opts *tt.Options) (string, error) {
 	t.Helper()
-	return tt.RunTerraformCommandE(
-		t, opts,
+	return tt.RunTerraformCommandContextE(
+		t, t.Context(), opts,
 		"init",
 		"-input=false",
 		"-no-color",
