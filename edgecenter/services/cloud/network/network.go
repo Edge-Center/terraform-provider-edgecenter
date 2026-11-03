@@ -12,7 +12,6 @@ import (
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	utilV2 "github.com/Edge-Center/edgecentercloud-go/v2/util"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/shared/tfutil"
 )
 
 const (
@@ -238,8 +237,9 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
-	fields := []string{"create_router"}
-	tfutil.RevertState(d, &fields)
+	if err = d.Set("create_router", network.NetworkRouterID != nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	log.Println("[DEBUG] Finish network reading")
 
