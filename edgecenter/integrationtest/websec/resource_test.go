@@ -270,8 +270,7 @@ func TestIntegrationWebsecResource_Read(t *testing.T) {
 			Prepare: func() *websecmock.MockedWebsec {
 				remote := siteFromAPI(func(remote *resources.Resource) {
 					remote.Options = &options.ResourceOptions{
-						GeoACL:       options.Value(options.GeoACLOption{PolicyType: options.PolicyTypeDeny}),
-						UseRSALECert: options.Value(options.BooleanOption{Enabled: true, Value: true}),
+						GeoACL: options.Value(options.GeoACLOption{PolicyType: options.PolicyTypeDeny}),
 					}
 				})
 

@@ -63,6 +63,7 @@ func resourceWebsecResource() *schema.Resource {
 			validateSubdomainsOfDomain,
 			validateOptionsNotEmpty,
 			validateWWWRedirects,
+			validateAntibotChallengeLists,
 			validateResponseHeaderNames,
 		),
 		Schema: map[string]*schema.Schema{

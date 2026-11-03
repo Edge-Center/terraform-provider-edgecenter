@@ -124,16 +124,23 @@ resource "edgecenter_websec_resource" "example_com" {
 Optional:
 
 - `allowed_http_methods` (Block List, Max: 1) HTTP methods allowed in requests. The methods you can use are set per client and resource, by default "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE" and "OPTIONS". (see [below for nested schema](#nestedblock--options--allowed_http_methods))
-- `antibot_flood_challenge` (Block List, Max: 1) Check that a request comes from a browser before passing it on. The check answers with HTTP 307 and sets the antibot cookie. Disabling it on a resource also disables the antibot URL exceptions and user agent whitelist of the resource, which this provider does not manage. (see [below for nested schema](#nestedblock--options--antibot_flood_challenge))
+- `antibot_challenge_url_exceptions` (Block List, Max: 1) URLs that skip the check of `antibot_flood_challenge`. It can be enabled only together with an enabled `antibot_flood_challenge`. (see [below for nested schema](#nestedblock--options--antibot_challenge_url_exceptions))
+- `antibot_flood_challenge` (Block List, Max: 1) Check that a request comes from a browser before passing it on. The check answers with HTTP 307 and sets the antibot cookie. Disabling it on a resource also disables `antibot_challenge_url_exceptions` and `antibot_flood_challenge_user_agent_whitelist` of the resource. (see [below for nested schema](#nestedblock--options--antibot_flood_challenge))
+- `antibot_flood_challenge_user_agent_whitelist` (Block List, Max: 1) User agents that skip the check of `antibot_flood_challenge`. It can be enabled only together with an enabled `antibot_flood_challenge`. (see [below for nested schema](#nestedblock--options--antibot_flood_challenge_user_agent_whitelist))
 - `asn_acl` (Block List, Max: 1) Allow or deny requests by the autonomous system number of the client. (see [below for nested schema](#nestedblock--options--asn_acl))
 - `blacklist` (Block List, Max: 1) IPv4 and IPv6 addresses and networks denied access to the resource. (see [below for nested schema](#nestedblock--options--blacklist))
 - `country_acl` (Block List, Max: 1) Allow or deny requests by the country of the client. (see [below for nested schema](#nestedblock--options--country_acl))
 - `ip_hash` (Block List, Max: 1) Send all requests of a client to the same source, chosen by the client IP address. (see [below for nested schema](#nestedblock--options--ip_hash))
+- `ml_analysis` (Block List, Max: 1) Analyze requests with machine learning. It can be enabled only together with `waf`, only if the WAF of the account supports ML analysis, and only while the account has a free ML model. (see [below for nested schema](#nestedblock--options--ml_analysis))
 - `redirect_http_to_https` (Block List, Max: 1) Redirect HTTP requests to HTTPS. The resource needs a certificate, `ssl_certificate` or one issued by `edgecenter_websec_lecert`. A Let's Encrypt certificate is issued after the resource is created, so enable the redirect for it in a later apply, and disable the redirect before removing the `edgecenter_websec_lecert`. (see [below for nested schema](#nestedblock--options--redirect_http_to_https))
+- `redirect_https_to_http` (Block List, Max: 1) Redirect HTTPS requests to HTTP. (see [below for nested schema](#nestedblock--options--redirect_https_to_http))
 - `referer_acl` (Block List, Max: 1) Allow or deny requests by the Referer header. (see [below for nested schema](#nestedblock--options--referer_acl))
 - `response_headers` (Block List, Max: 1) Add headers to the responses. Header names are case insensitive and must be unique. Which names and values the API accepts is set per client. (see [below for nested schema](#nestedblock--options--response_headers))
 - `source_protocol_https` (Block List, Max: 1) Connect to the sources over HTTPS. (see [below for nested schema](#nestedblock--options--source_protocol_https))
 - `tls_versions` (Block List, Max: 1) TLS versions the resource accepts. The versions you can use are set per client, by default "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" and "TLSv1.3". Without this block the resource is created with no TLS versions option at all, so set it explicitly. (see [below for nested schema](#nestedblock--options--tls_versions))
+- `upstream_healthchecker` (Block List, Max: 1) Check the health of the sources with requests to `health_url`. The API accepts the option, even a disabled one, only if the account is allowed to use it. An enabled check needs `type` "https" when `source_protocol_https` is enabled and "http" otherwise. (see [below for nested schema](#nestedblock--options--upstream_healthchecker))
+- `use_default_le_chain` (Block List, Max: 1) Issue Let's Encrypt certificates with the default chain, which devices on Android 7.1.1 or earlier need. Without the option the alternative chain is used. (see [below for nested schema](#nestedblock--options--use_default_le_chain))
+- `use_rsa_le_cert` (Block List, Max: 1) Issue RSA Let's Encrypt certificates instead of ECDSA ones. (see [below for nested schema](#nestedblock--options--use_rsa_le_cert))
 - `user_agent_acl` (Block List, Max: 1) Allow or deny requests by the User-Agent header. (see [below for nested schema](#nestedblock--options--user_agent_acl))
 - `waf` (Block List, Max: 1) Enable the web application firewall. The WAF must be enabled on the account. (see [below for nested schema](#nestedblock--options--waf))
 - `waf_monitoring_mode` (Block List, Max: 1) Run the WAF in monitoring mode. It can be enabled only together with `waf`, and only if the WAF of the account supports this mode. (see [below for nested schema](#nestedblock--options--waf_monitoring_mode))
@@ -152,6 +159,18 @@ Optional:
 - `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
 
 
+<a id="nestedblock--options--antibot_challenge_url_exceptions"></a>
+### Nested Schema for `options.antibot_challenge_url_exceptions`
+
+Required:
+
+- `value` (Set of String) Patterns that start with "/" or "~" and are valid regular expressions, without spaces, quotes and semicolons.
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
+
+
 <a id="nestedblock--options--antibot_flood_challenge"></a>
 ### Nested Schema for `options.antibot_flood_challenge`
 
@@ -162,6 +181,18 @@ Optional:
 - `antibot_challenge_utm_referrer` (Boolean) Keep the UTM parameters of the original request through the challenge redirect. Defaults to `false`.
 - `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
 - `value` (String) Check type: "ANTIBOT_CHALLENGE" checks the browser request, "ANTIBOT_CHALLENGE_JS" checks it with a JavaScript file, "ANTIBOT_CHALLENGE_JS_BOX" needs a human interaction. Required when the option is enabled.
+
+
+<a id="nestedblock--options--antibot_flood_challenge_user_agent_whitelist"></a>
+### Nested Schema for `options.antibot_flood_challenge_user_agent_whitelist`
+
+Required:
+
+- `value` (Set of String) User agents.
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
 
 
 <a id="nestedblock--options--asn_acl"></a>
@@ -214,8 +245,32 @@ Optional:
 - `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
 
 
+<a id="nestedblock--options--ml_analysis"></a>
+### Nested Schema for `options.ml_analysis`
+
+Required:
+
+- `value` (Boolean) Value of the option.
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
+
+
 <a id="nestedblock--options--redirect_http_to_https"></a>
 ### Nested Schema for `options.redirect_http_to_https`
+
+Required:
+
+- `value` (Boolean) Value of the option.
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
+
+
+<a id="nestedblock--options--redirect_https_to_http"></a>
+### Nested Schema for `options.redirect_https_to_http`
 
 Required:
 
@@ -236,6 +291,7 @@ Required:
 
 Optional:
 
+- `direct_link` (Boolean) How the API handles requests without the Referer header, its `direct_link` flag. Defaults to `false`.
 - `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
 
 
@@ -282,6 +338,48 @@ Optional:
 Required:
 
 - `value` (Set of String) TLS versions.
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
+
+
+<a id="nestedblock--options--upstream_healthchecker"></a>
+### Nested Schema for `options.upstream_healthchecker`
+
+Required:
+
+- `health_url` (String) Path of the check requests, starting with "/".
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
+- `fall` (Number) Failed checks in a row that mark a source as down. Defaults to `2`.
+- `host` (String) Domain name for the check requests.
+- `interval` (Number) Interval between the checks in milliseconds. Defaults to `15000`.
+- `rise` (Number) Successful checks in a row that mark a source as up. Defaults to `3`.
+- `timeout` (Number) Timeout of a check in milliseconds. Defaults to `10000`.
+- `type` (String) Protocol of the checks, "http" or "https". Defaults to "http".
+
+
+<a id="nestedblock--options--use_default_le_chain"></a>
+### Nested Schema for `options.use_default_le_chain`
+
+Required:
+
+- `value` (Boolean) Value of the option.
+
+Optional:
+
+- `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
+
+
+<a id="nestedblock--options--use_rsa_le_cert"></a>
+### Nested Schema for `options.use_rsa_le_cert`
+
+Required:
+
+- `value` (Boolean) Value of the option.
 
 Optional:
 

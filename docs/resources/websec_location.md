@@ -108,7 +108,7 @@ resource "edgecenter_websec_location" "example_com_api" {
 Optional:
 
 - `allowed_http_methods` (Block List, Max: 1) HTTP methods allowed in requests. The methods you can use are set per client and resource, by default "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE" and "OPTIONS". (see [below for nested schema](#nestedblock--options--allowed_http_methods))
-- `antibot_flood_challenge` (Block List, Max: 1) Check that a request comes from a browser before passing it on. The check answers with HTTP 307 and sets the antibot cookie. Disabling it on a resource also disables the antibot URL exceptions and user agent whitelist of the resource, which this provider does not manage. (see [below for nested schema](#nestedblock--options--antibot_flood_challenge))
+- `antibot_flood_challenge` (Block List, Max: 1) Check that a request comes from a browser before passing it on. The check answers with HTTP 307 and sets the antibot cookie. Disabling it on a resource also disables `antibot_challenge_url_exceptions` and `antibot_flood_challenge_user_agent_whitelist` of the resource. (see [below for nested schema](#nestedblock--options--antibot_flood_challenge))
 - `asn_acl` (Block List, Max: 1) Allow or deny requests by the autonomous system number of the client. (see [below for nested schema](#nestedblock--options--asn_acl))
 - `referer_acl` (Block List, Max: 1) Allow or deny requests by the Referer header. (see [below for nested schema](#nestedblock--options--referer_acl))
 - `user_agent_acl` (Block List, Max: 1) Allow or deny requests by the User-Agent header. (see [below for nested schema](#nestedblock--options--user_agent_acl))
@@ -160,6 +160,7 @@ Required:
 
 Optional:
 
+- `direct_link` (Boolean) How the API handles requests without the Referer header, its `direct_link` flag. Defaults to `false`.
 - `enabled` (Boolean) Enable or disable the option. Defaults to `true`.
 
 
