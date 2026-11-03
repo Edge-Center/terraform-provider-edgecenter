@@ -30,11 +30,11 @@ create_bin:
 
 install_jq:
 	if test "$(OS)" = "linux"; then \
-		curl -L -o $(BIN_DIR)/jq https://github.com/stedolan/jq/releases/download/jq-1.7/jq-linux64; \
+		curl -L -o $(BIN_DIR)/jq https://github.com/stedolan/jq/releases/download/jq-1.8.2/jq-linux64; \
 	elif test "$(ARCH)" = "arm64"; then \
-	  	curl -L -o $(BIN_DIR)/jq https://github.com/stedolan/jq/releases/download/jq-1.7/jq-macos-arm64; \
+	  	curl -L -o $(BIN_DIR)/jq https://github.com/stedolan/jq/releases/download/jq-1.8.2/jq-macos-arm64; \
 	else \
-		curl -L -o $(BIN_DIR)/jq https://github.com/stedolan/jq/releases/download/jq-1.7/jq-osx-amd64; \
+		curl -L -o $(BIN_DIR)/jq https://github.com/stedolan/jq/releases/download/jq-1.8.2/jq-osx-amd64; \
 	fi
 	chmod +x $(BIN_DIR)/jq
 
@@ -43,9 +43,9 @@ install_godotenv:
 	go install github.com/joho/godotenv/cmd/godotenv@latest
 
 install_tfplugindocs:
-	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.19.4
+	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0
 	make tidy
-	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.19.4
+	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0
 
 download_env_file:
 	@if [ -z "${VAULT_TOKEN}" ] || [ -z "${VAULT_ADDR}" ]; then \

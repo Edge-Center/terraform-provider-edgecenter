@@ -77,6 +77,8 @@ Read-Only:
 
 Import is supported using the following syntax:
 
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
 ```shell
 # import using <entity_type>:<entity_id> format
 terraform import edgecenter_reseller_imagesV2.rimgs reseller:123456
