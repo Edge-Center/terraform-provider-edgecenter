@@ -209,6 +209,19 @@ func TestIntegrationWebsecResource_Diff(t *testing.T) {
 			),
 			want: `options.0.www_redirects needs "www.example.com" in subdomains`,
 		},
+		"an antibot url exception list without the antibot challenge": {
+			config: siteConfig(optionsConfig(map[string]interface{}{
+				"antibot_challenge_url_exceptions": option(map[string]interface{}{"value": []interface{}{"/static/"}}),
+			})),
+			want: "options.0.antibot_challenge_url_exceptions needs an enabled options.0.antibot_flood_challenge",
+		},
+		"an antibot user agent whitelist with a disabled antibot challenge": {
+			config: siteConfig(optionsConfig(map[string]interface{}{
+				"antibot_flood_challenge":                      option(map[string]interface{}{"enabled": false, "value": "ANTIBOT_CHALLENGE"}),
+				"antibot_flood_challenge_user_agent_whitelist": option(map[string]interface{}{"value": []interface{}{"Mozilla"}}),
+			})),
+			want: "options.0.antibot_flood_challenge_user_agent_whitelist needs an enabled options.0.antibot_flood_challenge",
+		},
 		"two response headers whose names differ only in case": {
 			config: siteConfig(optionsConfig(map[string]interface{}{
 				"response_headers": option(map[string]interface{}{
@@ -227,6 +240,53 @@ func TestIntegrationWebsecResource_Diff(t *testing.T) {
 			require.ErrorContains(t, err, tc.want)
 		})
 	}
+
+	for name, opts := range map[string]map[string]interface{}{
+		"enabled antibot lists with an enabled antibot challenge": {
+			"antibot_flood_challenge":                      option(map[string]interface{}{"value": "ANTIBOT_CHALLENGE"}),
+			"antibot_challenge_url_exceptions":             option(map[string]interface{}{"value": []interface{}{"/static/"}}),
+			"antibot_flood_challenge_user_agent_whitelist": option(map[string]interface{}{"value": []interface{}{"Mozilla"}}),
+		},
+		"a disabled antibot list without the antibot challenge": {
+			"antibot_challenge_url_exceptions": option(map[string]interface{}{"enabled": false, "value": []interface{}{"/static/"}}),
+		},
+	} {
+		t.Run("the plan accepts "+name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := planDiff(t, resource, nil, siteConfig(optionsConfig(opts)))
+			require.NoError(t, err)
+		})
+	}
+
+	t.Run("the antibot lists wait while the challenge state is unknown", func(t *testing.T) {
+		t.Parallel()
+
+		config := siteConfig(optionsConfig(map[string]interface{}{
+			"antibot_flood_challenge":          option(map[string]interface{}{"value": "ANTIBOT_CHALLENGE"}),
+			"antibot_challenge_url_exceptions": option(map[string]interface{}{"value": []interface{}{"/static/"}}),
+		}))
+
+		_, err := planDiff(t, resource, nil, config,
+			cty.GetAttrPath("options").IndexInt(0).GetAttr("antibot_flood_challenge").IndexInt(0).GetAttr("enabled"))
+		require.NoError(t, err)
+	})
+
+	t.Run("a direct_link set outside terraform shows up in the plan of a config without it", func(t *testing.T) {
+		t.Parallel()
+
+		withDirectLink := optionsConfig(map[string]interface{}{"referer_acl": option(map[string]interface{}{
+			"policy_type":     "deny",
+			"excepted_values": []interface{}{"example.com"},
+			"direct_link":     true,
+		})})
+		current := support.NewState(t, resource, siteConfig(withDirectLink), testResourceIDStr)
+
+		diff := requirePlanDiff(t, resource, current,
+			siteConfig(optionsConfig(map[string]interface{}{"referer_acl": policyOption("deny", "example.com")})))
+		require.Contains(t, diff.Attributes, "options.0.referer_acl.0.direct_link")
+		require.Equal(t, "false", diff.Attributes["options.0.referer_acl.0.direct_link"].New)
+	})
 
 	t.Run("the plan accepts a disabled www_redirects without the www subdomain", func(t *testing.T) {
 		t.Parallel()

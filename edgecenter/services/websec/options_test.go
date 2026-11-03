@@ -59,9 +59,10 @@ func locationOptionsWithEveryValue() options.LocationOptions {
 			PolicyType:     options.PolicyTypeDeny,
 			ExceptedValues: []int64{64512, math.MaxInt32},
 		}),
-		RefererACL: options.Value(options.AccessPolicyOption{
+		RefererACL: options.Value(options.RefererACLOption{
 			PolicyType:     options.PolicyTypeAllow,
 			ExceptedValues: []string{"", "*.example.com"},
+			DirectLink:     true,
 		}),
 		UserAgentACL: options.Value(options.AccessPolicyOption{
 			Enabled:        true,
@@ -81,10 +82,12 @@ func locationOptionsWithEveryValue() options.LocationOptions {
 func TestEveryResourceOptionSurvivesTheSchemaRoundTrip(t *testing.T) {
 	t.Parallel()
 
+	healthCheckHost := "health.example.com"
+
 	want := options.ResourceOptions{
 		LocationOptions:     locationOptionsWithEveryValue(),
-		UseDefaultLEChain:   options.Null[options.BooleanOption](),
-		UseRSALECert:        options.Null[options.BooleanOption](),
+		UseDefaultLEChain:   options.Value(options.BooleanOption{Enabled: true, Value: true}),
+		UseRSALECert:        options.Value(options.BooleanOption{Value: true}),
 		Blacklist:           options.Value(options.ListOption{Enabled: true, Value: []string{"198.51.100.0/24", "2001:db8::/32"}}),
 		Whitelist:           options.Value(options.ListOption{Value: []string{"203.0.113.7/32"}}),
 		GeoACL:              options.Null[options.GeoACLOption](),
@@ -103,15 +106,24 @@ func TestEveryResourceOptionSurvivesTheSchemaRoundTrip(t *testing.T) {
 			PolicyType:     options.PolicyTypeAllow,
 			ExceptedValues: []string{"RU", "KZ"},
 		}),
-		WWWRedirects:                            options.Value(options.BooleanOption{Enabled: true, Value: true}),
-		SourceProtocolHTTPS:                     options.Value(options.BooleanOption{Enabled: true, Value: true}),
-		UpstreamHealthChecker:                   options.Null[options.UpstreamHealthCheckerOption](),
+		WWWRedirects:        options.Value(options.BooleanOption{Enabled: true, Value: true}),
+		SourceProtocolHTTPS: options.Value(options.BooleanOption{Enabled: true, Value: true}),
+		UpstreamHealthChecker: options.Value(options.UpstreamHealthCheckerOption{
+			Enabled:   true,
+			Host:      &healthCheckHost,
+			Interval:  5000,
+			Rise:      2,
+			Fall:      4,
+			Timeout:   1000,
+			Type:      options.HealthCheckTypeHTTPS,
+			HealthURL: "/health?full=1",
+		}),
 		WAF:                                     options.Value(options.BooleanOption{Value: true}),
-		MLAnalysis:                              options.Null[options.BooleanOption](),
+		MLAnalysis:                              options.Value(options.BooleanOption{Enabled: true, Value: true}),
 		WAFMonitoringMode:                       options.Value(options.BooleanOption{Enabled: true, Value: true}),
-		RedirectHTTPSToHTTP:                     options.Null[options.BooleanOption](),
-		AntibotChallengeURLExceptions:           options.Null[options.ListOption](),
-		AntibotFloodChallengeUserAgentWhitelist: options.Null[options.ListOption](),
+		RedirectHTTPSToHTTP:                     options.Value(options.BooleanOption{Value: true}),
+		AntibotChallengeURLExceptions:           options.Value(options.ListOption{Enabled: true, Value: []string{"/static/", "~^/api/"}}),
+		AntibotFloodChallengeUserAgentWhitelist: options.Value(options.ListOption{Value: []string{"Mozilla"}}),
 	}
 
 	blocks, err := flattenResourceOptions(&want)
@@ -148,8 +160,7 @@ func TestFlattenLeavesTheOptionsBlockOutWithoutAnOptionOfTheSchema(t *testing.T)
 		"no options object":    nil,
 		"every option is null": createdWithoutOptions,
 		"only unmanaged options set": {
-			GeoACL:       options.Value(options.GeoACLOption{PolicyType: options.PolicyTypeDeny}),
-			UseRSALECert: options.Value(options.BooleanOption{Enabled: true}),
+			GeoACL: options.Value(options.GeoACLOption{PolicyType: options.PolicyTypeDeny}),
 		},
 	} {
 		blocks, err := flattenResourceOptions(opts)
@@ -194,4 +205,22 @@ func TestNetworkHashTreatsEveryFormOfOneNetworkAsOneValue(t *testing.T) {
 	}
 
 	require.Equal(t, schema.HashString("not a network"), hashNetwork("not a network"))
+}
+
+func TestHealthCheckerWithoutHostRoundTripsToNull(t *testing.T) {
+	t.Parallel()
+
+	want := options.UpstreamHealthCheckerOption{
+		Enabled:   true,
+		Interval:  15000,
+		Rise:      3,
+		Fall:      2,
+		Timeout:   10000,
+		Type:      options.HealthCheckTypeHTTP,
+		HealthURL: "/health",
+	}
+
+	block := flattenUpstreamHealthCheckerOption(want)
+	require.Empty(t, block["host"])
+	require.Equal(t, want, expandUpstreamHealthCheckerOption(block))
 }

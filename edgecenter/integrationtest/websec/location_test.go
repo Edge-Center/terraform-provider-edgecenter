@@ -48,7 +48,7 @@ func locationFromAPI() *locations.Location {
 		Options: &options.LocationOptions{
 			AllowedHTTPMethods:    options.Null[options.ListOption](),
 			ASNACL:                options.Null[options.ASNACLOption](),
-			RefererACL:            options.Null[options.AccessPolicyOption](),
+			RefererACL:            options.Null[options.RefererACLOption](),
 			UserAgentACL:          options.Null[options.AccessPolicyOption](),
 			AntibotFloodChallenge: options.Null[options.AntibotFloodChallengeOption](),
 		},

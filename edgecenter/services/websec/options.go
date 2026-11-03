@@ -112,12 +112,12 @@ func locationOptionSchemas() map[string]*schema.Schema {
 				"cannot be set.",
 			&schema.Schema{Type: schema.TypeInt, ValidateFunc: validation.IntBetween(1, math.MaxInt32)},
 		),
-		"referer_acl": accessPolicyOptionSchema(
+		"referer_acl": withDirectLink(accessPolicyOptionSchema(
 			"Allow or deny requests by the Referer header.",
 			"Domains, \"*.domain\" or \"domain.*\" patterns in lowercase that are the exceptions from `policy_type`. An "+
 				"empty string stands for requests without the Referer header and needs at least one more value.",
 			&schema.Schema{Type: schema.TypeString, ValidateFunc: validation.All(validateTrimmed, validateLowercase)},
-		),
+		)),
 		"user_agent_acl": accessPolicyOptionSchema(
 			"Allow or deny requests by the User-Agent header.",
 			"User agents that are the exceptions from `policy_type`. A value that starts with \"~\" is a regular expression.",
@@ -125,8 +125,8 @@ func locationOptionSchemas() map[string]*schema.Schema {
 		),
 		"antibot_flood_challenge": optionSchema(
 			"Check that a request comes from a browser before passing it on. The check answers with HTTP 307 and sets "+
-				"the antibot cookie. Disabling it on a resource also disables the antibot URL exceptions and user agent "+
-				"whitelist of the resource, which this provider does not manage.",
+				"the antibot cookie. Disabling it on a resource also disables `antibot_challenge_url_exceptions` and "+
+				"`antibot_flood_challenge_user_agent_whitelist` of the resource.",
 			map[string]*schema.Schema{
 				"value": {
 					Type:     schema.TypeString,
@@ -187,12 +187,31 @@ func resourceOptionSchemas() map[string]*schema.Schema {
 		"ISO 3166-1 alpha-2 country codes in uppercase that are the exceptions from `policy_type`.",
 		&schema.Schema{Type: schema.TypeString, ValidateFunc: validateCountryCode},
 	)
+	optionSchemas["antibot_challenge_url_exceptions"] = listOptionSchema(
+		"URLs that skip the check of `antibot_flood_challenge`. It can be enabled only together with an enabled "+
+			"`antibot_flood_challenge`.",
+		"Patterns that start with \"/\" or \"~\" and are valid regular expressions, without spaces, quotes and semicolons.",
+		&schema.Schema{Type: schema.TypeString, ValidateFunc: validateTrimmed},
+		nil,
+	)
+	optionSchemas["antibot_flood_challenge_user_agent_whitelist"] = listOptionSchema(
+		"User agents that skip the check of `antibot_flood_challenge`. It can be enabled only together with an enabled "+
+			"`antibot_flood_challenge`.",
+		"User agents.",
+		&schema.Schema{Type: schema.TypeString, ValidateFunc: validateTrimmed},
+		nil,
+	)
 	optionSchemas["ip_hash"] = booleanOptionSchema("Send all requests of a client to the same source, chosen by the client IP address.")
+	optionSchemas["ml_analysis"] = booleanOptionSchema(
+		"Analyze requests with machine learning. It can be enabled only together with `waf`, only if the WAF of the " +
+			"account supports ML analysis, and only while the account has a free ML model.",
+	)
 	optionSchemas["redirect_http_to_https"] = booleanOptionSchema(
 		"Redirect HTTP requests to HTTPS. The resource needs a certificate, `ssl_certificate` or one issued by " +
 			"`edgecenter_websec_lecert`. A Let's Encrypt certificate is issued after the resource is created, so enable the " +
 			"redirect for it in a later apply, and disable the redirect before removing the `edgecenter_websec_lecert`.",
 	)
+	optionSchemas["redirect_https_to_http"] = booleanOptionSchema("Redirect HTTPS requests to HTTP.")
 	optionSchemas["response_headers"] = optionSchema(
 		"Add headers to the responses. Header names are case insensitive and must be unique. Which names and values the "+
 			"API accepts is set per client.",
@@ -236,6 +255,68 @@ func resourceOptionSchemas() map[string]*schema.Schema {
 		&schema.Schema{Type: schema.TypeString, ValidateFunc: validateTrimmed},
 		nil,
 	)
+	optionSchemas["upstream_healthchecker"] = optionSchema(
+		"Check the health of the sources with requests to `health_url`. The API accepts the option, even a disabled one, "+
+			"only if the account is allowed to use it. An enabled check needs `type` \"https\" when `source_protocol_https` "+
+			"is enabled and \"http\" otherwise.",
+		map[string]*schema.Schema{
+			"health_url": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateTrimmed,
+				Description:  "Path of the check requests, starting with \"/\".",
+			},
+			"host": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateTrimmed,
+				Description:  "Domain name for the check requests.",
+			},
+			"interval": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      15000,
+				ValidateFunc: validation.IntAtLeast(1),
+				Description:  "Interval between the checks in milliseconds. Defaults to `15000`.",
+			},
+			"rise": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      3,
+				ValidateFunc: validation.IntAtLeast(1),
+				Description:  "Successful checks in a row that mark a source as up. Defaults to `3`.",
+			},
+			"fall": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      2,
+				ValidateFunc: validation.IntAtLeast(1),
+				Description:  "Failed checks in a row that mark a source as down. Defaults to `2`.",
+			},
+			"timeout": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      10000,
+				ValidateFunc: validation.IntAtLeast(1),
+				Description:  "Timeout of a check in milliseconds. Defaults to `10000`.",
+			},
+			"type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  string(options.HealthCheckTypeHTTP),
+				ValidateFunc: validation.StringInSlice(
+					[]string{string(options.HealthCheckTypeHTTP), string(options.HealthCheckTypeHTTPS)},
+					false,
+				),
+				Description: "Protocol of the checks, \"http\" or \"https\". Defaults to \"http\".",
+			},
+		},
+	)
+	optionSchemas["use_default_le_chain"] = booleanOptionSchema(
+		"Issue Let's Encrypt certificates with the default chain, which devices on Android 7.1.1 or earlier need. " +
+			"Without the option the alternative chain is used.",
+	)
+	optionSchemas["use_rsa_le_cert"] = booleanOptionSchema("Issue RSA Let's Encrypt certificates instead of ECDSA ones.")
 	optionSchemas["waf"] = booleanOptionSchema("Enable the web application firewall. The WAF must be enabled on the account.")
 	optionSchemas["waf_monitoring_mode"] = booleanOptionSchema(
 		"Run the WAF in monitoring mode. It can be enabled only together with `waf`, and only if the WAF of the " +
@@ -305,6 +386,17 @@ func accessPolicyOptionSchema(description, valuesDescription string, elem *schem
 	})
 }
 
+func withDirectLink(option *schema.Schema) *schema.Schema {
+	option.Elem.(*schema.Resource).Schema["direct_link"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     false,
+		Description: "How the API handles requests without the Referer header, its `direct_link` flag. Defaults to `false`.",
+	}
+
+	return option
+}
+
 func validateOptionsNotEmpty(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	if !d.NewValueKnown("options") {
 		return nil
@@ -339,6 +431,28 @@ func validateWWWRedirects(_ context.Context, d *schema.ResourceDiff, _ interface
 
 	if oldSubdomains.(*schema.Set).Contains(www) {
 		return fmt.Errorf("removing %q from subdomains deletes options.0.www_redirects in the API: remove the block in the same change", www)
+	}
+
+	return nil
+}
+
+func validateAntibotChallengeLists(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	lists := []string{"antibot_challenge_url_exceptions", "antibot_flood_challenge_user_agent_whitelist"}
+	for _, name := range append([]string{"antibot_flood_challenge", "antibot_flood_challenge.0.enabled"}, lists...) {
+		if !d.NewValueKnown("options.0." + name) {
+			return nil
+		}
+	}
+
+	blocks := optionBlocks(d.Get("options"))
+	if challenge, ok := tfutil.GetOptByName(blocks, "antibot_flood_challenge"); ok && challenge["enabled"].(bool) {
+		return nil
+	}
+
+	for _, name := range lists {
+		if list, ok := tfutil.GetOptByName(blocks, name); ok && list["enabled"].(bool) {
+			return fmt.Errorf("options.0.%s needs an enabled options.0.antibot_flood_challenge: the API disables it together with the challenge", name)
+		}
 	}
 
 	return nil
@@ -421,7 +535,7 @@ func (e *optionsExpander) locationOptions() options.LocationOptions {
 	return options.LocationOptions{
 		AllowedHTTPMethods:    expandOption(e, "allowed_http_methods", expandListOption),
 		ASNACL:                expandOption(e, "asn_acl", expandASNACLOption),
-		RefererACL:            expandOption(e, "referer_acl", expandAccessPolicyOption),
+		RefererACL:            expandOption(e, "referer_acl", expandRefererACLOption),
 		UserAgentACL:          expandOption(e, "user_agent_acl", expandAccessPolicyOption),
 		AntibotFloodChallenge: expandOption(e, "antibot_flood_challenge", expandAntibotFloodChallengeOption),
 	}
@@ -443,8 +557,8 @@ func expandResourceOptions(d *schema.ResourceData, onlyChanged bool) *options.Re
 
 	opts := options.ResourceOptions{
 		LocationOptions:                         e.locationOptions(),
-		UseDefaultLEChain:                       unmanagedOption[options.BooleanOption](e),
-		UseRSALECert:                            unmanagedOption[options.BooleanOption](e),
+		UseDefaultLEChain:                       expandOption(e, "use_default_le_chain", expandBooleanOption),
+		UseRSALECert:                            expandOption(e, "use_rsa_le_cert", expandBooleanOption),
 		Blacklist:                               expandOption(e, "blacklist", expandListOption),
 		Whitelist:                               expandOption(e, "whitelist", expandListOption),
 		GeoACL:                                  unmanagedOption[options.GeoACLOption](e),
@@ -455,13 +569,13 @@ func expandResourceOptions(d *schema.ResourceData, onlyChanged bool) *options.Re
 		CountryACL:                              expandOption(e, "country_acl", expandAccessPolicyOption),
 		WWWRedirects:                            expandOption(e, "www_redirects", expandBooleanOption),
 		SourceProtocolHTTPS:                     expandOption(e, "source_protocol_https", expandBooleanOption),
-		UpstreamHealthChecker:                   unmanagedOption[options.UpstreamHealthCheckerOption](e),
+		UpstreamHealthChecker:                   expandOption(e, "upstream_healthchecker", expandUpstreamHealthCheckerOption),
 		WAF:                                     expandOption(e, "waf", expandBooleanOption),
-		MLAnalysis:                              unmanagedOption[options.BooleanOption](e),
+		MLAnalysis:                              expandOption(e, "ml_analysis", expandBooleanOption),
 		WAFMonitoringMode:                       expandOption(e, "waf_monitoring_mode", expandBooleanOption),
-		RedirectHTTPSToHTTP:                     unmanagedOption[options.BooleanOption](e),
-		AntibotChallengeURLExceptions:           unmanagedOption[options.ListOption](e),
-		AntibotFloodChallengeUserAgentWhitelist: unmanagedOption[options.ListOption](e),
+		RedirectHTTPSToHTTP:                     expandOption(e, "redirect_https_to_http", expandBooleanOption),
+		AntibotChallengeURLExceptions:           expandOption(e, "antibot_challenge_url_exceptions", expandListOption),
+		AntibotFloodChallengeUserAgentWhitelist: expandOption(e, "antibot_flood_challenge_user_agent_whitelist", expandListOption),
 	}
 	if !e.changed {
 		return nil
@@ -489,6 +603,15 @@ func expandAccessPolicyOption(block map[string]interface{}) options.AccessPolicy
 		Enabled:        block["enabled"].(bool),
 		PolicyType:     options.PolicyType(block["policy_type"].(string)),
 		ExceptedValues: stringsFromSet(block["excepted_values"].(*schema.Set)),
+	}
+}
+
+func expandRefererACLOption(block map[string]interface{}) options.RefererACLOption {
+	return options.RefererACLOption{
+		Enabled:        block["enabled"].(bool),
+		PolicyType:     options.PolicyType(block["policy_type"].(string)),
+		ExceptedValues: stringsFromSet(block["excepted_values"].(*schema.Set)),
+		DirectLink:     block["direct_link"].(bool),
 	}
 }
 
@@ -542,6 +665,24 @@ func expandAntibotFloodChallengeOption(block map[string]interface{}) options.Ant
 	return opt
 }
 
+func expandUpstreamHealthCheckerOption(block map[string]interface{}) options.UpstreamHealthCheckerOption {
+	opt := options.UpstreamHealthCheckerOption{
+		Enabled:   block["enabled"].(bool),
+		Interval:  block["interval"].(int),
+		Rise:      block["rise"].(int),
+		Fall:      block["fall"].(int),
+		Timeout:   block["timeout"].(int),
+		Type:      options.HealthCheckType(block["type"].(string)),
+		HealthURL: block["health_url"].(string),
+	}
+
+	if host := block["host"].(string); host != "" {
+		opt.Host = &host
+	}
+
+	return opt
+}
+
 func stringsFromSet(set *schema.Set) []string {
 	values := make([]string, 0, set.Len())
 	for _, value := range set.List() {
@@ -580,6 +721,13 @@ func flattenResourceOptions(opts *options.ResourceOptions) ([]interface{}, error
 		flattenOption(blocks, "source_protocol_https", opts.SourceProtocolHTTPS, flattenBooleanOption)
 		flattenOption(blocks, "waf", opts.WAF, flattenBooleanOption)
 		flattenOption(blocks, "waf_monitoring_mode", opts.WAFMonitoringMode, flattenBooleanOption)
+		flattenOption(blocks, "use_default_le_chain", opts.UseDefaultLEChain, flattenBooleanOption)
+		flattenOption(blocks, "use_rsa_le_cert", opts.UseRSALECert, flattenBooleanOption)
+		flattenOption(blocks, "upstream_healthchecker", opts.UpstreamHealthChecker, flattenUpstreamHealthCheckerOption)
+		flattenOption(blocks, "ml_analysis", opts.MLAnalysis, flattenBooleanOption)
+		flattenOption(blocks, "redirect_https_to_http", opts.RedirectHTTPSToHTTP, flattenBooleanOption)
+		flattenOption(blocks, "antibot_challenge_url_exceptions", opts.AntibotChallengeURLExceptions, flattenListOption)
+		flattenOption(blocks, "antibot_flood_challenge_user_agent_whitelist", opts.AntibotFloodChallengeUserAgentWhitelist, flattenListOption)
 	}
 
 	return optionsList(blocks), nil
@@ -587,7 +735,7 @@ func flattenResourceOptions(opts *options.ResourceOptions) ([]interface{}, error
 
 func flattenLocationOptionBlocks(blocks map[string]interface{}, opts *options.LocationOptions) error {
 	flattenOption(blocks, "allowed_http_methods", opts.AllowedHTTPMethods, flattenListOption)
-	flattenOption(blocks, "referer_acl", opts.RefererACL, flattenAccessPolicyOption)
+	flattenOption(blocks, "referer_acl", opts.RefererACL, flattenRefererACLOption)
 	flattenOption(blocks, "user_agent_acl", opts.UserAgentACL, flattenAccessPolicyOption)
 	flattenOption(blocks, "antibot_flood_challenge", opts.AntibotFloodChallenge, flattenAntibotFloodChallengeOption)
 
@@ -639,6 +787,15 @@ func flattenAccessPolicyOption(opt options.AccessPolicyOption) map[string]interf
 	}
 }
 
+func flattenRefererACLOption(opt options.RefererACLOption) map[string]interface{} {
+	return map[string]interface{}{
+		"enabled":         opt.Enabled,
+		"policy_type":     string(opt.PolicyType),
+		"excepted_values": opt.ExceptedValues,
+		"direct_link":     opt.DirectLink,
+	}
+}
+
 func flattenASNACLOption(opt options.ASNACLOption) (map[string]interface{}, error) {
 	asns := make([]int, 0, len(opt.ExceptedValues))
 	for _, asn := range opt.ExceptedValues {
@@ -684,5 +841,23 @@ func flattenAntibotFloodChallengeOption(opt options.AntibotFloodChallengeOption)
 		"antibot_challenge_timelimit":    opt.TimeLimit,
 		"antibot_challenge_get_only_on":  opt.GetOnlyOn,
 		"antibot_challenge_utm_referrer": opt.UTMReferrer,
+	}
+}
+
+func flattenUpstreamHealthCheckerOption(opt options.UpstreamHealthCheckerOption) map[string]interface{} {
+	host := ""
+	if opt.Host != nil {
+		host = *opt.Host
+	}
+
+	return map[string]interface{}{
+		"enabled":    opt.Enabled,
+		"health_url": opt.HealthURL,
+		"host":       host,
+		"interval":   opt.Interval,
+		"rise":       opt.Rise,
+		"fall":       opt.Fall,
+		"timeout":    opt.Timeout,
+		"type":       string(opt.Type),
 	}
 }
