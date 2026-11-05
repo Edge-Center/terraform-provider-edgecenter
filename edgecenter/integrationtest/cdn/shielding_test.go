@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
+	cdnsdk "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/shielding"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
@@ -192,6 +193,83 @@ func shieldingReadAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	}
 }
 
+func shieldingReadNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Shielding.On("Get", mock.Anything, int64(testShieldingResourceID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read clears state when the resource is gone",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testShieldingResourceID),
+		CurrentState: shieldingConfig(testShieldingPop),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil after read gets 404")
+		},
+	}
+}
+
+func shieldingCreateReadNotFoundKeepsIDCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Shielding.On("Update", mock.Anything, int64(testShieldingResourceID), mock.Anything).
+		Return(&shielding.ShieldingData{ShieldingPop: shieldingPopPtr(testShieldingPop)}, nil)
+	mc.Shielding.On("Get", mock.Anything, int64(testShieldingResourceID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create keeps the id when the read right after create gets 404",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: shieldingConfig(testShieldingPop),
+		Check: func(t *testing.T, state *terraform.InstanceState, _ diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testShieldingResourceID))
+		},
+	}
+}
+
+func shieldingDeleteAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Shielding.On("Update", mock.Anything, int64(testShieldingResourceID), mock.Anything).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(403, cdnsdk.ErrForbidden)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "API error on delete keeps state",
+		Op:           support.OpDelete,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testShieldingResourceID),
+		CurrentState: shieldingConfig(testShieldingPop),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			require.NotNil(t, state, "state must not be nil when delete fails")
+			require.Equal(t, fmt.Sprintf("%d", testShieldingResourceID), state.ID, "ID must not be cleared on failed delete")
+		},
+	}
+}
+
+func shieldingDeleteNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Shielding.On("Update", mock.Anything, int64(testShieldingResourceID), mock.Anything).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "delete succeeds when the resource is already gone",
+		Op:           support.OpDelete,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testShieldingResourceID),
+		CurrentState: shieldingConfig(testShieldingPop),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil after delete of a missing resource")
+		},
+	}
+}
+
 func TestIntegrationShielding_TableDriven(t *testing.T) {
 	t.Parallel()
 
@@ -205,6 +283,10 @@ func TestIntegrationShielding_TableDriven(t *testing.T) {
 		shieldingCreateAPIFailureCase(),
 		shieldingReadInvalidIDCase(),
 		shieldingReadAPIFailureCase(),
+		shieldingReadNotFoundCase(),
+		shieldingDeleteNotFoundCase(),
+		shieldingCreateReadNotFoundKeepsIDCase(),
+		shieldingDeleteAPIFailureCase(),
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*cdnmock.MockedCDN])

@@ -643,6 +643,63 @@ func ruleReadAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	}
 }
 
+func ruleReadNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read clears state when the rule is gone",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testRuleID),
+		CurrentState: ruleConfig(testRuleName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil after read gets 404")
+		},
+	}
+}
+
+func ruleCreateReadNotFoundKeepsIDCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Rules.On("Create", mock.Anything, int64(testRuleResourceID), mock.Anything).
+		Return(sampleRule(testRuleName), nil)
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create keeps the id when the read right after create gets 404",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: ruleConfig(testRuleName),
+		Check: func(t *testing.T, state *terraform.InstanceState, _ diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testRuleID))
+		},
+	}
+}
+
+func ruleDeleteNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Rules.On("Delete", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).
+		Return(fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "delete succeeds when the rule is already gone",
+		Op:           support.OpDelete,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testRuleID),
+		CurrentState: ruleConfig(testRuleName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil after delete of a missing rule")
+		},
+	}
+}
+
 func TestIntegrationRule_TableDriven(t *testing.T) {
 	t.Parallel()
 
@@ -668,6 +725,9 @@ func TestIntegrationRule_TableDriven(t *testing.T) {
 		ruleUpdateAPIFailureCase(),
 		ruleReadAPIFailureCase(),
 		ruleDeleteAPIFailureCase(),
+		ruleReadNotFoundCase(),
+		ruleDeleteNotFoundCase(),
+		ruleCreateReadNotFoundKeepsIDCase(),
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCaseWithRawConfig[*cdnmock.MockedCDN])

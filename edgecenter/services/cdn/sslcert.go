@@ -2,6 +2,7 @@ package cdn
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	cdn "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/sslcerts"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
@@ -92,7 +94,21 @@ func resourceCDNCertRead(ctx context.Context, d *schema.ResourceData, m interfac
 
 	result, err := client.SSLCerts().Get(ctx, id)
 	if err != nil {
+		if errors.Is(err, cdn.ErrNotFound) && !d.IsNewResource() {
+			log.Printf("[WARN] CDN Cert (id=%s) not found, removing from state", d.Id())
+			d.SetId("")
+
+			return nil
+		}
+
 		return diag.FromErr(err)
+	}
+
+	if result.Deleted {
+		log.Printf("[WARN] CDN Cert (id=%s) is marked deleted, removing from state", d.Id())
+		d.SetId("")
+
+		return nil
 	}
 
 	d.Set("has_related_resources", result.HasRelatedResources)
@@ -114,7 +130,7 @@ func resourceCDNCertDelete(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	if err := client.SSLCerts().Delete(ctx, id); err != nil {
+	if err := client.SSLCerts().Delete(ctx, id); err != nil && !errors.Is(err, cdn.ErrNotFound) {
 		return diag.FromErr(err)
 	}
 

@@ -792,6 +792,84 @@ func cdnResourceUpdateOriginRefusesAuthorizedGroupCase() support.ResourceCase[*c
 	}
 }
 
+func cdnResourceReadNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read clears state when the resource is gone",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: cdnResourceConfig("tf test"),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil after read gets 404")
+		},
+	}
+}
+
+func cdnResourceCreateReadNotFoundKeepsIDCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Resources.On("Create", mock.Anything, mock.Anything).
+		Return(sampleCDNResource("tf test"), nil)
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create keeps the id when the read right after create gets 404",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: cdnResourceConfig("tf test"),
+		Check: func(t *testing.T, state *terraform.InstanceState, _ diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testCDNResourceID))
+		},
+	}
+}
+
+func cdnResourceReadDeletedFlagCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	deleted := sampleCDNResource("tf test")
+	deleted.Deleted = true
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).
+		Return(deleted, nil)
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read clears state when the API marks the resource deleted",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: cdnResourceConfig("tf test"),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil for a resource marked deleted")
+		},
+	}
+}
+
+func cdnResourceDeleteNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Resources.On("Delete", mock.Anything, int64(testCDNResourceID)).
+		Return(fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "delete succeeds when the resource is already gone",
+		Op:           support.OpDelete,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCDNResourceID),
+		CurrentState: cdnResourceConfig("tf test"),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil after delete of a missing resource")
+		},
+	}
+}
+
 func TestIntegrationCDNResource_TableDriven(t *testing.T) {
 	t.Parallel()
 
@@ -821,6 +899,10 @@ func TestIntegrationCDNResource_TableDriven(t *testing.T) {
 		cdnResourceReadAPIFailureCase(),
 		cdnResourceReadInvalidIDCase(),
 		cdnResourceDeleteAPIFailureCase(),
+		cdnResourceReadNotFoundCase(),
+		cdnResourceDeleteNotFoundCase(),
+		cdnResourceCreateReadNotFoundKeepsIDCase(),
+		cdnResourceReadDeletedFlagCase(),
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*cdnmock.MockedCDN])
