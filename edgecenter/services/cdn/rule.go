@@ -2,6 +2,7 @@ package cdn
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -1030,6 +1031,13 @@ func resourceCDNRuleRead(ctx context.Context, d *schema.ResourceData, m interfac
 
 	result, err := client.Rules().Get(ctx, int64(resourceID), id)
 	if err != nil {
+		if errors.Is(err, cdn.ErrNotFound) && !d.IsNewResource() {
+			log.Printf("[WARN] CDN Rule (id=%s) not found, removing from state", d.Id())
+			d.SetId("")
+
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -1108,7 +1116,7 @@ func resourceCDNRuleDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 	resourceID := d.Get("resource_id").(int)
 
-	if err := client.Rules().Delete(ctx, int64(resourceID), id); err != nil {
+	if err := client.Rules().Delete(ctx, int64(resourceID), id); err != nil && !errors.Is(err, cdn.ErrNotFound) {
 		return diag.FromErr(err)
 	}
 

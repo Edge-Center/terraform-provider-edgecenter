@@ -2,6 +2,7 @@ package cdn
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	cdn "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/shielding"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
@@ -51,6 +53,13 @@ func resourceCDNShieldingRead(ctx context.Context, d *schema.ResourceData, m int
 
 	result, err := client.Shielding().Get(ctx, int64(resourceID))
 	if err != nil {
+		if errors.Is(err, cdn.ErrNotFound) && !d.IsNewResource() {
+			log.Printf("[WARN] CDN Shielding (id=%s) not found, removing from state", d.Id())
+			d.SetId("")
+
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -97,7 +106,7 @@ func resourceCDNShieldingDelete(ctx context.Context, d *schema.ResourceData, m i
 	var intPointer *int
 	req.ShieldingPop = intPointer
 
-	if _, err := client.Shielding().Update(ctx, int64(resourceID), &req); err != nil {
+	if _, err := client.Shielding().Update(ctx, int64(resourceID), &req); err != nil && !errors.Is(err, cdn.ErrNotFound) {
 		return diag.FromErr(err)
 	}
 
