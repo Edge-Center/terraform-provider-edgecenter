@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
+	cdnsdk "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/origingroups"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
@@ -240,6 +241,48 @@ func originGroupCreateAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] 
 	}
 }
 
+func originGroupCreateReadFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.OriginGroups.On("Create", mock.Anything, mock.Anything).
+		Return(sampleOriginGroup(testOriginGroupName), nil)
+	mc.OriginGroups.On("Get", mock.Anything, int64(testOriginGroupID)).
+		Return(nil, fmt.Errorf("api error: server unavailable"))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create reports a failed read of the created object",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: originGroupConfig(testOriginGroupName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "server unavailable")
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testOriginGroupID))
+		},
+	}
+}
+
+func originGroupCreateReadNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.OriginGroups.On("Create", mock.Anything, mock.Anything).
+		Return(sampleOriginGroup(testOriginGroupName), nil)
+	mc.OriginGroups.On("Get", mock.Anything, int64(testOriginGroupID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create reports a 404 on the read right after create",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: originGroupConfig(testOriginGroupName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "not found")
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testOriginGroupID))
+		},
+	}
+}
+
 func originGroupDeleteAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
@@ -396,6 +439,8 @@ func TestIntegrationOriginGroup_TableDriven(t *testing.T) {
 
 	cases := []support.ResourceCase[*cdnmock.MockedCDN]{
 		originGroupCreateCase(),
+		originGroupCreateReadFailureCase(),
+		originGroupCreateReadNotFoundCase(),
 		originGroupCreateWithAuthCase(),
 		originGroupCreateWithBackupCase(),
 		originGroupReadCase(),

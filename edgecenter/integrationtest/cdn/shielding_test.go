@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
+	cdnsdk "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/shielding"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
@@ -157,6 +158,70 @@ func shieldingCreateAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	}
 }
 
+func shieldingCreateReadFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Shielding.On("Update", mock.Anything, int64(testShieldingResourceID), mock.Anything).
+		Return(&shielding.ShieldingData{ShieldingPop: shieldingPopPtr(testShieldingPop)}, nil)
+	mc.Shielding.On("Get", mock.Anything, int64(testShieldingResourceID)).
+		Return(nil, fmt.Errorf("api error: server unavailable"))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create reports a failed read of the created object",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: shieldingConfig(testShieldingPop),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "server unavailable")
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testShieldingResourceID))
+		},
+	}
+}
+
+func shieldingCreateReadNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Shielding.On("Update", mock.Anything, int64(testShieldingResourceID), mock.Anything).
+		Return(&shielding.ShieldingData{ShieldingPop: shieldingPopPtr(testShieldingPop)}, nil)
+	mc.Shielding.On("Get", mock.Anything, int64(testShieldingResourceID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create reports a 404 on the read right after create",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: shieldingConfig(testShieldingPop),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "not found")
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testShieldingResourceID))
+		},
+	}
+}
+
+func shieldingUpdateReadFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Shielding.On("Update", mock.Anything, int64(testShieldingResourceID), mock.Anything).
+		Return(&shielding.ShieldingData{ShieldingPop: shieldingPopPtr(9)}, nil)
+	mc.Shielding.On("Get", mock.Anything, int64(testShieldingResourceID)).
+		Return(nil, fmt.Errorf("api error: server unavailable"))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "update reports a failed read of the updated shielding",
+		Op:           support.OpApply,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testShieldingResourceID),
+		CurrentState: shieldingConfig(testShieldingPop),
+		NewConfig:    shieldingConfig(9),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "server unavailable")
+		},
+	}
+}
+
 func shieldingReadInvalidIDCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
@@ -199,6 +264,9 @@ func TestIntegrationShielding_TableDriven(t *testing.T) {
 
 	cases := []support.ResourceCase[*cdnmock.MockedCDN]{
 		shieldingCreateCase(),
+		shieldingCreateReadFailureCase(),
+		shieldingCreateReadNotFoundCase(),
+		shieldingUpdateReadFailureCase(),
 		shieldingReadCase(),
 		shieldingUpdateCase(),
 		shieldingDeleteCase(),
