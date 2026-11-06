@@ -399,6 +399,48 @@ func ruleCreateAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	}
 }
 
+func ruleCreateReadFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Rules.On("Create", mock.Anything, int64(testRuleResourceID), mock.Anything).
+		Return(sampleRule(testRuleName), nil)
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).
+		Return(nil, fmt.Errorf("api error: server unavailable"))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create reports a failed read of the created object",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: ruleConfig(testRuleName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "server unavailable")
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testRuleID))
+		},
+	}
+}
+
+func ruleCreateReadNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Rules.On("Create", mock.Anything, int64(testRuleResourceID), mock.Anything).
+		Return(sampleRule(testRuleName), nil)
+	mc.Rules.On("Get", mock.Anything, int64(testRuleResourceID), int64(testRuleID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create reports a 404 on the read right after create",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: ruleConfig(testRuleName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "not found")
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testRuleID))
+		},
+	}
+}
+
 func ruleDeleteAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
@@ -650,6 +692,8 @@ func TestIntegrationRule_TableDriven(t *testing.T) {
 
 	cases := []support.ResourceCase[*cdnmock.MockedCDN]{
 		ruleCreateCase(),
+		ruleCreateReadFailureCase(),
+		ruleCreateReadNotFoundCase(),
 		ruleCreateWithOriginGroupCase(),
 		ruleCreateWithoutOriginProtocolCase(),
 		ruleCreateDisabledWithLowestWeightCase(),

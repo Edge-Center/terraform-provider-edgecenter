@@ -134,11 +134,11 @@ func resourceCDNOriginGroupCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	d.SetId(fmt.Sprintf("%d", result.ID))
-	resourceCDNOriginGroupRead(ctx, d, m)
+	diags := resourceCDNOriginGroupRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN OriginGroup creating (id=%d)\n", result.ID)
 
-	return nil
+	return diags
 }
 
 func resourceCDNOriginGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

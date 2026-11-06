@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
+	cdnsdk "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/sslcerts"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
@@ -124,6 +125,48 @@ func sslCertCreateAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	}
 }
 
+func sslCertCreateReadFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.SSLCerts.On("Create", mock.Anything, mock.Anything).
+		Return(&sslcerts.Cert{ID: testCertID, Name: testCertName}, nil)
+	mc.SSLCerts.On("Get", mock.Anything, int64(testCertID)).
+		Return(nil, fmt.Errorf("api error: server unavailable"))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create reports a failed read of the created object",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: sslCertConfig(),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "server unavailable")
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testCertID))
+		},
+	}
+}
+
+func sslCertCreateReadNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.SSLCerts.On("Create", mock.Anything, mock.Anything).
+		Return(&sslcerts.Cert{ID: testCertID, Name: testCertName}, nil)
+	mc.SSLCerts.On("Get", mock.Anything, int64(testCertID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create reports a 404 on the read right after create",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: sslCertConfig(),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "not found")
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testCertID))
+		},
+	}
+}
+
 func sslCertDeleteAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
@@ -172,6 +215,8 @@ func TestIntegrationSSLCert_TableDriven(t *testing.T) {
 
 	cases := []support.ResourceCase[*cdnmock.MockedCDN]{
 		sslCertCreateCase(),
+		sslCertCreateReadFailureCase(),
+		sslCertCreateReadNotFoundCase(),
 		sslCertReadCase(),
 		sslCertDeleteCase(),
 		sslCertCreateAPIFailureCase(),
