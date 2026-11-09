@@ -3,6 +3,7 @@
 package cdn_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -208,4 +209,42 @@ func TestIntegrationShielding_TableDriven(t *testing.T) {
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*cdnmock.MockedCDN])
+}
+
+func TestIntegrationShielding_ResourceIDChange(t *testing.T) {
+	t.Parallel()
+
+	resource := cdnResource(t, "edgecenter_cdn_shielding")
+
+	cases := []struct {
+		name       string
+		resourceID int
+		wantForced bool
+	}{
+		{name: "moving to another cdn resource forces replacement", resourceID: testShieldingResourceID + 1, wantForced: true},
+		{name: "same cdn resource does not force replacement", resourceID: testShieldingResourceID},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			state := shieldingConfig(testShieldingPop)
+			config := shieldingConfig(testShieldingPop)
+			config["resource_id"] = tc.resourceID
+			current := support.NewState(t, resource, state, fmt.Sprintf("%d", testShieldingResourceID))
+
+			diff, err := resource.Diff(context.Background(), current, terraform.NewResourceConfigRaw(config), nil)
+			require.NoError(t, err)
+
+			if !tc.wantForced {
+				if diff != nil {
+					require.False(t, diff.RequiresNew(), "unchanged resource_id must not force replacement")
+				}
+
+				return
+			}
+
+			require.NotNil(t, diff)
+			require.True(t, diff.RequiresNew(), "resource_id change must force replacement")
+		})
+	}
 }

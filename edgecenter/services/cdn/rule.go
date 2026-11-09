@@ -928,6 +928,7 @@ func resourceCDNRule() *schema.Resource {
 			"resource_id": {
 				Type:        schema.TypeInt,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Enter the CDN resource ID to which the Origin shielding should be applied.",
 			},
 			"name": {

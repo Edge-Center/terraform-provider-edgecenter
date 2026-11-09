@@ -751,3 +751,41 @@ func TestIntegrationRule_WeightValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestIntegrationRule_ResourceIDChange(t *testing.T) {
+	t.Parallel()
+
+	resource := cdnResource(t, "edgecenter_cdn_rule")
+
+	cases := []struct {
+		name       string
+		resourceID int
+		wantForced bool
+	}{
+		{name: "moving to another cdn resource forces replacement", resourceID: testRuleResourceID + 1, wantForced: true},
+		{name: "same cdn resource does not force replacement", resourceID: testRuleResourceID},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			state := ruleConfig(testRuleName)
+			config := ruleConfig(testRuleName)
+			config["resource_id"] = tc.resourceID
+			current := support.NewState(t, resource, state, fmt.Sprintf("%d", testRuleID))
+
+			diff, err := resource.Diff(context.Background(), current, terraform.NewResourceConfigRaw(config), nil)
+			require.NoError(t, err)
+
+			if !tc.wantForced {
+				if diff != nil {
+					require.False(t, diff.RequiresNew(), "unchanged resource_id must not force replacement")
+				}
+
+				return
+			}
+
+			require.NotNil(t, diff)
+			require.True(t, diff.RequiresNew(), "resource_id change must force replacement")
+		})
+	}
+}
