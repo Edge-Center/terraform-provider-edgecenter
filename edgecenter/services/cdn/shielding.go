@@ -89,11 +89,11 @@ func resourceCDNShieldingUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	d.SetId(fmt.Sprintf("%d", resourceID))
-	resourceCDNShieldingRead(ctx, d, m)
+	diags := resourceCDNShieldingRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN Shielding updating.")
 
-	return nil
+	return diags
 }
 
 func resourceCDNShieldingDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

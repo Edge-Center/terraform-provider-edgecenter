@@ -278,6 +278,48 @@ func cdnResourceCreateAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] 
 	}
 }
 
+func cdnResourceCreateReadFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Resources.On("Create", mock.Anything, mock.Anything).
+		Return(sampleCDNResource("tf test"), nil)
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).
+		Return(nil, fmt.Errorf("api error: server unavailable"))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create reports a failed read of the created object",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: cdnResourceConfig("tf test"),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "server unavailable")
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testCDNResourceID))
+		},
+	}
+}
+
+func cdnResourceCreateReadNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.Resources.On("Create", mock.Anything, mock.Anything).
+		Return(sampleCDNResource("tf test"), nil)
+	mc.Resources.On("Get", mock.Anything, int64(testCDNResourceID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create reports a 404 on the read right after create",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: cdnResourceConfig("tf test"),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireHasErrorDiags(t, diags)
+			support.RequireErrorDiagContains(t, diags, "not found")
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testCDNResourceID))
+		},
+	}
+}
+
 func cdnResourceDeleteAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	mc := cdnmock.NewMockedCDN()
 
@@ -877,6 +919,8 @@ func TestIntegrationCDNResource_TableDriven(t *testing.T) {
 
 	cases := []support.ResourceCase[*cdnmock.MockedCDN]{
 		cdnResourceCreateCase(),
+		cdnResourceCreateReadFailureCase(),
+		cdnResourceCreateReadNotFoundCase(),
 		cdnResourceCreateWithOriginGroupCase(),
 		cdnResourceCreateWithSSLCase(),
 		cdnResourceCreateDedupesHostnamesCase(),

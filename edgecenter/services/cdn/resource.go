@@ -1117,11 +1117,11 @@ func resourceCDNResourceCreate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	d.SetId(fmt.Sprintf("%d", result.ID))
-	resourceCDNResourceRead(ctx, d, m)
+	diags := resourceCDNResourceRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN Resource creating (id=%d)\n", result.ID)
 
-	return nil
+	return diags
 }
 
 func resourceCDNResourceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

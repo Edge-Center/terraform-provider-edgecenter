@@ -74,11 +74,11 @@ func resourceCDNCertCreate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	d.SetId(fmt.Sprintf("%d", result.ID))
-	resourceCDNCertRead(ctx, d, m)
+	diags := resourceCDNCertRead(ctx, d, m)
 
 	log.Printf("[DEBUG] Finish CDN Cert creating (id=%d)\n", result.ID)
 
-	return nil
+	return diags
 }
 
 func resourceCDNCertRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
