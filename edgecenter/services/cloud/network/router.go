@@ -259,18 +259,13 @@ func resourceRouterRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	d.Set("name", router.Name)
 
-	if len(router.ExternalGatewayInfo.ExternalFixedIPs) > 0 {
+	if len(router.ExternalGatewayInfo.ExternalFixedIPs) > 0 || router.ExternalGatewayInfo.NetworkID != "" || router.ExternalGatewayInfo.Type != nil {
 		egi := make(map[string]interface{}, 4)
 		egilst := make([]map[string]interface{}, 1)
 		egi["network_id"] = router.ExternalGatewayInfo.NetworkID
 
-		egist := d.Get("external_gateway_info")
-		if len(egist.([]interface{})) > 0 {
-			gws, err := extractExternalGatewayInfoMap(egist.([]interface{}))
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			egi["type"] = gws.Type
+		if router.ExternalGatewayInfo.Type != nil {
+			egi["type"] = *router.ExternalGatewayInfo.Type
 		}
 
 		efip := make([]map[string]string, len(router.ExternalGatewayInfo.ExternalFixedIPs))

@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/Edge-Center/edgecentercloud-go/edgecenter/router/v1/routers"
 	edgecloudV2 "github.com/Edge-Center/edgecentercloud-go/v2"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
@@ -89,23 +88,6 @@ func routerInterfaceUniqueID(i interface{}) int {
 	io.WriteString(h, subnetID)
 
 	return int(binary.BigEndian.Uint64(h.Sum(nil)))
-}
-
-// extractExternalGatewayInfoMap converts the first element of a gateway slice
-// into a routers.GatewayInfo struct using the provided mapstructure decoder configuration.
-func extractExternalGatewayInfoMap(gw []interface{}) (routers.GatewayInfo, error) {
-	gateway, ok := gw[0].(map[string]interface{})
-	if !ok {
-		return routers.GatewayInfo{}, fmt.Errorf("failed to assert gateway as map[string]interface{}")
-	}
-
-	var gwInfo routers.GatewayInfo
-	err := edgecenter.MapStructureDecoder(&gwInfo, &gateway, routerDecoderConfig)
-	if err != nil {
-		return routers.GatewayInfo{}, err
-	}
-
-	return gwInfo, nil
 }
 
 // extractExternalGatewayInfoMapV2 converts the first element of a gateway slice
