@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	cdn "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/origingroups"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter"
 )
@@ -154,6 +156,13 @@ func resourceCDNOriginGroupRead(ctx context.Context, d *schema.ResourceData, m i
 
 	result, err := client.OriginGroups().Get(ctx, id)
 	if err != nil {
+		if errors.Is(err, cdn.ErrNotFound) && !d.IsNewResource() {
+			log.Printf("[WARN] CDN OriginGroup (id=%s) not found, removing from state", d.Id())
+			d.SetId("")
+
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -211,7 +220,7 @@ func resourceCDNOriginGroupDelete(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	if err := client.OriginGroups().Delete(ctx, id); err != nil {
+	if err := client.OriginGroups().Delete(ctx, id); err != nil && !errors.Is(err, cdn.ErrNotFound) {
 		return diag.FromErr(err)
 	}
 

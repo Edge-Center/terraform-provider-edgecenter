@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
+	cdnsdk "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/origingroups"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
@@ -389,6 +390,63 @@ func originGroupReadAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	}
 }
 
+func originGroupReadNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.OriginGroups.On("Get", mock.Anything, int64(testOriginGroupID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read clears state when the origin group is gone",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testOriginGroupID),
+		CurrentState: originGroupConfig(testOriginGroupName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil after read gets 404")
+		},
+	}
+}
+
+func originGroupCreateReadNotFoundKeepsIDCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.OriginGroups.On("Create", mock.Anything, mock.Anything).
+		Return(sampleOriginGroup(testOriginGroupName), nil)
+	mc.OriginGroups.On("Get", mock.Anything, int64(testOriginGroupID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create keeps the id when the read right after create gets 404",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: originGroupConfig(testOriginGroupName),
+		Check: func(t *testing.T, state *terraform.InstanceState, _ diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testOriginGroupID))
+		},
+	}
+}
+
+func originGroupDeleteNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.OriginGroups.On("Delete", mock.Anything, int64(testOriginGroupID)).
+		Return(fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "delete succeeds when the origin group is already gone",
+		Op:           support.OpDelete,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testOriginGroupID),
+		CurrentState: originGroupConfig(testOriginGroupName),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil after delete of a missing origin group")
+		},
+	}
+}
+
 func TestIntegrationOriginGroup_TableDriven(t *testing.T) {
 	t.Parallel()
 
@@ -406,6 +464,9 @@ func TestIntegrationOriginGroup_TableDriven(t *testing.T) {
 		originGroupUpdateAPIFailureCase(),
 		originGroupReadAPIFailureCase(),
 		originGroupDeleteAPIFailureCase(),
+		originGroupReadNotFoundCase(),
+		originGroupDeleteNotFoundCase(),
+		originGroupCreateReadNotFoundKeepsIDCase(),
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*cdnmock.MockedCDN])

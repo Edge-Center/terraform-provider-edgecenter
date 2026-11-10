@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -1136,7 +1137,21 @@ func resourceCDNResourceRead(ctx context.Context, d *schema.ResourceData, m inte
 
 	result, err := client.Resources().Get(ctx, id)
 	if err != nil {
+		if errors.Is(err, cdn.ErrNotFound) && !d.IsNewResource() {
+			log.Printf("[WARN] CDN Resource (id=%s) not found, removing from state", d.Id())
+			d.SetId("")
+
+			return nil
+		}
+
 		return diag.FromErr(err)
+	}
+
+	if result.Deleted {
+		log.Printf("[WARN] CDN Resource (id=%s) is marked deleted, removing from state", d.Id())
+		d.SetId("")
+
+		return nil
 	}
 
 	d.Set("cname", result.Cname)
@@ -1291,7 +1306,7 @@ func resourceCDNResourceDelete(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(err)
 	}
 
-	if err := client.Resources().Delete(ctx, id); err != nil {
+	if err := client.Resources().Delete(ctx, id); err != nil && !errors.Is(err, cdn.ErrNotFound) {
 		return diag.FromErr(err)
 	}
 

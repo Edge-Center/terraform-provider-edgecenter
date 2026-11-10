@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
+	cdnsdk "github.com/Edge-Center/edgecentercdn-go/edgecenter"
 	"github.com/Edge-Center/edgecentercdn-go/sslcerts"
 
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
@@ -165,6 +166,82 @@ func sslCertReadAPIFailureCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	}
 }
 
+func sslCertReadNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.SSLCerts.On("Get", mock.Anything, int64(testCertID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read clears state when the cert is gone",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCertID),
+		CurrentState: sslCertConfig(),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil after read gets 404")
+		},
+	}
+}
+
+func sslCertCreateReadNotFoundKeepsIDCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.SSLCerts.On("Create", mock.Anything, mock.Anything).
+		Return(&sslcerts.Cert{ID: testCertID, Name: testCertName}, nil)
+	mc.SSLCerts.On("Get", mock.Anything, int64(testCertID)).
+		Return(nil, fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "create keeps the id when the read right after create gets 404",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: sslCertConfig(),
+		Check: func(t *testing.T, state *terraform.InstanceState, _ diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireStateID(t, state, fmt.Sprintf("%d", testCertID))
+		},
+	}
+}
+
+func sslCertDeleteNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.SSLCerts.On("Delete", mock.Anything, int64(testCertID)).
+		Return(fmt.Errorf("request: %w", cdnsdk.NewAPIError(404, cdnsdk.ErrNotFound)))
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "delete succeeds when the cert is already gone",
+		Op:           support.OpDelete,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCertID),
+		CurrentState: sslCertConfig(),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil after delete of a missing cert")
+		},
+	}
+}
+
+func sslCertReadDeletedFlagCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.SSLCerts.On("Get", mock.Anything, int64(testCertID)).
+		Return(&sslcerts.Cert{ID: testCertID, Name: testCertName, Deleted: true}, nil)
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:         "read clears state when the API marks the cert deleted",
+		Op:           support.OpRead,
+		Prepare:      func() *cdnmock.MockedCDN { return mc },
+		CurrentID:    fmt.Sprintf("%d", testCertID),
+		CurrentState: sslCertConfig(),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoErrorDiags(t, diags)
+			require.Nil(t, state, "state must be nil for a cert marked deleted")
+		},
+	}
+}
+
 func TestIntegrationSSLCert_TableDriven(t *testing.T) {
 	t.Parallel()
 
@@ -177,6 +254,10 @@ func TestIntegrationSSLCert_TableDriven(t *testing.T) {
 		sslCertCreateAPIFailureCase(),
 		sslCertDeleteAPIFailureCase(),
 		sslCertReadAPIFailureCase(),
+		sslCertReadNotFoundCase(),
+		sslCertDeleteNotFoundCase(),
+		sslCertCreateReadNotFoundKeepsIDCase(),
+		sslCertReadDeletedFlagCase(),
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*cdnmock.MockedCDN])
