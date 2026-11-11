@@ -80,6 +80,11 @@ func dataSourceMKaaSCluster() *schema.Resource {
 					},
 				},
 			},
+			"autohealing_enabled": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether MKaaS cluster autohealing is enabled.",
+			},
 		},
 	}
 }
@@ -168,6 +173,9 @@ func dataSourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m i
 	_ = d.Set("processing", cluster.Processing)
 	_ = d.Set("status", cluster.Status)
 	_ = d.Set("stage", cluster.Stage)
+	if cluster.AutohealingEnabled != nil {
+		_ = d.Set("autohealing_enabled", *cluster.AutohealingEnabled)
+	}
 
 	tflog.Debug(ctx, "[DEBUG] Finish MKaaS cluster reading")
 

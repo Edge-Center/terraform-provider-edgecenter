@@ -101,6 +101,12 @@ func resourceMKaaSCluster() *schema.Resource {
 				Description: "Publish kube-api to internet.",
 				Optional:    true,
 			},
+			edgecenter.MKaaSClusterAutohealingEnabledField: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether MKaaS cluster autohealing is enabled.",
+			},
 			edgecenter.NetworkIDField: {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -226,6 +232,11 @@ func resourceMKaaSClusterCreate(ctx context.Context, d *schema.ResourceData, m i
 		createOpts.PublishKubeAPIToInternet = v.(bool)
 	}
 
+	if v, ok := d.GetOk(edgecenter.MKaaSClusterAutohealingEnabledField); ok {
+		enabled := v.(bool)
+		createOpts.AutohealingEnabled = &enabled
+	}
+
 	if v, ok := d.GetOk("control_plane"); ok {
 		cpList := v.([]interface{})
 		if len(cpList) > 0 {
@@ -313,6 +324,11 @@ func resourceMKaaSClusterRead(ctx context.Context, d *schema.ResourceData, m int
 	_ = d.Set(edgecenter.MKaaSClusterStageField, cluster.Stage)
 	_ = d.Set(edgecenter.MKaaSClusterPodSubnetField, cluster.PodSubnet)
 	_ = d.Set(edgecenter.MKaaSClusterServiceSubnetField, cluster.ServiceSubnet)
+	if cluster.AutohealingEnabled != nil {
+		_ = d.Set(edgecenter.MKaaSClusterAutohealingEnabledField, *cluster.AutohealingEnabled)
+	} else if d.Get(edgecenter.MKaaSClusterAutohealingEnabledField).(bool) {
+		return diag.Errorf("autohealing_enabled is not available in this environment: the API did not return the field; check MKAAS_AUTOHEALING_FEATURE_ENABLED")
+	}
 
 	return diag.Diagnostics{}
 }
@@ -323,12 +339,13 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if unsupported := mkaasClusterUnsupportedUpdateChanges(d); len(unsupported) > 0 {
 		return diag.Errorf(
 			"MKaaS cluster update is not supported for these fields: %v. "+
-				"Only %q, %q, and %q are supported. "+
+				"Only %q, %q, %q, and %q are supported. "+
 				"Please revert changes, or recreate the resource if applicable.",
 			unsupported,
 			edgecenter.NameField,
 			fmt.Sprintf("%s.0.%s", edgecenter.MKaaSClusterControlPlaneField, edgecenter.MKaaSNodeCountField),
 			fmt.Sprintf("%s.0.%s", edgecenter.MKaaSClusterControlPlaneField, edgecenter.MKaaSClusterVersionField),
+			edgecenter.MKaaSClusterAutohealingEnabledField,
 		)
 	}
 
@@ -344,7 +361,7 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	controlPlaneNodeCountPath := fmt.Sprintf("%s.%d.%s", edgecenter.MKaaSClusterControlPlaneField, 0, edgecenter.MKaaSNodeCountField)
 	controlPlaneVersionPath := fmt.Sprintf("%s.%d.%s", edgecenter.MKaaSClusterControlPlaneField, 0, edgecenter.MKaaSClusterVersionField)
-	needsUpdate := d.HasChange(edgecenter.NameField) || d.HasChange(controlPlaneNodeCountPath) || d.HasChange(controlPlaneVersionPath)
+	needsUpdate := d.HasChange(edgecenter.NameField) || d.HasChange(controlPlaneNodeCountPath) || d.HasChange(controlPlaneVersionPath) || d.HasChange(edgecenter.MKaaSClusterAutohealingEnabledField)
 
 	if !needsUpdate {
 		tflog.Info(ctx, "No MKaaS cluster fields require update")
@@ -421,6 +438,31 @@ func resourceMKaaSClusterUpdate(ctx context.Context, d *schema.ResourceData, m i
 		}
 
 		tflog.Info(ctx, "Finish MKaaS Cluster version upgrade")
+	}
+
+	if d.HasChange(edgecenter.MKaaSClusterAutohealingEnabledField) {
+		tflog.Info(ctx, "Updating MKaaS cluster autohealing")
+
+		enabled := d.Get(edgecenter.MKaaSClusterAutohealingEnabledField).(bool)
+
+		task, _, err := clientV2.MkaaS.ClusterUpdateAutohealing(
+			ctx,
+			clusterID,
+			edgecloudV2.MKaaSClusterUpdateAutohealingRequest{
+				EnableAutohealing: enabled,
+			},
+		)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		taskID := task.Tasks[0]
+		err = utilV2.WaitForTaskComplete(ctx, clientV2, taskID, MKaaSClusterUpdateTimeout)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		tflog.Info(ctx, "Finish MKaaS Cluster autohealing update")
 	}
 
 	return resourceMKaaSClusterRead(ctx, d, m)

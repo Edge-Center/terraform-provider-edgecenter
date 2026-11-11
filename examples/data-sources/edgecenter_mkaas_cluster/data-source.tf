@@ -78,3 +78,7 @@ data "edgecenter_mkaas_cluster" "cluster" {
 output "view" {
   value = data.edgecenter_mkaas_cluster.cluster
 }
+
+output "autohealing_enabled" {
+  value = data.edgecenter_mkaas_cluster.cluster.autohealing_enabled
+}

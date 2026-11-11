@@ -12,6 +12,7 @@ resource "edgecenter_mkaas_cluster" "example" {
   pod_subnet                   = "192.168.128.0/18"
   service_subnet               = "192.168.64.0/18"
   publish_kube_api_to_internet = true
+  autohealing_enabled          = true
 
   control_plane {
     flavor      = "mkaas-master-g3-standard-2-4"
