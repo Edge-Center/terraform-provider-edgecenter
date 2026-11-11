@@ -3,6 +3,9 @@ package edgecenter
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"time"
 
 	dnsSDK "github.com/Edge-Center/edgecenter-dns-sdk-go"
 	storageSDK "github.com/Edge-Center/edgecenter-storage-sdk-go"
@@ -74,6 +77,13 @@ type StorageClientService interface {
 
 var _ StorageClientService = (*storageSDK.SDK)(nil)
 
+const (
+	cloudHTTPTimeout  = 60 * time.Second
+	cloudRetryMax     = 3
+	cloudRetryWaitMin = 1.0
+	cloudRetryWaitMax = 30.0
+)
+
 type Config struct {
 	PermanentToken     string
 	CloudBaseURL       string
@@ -113,18 +123,32 @@ func NewConfig(
 }
 
 func (c *Config) NewCloudClient() (*edgecloudV2.Client, error) {
+	return c.newCloudClient(cloudHTTPTimeout)
+}
+
+func (c *Config) newCloudClient(httpTimeout time.Duration) (*edgecloudV2.Client, error) {
 	if c.CloudClientFactory != nil {
 		return c.CloudClientFactory()
 	}
 
-	cloudClient, err := edgecloudV2.NewWithRetries(nil,
+	httpClient := &http.Client{Timeout: httpTimeout}
+
+	cloudClient, err := edgecloudV2.New(httpClient,
 		edgecloudV2.SetUserAgent(c.UserAgent),
 		edgecloudV2.SetAPIKey(c.PermanentToken),
 		edgecloudV2.SetBaseURL(c.CloudBaseURL),
+		edgecloudV2.WithRetryAndBackoffs(edgecloudV2.RetryConfig{
+			RetryMax:     cloudRetryMax,
+			RetryWaitMin: edgecloudV2.PtrTo(cloudRetryWaitMin),
+			RetryWaitMax: edgecloudV2.PtrTo(cloudRetryWaitMax),
+			Logger:       log.Default(),
+		}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error from creating cloud client: %w", err)
 	}
+
+	cloudClient.HTTPClient.Timeout = httpTimeout
 
 	return cloudClient, nil
 }

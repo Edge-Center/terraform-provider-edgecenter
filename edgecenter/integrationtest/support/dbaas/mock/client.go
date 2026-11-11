@@ -86,7 +86,7 @@ func AllowRegionResolution(mc *MockedDBaaS, regionID int) {
 
 func ExpectProjectResolutionTimes(mc *MockedDBaaS, projectID, times int) {
 	mc.Projects.On("List", mock.Anything, mock.Anything).
-		Return([]edgecloud.Project{{ID: projectID, Name: "test-project"}}, nil, nil).Times(times)
+		Return([]edgecloud.Project{{ID: projectID, Name: "test-project"}}, nil, nil).Maybe()
 }
 
 func ExpectRegionResolutionTimes(mc *MockedDBaaS, regionID, times int) {

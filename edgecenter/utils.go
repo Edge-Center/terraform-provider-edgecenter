@@ -203,6 +203,9 @@ func GetProjectID(
 
 	if IDOk {
 		projectID = pID.(int)
+		if projectID != 0 {
+			return projectID, nil
+		}
 	}
 
 	if NameOk {
