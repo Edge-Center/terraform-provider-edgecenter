@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"slices"
+	"strconv"
 
 	edgecloud "github.com/Edge-Center/edgecentercloud-go"
 	"github.com/Edge-Center/edgecentercloud-go/edgecenter"
@@ -91,22 +93,7 @@ func GetProjectV2(
 	return &foundProjects[0], nil
 }
 
-// findProjectByNameV2 searches for a project with the specified name and id in the provided project slice.
-// Use new version Edgecenterclient-go V2.
-// Returns the project if found, otherwise returns an error.
-func findProjectByNameV2(
-	arr []edgecloudV2.Project,
-	name string,
-) (*edgecloudV2.Project, error) {
-	index := slices.IndexFunc(arr, func(p edgecloudV2.Project) bool { return p.Name == name })
-	if index != -1 {
-		return &arr[index], nil
-	}
-
-	return nil, fmt.Errorf("project with name %s not found", name)
-}
-
-// findProjectByIDV2 searches for a project with the specified name and id in the provided project slice.
+// findProjectByIDV2 searches for a project with the specified id in the provided project slice.
 // Use new version Edgecenterclient-go V2.
 // Returns the project if found, otherwise returns an error.
 func findProjectByIDV2(
@@ -121,6 +108,21 @@ func findProjectByIDV2(
 	}
 
 	return nil, fmt.Errorf("project with id %d not found", id)
+}
+
+// findProjectByNameV2 searches for a project with the specified name and id in the provided project slice.
+// Use new version Edgecenterclient-go V2.
+// Returns the project if found, otherwise returns an error.
+func findProjectByNameV2(
+	arr []edgecloudV2.Project,
+	name string,
+) (*edgecloudV2.Project, error) {
+	index := slices.IndexFunc(arr, func(p edgecloudV2.Project) bool { return p.Name == name })
+	if index != -1 {
+		return &arr[index], nil
+	}
+
+	return nil, fmt.Errorf("project with name %s not found", name)
 }
 
 // GetProjectByNameV2 returns a valid project for a resource.
@@ -149,25 +151,37 @@ func GetProjectByNameV2(
 	return project, nil
 }
 
-// GetProjectByIDV2 returns a valid project for a resource.
+// GetProjectByIDV2 returns a project by its ID.
 // Use new version Edgecenterclient-go V2.
-// If projectName is provided instead, the function will search for the project by id and return its.
 // Returns an error if the project is not found or there is an issue with the client.
 func GetProjectByIDV2(
 	ctx context.Context,
 	client *edgecloudV2.Client,
 	projectID int,
 ) (*edgecloudV2.Project, error) {
-	log.Println("[DEBUG] Try to get project ID")
-	projectsList, _, err := client.Projects.List(ctx, nil)
-	if err != nil {
+	log.Printf("[DEBUG] Try to get project ID %d", projectID)
+
+	project, response, err := client.Projects.Get(ctx, strconv.Itoa(projectID))
+	if err == nil {
+		log.Printf("[DEBUG] The attempt to get the project is successful: projectID=%d", project.ID)
+		return project, nil
+	}
+	if response == nil || response.StatusCode != http.StatusForbidden {
 		return nil, err
+	}
+
+	log.Printf("[DEBUG] Project GET returned 403; falling back to projects list")
+
+	projectsList, _, listErr := client.Projects.List(ctx, nil)
+	if listErr != nil {
+		log.Printf("[DEBUG] Projects list fallback failed: %v", listErr)
+		return nil, fmt.Errorf("cannot get project with id %d: direct GET failed: %w; list fallback failed: %w", projectID, err, listErr)
 	}
 	log.Printf("[DEBUG] Projects: %v", projectsList)
 
-	project, err := findProjectByIDV2(projectsList, projectID)
-	if err != nil {
-		return nil, err
+	project, findErr := findProjectByIDV2(projectsList, projectID)
+	if findErr != nil {
+		return nil, fmt.Errorf("cannot find project with id %d after direct GET failed: %w; list lookup failed: %w", projectID, err, findErr)
 	}
 	log.Printf("[DEBUG] The attempt to get the project is successful: projectID=%d", project.ID)
 
