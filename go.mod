@@ -4,13 +4,13 @@ go 1.27.0
 
 require (
 	github.com/AlekSi/pointer v1.2.0
-	github.com/Edge-Center/edgecenter-dns-sdk-go v0.2.4
-	github.com/Edge-Center/edgecenter-storage-sdk-go v0.2.1
-	github.com/Edge-Center/edgecentercdn-go v0.4.1
+	github.com/Edge-Center/edgecenter-dns-sdk-go v0.3.0
+	github.com/Edge-Center/edgecenter-storage-sdk-go v0.3.0
+	github.com/Edge-Center/edgecentercdn-go v0.5.0
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
 	github.com/Edge-Center/edgecentercloud-go/v2 v2.7.4
-	github.com/Edge-Center/edgecenteredgemon-go v0.1.0
-	github.com/Edge-Center/edgecenterprotection-go v0.1.7
+	github.com/Edge-Center/edgecenteredgemon-go v0.2.0
+	github.com/Edge-Center/edgecenterprotection-go v0.2.0
 	github.com/connerdouglass/go-retry v1.0.1
 	github.com/gruntwork-io/terratest v1.0.1
 	github.com/hashicorp/go-cty v1.5.0
@@ -22,7 +22,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/vektra/mockery/v2 v2.53.8
 	github.com/zclconf/go-cty v1.19.0
-	golang.org/x/sync v0.24.0
+	golang.org/x/sync v0.25.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
