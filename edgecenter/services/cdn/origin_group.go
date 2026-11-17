@@ -48,8 +48,8 @@ func resourceCDNOriginGroup() *schema.Resource {
 						"enabled": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Computed:    true,
-							Description: "Enable or disable the source. The source group must contain at least one enabled source.",
+							Default:     true,
+							Description: "Enable or disable the source. The source group must contain at least one enabled source. Defaults to `true`.",
 						},
 						"backup": {
 							Type:        schema.TypeBool,

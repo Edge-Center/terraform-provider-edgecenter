@@ -3,7 +3,9 @@
 package cdn_test
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -489,6 +491,86 @@ func originGroupDeleteNotFoundCase() support.ResourceCase[*cdnmock.MockedCDN] {
 	}
 }
 
+func originGroupCreateWithoutEnabledCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	mc.OriginGroups.On("Create", mock.Anything,
+		mock.MatchedBy(func(req *origingroups.GroupRequest) bool {
+			return len(req.Origins) == 1 &&
+				req.Origins[0].Source == testOriginSource &&
+				req.Origins[0].Enabled
+		}),
+	).Return(sampleOriginGroup(testOriginGroupName), nil)
+
+	mc.OriginGroups.On("Get", mock.Anything, int64(testOriginGroupID)).
+		Return(sampleOriginGroup(testOriginGroupName), nil)
+
+	config := originGroupConfig(testOriginGroupName)
+	config["origin"] = []interface{}{
+		map[string]interface{}{"source": testOriginSource},
+	}
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "origin without enabled is sent as enabled",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: config,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"origin.#": "1",
+			})
+		},
+	}
+}
+
+func originGroupCreateKeepsDisabledOriginCase() support.ResourceCase[*cdnmock.MockedCDN] {
+	mc := cdnmock.NewMockedCDN()
+
+	const disabledSource = "disabled.example.com"
+
+	group := sampleOriginGroup(testOriginGroupName)
+	group.Origins = append(group.Origins, origingroups.Origin{
+		ID: 12, Source: disabledSource, Enabled: false, Backup: false,
+	})
+
+	mc.OriginGroups.On("Create", mock.Anything,
+		mock.MatchedBy(func(req *origingroups.GroupRequest) bool {
+			if len(req.Origins) != 2 {
+				return false
+			}
+
+			enabled := map[string]bool{}
+			for _, o := range req.Origins {
+				enabled[o.Source] = o.Enabled
+			}
+
+			return enabled[testOriginSource] && !enabled[disabledSource]
+		}),
+	).Return(group, nil)
+
+	mc.OriginGroups.On("Get", mock.Anything, int64(testOriginGroupID)).Return(group, nil)
+
+	config := originGroupConfig(testOriginGroupName)
+	config["origin"] = []interface{}{
+		map[string]interface{}{"source": testOriginSource},
+		map[string]interface{}{"source": disabledSource, "enabled": false},
+	}
+
+	return support.ResourceCase[*cdnmock.MockedCDN]{
+		Name:      "explicitly disabled origin stays disabled next to a default one",
+		Op:        support.OpApply,
+		Prepare:   func() *cdnmock.MockedCDN { return mc },
+		NewConfig: config,
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cdnmock.MockedCDN) {
+			support.RequireNoDiags(t, diags)
+			support.RequireStateAttrs(t, state, map[string]string{
+				"origin.#": "2",
+			})
+		},
+	}
+}
+
 func TestIntegrationOriginGroup_TableDriven(t *testing.T) {
 	t.Parallel()
 
@@ -511,7 +593,60 @@ func TestIntegrationOriginGroup_TableDriven(t *testing.T) {
 		originGroupReadNotFoundCase(),
 		originGroupDeleteNotFoundCase(),
 		originGroupCreateReadNotFoundKeepsIDCase(),
+		originGroupCreateWithoutEnabledCase(),
+		originGroupCreateKeepsDisabledOriginCase(),
 	}
 
 	support.RunResourceCases(t, resource, cases, support.DispatchCase[*cdnmock.MockedCDN])
+}
+
+func TestIntegrationOriginGroup_EnabledOmittedInConfig(t *testing.T) {
+	t.Parallel()
+
+	resource := cdnResource(t, "edgecenter_cdn_origingroup")
+
+	cases := []struct {
+		name          string
+		stateEnabled  bool
+		configEnabled interface{}
+		wantChange    bool
+	}{
+		{name: "enabled origin in state plans no change", stateEnabled: true},
+		{name: "disabled origin in state is planned to be enabled", stateEnabled: false, wantChange: true},
+		{name: "explicitly disabled origin plans no change", stateEnabled: false, configEnabled: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			state := originGroupConfig(testOriginGroupName)
+			state["origin"] = []interface{}{
+				map[string]interface{}{"source": testOriginSource, "enabled": tc.stateEnabled, "backup": false},
+			}
+
+			origin := map[string]interface{}{"source": testOriginSource}
+			if tc.configEnabled != nil {
+				origin["enabled"] = tc.configEnabled
+			}
+			config := originGroupConfig(testOriginGroupName)
+			config["origin"] = []interface{}{origin}
+
+			current := support.NewState(t, resource, state, fmt.Sprintf("%d", testOriginGroupID))
+
+			diff, err := resource.Diff(context.Background(), current, terraform.NewResourceConfigRaw(config), nil)
+			require.NoError(t, err)
+
+			changed := false
+			if diff != nil {
+				for key := range diff.Attributes {
+					if strings.HasPrefix(key, "origin.") {
+						changed = true
+					}
+				}
+			}
+
+			require.Equal(t, tc.wantChange, changed, "unexpected origin diff: %v", diff)
+		})
+	}
 }

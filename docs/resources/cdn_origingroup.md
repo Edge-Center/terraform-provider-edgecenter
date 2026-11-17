@@ -67,7 +67,7 @@ Required:
 Optional:
 
 - `backup` (Boolean) If set to "true", this source will not be used until one of the active sources becomes unavailable.
-- `enabled` (Boolean) Enable or disable the source. The source group must contain at least one enabled source.
+- `enabled` (Boolean) Enable or disable the source. The source group must contain at least one enabled source. Defaults to `true`.
 
 Read-Only:
 
