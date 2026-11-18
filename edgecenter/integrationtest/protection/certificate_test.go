@@ -3,6 +3,7 @@
 package protection_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -61,6 +62,32 @@ func certParent() *protectionSDK.Resource {
 	}
 }
 
+func certWireBody(t *testing.T, ssl map[string]interface{}) string {
+	t.Helper()
+
+	body := map[string]interface{}{
+		"active":                       true,
+		"feature_multiple_origins":     true,
+		"feature_wildcard_aliases":     true,
+		"is_redirect_to_https_enabled": true,
+		"service_https2http":           1,
+		"service_iphash":               1,
+		"service_geoip_mode":           2,
+		"service_geoip_list":           "RU,DE",
+		"service_wwwredir":             1,
+		"tls_enabled":                  []string{"1.2", "1.3"},
+		"is_waf_enabled":               true,
+	}
+	for key, value := range ssl {
+		body[key] = value
+	}
+
+	raw, err := json.Marshal(body)
+	require.NoError(t, err)
+
+	return string(raw)
+}
+
 func certCreateCase() support.ResourceCase[*protectionmock.MockedProtection] {
 	mc := protectionmock.NewMockedProtection()
 
@@ -94,6 +121,11 @@ func certCreateCase() support.ResourceCase[*protectionmock.MockedProtection] {
 
 			require.NotNil(t, sent.SSLType)
 			require.Equal(t, "custom", *sent.SSLType)
+			body, err := json.Marshal(sent)
+			require.NoError(t, err)
+			require.JSONEq(t, certWireBody(t, map[string]interface{}{
+				"ssl_type": "custom", "service_ssl_crt": certBody, "service_ssl_key": certKey,
+			}), string(body))
 			require.NotNil(t, sent.SSLCert)
 			require.Equal(t, certBody, *sent.SSLCert)
 			require.NotNil(t, sent.SSLKey)
@@ -135,6 +167,9 @@ func certCreateLetsEncryptCase() support.ResourceCase[*protectionmock.MockedProt
 			require.NotNil(t, sent)
 			require.NotNil(t, sent.SSLType)
 			require.Equal(t, "le", *sent.SSLType)
+			body, err := json.Marshal(sent)
+			require.NoError(t, err)
+			require.JSONEq(t, certWireBody(t, map[string]interface{}{"ssl_type": "le"}), string(body))
 			require.Nil(t, sent.SSLCert)
 			require.Nil(t, sent.SSLKey)
 
@@ -370,6 +405,9 @@ func certDeleteCase() support.ResourceCase[*protectionmock.MockedProtection] {
 
 			require.NotNil(t, sent)
 			require.Nil(t, sent.SSLType)
+			body, err := json.Marshal(sent)
+			require.NoError(t, err)
+			require.JSONEq(t, certWireBody(t, map[string]interface{}{"ssl_type": nil}), string(body))
 			require.Nil(t, sent.SSLCert)
 			require.Nil(t, sent.SSLKey)
 			require.True(t, sent.Active)

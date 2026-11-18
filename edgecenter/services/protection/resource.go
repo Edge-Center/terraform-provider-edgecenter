@@ -343,14 +343,9 @@ func resourceProtectionResourceUpdate(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	result, _, err := client.Resources.Get(ctx, id)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	var req protectionSDK.ResourceUpdateRequest
 
-	req.SSLType = result.SSLType
+	req.OmitSSLType = true
 
 	tlsEnabled := d.Get(ProtectionResourceSchemaTLS).(*schema.Set).List()
 	req.TLSEnabled = make([]string, len(tlsEnabled))

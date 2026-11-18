@@ -10,7 +10,7 @@ require (
 	github.com/Edge-Center/edgecentercloud-go v0.1.11
 	github.com/Edge-Center/edgecentercloud-go/v2 v2.7.4
 	github.com/Edge-Center/edgecenteredgemon-go v0.2.0
-	github.com/Edge-Center/edgecenterprotection-go v0.2.0
+	github.com/Edge-Center/edgecenterprotection-go v0.2.1
 	github.com/connerdouglass/go-retry v1.0.1
 	github.com/gruntwork-io/terratest v1.0.1
 	github.com/hashicorp/go-cty v1.5.0
