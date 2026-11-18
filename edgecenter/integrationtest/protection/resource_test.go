@@ -3,6 +3,7 @@
 package protection_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -318,21 +319,26 @@ func ddosUpdateCase() support.ResourceCase[*protectionmock.MockedProtection] {
 	mc := protectionmock.NewMockedProtection()
 
 	var sent *protectionSDK.ResourceUpdateRequest
+	var calls []string
 
 	updated := ddosRemote()
 	updated.WAF = false
 
-	mc.Resources.On("Get", mock.Anything, resourceID).Return(ddosRemote(), nil, nil).Once()
 	mc.Resources.On("Update", mock.Anything, resourceID, mock.Anything).
-		Run(func(args mock.Arguments) { sent = args.Get(2).(*protectionSDK.ResourceUpdateRequest) }).
+		Run(func(args mock.Arguments) {
+			calls = append(calls, "Update")
+			sent = args.Get(2).(*protectionSDK.ResourceUpdateRequest)
+		}).
 		Return(updated, nil, nil)
-	mc.Resources.On("Get", mock.Anything, resourceID).Return(updated, nil, nil)
+	mc.Resources.On("Get", mock.Anything, resourceID).
+		Run(func(mock.Arguments) { calls = append(calls, "Get") }).
+		Return(updated, nil, nil)
 
 	config := ddosConfig()
 	config[protectionsvc.ProtectionResourceSchemaWAF] = false
 
 	return support.ResourceCase[*protectionmock.MockedProtection]{
-		Name:         "update re-reads the resource first and carries the current ssl type over",
+		Name:         "update sends the settings without the ssl type and reads the resource only afterwards",
 		Op:           support.OpApply,
 		Prepare:      func() *protectionmock.MockedProtection { return mc },
 		CurrentID:    resourceIDStr,
@@ -342,9 +348,13 @@ func ddosUpdateCase() support.ResourceCase[*protectionmock.MockedProtection] {
 			support.RequireNoDiags(t, diags)
 
 			require.NotNil(t, sent)
-			require.NotNil(t, sent.SSLType)
-			require.Equal(t, "custom", *sent.SSLType)
-			require.False(t, sent.WAF)
+			body, err := json.Marshal(sent)
+			require.NoError(t, err)
+			require.JSONEq(t, `{"active":true,"feature_multiple_origins":true,"feature_wildcard_aliases":true,`+
+				`"is_redirect_to_https_enabled":true,"service_https2http":1,"service_iphash":1,"service_geoip_mode":2,`+
+				`"service_geoip_list":"DE,RU","service_wwwredir":1,"tls_enabled":["1.2","1.3"],"is_waf_enabled":false}`,
+				string(body))
+			require.Equal(t, []string{"Update", "Get"}, calls)
 
 			support.RequireStateID(t, state, resourceIDStr)
 			support.RequireStateAttrs(t, state, map[string]string{
@@ -357,7 +367,6 @@ func ddosUpdateCase() support.ResourceCase[*protectionmock.MockedProtection] {
 func ddosUpdateAPIFailureCase() support.ResourceCase[*protectionmock.MockedProtection] {
 	mc := protectionmock.NewMockedProtection()
 
-	mc.Resources.On("Get", mock.Anything, resourceID).Return(ddosRemote(), nil, nil)
 	mc.Resources.On("Update", mock.Anything, resourceID, mock.Anything).
 		Return(nil, nil, fmt.Errorf("api error: tls list is not allowed"))
 
