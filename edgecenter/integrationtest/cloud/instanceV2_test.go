@@ -15,10 +15,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support"
 	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud"
 	cloudmock "github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/integrationtest/support/cloud/mock"
+	"github.com/Edge-Center/terraform-provider-edgecenter/edgecenter/provider"
 )
 
 const (
@@ -29,11 +29,11 @@ const (
 
 func sampleInstanceV2(id, name, flavorID, status, vmState string) *edgecloud.Instance {
 	return &edgecloud.Instance{
-		ID:     id,
-		Name:   name,
-		Flavor: &edgecloud.Flavor{FlavorID: flavorID, FlavorName: "g1-standard-2-4", RAM: 4096, VCPUS: 2},
-		Status: status,
-		VMState: vmState,
+		ID:        id,
+		Name:      name,
+		Flavor:    &edgecloud.Flavor{FlavorID: flavorID, FlavorName: "g1-standard-2-4", RAM: 4096, VCPUS: 2},
+		Status:    status,
+		VMState:   vmState,
 		ProjectID: testProjectID,
 		RegionID:  testRegionID,
 		Metadata:  edgecloud.Metadata{},
@@ -42,13 +42,13 @@ func sampleInstanceV2(id, name, flavorID, status, vmState string) *edgecloud.Ins
 
 func sampleInstV2Volume(id, name string, size int, bootable bool) edgecloud.Volume {
 	return edgecloud.Volume{
-		ID:       id,
-		Name:     name,
-		Size:     size,
+		ID:         id,
+		Name:       name,
+		Size:       size,
 		VolumeType: edgecloud.VolumeTypeStandard,
-		Bootable: bootable,
-		ProjectID: testProjectID,
-		RegionID:  testRegionID,
+		Bootable:   bootable,
+		ProjectID:  testProjectID,
+		RegionID:   testRegionID,
 	}
 }
 
@@ -201,6 +201,72 @@ func instanceV2ReadCase(instID string) support.ResourceCase[*cloudmock.MockedClo
 	}
 }
 
+func instanceV2ReadManagedMetadataCase(instID string) support.ResourceCase[*cloudmock.MockedCloud] {
+	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
+	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
+
+	mc.Instances.On("Get", mock.Anything, instID).
+		Return(sampleInstanceV2(instID, "test-instance", "g1-standard-2-4", "ACTIVE", "active"), nil, nil)
+
+	mc.Volumes.On("List", mock.Anything, mock.Anything).
+		Return([]edgecloud.Volume{
+			sampleInstV2Volume(testInstV2VolID, "boot-volume", 10, true),
+		}, nil, nil)
+
+	mc.Instances.On("InterfaceList", mock.Anything, instID).
+		Return([]edgecloud.InstancePortInterface{
+			sampleInstV2ExtIface("port-1", "net-ext"),
+		}, nil, nil)
+
+	mc.Instances.On("MetadataList", mock.Anything, instID).
+		Return([]edgecloud.MetadataDetailed{
+			{Key: "managed", Value: "new"},
+			{Key: "unmanaged", Value: "must-not-be-in-state"},
+			{Key: "readonly", Value: "retained-in-state", ReadOnly: true},
+		}, nil, nil).Once()
+
+	return support.ResourceCase[*cloudmock.MockedCloud]{
+		Name:      "read managed metadata",
+		Op:        support.OpRead,
+		Prepare:   func() *cloudmock.MockedCloud { return mc },
+		CurrentID: instID,
+		CurrentState: cloud.Merge(
+			cloud.WithProjectRegion(testProjectID, testRegionID),
+			cloud.WithName("test-instance"),
+			map[string]interface{}{
+				"flavor_id": "g1-standard-2-4",
+				"boot_volumes": []interface{}{
+					map[string]interface{}{
+						"volume_id":      testInstV2VolID,
+						"boot_index":     0,
+						"attachment_tag": "",
+					},
+				},
+				"interfaces": []interface{}{
+					map[string]interface{}{
+						"type":       "external",
+						"is_default": true,
+					},
+				},
+				"metadata": map[string]interface{}{
+					"managed":  "old",
+					"deleted":  "old",
+					"readonly": "old",
+				},
+			},
+		),
+		Check: func(t *testing.T, state *terraform.InstanceState, diags diag.Diagnostics, _ *cloudmock.MockedCloud) {
+			support.RequireNoDiags(t, diags)
+			require.Equal(t, "new", state.Attributes["metadata.managed"])
+			_, hasDeleted := state.Attributes["metadata.deleted"]
+			require.False(t, hasDeleted, "deleted metadata must be removed from state")
+			_, hasUnmanaged := state.Attributes["metadata.unmanaged"]
+			require.False(t, hasUnmanaged, "unmanaged metadata must not be added to state")
+			require.Equal(t, "retained-in-state", state.Attributes["metadata.readonly"])
+		},
+	}
+}
+
 func instanceV2ImportExternalPortCase(instID, caseName, portName, wantType, wantReservedPortID string) support.ResourceCase[*cloudmock.MockedCloud] {
 	mc := cloudmock.NewMockedCloud(testProjectID, testRegionID)
 	cloudmock.ExpectProjectResolutionTimes(mc, testProjectID, 1)
@@ -219,7 +285,10 @@ func instanceV2ImportExternalPortCase(instID, caseName, portName, wantType, want
 		Return([]edgecloud.InstancePortInterface{externalIface}, nil, nil)
 
 	mc.Instances.On("MetadataList", mock.Anything, instID).
-		Return([]edgecloud.MetadataDetailed{}, nil, nil)
+		Return([]edgecloud.MetadataDetailed{
+			{Key: "configured", Value: "value"},
+			{Key: "service", Value: "internal", ReadOnly: true},
+		}, nil, nil)
 
 	return support.ResourceCase[*cloudmock.MockedCloud]{
 		Name:         caseName,
@@ -241,6 +310,9 @@ func instanceV2ImportExternalPortCase(instID, caseName, portName, wantType, want
 			require.Equal(t, wantType, ifaces["type"])
 			require.Equal(t, wantReservedPortID, ifaces["reserved_fixed_ip_port_id"])
 			require.Equal(t, "port-external", ifaces["port_id"])
+			require.Equal(t, "value", state.Attributes["metadata.configured"])
+			_, hasReadOnly := state.Attributes["metadata.service"]
+			require.False(t, hasReadOnly, "read-only metadata must not be imported")
 		},
 	}
 }
@@ -460,6 +532,7 @@ func TestIntegrationInstanceV2_TableDriven(t *testing.T) {
 	cases := []support.ResourceCase[*cloudmock.MockedCloud]{
 		instanceV2CreateCase(testInstanceV2ID),
 		instanceV2ReadCase(testInstanceV2ID),
+		instanceV2ReadManagedMetadataCase(testInstanceV2ID),
 		instanceV2ImportExternalPortCase(testInstanceV2ID, "import instance with external reserved fixed IP",
 			"reserved_fixed_ip_203.0.113.10", "reserved_fixed_ip", "port-external"),
 		instanceV2ImportExternalPortCase(testInstanceV2ID, "import external interface of instance named after reserved fixed IP",

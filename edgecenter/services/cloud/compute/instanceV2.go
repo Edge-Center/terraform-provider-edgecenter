@@ -573,33 +573,25 @@ func resourceInstanceReadV2(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	// We can't use a MetadataField to check if a state file is availabl,e because the MetadataField is optional.
-	// So we will use the required InstanceInterfacesField.
 	if len(ifs) == 0 {
-		newMetadata, err := prepareMetadataFromAPI(ctx, clientV2, instanceID)
+		metadata, err := readImportMetadata(ctx, clientV2, instanceID)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		if len(newMetadata) != 0 {
-			if err = d.Set(edgecenter.MetadataField, newMetadata); err != nil {
-				return diag.FromErr(err)
-			}
+		if err = d.Set(edgecenter.MetadataField, metadata); err != nil {
+			return diag.FromErr(err)
 		}
-	} else {
-		if metadataRaw, ok := d.GetOk(edgecenter.MetadataField); ok {
-			metadata := metadataRaw.(map[string]interface{})
-			newMetadata := make(map[string]interface{}, len(metadata))
-			for k := range metadata {
-				md, _, err := clientV2.Instances.MetadataGetItem(ctx, instanceID, &edgecloudV2.MetadataItemOptions{Key: k})
-				if err != nil {
-					return diag.Errorf("cannot get metadata with key: %s. Error: %s", instanceID, err)
-				}
-				newMetadata[k] = md.Value
-			}
-			if err = d.Set(edgecenter.MetadataField, newMetadata); err != nil {
-				return diag.FromErr(err)
-			}
+	} else if metadataRaw, ok := d.GetOk(edgecenter.MetadataField); ok {
+		managedKeys, err := edgecenter.MapInterfaceToMapString(metadataRaw)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		metadata, err := readManagedMetadata(ctx, clientV2, instanceID, *managedKeys)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if err = d.Set(edgecenter.MetadataField, metadata); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
