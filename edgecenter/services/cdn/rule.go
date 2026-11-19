@@ -658,6 +658,7 @@ var locationOptionsSchema = &schema.Schema{
 						"excepted": {
 							Type:        schema.TypeSet,
 							Elem:        &schema.Schema{Type: schema.TypeString},
+							Set:         hashHeaderName,
 							Required:    true,
 							Description: "Depending on the value of the \"mode\" field, list the HTTP headers that will be either shown or hidden in the response. HTTP headers, that can't be hidden from the response: Connection, Content-Length, Content-Type, Date, Server.",
 						},
@@ -1048,7 +1049,9 @@ func resourceCDNRuleRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("origin_group", result.OriginGroup)
 	d.Set("origin_protocol", pointer.GetString(result.OverrideOriginProtocol))
 	d.Set("weight", result.Weight)
-	if err := d.Set("options", locationOptionsToList(result.Options)); err != nil {
+	options := locationOptionsToList(result.Options)
+	dropUnlistedAlwaysShownHeaders(options, d)
+	if err := d.Set("options", options); err != nil {
 		return diag.FromErr(err)
 	}
 
