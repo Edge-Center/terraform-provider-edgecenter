@@ -1226,22 +1226,59 @@ func prepareDataVolumesDataFromAPI(instanceVolumes []edgecloudV2.Volume) []inter
 	return enrichedDataVolumesData
 }
 
-func prepareMetadataFromAPI(ctx context.Context, clientV2 *edgecloudV2.Client, instanceID string) (map[string]interface{}, error) {
-	newMetadata := make(map[string]interface{})
+func filterManagedMetadata(mds []edgecloudV2.MetadataDetailed, managedKeys map[string]struct{}) map[string]interface{} {
+	result := make(map[string]interface{}, len(managedKeys))
+
+	managedValues := make(map[string]string, len(mds))
+	for _, md := range mds {
+		managedValues[md.Key] = md.Value
+	}
+
+	for key := range managedKeys {
+		if value, ok := managedValues[key]; ok {
+			result[key] = value
+		}
+	}
+
+	return result
+}
+
+func filterWritableMetadata(mds []edgecloudV2.MetadataDetailed) map[string]interface{} {
+	result := make(map[string]interface{}, len(mds))
+	for _, md := range mds {
+		if !md.ReadOnly {
+			result[md.Key] = md.Value
+		}
+	}
+
+	return result
+}
+
+func readManagedMetadata(ctx context.Context, clientV2 *edgecloudV2.Client, instanceID string, metadata map[string]string) (map[string]interface{}, error) {
+	managedKeys := make(map[string]struct{})
+	for key := range metadata {
+		managedKeys[key] = struct{}{}
+	}
+
+	if len(managedKeys) == 0 {
+		return map[string]interface{}{}, nil
+	}
 
 	mds, _, err := clientV2.Instances.MetadataList(ctx, instanceID)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get metadata list. Error: %s", err.Error())
 	}
 
-	for _, md := range mds {
-		if md.ReadOnly {
-			continue
-		}
-		newMetadata[md.Key] = md.Value
+	return filterManagedMetadata(mds, managedKeys), nil
+}
+
+func readImportMetadata(ctx context.Context, clientV2 *edgecloudV2.Client, instanceID string) (map[string]interface{}, error) {
+	mds, _, err := clientV2.Instances.MetadataList(ctx, instanceID)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get metadata list. Error: %s", err.Error())
 	}
 
-	return newMetadata, nil
+	return filterWritableMetadata(mds), nil
 }
 
 // getInstance retrieves a Instance from the edge cloud service.
