@@ -680,6 +680,7 @@ var resourceOptionsSchema = &schema.Schema{
 						"excepted": {
 							Type:        schema.TypeSet,
 							Elem:        &schema.Schema{Type: schema.TypeString},
+							Set:         hashHeaderName,
 							Required:    true,
 							Description: "Depending on the value of the \"mode\" field, list the HTTP headers that will be either shown or hidden in the response. HTTP headers, that can't be hidden from the response: Connection, Content-Length, Content-Type, Date, Server.",
 						},
@@ -1176,7 +1177,9 @@ func resourceCDNResourceRead(ctx context.Context, d *schema.ResourceData, m inte
 	d.Set("status", result.Status)
 	d.Set("active", result.Active)
 	d.Set("ssl_le_enabled", result.SSLLEEnabled)
-	if err := d.Set("options", resourceOptionsToList(result.Options)); err != nil {
+	options := resourceOptionsToList(result.Options)
+	dropUnlistedAlwaysShownHeaders(options, d)
+	if err := d.Set("options", options); err != nil {
 		return diag.FromErr(err)
 	}
 
